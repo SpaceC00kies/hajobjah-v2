@@ -1,26 +1,24 @@
-import { 
-  getAuth, 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signOut, 
-  onAuthStateChanged, 
-  updateProfile 
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  updateProfile,
+  onAuthStateChanged,
+  User,
 } from 'firebase/auth';
 
-import { 
-  getFirestore, 
-  collection, 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc 
+import {
+  getFirestore,
+  collection,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
 } from 'firebase/firestore';
 
-import { 
-  getStorage 
-} from 'firebase/storage';
-
-import { app } from '../firebase'; // Make sure this points to your firebase.ts file
+import { getStorage } from 'firebase/storage';
+import { app } from '../firebase'; // make sure the path is correct
 import { logFirebaseError } from '../firebase/logging';
 
 // Firebase services
@@ -28,8 +26,8 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 
-// Create new user
-export async function registerUser(email: string, password: string) {
+// Register
+export async function registerUser(email: string, password: string): Promise<User> {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     return userCredential.user;
@@ -40,7 +38,7 @@ export async function registerUser(email: string, password: string) {
 }
 
 // Login
-export async function loginUser(email: string, password: string) {
+export async function loginUser(email: string, password: string): Promise<User> {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     return userCredential.user;
@@ -51,7 +49,7 @@ export async function loginUser(email: string, password: string) {
 }
 
 // Logout
-export async function logoutUser() {
+export async function logoutUser(): Promise<void> {
   try {
     await signOut(auth);
   } catch (error) {
@@ -60,23 +58,17 @@ export async function logoutUser() {
   }
 }
 
-// Get user profile
-export async function getUserProfile(uid: string) {
+// Update name
+export async function updateUserProfile(user: User, name: string): Promise<void> {
   try {
-    const userDoc = await getDoc(doc(db, 'users', uid));
-    return userDoc.exists() ? userDoc.data() : null;
-  } catch (error) {
-    logFirebaseError('getUserProfile', error);
-    throw error;
-  }
-}
-
-// Update user profile
-export async function updateUserProfile(uid: string, profileData: any) {
-  try {
-    await updateDoc(doc(db, 'users', uid), profileData);
+    await updateProfile(user, { displayName: name });
   } catch (error) {
     logFirebaseError('updateUserProfile', error);
     throw error;
   }
+}
+
+// On auth state change
+export function listenToAuthChange(callback: (user: User | null) => void) {
+  return onAuthStateChanged(auth, callback);
 }
