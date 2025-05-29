@@ -1,5 +1,5 @@
 
-
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db, storage } from '../firebase'; // Real Firebase init
 import { logFirebaseError } from '../firebase/logging';
 import type { User, Job, HelperProfile, WebboardPost, WebboardComment, SiteConfig, Interaction, UserRole as AppUserRole } from '../types';
@@ -145,7 +145,7 @@ export const signInWithEmailPasswordService = async (email, password): Promise<U
 export const signUpWithEmailPasswordService = async (userData: Omit<User, 'id' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'role' | 'isMuted'> & { password: string }): Promise<User | null> => {
   if (USE_FIREBASE) {
     try {
-      const userCredential = await auth.createUserWithEmailAndPassword(userData.email, userData.password);
+    const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
       if (userCredential.user) {
         const { password, ...userToSaveRest } = userData;
         // Data to be sent to Firestore, using FieldValue for timestamps
