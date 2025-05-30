@@ -266,55 +266,13 @@ export const toggleVerifiedExperienceService = async () => {};
 export const logHelperContactInteractionService = async () => {};
 export const setUserRoleService = async () => {};
 export const updateWebboardPostService = async () => ({});
-// ... (other functions in firebaseService.ts)
-
 export const addWebboardPostService = async (postData, currentUser) => {
   try {
-    // Base post data without the image initially
-    const newPostPayload: any = { // Using 'any' temporarily for easier object construction here
+    // 1. Create the base payload without the image field initially
+    const newPostPayload: any = { 
       title: postData.title,
       body: postData.body,
       category: postData.category,
-      userId: currentUser.id,
-      username: currentUser.username,
-      authorPhoto: currentUser.photo || '', // Default to empty string if no user photo
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      likes: [],
-      isPinned: false,
-    };
-
-    // Conditionally add the image field ONLY if it exists (is not undefined)
-    if (postData.image !== undefined) {
-      newPostPayload.image = postData.image;
-    }
-
-    const docRef = await addDoc(collection(db, 'webboardPosts'), newPostPayload);
-
-    // Construct the object to return, ensuring it matches WebboardPost structure
-    // We'll build the returned object based on what was actually sent to Firestore
-    const returnedPostData = { ...newPostPayload };
-    if (postData.image === undefined) {
-      // If image was not part of payload, ensure it's not in the returned object either,
-      // or explicitly set to undefined if your local state expects it.
-      // For consistency with types.ts (image?: string), it's fine if it's not present.
-    }
-
-
-    return {
-      id: docRef.id,
-      ...returnedPostData // This will include 'image' only if it was added
-    };
-  } catch (error) {
-    console.error('Error adding webboard post:', error); // This will log the detailed error to your console
-    throw error; // This re-throws the error so App.tsx can catch it and show your alert
-  }
-};
-
-// ... (other functions in firebaseService.ts)
-  try {
-    const newPost = {
-      ...postData,
       userId: currentUser.id,
       username: currentUser.username,
       authorPhoto: currentUser.photo || '',
@@ -323,19 +281,26 @@ export const addWebboardPostService = async (postData, currentUser) => {
       likes: [],
       isPinned: false,
     };
+
+    // 2. Conditionally add the image field to newPostPayload
+    //    This is the crucial part of the fix.
+    if (postData.image !== undefined) {
+      newPostPayload.image = postData.image;
+    }
+
+    // 3. Send newPostPayload to Firebase (which now only includes 'image' if it was defined)
+    const docRef = await addDoc(collection(db, 'webboardPosts'), newPostPayload);
     
-    const docRef = await addDoc(collection(db, 'webboardPosts'), newPost);
-    
+    // 4. Return the saved data, including the ID from Firebase
     return {
       id: docRef.id,
-      ...newPost
+      ...newPostPayload // This will correctly reflect what was sent
     };
   } catch (error) {
-    console.error('Error adding webboard post:', error);
-    throw error;
+    console.error('Error adding webboard post:', error); // For debugging in browser console
+    throw error; // So App.tsx can catch it and show your "เกิดข้อผิดพลาด" alert
   }
 };
-export const addWebboardCommentService = async () => ({});
 export const updateWebboardCommentService = async () => ({});
 export const deleteWebboardCommentService = async () => {};
 export const toggleWebboardPostLikeService = async () => ({});
