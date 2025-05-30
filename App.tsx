@@ -484,4 +484,4 @@ const App: React.FC = () => {
   const handleTogglePinnedJob = createToggleHandler(setJobs, firebaseService.togglePinnedJobService, 'isPinned');
   const handleToggleHiredJobForUserOrAdmin = createToggleHandler(setJobs, firebaseService.toggleHiredJobService, 'isHired');
 
-  const handleToggleSuspiciousHelperProfile = createToggleHandler(set
+  const handleToggleSuspiciousHelperProfile = createToggleHandler(setHelperProfiles, firebaseService.toggleSuspiciousHelperProfileService, 'isSuspicious');
