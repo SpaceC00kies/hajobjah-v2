@@ -1178,7 +1178,7 @@ const App: React.FC = () => {
   return (
     <>
       {renderMobileMenu()}
-      <div className="flex flex-col flex-1 bg-neutral-light min-h-screen">
+      <div className="relative z-10 flex flex-col flex-1 bg-neutral-light min-h-screen">
         {renderHeader()}
         <main className="flex-1 overflow-y-auto pt-20 sm:pt-24 pb-16">
           {currentViewContent}
