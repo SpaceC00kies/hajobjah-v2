@@ -1193,6 +1193,8 @@ const App: React.FC = () => {
                 {feedbackSubmissionMessage}
             </div>
         )}
+
+        {/*
         <footer className="bg-headerBlue-DEFAULT text-neutral-dark p-4 mt-auto font-normal flex flex-col items-center text-center sm:text-left">
           <div className="container mx-auto flex flex-row flex-wrap justify-center items-center gap-x-1 sm:gap-x-2 gap-y-1 text-sm leading-relaxed">
               <button onClick={() => navigateTo(View.AboutUs)} className="font-sans px-1.5 py-0.5 sm:px-2 sm:py-1 hover:underline">เกี่ยวกับเรา</button>
@@ -1203,6 +1205,7 @@ const App: React.FC = () => {
                   className="font-sans px-1.5 py-0.5 sm:px-2 sm:py-1 hover:underline">อยากให้เราปรับปรุงอะไร?</button>
           </div>
         </footer>
+         */}
       </div>
     </>
   );
