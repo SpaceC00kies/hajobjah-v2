@@ -18,7 +18,9 @@ import {
 } from 'firebase/firestore';
 
 import { getStorage } from 'firebase/storage';
-import { app } from '../firebase'; // make sure the path is correct
+
+// ✅ FIXED: Correct relative path to firebase.ts
+import { app } from '../firebase';
 import { logFirebaseError } from '../firebase/logging';
 
 // Firebase services
