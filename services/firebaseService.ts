@@ -191,7 +191,29 @@ export const signUpWithEmailPasswordService = async (userData) => {
 // Sign in existing user
 export const signInWithEmailPasswordService = async (loginIdentifier, password) => {
   try {
-    const result = await signInWithEmailAndPassword(auth, loginIdentifier, password);
+    let email = loginIdentifier;
+    
+    // Check if user entered username instead of email
+    if (!loginIdentifier.includes('@')) {
+      // This is a username, we need to find the email
+      const usersSnapshot = await getDocs(collection(db, 'users'));
+      let foundEmail = null;
+      
+      usersSnapshot.docs.forEach(doc => {
+        if (doc.data().username === loginIdentifier) {
+          foundEmail = doc.data().email;
+        }
+      });
+      
+      if (!foundEmail) {
+        throw new Error('ไม่พบชื่อผู้ใช้นี้');
+      }
+      
+      email = foundEmail;
+    }
+    
+    // Now login with the email
+    const result = await signInWithEmailAndPassword(auth, email, password);
     const user = await getCurrentUserService();
     return user;
   } catch (error) {
