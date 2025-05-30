@@ -1636,8 +1636,8 @@ const App: React.FC = () => {
                 navigateTo(View.PostJob); 
               }}
               variant="primary"
-              size="lg"
-              className="w-full text-base md:text-lg"
+              size="md"
+              className="w-full"
             >
               <span className="flex items-center justify-center gap-2">
                 <span>📢</span>
@@ -1648,8 +1648,8 @@ const App: React.FC = () => {
               onClick={() => navigateTo(View.FindHelpers)}
               variant="outline"
               colorScheme="primary"
-              size="lg"
-              className="w-full text-base md:text-lg"
+              size="md"
+              className="w-full"
             >
               <span className="flex items-center justify-center gap-2">
                 <span>🔍</span>
@@ -1668,8 +1668,8 @@ const App: React.FC = () => {
                 navigateTo(View.OfferHelp); 
               }}
               variant="secondary"
-              size="lg"
-              className="w-full text-base md:text-lg"
+              size="md"
+              className="w-full"
             >
               <span className="flex items-center justify-center gap-2">
                 <span>🙋</span>
@@ -1680,8 +1680,8 @@ const App: React.FC = () => {
               onClick={() => navigateTo(View.FindJobs)}
               variant="outline"
               colorScheme="secondary"
-              size="lg"
-              className="w-full text-base md:text-lg"
+              size="md"
+              className="w-full"
             >
               <span className="flex items-center justify-center gap-2">
                 <span>👀</span>
@@ -1692,7 +1692,7 @@ const App: React.FC = () => {
         </div>
       </div>
       <div className="mt-8 text-center font-mono text-xs text-gray-400">
-        HJJ v2 Beta
+        HJJ v2
       </div>
     </div>
   );

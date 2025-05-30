@@ -75,7 +75,7 @@ export const Button: React.FC<ButtonProps> = ({
       sizeStyle = 'py-1.5 px-4 text-xs sm:py-2 sm:px-4 sm:text-sm';
       break;
     case 'md':
-      sizeStyle = 'py-2.5 px-6 text-base';
+      sizeStyle = 'py-2 px-4 text-sm sm:py-2.5 sm:px-6 sm:text-base'; // Adjusted for responsiveness
       break;
     case 'lg':
       sizeStyle = 'py-3 px-6 text-lg';
