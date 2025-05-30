@@ -15,7 +15,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
       {/* Modal content box: Added max-h-[90vh] and overflow-y-auto */}
       <div className="bg-white dark:bg-dark-cardBg p-6 rounded-lg shadow-xl w-full max-w-lg transform transition-all max-h-[90vh] overflow-y-auto">
         {/* Sticky header for the modal */}
-        <div className="flex justify-between items-center mb-4 sticky top-0 bg-white dark:bg-dark-cardBg py-4 z-10">
+        <div className="flex justify-between items-center mb-4 py-4">
           <h2 className="text-2xl font-sans font-semibold text-neutral-dark dark:text-dark-text">{title}</h2>
           <button
             onClick={onClose}
