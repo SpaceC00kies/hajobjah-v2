@@ -660,14 +660,13 @@ const App: React.FC = () => {
           <>
             {isMobile && (
               <div className={`font-sans font-medium mb-3 py-2 px-4 border-b border-neutral-DEFAULT/50 dark:border-dark-border/50 w-full text-center`}>
-                สวัสดี, @{currentUser.displayName}!
+                  
                 <UserLevelBadge level={displayBadge} size="sm" />
               </div>
             )}
             {!isMobile && (
                <div className={`font-sans font-medium mr-2 text-xs sm:text-sm items-center flex`}>
-                สวัสดี, @{currentUser.displayName}! 🎉
-                <UserLevelBadge level={displayBadge} size="sm" />
+                สวัสดี, @{currentUser.displayName}! 
               </div>
             )}
 
