@@ -13,7 +13,8 @@ import {
   doc,
   getDoc,
   setDoc,
-  updateDoc
+  updateDoc,
+  addDoc,
 } from 'firebase/firestore';
 
 import { auth, db } from '../firebase';
@@ -265,7 +266,30 @@ export const toggleVerifiedExperienceService = async () => {};
 export const logHelperContactInteractionService = async () => {};
 export const setUserRoleService = async () => {};
 export const updateWebboardPostService = async () => ({});
-export const addWebboardPostService = async () => ({});
+export const addWebboardPostService = async (postData, currentUser) => {
+  try {
+    const newPost = {
+      ...postData,
+      userId: currentUser.id,
+      username: currentUser.username,
+      authorPhoto: currentUser.photo || '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      likes: [],
+      isPinned: false,
+    };
+    
+    const docRef = await addDoc(collection(db, 'webboardPosts'), newPost);
+    
+    return {
+      id: docRef.id,
+      ...newPost
+    };
+  } catch (error) {
+    console.error('Error adding webboard post:', error);
+    throw error;
+  }
+};
 export const addWebboardCommentService = async () => ({});
 export const updateWebboardCommentService = async () => ({});
 export const deleteWebboardCommentService = async () => {};
