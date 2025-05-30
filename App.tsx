@@ -839,48 +839,6 @@ const App: React.FC = () => {
     );
   };
 
-  const renderHome = () => (
-    <div className="flex flex-col items-center justify-center pt-3 sm:pt-4 pb-6 px-6 sm:pb-8 sm:px-8 text-center">
-      <h2 className="text-3xl sm:text-4xl font-sans font-medium text-neutral-dark mb-2 tracking-tight leading-snug">
-        ✨ หาจ๊อบจ้า ✨
-      </h2>
-      <p className="text-base sm:text-lg text-neutral-dark max-w-xl leading-relaxed mb-8 font-normal font-serif">
-        เชื่อมคนมีสกิลกับงานที่ใช่ มีใจก็ลองดู ❤︎
-      </p>
-
-      <div className="w-full max-w-3xl grid grid-cols-1 md:grid-cols-2 gap-10">
-        <div className="bg-white p-6 rounded-xl shadow-lg border border-primary/30">
-          <h3 className="text-lg font-sans font-semibold text-primary mb-4">หาคนทำงาน</h3>
-          <div className="space-y-4">
-            <Button
-              onClick={() => {
-                setSourceViewForForm(View.Home);
-                navigateTo(View.PostJob); 
-              }}
-              variant="primary"
-              size="lg"
-              className="w-full text-base md:text-lg"
-            >
-              <span className="flex items-center justify-center gap-2">
-                <span>📢</span>
-                <span>มีงานด่วน? ฝากไว้ตรงนี้</span>
-              </span>
-            </Button>
-            <Button
-              onClick={() => navigateTo(View.FindHelpers)}
-              variant="outline"
-              colorScheme="primary"
-              size="lg"
-              className="w-full text-base md:text-lg"
-            >
-              <span className="flex items-center justify-center gap-2">
-                <span>🔍</span>
-                <span>กำลังหาคนช่วย? ดูโปรไฟล์เลย</span>
-              </span>
-            </Button>
-          </div>
-        </div>
-
         <div className="bg-white p-6 rounded-xl shadow-lg border border-secondary/30">
           <h3 className="text-lg font-sans font-semibold text-secondary-hover mb-4">คนอยากหางาน</h3>
           <div className="space-y-4">
