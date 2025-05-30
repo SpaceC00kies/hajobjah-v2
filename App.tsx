@@ -1192,7 +1192,7 @@ const App: React.FC = () => {
             </div>
         )}
         <footer className="bg-headerBlue-DEFAULT text-neutral-dark p-4 mt-auto font-normal flex flex-col items-center text-center">
-          <div className="container mx-auto flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-x-2 text-sm leading-relaxed">
+          <div className="container mx-auto flex flex-row flex-wrap justify-center items-center gap-x-2 gap-y-1 text-sm leading-relaxed">
             <button 
               onClick={() => navigateTo(View.AboutUs)} 
               className="font-sans px-2 py-1 hover:underline whitespace-nowrap"
