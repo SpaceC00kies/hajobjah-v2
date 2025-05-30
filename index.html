@@ -109,6 +109,21 @@
         flex-direction: column;
       }
     </style>
+    <style>
+      /* iOS fix for footer buttons */
+      @supports (-webkit-touch-callout: none) {
+        footer button {
+          cursor: pointer !important;
+          -webkit-tap-highlight-color: rgba(0,0,0,0.2) !important;
+          touch-action: manipulation !important;
+          min-height: 44px !important;
+        }
+        
+        footer {
+          padding-bottom: 60px !important;
+        }
+      }
+      </style>
 </head>
   <body class="bg-neutral-light font-serif text-neutral-dark">
     <div id="root"></div>

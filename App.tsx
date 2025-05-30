@@ -1193,12 +1193,35 @@ const App: React.FC = () => {
         )}
         <footer className="bg-headerBlue-DEFAULT text-neutral-dark p-4 mt-auto font-normal flex flex-col items-center text-center sm:text-left">
           <div className="container mx-auto flex flex-row flex-wrap justify-center items-center gap-x-1 sm:gap-x-2 gap-y-1 text-sm leading-relaxed">
-              <button onClick={() => navigateTo(View.AboutUs)} className="font-sans px-1.5 py-0.5 sm:px-2 sm:py-1 hover:underline">เกี่ยวกับเรา</button>
-              <span className="text-neutral-medium inline">|</span>
-              <button onClick={() => navigateTo(View.Safety)} className="font-sans px-1.5 py-0.5 sm:px-2 sm:py-1 hover:underline">โปรดอ่านเพื่อความปลอดภัย</button>
-              <span className="text-neutral-medium inline">|</span>
-              <button onClick={() => { setIsFeedbackModalOpen(true); if(feedbackSubmissionStatus === 'error') { setFeedbackSubmissionStatus('idle'); setFeedbackSubmissionMessage(null);}}}
-                  className="font-sans px-1.5 py-0.5 sm:px-2 sm:py-1 hover:underline">อยากให้เราปรับปรุงอะไร?</button>
+          <button 
+  onClick={() => navigateTo(View.AboutUs)} 
+  className="font-sans px-1.5 py-0.5 sm:px-2 sm:py-1 hover:underline"
+  onTouchStart={() => {}}
+>
+  เกี่ยวกับเรา
+</button>
+<span className="text-neutral-medium inline">|</span>
+<button 
+  onClick={() => navigateTo(View.Safety)} 
+  className="font-sans px-1.5 py-0.5 sm:px-2 sm:py-1 hover:underline"
+  onTouchStart={() => {}}
+>
+  โปรดอ่านเพื่อความปลอดภัย
+</button>
+<span className="text-neutral-medium inline">|</span>
+<button 
+  onClick={() => { 
+    setIsFeedbackModalOpen(true); 
+    if(feedbackSubmissionStatus === 'error') { 
+      setFeedbackSubmissionStatus('idle'); 
+      setFeedbackSubmissionMessage(null);
+    }
+  }}
+  className="font-sass px-1.5 py-0.5 sm:px-2 sm:py-1 hover:underline"
+  onTouchStart={() => {}}
+>
+  อยากให้เราปรับปรุงอะไร?
+</button>
           </div>
         </footer>
       </div>
