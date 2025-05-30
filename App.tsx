@@ -838,42 +838,7 @@ const App: React.FC = () => {
       </div>
     );
   };
-
-        <div className="bg-white p-6 rounded-xl shadow-lg border border-secondary/30">
-          <h3 className="text-lg font-sans font-semibold text-secondary-hover mb-4">คนอยากหางาน</h3>
-          <div className="space-y-4">
-            <Button
-              onClick={() => {
-                setSourceViewForForm(View.Home);
-                navigateTo(View.OfferHelp); 
-              }}
-              variant="secondary"
-              size="lg"
-              className="w-full text-base md:text-lg"
-            >
-              <span className="flex items-center justify-center gap-2">
-                <span>🙋</span>
-                <span>ว่างอยู่! พร้อมรับงาน</span>
-              </span>
-            </Button>
-            <Button
-              onClick={() => navigateTo(View.FindJobs)}
-              variant="outline"
-              colorScheme="secondary"
-              size="lg"
-              className="w-full text-base md:text-lg"
-            >
-              <span className="flex items-center justify-center gap-2">
-                <span>👀</span>
-                <span>อยากหางาน? ดูโพสต์งานเลย</span>
-              </span>
-            </Button>
-          </div>
-        </div>
-      </div>
-      <div className="mt-8 text-center font-mono text-xs text-gray-400">
-        HJJ v2 Beta
-      </div>
+  
       const renderHome = () => (
   <div className="flex flex-col items-center justify-center pt-3 sm:pt-4 pb-6 px-6 sm:pb-8 sm:px-8 text-center">
     <h2 className="text-3xl sm:text-4xl font-sans font-medium text-neutral-dark mb-2 tracking-tight leading-snug">
