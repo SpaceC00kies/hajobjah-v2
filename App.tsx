@@ -927,7 +927,6 @@ const App: React.FC = () => {
       </div>
     </div>
     {/* END: New Links Section */}
-
     </div>
   );
 
