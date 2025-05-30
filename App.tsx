@@ -916,6 +916,62 @@ const App: React.FC = () => {
       <div className="mt-8 text-center font-mono text-xs text-gray-400">
         HJJ v2 Beta
       </div>
+      const renderHome = () => (
+  <div className="flex flex-col items-center justify-center pt-3 sm:pt-4 pb-6 px-6 sm:pb-8 sm:px-8 text-center">
+    <h2 className="text-3xl sm:text-4xl font-sans font-medium text-neutral-dark mb-2 tracking-tight leading-snug">
+      ✨ หาจ๊อบจ้า ✨
+    </h2>
+    <p className="text-base sm:text-lg text-neutral-dark max-w-xl leading-relaxed mb-8 font-normal font-serif">
+      เชื่อมคนมีสกิลกับงานที่ใช่ มีใจก็ลองดู ❤︎
+    </p>
+
+    {/* ... Job and Helper sections ... */}
+    <div className="w-full max-w-3xl grid grid-cols-1 md:grid-cols-2 gap-10">
+      {/* ... content ... */}
+    </div>
+
+    <div className="mt-8 text-center font-mono text-xs text-gray-400">
+      HJJ v2 Beta
+    </div>
+
+    {/* START: New Links Section */}
+    <div className="mt-6 text-center"> {/* Added mt-6 for some space */}
+      <div className="container mx-auto flex flex-row flex-wrap justify-center items-center gap-x-2 gap-y-1 text-sm leading-relaxed">
+        <button
+          onClick={() => navigateTo(View.AboutUs)}
+          className="font-sans px-2 py-1 text-neutral-medium hover:text-neutral-dark dark:text-dark-textMuted dark:hover:text-dark-text hover:underline whitespace-nowrap"
+          onTouchStart={() => {}}
+        >
+          เกี่ยวกับเรา
+        </button>
+        <span className="text-neutral-medium hidden sm:inline">|</span>
+        <button
+          onClick={() => navigateTo(View.Safety)}
+          className="font-sans px-2 py-1 text-neutral-medium hover:text-neutral-dark dark:text-dark-textMuted dark:hover:text-dark-text hover:underline whitespace-nowrap"
+          onTouchStart={() => {}}
+        >
+          โปรดอ่านเพื่อความปลอดภัย
+        </button>
+        <span className="text-neutral-medium hidden sm:inline">|</span>
+        <button
+          onClick={() => {
+            setIsFeedbackModalOpen(true);
+            if(feedbackSubmissionStatus === 'error') {
+              setFeedbackSubmissionStatus('idle');
+              setFeedbackSubmissionMessage(null);
+            }
+          }}
+          className="font-sans px-2 py-1 text-neutral-medium hover:text-neutral-dark dark:text-dark-textMuted dark:hover:text-dark-text hover:underline whitespace-nowrap"
+          onTouchStart={() => {}}
+        >
+          อยากให้เราปรับปรุงอะไร?
+        </button>
+      </div>
+    </div>
+    {/* END: New Links Section */}
+
+  </div> // This is the closing div of the main renderHome wrapper
+);
     </div>
   );
 
@@ -1191,39 +1247,6 @@ const App: React.FC = () => {
                 {feedbackSubmissionMessage}
             </div>
         )}
-        <footer className="bg-headerBlue-DEFAULT text-neutral-dark p-4 mt-auto font-normal flex flex-col items-center text-center">
-          <div className="container mx-auto flex flex-row flex-wrap justify-center items-center gap-x-2 gap-y-1 text-sm leading-relaxed">
-            <button 
-              onClick={() => navigateTo(View.AboutUs)} 
-              className="font-sans px-2 py-1 hover:underline whitespace-nowrap"
-              onTouchStart={() => {}}
-            >
-              เกี่ยวกับเรา
-            </button>
-            <span className="text-neutral-medium hidden sm:inline">|</span>
-            <button 
-              onClick={() => navigateTo(View.Safety)} 
-              className="font-sans px-2 py-1 hover:underline whitespace-nowrap"
-              onTouchStart={() => {}}
-            >
-              โปรดอ่านเพื่อความปลอดภัย
-            </button>
-            <span className="text-neutral-medium hidden sm:inline">|</span>
-            <button 
-              onClick={() => { 
-                setIsFeedbackModalOpen(true); 
-                if(feedbackSubmissionStatus === 'error') { 
-                  setFeedbackSubmissionStatus('idle'); 
-                  setFeedbackSubmissionMessage(null);
-                }
-              }}
-              className="font-sans px-2 py-1 hover:underline whitespace-nowrap"
-              onTouchStart={() => {}}
-            >
-              อยากให้เราปรับปรุงอะไร?
-            </button>
-          </div>
-        </footer>
       </div>
     </>
   );
