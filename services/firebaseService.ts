@@ -13,6 +13,7 @@ import {
   doc,
   getDoc,
   setDoc,
+  updateDoc
 } from 'firebase/firestore';
 
 import { auth, db } from '../firebase';
@@ -228,7 +229,26 @@ export const signOutUserService = async () => {
 
 // These functions will be implemented later
 export const setSiteLockService = async () => {};
-export const updateUserProfileService = async () => ({});
+export const updateUserProfileService = async (userId, profileData) => {
+  try {
+    // Update user in database
+    await updateDoc(doc(db, 'users', userId), {
+      ...profileData,
+      updatedAt: new Date().toISOString()
+    });
+    
+    // Get and return updated user
+    const updatedDoc = await getDoc(doc(db, 'users', userId));
+    return {
+      id: updatedDoc.id,
+      ...updatedDoc.data(),
+      userLevel: { name: '🐣 มือใหม่หัดโพสต์', minScore: 0, colorClass: 'bg-green-200', textColorClass: 'text-green-800' },
+    };
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    throw error;
+  }
+};
 export const addJobService = async () => ({});
 export const updateJobService = async () => ({});
 export const addHelperProfileService = async () => ({});
