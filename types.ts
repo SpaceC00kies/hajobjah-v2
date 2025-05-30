@@ -47,7 +47,7 @@ export enum HelperEducationLevelOption {
   NotStated = 'ไม่ได้ระบุ',
   MiddleSchool = 'ม.ต้น',
   HighSchool = 'ม.ปลาย',
-  Vocational = 'ปวช./ปวس.',
+  Vocational = 'ปวช./ปวส.',
   Bachelor = 'ปริญญาตรี',
   Higher = 'สูงกว่าปริญญาตรี',
 }
