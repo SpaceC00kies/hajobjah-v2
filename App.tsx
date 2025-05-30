@@ -893,7 +893,7 @@ const App: React.FC = () => {
     </div>
 
     {/* START: New Links Section */}
-    <div className="mt-6 text-center"> {/* Added mt-6 for some space */}
+    <div className="mt-6 text-center">
       <div className="container mx-auto flex flex-row flex-wrap justify-center items-center gap-x-2 gap-y-1 text-sm leading-relaxed">
         <button
           onClick={() => navigateTo(View.AboutUs)}
@@ -927,8 +927,8 @@ const App: React.FC = () => {
       </div>
     </div>
     {/* END: New Links Section */}
-    </div>
-  );
+  </div>
+); // <--- This ends the function!
 
     const renderPostJob = () => {
     if (!currentUser) {
