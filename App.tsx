@@ -916,7 +916,7 @@ const App: React.FC = () => {
         </div>
       </div>
       <div className="mt-8 text-center font-mono text-xs text-gray-400">
-        HJJ v2 (Service Mode)
+        HJJ v2 Beta
       </div>
     </div>
   );
