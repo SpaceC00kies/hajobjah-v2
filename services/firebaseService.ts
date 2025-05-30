@@ -3,89 +3,232 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  updateProfile,
   onAuthStateChanged,
-  User,
 } from 'firebase/auth';
 
 import {
   getFirestore,
   collection,
+  getDocs,
   doc,
   getDoc,
   setDoc,
-  updateDoc,
 } from 'firebase/firestore';
 
-import { getStorage } from 'firebase/storage';
-import { app } from '../firebase'; // correct path to firebase.ts
-import { logFirebaseError } from '../firebase/logging'; // make sure this exists or remove
+import { auth, db } from '../firebase';
+import { UserRole } from '../types';
 
-// Firebase core services
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
+// Helper function to handle dates
+const convertTimestamp = (timestamp) => {
+  if (!timestamp) return new Date().toISOString();
+  if (timestamp.toDate) return timestamp.toDate().toISOString();
+  return timestamp;
+};
 
-// Auth
-export async function registerUser(email: string, password: string): Promise<User> {
-  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-  return userCredential.user;
-}
+// Get all users from database
+export const getAllUsersService = async () => {
+  try {
+    const snapshot = await getDocs(collection(db, 'users'));
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      userLevel: { name: '🐣 มือใหม่หัดโพสต์', minScore: 0, colorClass: 'bg-green-200', textColorClass: 'text-green-800' },
+    }));
+  } catch (error) {
+    console.error('Error:', error);
+    return [];
+  }
+};
 
-export async function loginUser(email: string, password: string): Promise<User> {
-  const userCredential = await signInWithEmailAndPassword(auth, email, password);
-  return userCredential.user;
-}
+// Get all jobs
+export const getAllJobsService = async () => {
+  try {
+    const snapshot = await getDocs(collection(db, 'jobs'));
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      postedAt: convertTimestamp(doc.data().postedAt),
+    }));
+  } catch (error) {
+    console.error('Error:', error);
+    return [];
+  }
+};
 
-export async function logoutUser(): Promise<void> {
-  return await signOut(auth);
-}
+// Get all helper profiles
+export const getAllHelperProfilesService = async () => {
+  try {
+    const snapshot = await getDocs(collection(db, 'helperProfiles'));
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      postedAt: convertTimestamp(doc.data().postedAt),
+    }));
+  } catch (error) {
+    console.error('Error:', error);
+    return [];
+  }
+};
 
-export async function updateUserProfile(user: User, name: string): Promise<void> {
-  await updateProfile(user, { displayName: name });
-}
+// Get all posts
+export const getAllWebboardPostsService = async () => {
+  try {
+    const snapshot = await getDocs(collection(db, 'webboardPosts'));
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      likes: doc.data().likes || [],
+      createdAt: convertTimestamp(doc.data().createdAt),
+      updatedAt: convertTimestamp(doc.data().updatedAt),
+    }));
+  } catch (error) {
+    console.error('Error:', error);
+    return [];
+  }
+};
 
-export function listenToAuthChange(callback: (user: User | null) => void) {
-  return onAuthStateChanged(auth, callback);
-}
+// Get all comments
+export const getAllWebboardCommentsService = async () => {
+  try {
+    const snapshot = await getDocs(collection(db, 'webboardComments'));
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: convertTimestamp(doc.data().createdAt),
+      updatedAt: convertTimestamp(doc.data().updatedAt),
+    }));
+  } catch (error) {
+    console.error('Error:', error);
+    return [];
+  }
+};
 
-// STUB EXPORTED SERVICES — just to make App.tsx stop erroring.
-// Later you can fill them in.
-export const getAllUsersService = () => [];
-export const getAllJobsService = () => [];
-export const getAllHelperProfilesService = () => [];
-export const getAllWebboardPostsService = () => [];
-export const getAllWebboardCommentsService = () => [];
-export const getSiteConfigService = () => null;
-export const getAllInteractionsService = () => [];
-export const getUserClickedHelpersMapService = () => ({});
-export const getCurrentUserService = () => ({});
-export const onAuthChangeService = () => null;
-export const setSiteLockService = () => null;
-export const signUpWithEmailPasswordService = () => null;
-export const signInWithEmailPasswordService = () => null;
-export const signOutUserService = () => null;
-export const updateUserProfileService = () => null;
-export const addJobService = () => null;
-export const updateJobService = () => null;
-export const addHelperProfileService = () => null;
-export const updateHelperProfileService = () => null;
-export const deleteJobService = () => null;
-export const deleteHelperProfileService = () => null;
-export const toggleSuspiciousJobService = () => null;
-export const togglePinnedJobService = () => null;
-export const toggleHiredJobService = () => null;
-export const toggleSuspiciousHelperProfileService = () => null;
-export const togglePinnedHelperProfileService = () => null;
-export const toggleUnavailableHelperProfileService = () => null;
-export const toggleVerifiedExperienceService = () => null;
-export const logHelperContactInteractionService = () => null;
-export const setUserRoleService = () => null;
-export const updateWebboardPostService = () => null;
-export const addWebboardPostService = () => null;
-export const addWebboardCommentService = () => null;
-export const updateWebboardCommentService = () => null;
-export const deleteWebboardCommentService = () => null;
-export const toggleWebboardPostLikeService = () => null;
-export const deleteWebboardPostService = () => null;
-export const togglePinnedWebboardPostService = () => null;
+// Get site settings
+export const getSiteConfigService = async () => {
+  try {
+    const docRef = await getDoc(doc(db, 'config', 'siteStatus'));
+    if (docRef.exists()) {
+      return docRef.data();
+    }
+    return { isSiteLocked: false };
+  } catch (error) {
+    console.error('Error:', error);
+    return { isSiteLocked: false };
+  }
+};
+
+// Get interactions
+export const getAllInteractionsService = async () => {
+  return [];
+};
+
+// Get clicked helpers
+export const getUserClickedHelpersMapService = async () => {
+  return {};
+};
+
+// Get current user
+export const getCurrentUserService = async () => {
+  const user = auth.currentUser;
+  if (!user) return null;
+  
+  try {
+    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    if (userDoc.exists()) {
+      return {
+        id: userDoc.id,
+        ...userDoc.data(),
+        userLevel: { name: '🐣 มือใหม่หัดโพสต์', minScore: 0, colorClass: 'bg-green-200', textColorClass: 'text-green-800' },
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error:', error);
+    return null;
+  }
+};
+
+// Listen for login/logout
+export const onAuthChangeService = (callback) => {
+  return onAuthStateChanged(auth, async (firebaseUser) => {
+    if (firebaseUser) {
+      const user = await getCurrentUserService();
+      callback(user);
+    } else {
+      callback(null);
+    }
+  });
+};
+
+// Sign up new user
+export const signUpWithEmailPasswordService = async (userData) => {
+  try {
+    const result = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
+    const newUser = {
+      id: result.user.uid,
+      email: userData.email,
+      displayName: userData.displayName,
+      username: userData.username,
+      mobile: userData.mobile,
+      lineId: userData.lineId,
+      facebook: userData.facebook,
+      gender: userData.gender,
+      birthdate: userData.birthdate,
+      educationLevel: userData.educationLevel,
+      role: UserRole.Member,
+      userLevel: { name: '🐣 มือใหม่หัดโพสต์', minScore: 0, colorClass: 'bg-green-200', textColorClass: 'text-green-800' },
+      profileComplete: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await setDoc(doc(db, 'users', result.user.uid), newUser);
+    return newUser;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Sign in existing user
+export const signInWithEmailPasswordService = async (loginIdentifier, password) => {
+  try {
+    const result = await signInWithEmailAndPassword(auth, loginIdentifier, password);
+    const user = await getCurrentUserService();
+    return user;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Sign out
+export const signOutUserService = async () => {
+  await signOut(auth);
+};
+
+// These functions will be implemented later
+export const setSiteLockService = async () => {};
+export const updateUserProfileService = async () => ({});
+export const addJobService = async () => ({});
+export const updateJobService = async () => ({});
+export const addHelperProfileService = async () => ({});
+export const updateHelperProfileService = async () => ({});
+export const deleteJobService = async () => {};
+export const deleteHelperProfileService = async () => {};
+export const toggleSuspiciousJobService = async () => {};
+export const togglePinnedJobService = async () => {};
+export const toggleHiredJobService = async () => {};
+export const toggleSuspiciousHelperProfileService = async () => {};
+export const togglePinnedHelperProfileService = async () => {};
+export const toggleUnavailableHelperProfileService = async () => {};
+export const toggleVerifiedExperienceService = async () => {};
+export const logHelperContactInteractionService = async () => {};
+export const setUserRoleService = async () => {};
+export const updateWebboardPostService = async () => ({});
+export const addWebboardPostService = async () => ({});
+export const addWebboardCommentService = async () => ({});
+export const updateWebboardCommentService = async () => ({});
+export const deleteWebboardCommentService = async () => {};
+export const toggleWebboardPostLikeService = async () => ({});
+export const deleteWebboardPostService = async () => {};
+export const togglePinnedWebboardPostService = async () => {};
+export const updateUserClickedHelpersMapService = async () => {};
+export const togglePinWebboardPostService = async () => {};
