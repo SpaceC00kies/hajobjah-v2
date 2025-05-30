@@ -970,8 +970,6 @@ const App: React.FC = () => {
     </div>
     {/* END: New Links Section */}
 
-  </div> // This is the closing div of the main renderHome wrapper
-);
     </div>
   );
 
