@@ -1217,7 +1217,7 @@ const App: React.FC = () => {
       setFeedbackSubmissionMessage(null);
     }
   }}
-  className="font-sass px-1.5 py-0.5 sm:px-2 sm:py-1 hover:underline"
+  className="font-sans px-1.5 py-0.5 sm:px-2 sm:py-1 hover:underline"
   onTouchStart={() => {}}
 >
   อยากให้เราปรับปรุงอะไร?
