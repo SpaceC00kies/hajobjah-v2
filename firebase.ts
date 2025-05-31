@@ -1,8 +1,11 @@
-import { initializeApp, getApps } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
 
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/auth';
+import 'firebase/compat/firestore';
+import 'firebase/compat/storage';
+
+// Your web app's Firebase configuration
+// Use Vite environment variables (VITE_FIREBASE_...)
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -10,11 +13,15 @@ const firebaseConfig = {
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-const auth = getAuth(app);
-const db = getFirestore(app);
-const storage = getStorage(app);
+// Initialize Firebase
+const app: firebase.app.App = firebase.initializeApp(firebaseConfig);
 
-export { app, auth, db, storage };
+// Firebase services
+const auth: firebase.auth.Auth = firebase.auth();
+const db: firebase.firestore.Firestore = firebase.firestore();
+const storage: firebase.storage.Storage = firebase.storage();
+
+export { app, auth, db, storage, firebase }; // Export firebase for types if needed elsewhere

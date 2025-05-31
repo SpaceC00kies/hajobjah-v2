@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from './Button';
 
 interface LoginFormProps {
-  onLogin: (loginIdentifier: string, passwordAttempt: string) => Promise<boolean>; // Returns Promise<true> on success
+  onLogin: (loginIdentifier: string, passwordAttempt: string) => Promise<boolean>; // Returns true on success
   onSwitchToRegister: () => void;
 }
 
@@ -26,7 +26,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegiste
     const success = await onLogin(loginIdentifier, password);
     if (!success) {
       // Error message is shown by App.tsx alert, but we can set local error for immediate feedback if needed.
-      // For now, relying on alert. setError can be used if more specific inline errors are desired.
+      // For now, relying on alert.
     } else {
       setLoginIdentifier('');
       setPassword('');

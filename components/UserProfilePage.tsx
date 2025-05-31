@@ -7,7 +7,7 @@ import { isValidThaiMobileNumberUtil } from '../App';
 
 interface UserProfilePageProps {
   currentUser: User;
-  onUpdateProfile: (updatedData: Pick<User, 'mobile' | 'lineId' | 'facebook' | 'gender' | 'birthdate' | 'educationLevel' | 'photo' | 'address' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence'>) => Promise<boolean>;
+  onUpdateProfile: (updatedData: Pick<User, 'displayName' | 'mobile' | 'lineId' | 'facebook' | 'gender' | 'birthdate' | 'educationLevel' | 'photo' | 'address' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence'>) => Promise<boolean>;
   onCancel: () => void;
 }
 
@@ -39,6 +39,7 @@ const FallbackAvatar: React.FC<{ name?: string, size?: string, className?: strin
 
 
 export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, onUpdateProfile, onCancel }) => {
+  const [displayName, setDisplayName] = useState(currentUser.displayName); // Added state for displayName
   const [mobile, setMobile] = useState(currentUser.mobile);
   const [lineId, setLineId] = useState(currentUser.lineId || '');
   const [facebook, setFacebook] = useState(currentUser.facebook || '');
@@ -63,6 +64,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
   const feedbackRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setDisplayName(currentUser.displayName);
     setMobile(currentUser.mobile);
     setLineId(currentUser.lineId || '');
     setFacebook(currentUser.facebook || '');
@@ -167,7 +169,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     }
 
     const success = await onUpdateProfile({ 
-      mobile, lineId, facebook, gender, birthdate, educationLevel, photo: photoBase64, address,
+      displayName, mobile, lineId, facebook, gender, birthdate, educationLevel, photo: photoBase64, address,
       favoriteMusic, favoriteBook, favoriteMovie, hobbies, favoriteFood, dislikedThing, introSentence
     });
     if (success) {
@@ -229,10 +231,9 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
           <input 
             type="text" 
             id="profileDisplayName" 
-            value={currentUser.displayName} 
-            readOnly
-            className={`${inputBaseStyle} ${readOnlyStyle}`}
-            aria-readonly="true"
+            value={displayName} 
+            onChange={(e) => setDisplayName(e.target.value)} // Allow editing display name
+            className={`${inputBaseStyle} ${inputFocusStyle}`} // Apply regular input styles
           />
         </div>
 

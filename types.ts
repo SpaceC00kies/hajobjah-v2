@@ -89,7 +89,7 @@ export interface User {
   displayName: string;
   username: string;
   email: string;
-  hashedPassword?: string; // Not stored in Firestore if using Firebase Auth
+  // hashedPassword?: string; // Removed: Firebase Auth handles this
   role: UserRole;
   mobile: string;
   lineId?: string;
@@ -97,7 +97,7 @@ export interface User {
   gender?: GenderOption;
   birthdate?: string;
   educationLevel?: HelperEducationLevelOption;
-  photo?: string;
+  photo?: string; // This will store the photoURL from Firebase Storage
   address?: string;
 
   favoriteMusic?: string;
@@ -143,13 +143,12 @@ export interface EnrichedHelperProfile extends HelperProfile {
 }
 
 export interface Interaction {
-  interactionId: string;
+  id: string; // Renamed from interactionId to satisfy generic constraint and be the doc ID
   helperUserId: string;
+  helperProfileId?: string; // Added as it's used in firebaseService
   employerUserId: string;
   timestamp: string | Date;
   type: 'contact_helper';
-  // Add ownerId if needed by rules, though interactions might be simpler
-  // ownerId?: string;
   createdAt?: string | Date;
 }
 
@@ -254,40 +253,3 @@ export interface SiteConfig {
     updatedAt?: string | Date;
     updatedBy?: string; // Admin UID
 }
-
-// Added for firebaseService.ts, previously in App.tsx
-export const DUMMY_WEBBOARD_POSTS: WebboardPost[] = [
-  {
-    id: 'dummy-post-001',
-    title: "👋 ยินดีต้อนรับสู่เว็บบอร์ดหาจ๊อบจ้า!",
-    body: "สวัสดีครับทุกคน! นี่คือพื้นที่สำหรับพูดคุย แลกเปลี่ยนความคิดเห็น และช่วยเหลือกันในชุมชนหาจ๊อบจ้าของเรานะครับ มีอะไรอยากแชร์ อยากถาม โพสต์ได้เลย! \n\nอย่าลืมอ่านกฎกติกาของบอร์ดเราด้วยนะ 😊",
-    category: WebboardCategory.General,
-    userId: 'admin-user-001', // Matched to default admin in firebaseService
-    username: 'admin',
-    ownerId: 'admin-user-001',
-    authorPhoto: undefined,
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    likes: ['test-user-002'], // Matched to default test user
-    isPinned: true,
-  },
-  {
-    id: 'dummy-post-002',
-    title: "❓ ใครเคยทำงานพาร์ทไทม์ร้านกาแฟบ้าง ขอคำแนะนำหน่อยครับ",
-    body: "พอดีสนใจอยากลองทำงานพาร์ทไทม์ที่ร้านกาแฟในเชียงใหม่ครับ ไม่เคยมีประสบการณ์เลย อยากทราบว่าปกติเขาทำอะไรกันบ้าง เตรียมตัวยังไงดี ขอบคุณล่วงหน้าครับ 🙏",
-    category: WebboardCategory.QA,
-    userId: 'test-user-002',
-    username: 'test',
-    ownerId: 'test-user-002',
-    authorPhoto: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzdlOGM4YSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxjaXJjbGUgY3g9IjEyIiBjeT0iOCIgcj0iNSIvPjxwYXRoIGQ9Ik0yMCAyMWE4IDggMCAwIDAtMTYgMCIvPjwvc3ZnPg==',
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-    likes: [],
-  },
-  // ... other dummy posts if any ...
-];
-
-// Added from App.tsx for firebaseService.ts
-export const ADMIN_USERNAME = "admin";
-export const ADMIN_EMAIL = "admin@hajobjah.com";
-export const ADMIN_PASSWORD = "adminpass";

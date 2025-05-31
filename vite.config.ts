@@ -6,9 +6,8 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
       define: {
-        // 'process.env.VITE_USE_FIREBASE': JSON.stringify(env.VITE_USE_FIREBASE), // Removed
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY), // Keep for Gemini if still used elsewhere
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY) // Keep for Gemini
+        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
       },
       resolve: {
         alias: {

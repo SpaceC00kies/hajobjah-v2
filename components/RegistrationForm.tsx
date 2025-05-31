@@ -5,7 +5,7 @@ import { GenderOption, HelperEducationLevelOption } from '../types';
 import { Button } from './Button';
 
 interface RegistrationFormProps {
-  onRegister: (userData: Omit<User, 'id' | 'hashedPassword' | 'isAdmin' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'hasBeenContacted' | 'role'> & { password: string }) => Promise<boolean>; // Returns Promise<true> on success
+  onRegister: (userData: Omit<User, 'id' | 'hashedPassword' | 'isAdmin' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'hasBeenContacted' | 'role'> & { password: string }) => Promise<boolean>; // Returns true on success
   onSwitchToLogin: () => void;
 }
 
