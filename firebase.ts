@@ -1,8 +1,8 @@
 
-import firebase from 'firebase/compat/app';
-import 'firebase/compat/auth';
-import 'firebase/compat/firestore';
-import 'firebase/compat/storage';
+import { initializeApp, type FirebaseApp } from 'firebase/app';
+import { getAuth, type Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 // Your web app's Firebase configuration
 // Use Vite environment variables (VITE_FIREBASE_...)
@@ -17,11 +17,11 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app: firebase.app.App = firebase.initializeApp(firebaseConfig);
+const app: FirebaseApp = initializeApp(firebaseConfig);
 
 // Firebase services
-const auth: firebase.auth.Auth = firebase.auth();
-const db: firebase.firestore.Firestore = firebase.firestore();
-const storage: firebase.storage.Storage = firebase.storage();
+const auth: Auth = getAuth(app);
+const db: Firestore = getFirestore(app);
+const storage: FirebaseStorage = getStorage(app);
 
-export { app, auth, db, storage, firebase }; // Export firebase for types if needed elsewhere
+export { app, auth, db, storage };
