@@ -1,19 +1,20 @@
 
 import { initializeApp, type FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth'; // Value import
-import type { Auth, User as FirebaseAuthUser } from 'firebase/auth'; // Type imports
+// Removed: import firebase from 'firebase/compat/app';
+// Removed: import 'firebase/compat/auth'; 
+
+import { getAuth, type Auth, type User as FirebaseUser } from 'firebase/auth'; // Import v9 Auth and User
 import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 
-// Type Aliases for v9 for clarity within this file if needed, or for export if used elsewhere.
+// Type Aliases
 export type FirebaseAppV9 = FirebaseApp;
-export type AuthV9 = Auth;
+export type AuthV9 = Auth; // Updated to v9 Auth
 export type FirestoreV9 = Firestore;
 export type FirebaseStorageV9 = FirebaseStorage;
-export type UserV9 = FirebaseAuthUser; // Firebase Auth User type for v9
+export type UserV9 = FirebaseUser; // Updated to v9 User
 
 // Your web app's Firebase configuration
-// Use Vite environment variables (VITE_FIREBASE_...)
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -21,10 +22,9 @@ const firebaseConfig = {
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID, // measurementId is optional but often included
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-// Add debugging
 console.log('Firebase Config (from import.meta.env):', firebaseConfig);
 console.log('Environment variables loaded checks:', {
   hasApiKey: !!import.meta.env.VITE_FIREBASE_API_KEY,
@@ -35,8 +35,6 @@ console.log('Environment variables loaded checks:', {
   VITE_FIREBASE_PROJECT_ID_Value: import.meta.env.VITE_FIREBASE_PROJECT_ID,
 });
 
-
-// Add error checking
 if (!firebaseConfig.apiKey) {
   console.error('Firebase API Key is missing in firebaseConfig. Value from env:', import.meta.env.VITE_FIREBASE_API_KEY);
   throw new Error('Firebase API Key is missing. Check Vercel environment variables.');
@@ -46,27 +44,25 @@ if (!firebaseConfig.projectId) {
     throw new Error('Firebase Project ID is missing. Check Vercel environment variables.');
 }
 
-
-// Initialize Firebase v9 style
 let app: FirebaseAppV9;
-let authInstance: AuthV9;
+let authInstance: AuthV9; // Will be v9 Auth instance
 let dbInstance: FirestoreV9;
 let storageInstance: FirebaseStorageV9;
 
 try {
-  app = initializeApp(firebaseConfig);
+  // Initialize the main app using v9 initializeApp
+  app = initializeApp(firebaseConfig); // Use v9 initializeApp from 'firebase/app'
+  
   console.log('Firebase initialized successfully. Project ID:', app.options.projectId);
-  authInstance = getAuth(app);
-  dbInstance = getFirestore(app);
+  
+  authInstance = getAuth(app); // Use v9 getAuth
+  dbInstance = getFirestore(app); 
   storageInstance = getStorage(app);
+
 } catch (error: any) {
   console.error('Firebase initialization error:', error);
   console.error('Error details:', error.message, error.stack);
   throw error;
 }
 
-
-// Export instances with original names for compatibility with services
 export { app, authInstance as auth, dbInstance as db, storageInstance as storage };
-// No longer export the 'firebase' namespace itself. Specific v9 functions (like serverTimestamp, doc, collection)
-// will be imported directly in services/firebaseService.ts from their respective 'firebase/*' modules.

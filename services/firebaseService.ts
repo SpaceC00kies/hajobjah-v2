@@ -1,13 +1,13 @@
 
-import { app, auth, db, storage } from '../firebase'; // Import v9 initialized instances
+import { auth, db, storage } from '../firebase'; // auth is expected to be a v9 Auth instance
 import {
   createUserWithEmailAndPassword,
-  updateProfile,
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-} from 'firebase/auth'; // Value imports
-import type { User as FirebaseAuthUser } from 'firebase/auth'; // Type import
+  updateProfile,
+  User as FirebaseAuthUser // v9 User type
+} from 'firebase/auth';
 
 import {
   doc,
@@ -43,13 +43,10 @@ import {
   type StorageReference,
 } from 'firebase/storage';
 
-import type { User, UserRole, Job, HelperProfile, WebboardPost, WebboardComment, SiteConfig, WebboardCategory, Interaction, GenderOption, HelperEducationLevelOption } from '../types';
+import type { User, UserRole, Job, HelperProfile, WebboardPost, WebboardComment, SiteConfig, WebboardCategory, Interaction } from '../types';
 import { logFirebaseError } from '../firebase/logging';
 
-// Helper type for Firebase Auth User from v9
-type FirebaseUser = FirebaseAuthUser;
-
-// Helper function to parse storage path from HTTPS URL
+// Helper function to parse storage path from HTTPS URL (remains the same)
 const getPathFromHttpUrl = (url: string): string | null => {
   try {
     const urlObj = new URL(url);
@@ -69,14 +66,13 @@ const getPathFromHttpUrl = (url: string): string | null => {
   return null;
 };
 
-
-// Helper function to handle dates (especially Firestore Timestamps)
+// Helper function to handle dates (remains the same)
 const convertTimestamp = (timestampInput: any): string => {
   if (!timestampInput) return new Date().toISOString();
   if (timestampInput instanceof Timestamp) {
     return timestampInput.toDate().toISOString();
   }
-  if (timestampInput && typeof timestampInput.toDate === 'function') { // For older compat timestamps if any sneak in
+  if (timestampInput && typeof timestampInput.toDate === 'function') {
     return timestampInput.toDate().toISOString();
   }
   if (typeof timestampInput === 'string') {
@@ -85,21 +81,19 @@ const convertTimestamp = (timestampInput: any): string => {
       if (!isNaN(parsedDate.getTime())) {
         return parsedDate.toISOString();
       }
-      return timestampInput; // Return as is if parsing fails but it's a string
+      return timestampInput;
     } catch (e) {
-      return timestampInput; // Return original string on error
+      return timestampInput;
     }
   }
-  // For numbers or other direct Date constructor inputs
   try {
     return new Date(timestampInput).toISOString();
   } catch (e) {
-    // Fallback if everything else fails
     return new Date().toISOString();
   }
 };
 
-// --- Image Upload Helper ---
+// --- Image Upload Helper --- (remains the same)
 const uploadImageToStorageService = async (fileOrBase64: string | File, path: string): Promise<string> => {
   const sRef: StorageReference = ref(storage, path);
   try {
@@ -112,7 +106,7 @@ const uploadImageToStorageService = async (fileOrBase64: string | File, path: st
     }
     return await getDownloadURL(sRef);
   } catch (error) {
-    logFirebaseError(\`uploadImageToStorageService (\${path})\`, error);
+    logFirebaseError('uploadImageToStorageService (' + path + ')', error);
     throw error;
   }
 };
@@ -129,15 +123,14 @@ const deleteImageFromStorageService = async (imageUrl: string | undefined | null
         }
     } catch (error: any) {
         if (error.code === 'storage/object-not-found') {
-            // console.warn(\`Image not found for deletion, but proceeding: \${imageUrl}\`);
+            // console.warn('Image not found for deletion, but proceeding: ' + imageUrl);
         } else {
-            logFirebaseError(\`deleteImageFromStorageService (\${imageUrl})\`, error);
+            logFirebaseError('deleteImageFromStorageService (' + imageUrl + ')', error);
         }
     }
 };
 
-
-// --- User Authentication Services ---
+// --- User Authentication Services (v9 Modular Style) ---
 export const signUpWithEmailPasswordService = async (userData: Omit<User, 'id' | 'userLevel' | 'profileComplete' | 'photo' | 'address'> & {password: string}): Promise<User | null> => {
   try {
     const result = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
@@ -160,8 +153,8 @@ export const signUpWithEmailPasswordService = async (userData: Omit<User, 'id' |
         gender: userData.gender || null,
         birthdate: userData.birthdate || null,
         educationLevel: userData.educationLevel || null,
-        photo: null, // Initially no photo
-        address: null, // Initially no address
+        photo: null,
+        address: null,
         favoriteMusic: userData.favoriteMusic || null,
         favoriteBook: userData.favoriteBook || null,
         favoriteMovie: userData.favoriteMovie || null,
@@ -173,7 +166,7 @@ export const signUpWithEmailPasswordService = async (userData: Omit<User, 'id' |
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
     };
-    
+
     const userDocRef = doc(db, 'users', firebaseUser.uid);
     await setDoc(userDocRef, newUserForDb);
 
@@ -246,7 +239,7 @@ export const signOutUserService = async (): Promise<void> => {
 };
 
 export const onAuthChangeService = (callback: (user: User | null) => void): Unsubscribe => {
-  return onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+  return onAuthStateChanged(auth, async (firebaseUser: FirebaseAuthUser | null) => {
     if (firebaseUser) {
       const user = await getCurrentUserService();
       callback(user);
@@ -257,7 +250,7 @@ export const onAuthChangeService = (callback: (user: User | null) => void): Unsu
 };
 
 export const getCurrentUserService = async (): Promise<User | null> => {
-  const firebaseUserAuth = auth.currentUser;
+  const firebaseUserAuth = auth.currentUser; 
   if (!firebaseUserAuth) return null;
 
   try {
@@ -277,7 +270,7 @@ export const getCurrentUserService = async (): Promise<User | null> => {
         updatedAt: convertTimestamp(userData.updatedAt),
       };
     }
-    logFirebaseError("getCurrentUserService", \`User \${firebaseUserAuth.uid} exists in Auth but not Firestore.\`);
+    logFirebaseError("getCurrentUserService", 'User ' + firebaseUserAuth.uid + ' exists in Auth but not Firestore.');
     return null;
   } catch (error) {
     logFirebaseError("getCurrentUserService", error);
@@ -285,7 +278,7 @@ export const getCurrentUserService = async (): Promise<User | null> => {
   }
 };
 
-// --- Firestore Read Services (Real-time Subscriptions) ---
+// --- Firestore Read Services (Real-time Subscriptions) --- (Remain v9 modular)
 const createSubscriptionService = <T extends { id: string }>(
   collectionName: string,
   mapFn: (doc: QueryDocumentSnapshot<DocumentData>) => T,
@@ -299,12 +292,12 @@ const createSubscriptionService = <T extends { id: string }>(
   additionalQueryConstraints.forEach(constraint => {
     q = query(q, where(constraint.field, constraint.op, constraint.value));
   });
-  
+
   return onSnapshot(q, (snapshot) => {
     const dataList = snapshot.docs.map(d => mapFn(d));
     callback(dataList);
   }, (error) => {
-    logFirebaseError(\`subscribeTo\${collectionName.charAt(0).toUpperCase() + collectionName.slice(1)}Service\`, error);
+    logFirebaseError('subscribeTo' + collectionName.charAt(0).toUpperCase() + collectionName.slice(1) + 'Service', error);
     callback([]);
   });
 };
@@ -333,7 +326,7 @@ export const subscribeToWebboardPostsService = (callback: (data: WebboardPost[])
     } as WebboardPost));
     callback(dataList);
   }, (error) => {
-    logFirebaseError(\`subscribeToWebboardPostsService\`, error);
+    logFirebaseError('subscribeToWebboardPostsService', error);
     callback([]);
   });
 };
@@ -345,9 +338,9 @@ export const subscribeToWebboardCommentsService = createSubscriptionService<Webb
 export const subscribeToInteractionsService = createSubscriptionService<Interaction>('interactions', d => ({
   id: d.id,
   ...d.data(),
-  timestamp: convertTimestamp(d.data().timestamp), 
+  timestamp: convertTimestamp(d.data().timestamp),
   createdAt: convertTimestamp(d.data().createdAt),
-  helperProfileId: d.data().helperProfileId || null 
+  helperProfileId: d.data().helperProfileId || null
 } as Interaction), 'timestamp', 'desc');
 
 export const subscribeToSiteConfigService = (callback: (config: SiteConfig) => void): Unsubscribe => {
@@ -375,24 +368,23 @@ export const updateUserProfileService = async (
   userId: string,
   profileData: Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username' | 'userLevel' | 'profileComplete'>>
 ): Promise<boolean> => {
-  const currentUserAuth = auth.currentUser;
+  const currentUserAuth = auth.currentUser; 
   if (!currentUserAuth || currentUserAuth.uid !== userId) {
     throw new Error("Unauthorized attempt to update profile or user mismatch.");
   }
   try {
-    const userDocRef = doc(db, 'users', userId);
+    const userDocRef = doc(db, 'users', userId); 
     const dataToUpdate: { [key: string]: any } = { updatedAt: serverTimestamp() };
-    
+
     let newPhotoURL: string | null | undefined = profileData.photo;
 
-    // Handle explicit photo update logic first
     if (profileData.photo && typeof profileData.photo === 'string' && profileData.photo.startsWith('data:image')) {
       const oldUserDoc = await getDoc(userDocRef);
       const oldPhotoURL = oldUserDoc.exists() ? oldUserDoc.data()?.photo : null;
       if (oldPhotoURL && typeof oldPhotoURL === 'string') {
           await deleteImageFromStorageService(oldPhotoURL);
       }
-      newPhotoURL = await uploadImageToStorageService(profileData.photo, \`profileImages/\${userId}/\${Date.now()}\`);
+      newPhotoURL = await uploadImageToStorageService(profileData.photo, 'profileImages/' + userId + '/' + Date.now());
       dataToUpdate.photo = newPhotoURL;
     } else if (profileData.hasOwnProperty('photo') && profileData.photo === undefined) {
       const oldUserDoc = await getDoc(userDocRef);
@@ -403,14 +395,12 @@ export const updateUserProfileService = async (
       newPhotoURL = null;
       dataToUpdate.photo = null;
     } else if (profileData.hasOwnProperty('photo') && profileData.photo !== undefined) {
-      // If photo is provided but not base64 (i.e. it's an existing URL string or null)
-      dataToUpdate.photo = profileData.photo; 
+      dataToUpdate.photo = profileData.photo;
     }
 
-
     const fieldsToProcess: Array<keyof typeof profileData> = [
-        'displayName', 'mobile', 'lineId', 'facebook', 'gender', 'birthdate', 
-        'educationLevel', 'address', 'favoriteMusic', 'favoriteBook', 
+        'displayName', 'mobile', 'lineId', 'facebook', 'gender', 'birthdate',
+        'educationLevel', 'address', 'favoriteMusic', 'favoriteBook',
         'favoriteMovie', 'hobbies', 'favoriteFood', 'dislikedThing', 'introSentence'
     ];
 
@@ -420,22 +410,19 @@ export const updateUserProfileService = async (
             dataToUpdate[key] = value === undefined ? null : value;
         }
     });
-    
-    await updateDoc(userDocRef, dataToUpdate);
+
+    await updateDoc(userDocRef, dataToUpdate); 
 
     let authProfileUpdates: { displayName?: string | null; photoURL?: string | null } = {};
-    if (profileData.hasOwnProperty('displayName') && (profileData.displayName || null) !== currentUserAuth.displayName) {
+     if (profileData.hasOwnProperty('displayName') && (profileData.displayName || null) !== currentUserAuth.displayName) {
         authProfileUpdates.displayName = profileData.displayName || null;
     }
-    
-    // This condition ensures photoURL in Auth is updated only if 'newPhotoURL' was determined (new upload or deletion)
-    // and it's different from the current Auth photoURL.
-    if (newPhotoURL !== undefined && newPhotoURL !== currentUserAuth.photoURL) { 
-        authProfileUpdates.photoURL = newPhotoURL; // newPhotoURL is string or null
+     if (newPhotoURL !== undefined && newPhotoURL !== currentUserAuth.photoURL) {
+        authProfileUpdates.photoURL = newPhotoURL;
     }
-    
+
     if (Object.keys(authProfileUpdates).length > 0) {
-        await updateProfile(currentUserAuth, authProfileUpdates);
+        await updateProfile(currentUserAuth, authProfileUpdates); 
     }
     return true;
   } catch (error) {
@@ -445,16 +432,16 @@ export const updateUserProfileService = async (
 };
 
 
-// --- Jobs ---
+// --- Jobs --- (Firestore remains v9 modular)
 type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'username' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt'>;
 export const addJobService = async (jobData: JobFormData, contactInfo: string): Promise<string> => {
-  const currentUserAuth = auth.currentUser;
+  const currentUserAuth = auth.currentUser; 
   if (!currentUserAuth) throw new Error("User not authenticated");
   try {
     const jobPayload = {
       title: jobData.title,
       location: jobData.location,
-      dateTime: jobData.dateTime, // Assumed to be string from JobFormData
+      dateTime: jobData.dateTime,
       payment: jobData.payment,
       description: jobData.description,
       desiredAgeStart: jobData.desiredAgeStart === undefined ? null : jobData.desiredAgeStart,
@@ -471,10 +458,10 @@ export const addJobService = async (jobData: JobFormData, contactInfo: string): 
       isSuspicious: false,
       isPinned: false,
       isHired: false,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      createdAt: serverTimestamp(), 
+      updatedAt: serverTimestamp(), 
     };
-    const docRef = await addDoc(collection(db, 'jobs'), jobPayload);
+    const docRef = await addDoc(collection(db, 'jobs'), jobPayload); 
     return docRef.id;
   } catch (error) {
     logFirebaseError("addJobService", error);
@@ -484,7 +471,7 @@ export const addJobService = async (jobData: JobFormData, contactInfo: string): 
 
 export const updateJobService = async (jobId: string, jobData: JobFormData, contactInfo: string): Promise<void> => {
   try {
-    const jobDocRef = doc(db, 'jobs', jobId);
+    const jobDocRef = doc(db, 'jobs', jobId); 
     const jobUpdatePayload = {
       title: jobData.title,
       location: jobData.location,
@@ -500,9 +487,9 @@ export const updateJobService = async (jobId: string, jobData: JobFormData, cont
       timeNeededStart: jobData.timeNeededStart || null,
       timeNeededEnd: jobData.timeNeededEnd || null,
       contact: contactInfo,
-      updatedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(), 
     };
-    await updateDoc(jobDocRef, jobUpdatePayload);
+    await updateDoc(jobDocRef, jobUpdatePayload); 
   } catch (error) {
     logFirebaseError("updateJobService", error);
     throw error;
@@ -511,8 +498,8 @@ export const updateJobService = async (jobId: string, jobData: JobFormData, cont
 
 export const deleteJobService = async (jobId: string): Promise<boolean> => {
   try {
-    const jobDocRef = doc(db, 'jobs', jobId);
-    await deleteDoc(jobDocRef);
+    const jobDocRef = doc(db, 'jobs', jobId); 
+    await deleteDoc(jobDocRef); 
     return true;
   } catch (error) {
     logFirebaseError("deleteJobService", error);
@@ -520,7 +507,7 @@ export const deleteJobService = async (jobId: string): Promise<boolean> => {
   }
 };
 
-// --- Helper Profiles ---
+// --- Helper Profiles --- (Firestore remains v9 modular)
 type HelperProfileFormData = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'username' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt'>;
 type HelperProfileUserServiceData = Pick<User, 'username' | 'gender' | 'birthdate' | 'educationLevel'> & {
     userId: string;
@@ -528,32 +515,32 @@ type HelperProfileUserServiceData = Pick<User, 'username' | 'gender' | 'birthdat
 };
 
 export const addHelperProfileService = async (profileData: HelperProfileFormData, userServiceData: HelperProfileUserServiceData): Promise<string> => {
-  const currentUserAuth = auth.currentUser;
+  const currentUserAuth = auth.currentUser; 
   if (!currentUserAuth || currentUserAuth.uid !== userServiceData.userId) throw new Error("User not authenticated or mismatch");
   try {
     const helperProfilePayload = {
       profileTitle: profileData.profileTitle,
       details: profileData.details,
       area: profileData.area,
-      availability: profileData.availability, // Assumed string from HelperProfileFormData
+      availability: profileData.availability,
       availabilityDateFrom: profileData.availabilityDateFrom || null,
       availabilityDateTo: profileData.availabilityDateTo || null,
       availabilityTimeDetails: profileData.availabilityTimeDetails || null,
       userId: userServiceData.userId,
       username: userServiceData.username,
       contact: userServiceData.contact,
-      gender: userServiceData.gender || null, // User's gender can be optional
-      birthdate: userServiceData.birthdate || null, // User's birthdate can be optional
-      educationLevel: userServiceData.educationLevel || null, // User's education can be optional
+      gender: userServiceData.gender || null,
+      birthdate: userServiceData.birthdate || null,
+      educationLevel: userServiceData.educationLevel || null,
       isSuspicious: false,
       isPinned: false,
       isUnavailable: false,
       adminVerifiedExperience: false,
       interestedCount: 0,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      createdAt: serverTimestamp(), 
+      updatedAt: serverTimestamp(), 
     };
-    const docRef = await addDoc(collection(db, 'helperProfiles'), helperProfilePayload);
+    const docRef = await addDoc(collection(db, 'helperProfiles'), helperProfilePayload); 
     return docRef.id;
   } catch (error) {
     logFirebaseError("addHelperProfileService", error);
@@ -563,7 +550,7 @@ export const addHelperProfileService = async (profileData: HelperProfileFormData
 
 export const updateHelperProfileService = async (profileId: string, profileData: HelperProfileFormData, contactInfo: string): Promise<void> => {
   try {
-    const profileDocRef = doc(db, 'helperProfiles', profileId);
+    const profileDocRef = doc(db, 'helperProfiles', profileId); 
     const helperProfileUpdatePayload = {
       profileTitle: profileData.profileTitle,
       details: profileData.details,
@@ -573,9 +560,9 @@ export const updateHelperProfileService = async (profileId: string, profileData:
       availabilityDateTo: profileData.availabilityDateTo || null,
       availabilityTimeDetails: profileData.availabilityTimeDetails || null,
       contact: contactInfo,
-      updatedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(), 
     };
-    await updateDoc(profileDocRef, helperProfileUpdatePayload);
+    await updateDoc(profileDocRef, helperProfileUpdatePayload); 
   } catch (error) {
     logFirebaseError("updateHelperProfileService", error);
     throw error;
@@ -584,8 +571,8 @@ export const updateHelperProfileService = async (profileId: string, profileData:
 
 export const deleteHelperProfileService = async (profileId: string): Promise<boolean> => {
   try {
-    const profileDocRef = doc(db, 'helperProfiles', profileId);
-    await deleteDoc(profileDocRef);
+    const profileDocRef = doc(db, 'helperProfiles', profileId); 
+    await deleteDoc(profileDocRef); 
     return true;
   } catch (error) {
     logFirebaseError("deleteHelperProfileService", error);
@@ -593,7 +580,7 @@ export const deleteHelperProfileService = async (profileId: string): Promise<boo
   }
 };
 
-// --- Interactions ---
+// --- Interactions --- (Firestore remains v9 modular)
 export const logHelperContactInteractionService = async (helperProfileId: string, employerUserId: string): Promise<void> => {
   try {
     const helperProfileDocRef = doc(db, 'helperProfiles', helperProfileId);
@@ -604,7 +591,7 @@ export const logHelperContactInteractionService = async (helperProfileId: string
 
     await addDoc(collection(db, 'interactions'), {
       helperUserId: helperUserId,
-      helperProfileId: helperProfileId || null, // Ensure helperProfileId is not undefined
+      helperProfileId: helperProfileId || null,
       employerUserId: employerUserId,
       timestamp: serverTimestamp(),
       type: 'contact_helper',
@@ -619,7 +606,7 @@ export const logHelperContactInteractionService = async (helperProfileId: string
   }
 };
 
-// --- Webboard Posts ---
+// --- Webboard Posts --- (Firestore remains v9 modular, storage v9 modular)
 export const addWebboardPostService = async (
     postData: { title: string; body: string; category: WebboardCategory; image?: string },
     authorInfo: { userId: string; username: string; photo?: string }
@@ -627,9 +614,9 @@ export const addWebboardPostService = async (
     try {
         let imageUrl: string | undefined = undefined;
         if (postData.image && postData.image.startsWith('data:image')) {
-            imageUrl = await uploadImageToStorageService(postData.image, \`webboardImages/\${authorInfo.userId}/\${Date.now()}\`);
+            imageUrl = await uploadImageToStorageService(postData.image, 'webboardImages/' + authorInfo.userId + '/' + Date.now());
         }
-        
+
         const webboardPostPayload = {
             title: postData.title,
             body: postData.body,
@@ -654,11 +641,11 @@ export const addWebboardPostService = async (
 export const updateWebboardPostService = async (
     postId: string,
     postData: { title: string; body: string; category: WebboardCategory; image?: string },
-    authorPhoto?: string 
+    authorPhoto?: string
 ): Promise<void> => {
     try {
         const postDocRef = doc(db, 'webboardPosts', postId);
-        const updatePayload: { [key: string]: any } = { // Use a more flexible type for the payload
+        const updatePayload: { [key: string]: any } = {
             title: postData.title,
             body: postData.body,
             category: postData.category,
@@ -671,16 +658,16 @@ export const updateWebboardPostService = async (
 
             if (postData.image && postData.image.startsWith('data:image')) {
                 if (oldImageUrl) await deleteImageFromStorageService(oldImageUrl);
-                updatePayload.image = await uploadImageToStorageService(postData.image, \`webboardImages/\${auth.currentUser?.uid || 'unknown_user'}/\${Date.now()}\`);
+                updatePayload.image = await uploadImageToStorageService(postData.image, 'webboardImages/' + (auth.currentUser?.uid || 'unknown_user') + '/' + Date.now());
             } else if (postData.image === undefined && oldImageUrl) {
                 await deleteImageFromStorageService(oldImageUrl);
                 updatePayload.image = null;
-            } else if (postData.image !== undefined) { // Existing URL or explicitly null
+            } else if (postData.image !== undefined) {
                 updatePayload.image = postData.image;
             }
         }
-        
-        if (authorPhoto !== undefined) { // Handle explicit update of authorPhoto
+
+        if (authorPhoto !== undefined) {
              updatePayload.authorPhoto = authorPhoto || null;
         }
 
@@ -703,7 +690,7 @@ export const deleteWebboardPostService = async (postId: string): Promise<boolean
     const commentsCollRef = collection(db, 'webboardComments');
     const q = query(commentsCollRef, where('postId', '==', postId));
     const commentsSnapshot = await getDocs(q);
-    
+
     const batch = writeBatch(db);
     commentsSnapshot.docs.forEach(d => batch.delete(d.ref));
     await batch.commit();
@@ -714,7 +701,7 @@ export const deleteWebboardPostService = async (postId: string): Promise<boolean
   }
 };
 
-// --- Webboard Comments ---
+// --- Webboard Comments --- (Firestore remains v9 modular)
 export const addWebboardCommentService = async (
   postId: string, text: string, authorInfo: { userId: string; username: string; photo?: string }
 ): Promise<string> => {
@@ -739,7 +726,10 @@ export const addWebboardCommentService = async (
 export const updateWebboardCommentService = async (commentId: string, newText: string): Promise<void> => {
   try {
     const commentDocRef = doc(db, 'webboardComments', commentId);
-    await updateDoc(commentDocRef, { text: newText, updatedAt: serverTimestamp() });
+    await updateDoc(commentDocRef, {
+      text: newText,
+      updatedAt: serverTimestamp(),
+    });
   } catch (error) {
     logFirebaseError("updateWebboardCommentService", error);
     throw error;
@@ -757,33 +747,41 @@ export const deleteWebboardCommentService = async (commentId: string): Promise<b
   }
 };
 
-// --- Toggles & Admin ---
-const toggleItemFlagService = async (collectionName: string, itemId: string, flagName: string, currentValue?: boolean): Promise<boolean> => {
-  try {
-    const itemDocRef = doc(db, collectionName, itemId);
-    let newValue = !currentValue; 
+// --- Admin & Generic Item Toggles --- (Firestore remains v9 modular)
+export const toggleItemFlagService = async (
+    collectionName: 'jobs' | 'helperProfiles' | 'webboardPosts',
+    itemId: string,
+    flagName: keyof Job | keyof HelperProfile | keyof WebboardPost, // Ensure flagName is a valid key
+    currentValue?: boolean // Pass current value if known, to avoid extra read
+): Promise<boolean> => {
+    try {
+        const itemDocRef = doc(db, collectionName, itemId);
+        let valueToSet: boolean;
 
-    if (currentValue === undefined) {
-        const docSnap = await getDoc(itemDocRef);
-        if (!docSnap.exists()) throw new Error("Document not found to toggle flag.");
-        newValue = !docSnap.data()?.[flagName];
+        if (currentValue !== undefined) {
+            valueToSet = !currentValue;
+        } else {
+            const itemSnap = await getDoc(itemDocRef);
+            if (!itemSnap.exists()) throw new Error("Item not found for toggle.");
+            valueToSet = !itemSnap.data()?.[flagName as string];
+        }
+
+        await updateDoc(itemDocRef, { [flagName]: valueToSet, updatedAt: serverTimestamp() });
+        return true;
+    } catch (error) {
+        logFirebaseError('toggle' + flagName.charAt(0).toUpperCase() + flagName.slice(1) + 'Service for ' + collectionName, error);
+        throw error;
     }
-    
-    await updateDoc(itemDocRef, { [flagName]: newValue, updatedAt: serverTimestamp() });
-    return true;
-  } catch (error) {
-    logFirebaseError(\`toggle\${flagName.charAt(0).toUpperCase() + flagName.slice(1)}Service for \${collectionName}\`, error);
-    throw error;
-  }
 };
 
-export const toggleSuspiciousJobService = (jobId: string, currentValue?: boolean) => toggleItemFlagService('jobs', jobId, 'isSuspicious', currentValue);
+// Specific toggle functions leveraging the generic one
 export const togglePinnedJobService = (jobId: string, currentValue?: boolean) => toggleItemFlagService('jobs', jobId, 'isPinned', currentValue);
 export const toggleHiredJobService = (jobId: string, currentValue?: boolean) => toggleItemFlagService('jobs', jobId, 'isHired', currentValue);
+export const toggleSuspiciousJobService = (jobId: string, currentValue?: boolean) => toggleItemFlagService('jobs', jobId, 'isSuspicious', currentValue);
 
-export const toggleSuspiciousHelperProfileService = (profileId: string, currentValue?: boolean) => toggleItemFlagService('helperProfiles', profileId, 'isSuspicious', currentValue);
 export const togglePinnedHelperProfileService = (profileId: string, currentValue?: boolean) => toggleItemFlagService('helperProfiles', profileId, 'isPinned', currentValue);
 export const toggleUnavailableHelperProfileService = (profileId: string, currentValue?: boolean) => toggleItemFlagService('helperProfiles', profileId, 'isUnavailable', currentValue);
+export const toggleSuspiciousHelperProfileService = (profileId: string, currentValue?: boolean) => toggleItemFlagService('helperProfiles', profileId, 'isSuspicious', currentValue);
 export const toggleVerifiedExperienceService = (profileId: string, currentValue?: boolean) => toggleItemFlagService('helperProfiles', profileId, 'adminVerifiedExperience', currentValue);
 
 export const togglePinWebboardPostService = (postId: string, currentValue?: boolean) => toggleItemFlagService('webboardPosts', postId, 'isPinned', currentValue);
@@ -792,15 +790,14 @@ export const toggleWebboardPostLikeService = async (postId: string, userId: stri
   try {
     const postDocRef = doc(db, 'webboardPosts', postId);
     const postSnap = await getDoc(postDocRef);
-    if (!postSnap.exists()) throw new Error("Post not found");
-
-    const likes = postSnap.data()?.likes || [];
-    const userHasLiked = likes.includes(userId);
-
-    await updateDoc(postDocRef, {
-      likes: userHasLiked ? arrayRemove(userId) : arrayUnion(userId),
-      updatedAt: serverTimestamp(),
-    });
+    if (!postSnap.exists()) throw new Error("Post not found for like toggle.");
+    
+    const likesArray = postSnap.data()?.likes || [];
+    if (likesArray.includes(userId)) {
+      await updateDoc(postDocRef, { likes: arrayRemove(userId), updatedAt: serverTimestamp() });
+    } else {
+      await updateDoc(postDocRef, { likes: arrayUnion(userId), updatedAt: serverTimestamp() });
+    }
   } catch (error) {
     logFirebaseError("toggleWebboardPostLikeService", error);
     throw error;
@@ -820,12 +817,11 @@ export const setUserRoleService = async (userIdToUpdate: string, newRole: UserRo
 export const setSiteLockService = async (isLocked: boolean, adminUserId: string): Promise<void> => {
   try {
     const siteConfigDocRef = doc(db, 'config', 'siteStatus');
-    const siteConfigPayload = {
+    await setDoc(siteConfigDocRef, { 
       isSiteLocked: isLocked,
       updatedAt: serverTimestamp(),
-      updatedBy: adminUserId || null, // Ensure adminUserId is not undefined
-    };
-    await setDoc(siteConfigDocRef, siteConfigPayload, { merge: true });
+      updatedBy: adminUserId,
+    }, { merge: true });
   } catch (error) {
     logFirebaseError("setSiteLockService", error);
     throw error;
