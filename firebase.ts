@@ -1,8 +1,9 @@
 
-import { initializeApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth, User as FirebaseAuthUser } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
-import { getStorage, FirebaseStorage } from 'firebase/storage';
+import { initializeApp, type FirebaseApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth'; // Value import
+import type { Auth, User as FirebaseAuthUser } from 'firebase/auth'; // Type imports
+import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getStorage, type FirebaseStorage } from 'firebase/storage';
 
 // Type Aliases for v9 for clarity within this file if needed, or for export if used elsewhere.
 export type FirebaseAppV9 = FirebaseApp;
