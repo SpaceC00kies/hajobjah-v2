@@ -15,7 +15,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({ isOpen, onClose, onC
 
   return (
     <div className="fixed inset-0 bg-neutral-dark bg-opacity-60 dark:bg-black/80 backdrop-blur-md flex justify-center items-center z-50 p-4" role="alertdialog" aria-modal="true" aria-labelledby="confirm-modal-title" aria-describedby="confirm-modal-message">
-      <div className="bg-white dark:bg-dark-cardBg p-6 rounded-lg shadow-xl w-full max-w-md transform transition-all">
+      <div className="bg-white dark:bg-dark-cardBg px-6 pt-6 pb-12 rounded-lg shadow-xl w-full max-w-md transform transition-all max-h-[90vh] overflow-y-auto">
         <h2 id="confirm-modal-title" className="text-xl font-semibold text-neutral-dark dark:text-dark-text mb-4">{title}</h2>
         <p id="confirm-modal-message" className="text-neutral-dark dark:text-dark-textMuted mb-6 font-normal">{message}</p>
         <div className="flex justify-end gap-3">
