@@ -1,8 +1,15 @@
 
-import { initializeApp, type FirebaseApp } from 'firebase/app';
-import { getAuth, type Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
-import { getStorage, FirebaseStorage } from 'firebase/storage';
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/auth';
+import 'firebase/compat/firestore';
+import 'firebase/compat/storage';
+
+// Type Aliases for v8 for clarity, though direct usage of firebase. Hoge.Bar is also common
+export type FirebaseAppV8 = firebase.app.App;
+export type AuthV8 = firebase.auth.Auth;
+export type FirestoreV8 = firebase.firestore.Firestore;
+export type FirebaseStorageV8 = firebase.storage.Storage;
+export type UserV8 = firebase.User; // Firebase Auth User type for v8
 
 // Your web app's Firebase configuration
 // Use Vite environment variables (VITE_FIREBASE_...)
@@ -16,12 +23,13 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase
-const app: FirebaseApp = initializeApp(firebaseConfig);
+// Initialize Firebase v8 style
+const app: FirebaseAppV8 = firebase.initializeApp(firebaseConfig);
+const authInstance: AuthV8 = firebase.auth();
+const dbInstance: FirestoreV8 = firebase.firestore();
+const storageInstance: FirebaseStorageV8 = firebase.storage();
 
-// Firebase services
-const auth: Auth = getAuth(app);
-const db: Firestore = getFirestore(app);
-const storage: FirebaseStorage = getStorage(app);
-
-export { app, auth, db, storage };
+// Export instances with original names for compatibility with services
+export { app, authInstance as auth, dbInstance as db, storageInstance as storage };
+// Export the firebase namespace itself for accessing FieldValue, Timestamp, etc.
+export { firebase };
