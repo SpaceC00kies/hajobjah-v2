@@ -22,7 +22,7 @@ export const CategoryFilterBar: React.FC<CategoryFilterBarProps> = ({
 
 
   return (
-    <div className="mb-6 sm:mb-8 px-1"> {/* Added small horizontal padding for better spacing */}
+    <div className="px-1"> {/* Removed mb-6 sm:mb-8 */}
       <label htmlFor="category-filter-select" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
         เลือกหมวดหมู่:
       </label>
