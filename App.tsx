@@ -891,7 +891,9 @@ const App: React.FC = () => {
           <div className="sticky top-24 space-y-6 p-4 bg-white dark:bg-dark-cardBg rounded-xl shadow-lg border dark:border-dark-border">
             <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedJobCategoryFilter} onSelectCategory={setSelectedJobCategoryFilter} />
             <SearchInputWithRecent searchTerm={jobSearchTerm} onSearchTermChange={handleJobSearch} placeholder="ค้นหางาน, รายละเอียด..." recentSearches={recentJobSearches} onRecentSearchSelect={(term) => { setJobSearchTerm(term); addRecentSearch('recentJobSearches', term); setRecentJobSearches(getRecentSearches('recentJobSearches')); }} ariaLabel="ค้นหางาน" />
-            {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="w-full"> <span className="flex items-center justify-center gap-2"><span>📣</span><span>มีงานด่วน? ฝากไว้ตรงนี้</span></span> </Button> )}
+            {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="w-full sm:px-4">
+              <span className="flex items-center justify-center gap-2"><span>📣</span><span>มีงานด่วน? ฝากไว้ตรงนี้</span></span>
+            </Button> )}
           </div>
         </aside>
         <section className="lg:col-span-9">
