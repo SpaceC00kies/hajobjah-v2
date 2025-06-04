@@ -1,26 +1,10 @@
 
-// Firebase-dependent functions have been removed as per the requirement
-// to use services/firebaseService.ts exclusively for Firebase interactions.
+// All Firebase-dependent helper functions have been moved to services/firebaseService.ts
+// or made obsolete by the direct use of Firebase SDK.
 
-// If logFirebaseError is used by App.tsx and is considered a utility that
-// itself doesn't make direct SDK calls that should be in firebaseService.ts,
-// it can remain. Otherwise, this file might become empty or be removed
-// if App.tsx no longer imports anything from here.
+// This file can be kept for truly generic, non-Firebase utility functions if any exist,
+// or removed if it becomes empty.
+// logFirebaseError is now imported directly from firebase/logging.ts in App.tsx if needed.
 
-// For now, assuming logFirebaseError is a utility that can stay.
-import { logFirebaseError } from '../logging'; // Assuming this is okay to keep if it's just a logger.
-
-// All other functions that directly used 'firebase/auth', 'firebase/firestore', 'firebase/storage'
-// (e.g., createJobInFirestore, updateUserProfileInFirestore, uploadProfilePhotoToStorage, etc.)
-// have been removed because App.tsx should now call equivalent functions
-// from 'services/firebaseService.ts'.
-
-// If there were any non-Firebase utility functions here, they would remain.
-// Example:
-// export const someUtilityFunction = (input: string): string => {
-//   return input.toUpperCase();
-// };
-
-// If logFirebaseError is also intended to be part of the service layer or not used,
-// this file might become empty.
-export { logFirebaseError }; // Re-exporting if it's still used by App.tsx and acceptable.
+// For now, this file is empty as all relevant logic is in firebaseService.ts or App.tsx.
+export {}; // Ensures this is treated as a module if empty.

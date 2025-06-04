@@ -1,5 +1,6 @@
 
 
+
 export interface Job {
   id: string;
   title: string;
@@ -8,6 +9,8 @@ export interface Job {
   payment: string;
   contact: string;
   description: string;
+  category: JobCategory;
+  subCategory?: JobSubCategory; // Added subCategory
   desiredAgeStart?: number;
   desiredAgeEnd?: number;
   preferredGender?: 'ชาย' | 'หญิง' | 'ไม่จำกัด';
@@ -16,15 +19,15 @@ export interface Job {
   dateNeededTo?: string | Date;
   timeNeededStart?: string;
   timeNeededEnd?: string;
-  postedAt?: string | Date; // Can be ISO string or Firestore Timestamp
+  postedAt?: string | Date; 
   userId: string;
   username: string;
-  ownerId?: string; // For Firebase rules
+  ownerId?: string; 
   isSuspicious?: boolean;
   isPinned?: boolean;
   isHired?: boolean;
-  createdAt?: string | Date; // Firestore Timestamp
-  updatedAt?: string | Date; // Firestore Timestamp
+  createdAt?: string | Date; 
+  updatedAt?: string | Date; 
 }
 
 export enum GenderOption {
@@ -59,6 +62,8 @@ export interface HelperProfile {
   area: string;
   availability: string;
   contact: string;
+  category: JobCategory;
+  subCategory?: JobSubCategory; // Added subCategory
   gender?: GenderOption;
   birthdate?: string;
   educationLevel?: HelperEducationLevelOption;
@@ -68,7 +73,7 @@ export interface HelperProfile {
   postedAt?: string | Date;
   userId: string;
   username: string;
-  ownerId?: string; // For Firebase rules
+  ownerId?: string; 
   isSuspicious?: boolean;
   isPinned?: boolean;
   isUnavailable?: boolean;
@@ -85,11 +90,10 @@ export enum UserRole {
 }
 
 export interface User {
-  id: string; // Firebase Auth UID
+  id: string; 
   displayName: string;
   username: string;
   email: string;
-  // hashedPassword?: string; // Removed: Firebase Auth handles this
   role: UserRole;
   mobile: string;
   lineId?: string;
@@ -97,7 +101,7 @@ export interface User {
   gender?: GenderOption;
   birthdate?: string;
   educationLevel?: HelperEducationLevelOption;
-  photo?: string; // This will store the photoURL from Firebase Storage
+  photo?: string; 
   address?: string;
 
   favoriteMusic?: string;
@@ -110,10 +114,9 @@ export interface User {
 
   profileComplete?: boolean;
   userLevel: UserLevel;
-  isMuted?: boolean; // For Firebase rules and app logic
+  isMuted?: boolean; 
   createdAt?: string | Date;
   updatedAt?: string | Date;
-  // isAdmin flag can be derived from 'role'
 }
 
 export enum View {
@@ -143,16 +146,15 @@ export interface EnrichedHelperProfile extends HelperProfile {
 }
 
 export interface Interaction {
-  id: string; // Renamed from interactionId to satisfy generic constraint and be the doc ID
+  id: string; 
   helperUserId: string;
-  helperProfileId?: string; // Added as it's used in firebaseService
+  helperProfileId?: string; 
   employerUserId: string;
   timestamp: string | Date;
   type: 'contact_helper';
   createdAt?: string | Date;
 }
 
-// --- Webboard/Blog System Types ---
 export enum WebboardCategory {
   QA = "ถาม-ตอบ",
   Knowledge = "ความรู้",
@@ -169,6 +171,179 @@ export const WEBBOARD_CATEGORY_STYLES: Record<WebboardCategory, { bg: string; te
   [WebboardCategory.Other]: { bg: 'bg-pink-100 dark:bg-pink-700/40', text: 'text-pink-700 dark:text-pink-200', border: 'border-pink-300 dark:border-pink-500' },
 };
 
+export enum JobCategory {
+  DigitalCreative = 'งานดิจิทัลและสร้างสรรค์',
+  EducationTutoring = 'การศึกษาและติวเตอร์',
+  BusinessAdminSupport = 'งานธุรกิจและสนับสนุนงานธุรการ',
+  ITTechnical = 'งานไอทีและเทคนิค',
+  SalesEventsPromotion = 'งานขาย, อีเวนต์ และโปรโมชัน',
+  HomeDeliveryLifestyle = 'งานบ้าน, รับส่งของ และไลฟ์สไตล์',
+  FoodService = 'งานอาหารและบริการ',
+  HealthFitnessWellness = 'สุขภาพ ฟิตเนส และสุขภาวะ',
+  ArtsCraftsPerformance = 'ศิลปะ งานฝีมือ และการแสดง',
+  ShortTermMisc = 'งานระยะสั้นและงานจิปาถะ',
+}
+
+export type FilterableCategory = JobCategory | 'all';
+
+export const JOB_CATEGORY_EMOJIS_MAP: Record<JobCategory, string> = {
+  [JobCategory.DigitalCreative]: '🎨',
+  [JobCategory.EducationTutoring]: '📚',
+  [JobCategory.BusinessAdminSupport]: '💼',
+  [JobCategory.ITTechnical]: '💻',
+  [JobCategory.SalesEventsPromotion]: '🎉',
+  [JobCategory.HomeDeliveryLifestyle]: '🏠',
+  [JobCategory.FoodService]: '🍽️',
+  [JobCategory.HealthFitnessWellness]: '💪',
+  [JobCategory.ArtsCraftsPerformance]: '🎭',
+  [JobCategory.ShortTermMisc]: '⚡',
+};
+
+
+export const JOB_CATEGORY_STYLES: Record<JobCategory, { bg: string; text: string; border?: string }> = {
+  [JobCategory.DigitalCreative]: { bg: 'bg-violet-100 dark:bg-violet-700/40', text: 'text-violet-700 dark:text-violet-200', border: 'border-violet-300 dark:border-violet-500' },
+  [JobCategory.EducationTutoring]: { bg: 'bg-teal-100 dark:bg-teal-700/40', text: 'text-teal-700 dark:text-teal-200', border: 'border-teal-300 dark:border-teal-500' },
+  [JobCategory.BusinessAdminSupport]: { bg: 'bg-slate-100 dark:bg-slate-700/40', text: 'text-slate-700 dark:text-slate-200', border: 'border-slate-300 dark:border-slate-500' },
+  [JobCategory.ITTechnical]: { bg: 'bg-blue-100 dark:bg-blue-700/40', text: 'text-blue-700 dark:text-blue-200', border: 'border-blue-300 dark:border-blue-500' },
+  [JobCategory.SalesEventsPromotion]: { bg: 'bg-rose-100 dark:bg-rose-700/40', text: 'text-rose-700 dark:text-rose-200', border: 'border-rose-300 dark:border-rose-500' },
+  [JobCategory.HomeDeliveryLifestyle]: { bg: 'bg-orange-100 dark:bg-orange-700/40', text: 'text-orange-700 dark:text-orange-200', border: 'border-orange-300 dark:border-orange-500' },
+  [JobCategory.FoodService]: { bg: 'bg-lime-100 dark:bg-lime-700/40', text: 'text-lime-700 dark:text-lime-200', border: 'border-lime-300 dark:border-lime-500' },
+  [JobCategory.HealthFitnessWellness]: { bg: 'bg-cyan-100 dark:bg-cyan-700/40', text: 'text-cyan-700 dark:text-cyan-200', border: 'border-cyan-300 dark:border-cyan-500' },
+  [JobCategory.ArtsCraftsPerformance]: { bg: 'bg-fuchsia-100 dark:bg-fuchsia-700/40', text: 'text-fuchsia-700 dark:text-fuchsia-200', border: 'border-fuchsia-300 dark:border-fuchsia-500' },
+  [JobCategory.ShortTermMisc]: { bg: 'bg-pink-100 dark:bg-pink-700/40', text: 'text-pink-700 dark:text-pink-200', border: 'border-pink-300 dark:border-pink-500' },
+};
+
+// --- SubCategory System ---
+export enum JobSubCategory {
+  // Digital & Creative
+  DigitalCreative_GraphicDesign = "ออกแบบกราฟิก (โลโก้, โปสเตอร์, สื่อโซเชียล)",
+  DigitalCreative_WritingTranslation = "เขียนและแปลภาษา (แปลภาษา, เขียนบทความ, คอนเทนต์)",
+  DigitalCreative_WebMobileDev = "พัฒนาเว็บไซต์และแอป (เว็บไซต์, แอพมือถือ)",
+  DigitalCreative_VideoAudioEditing = "ตัดต่อวิดีโอและเสียง (ตัดต่อวิดีโอ, ทำเพลง, พากย์เสียง)",
+  DigitalCreative_MarketingSocialMedia = "การตลาดและโซเชียลมีเดีย (บริหารเพจ, โฆษณาออนไลน์)",
+
+  // Education & Tutoring
+  EducationTutoring_LanguageTeaching = "สอนภาษา (สอนภาษาอังกฤษ, จีน, ญี่ปุ่น ฯลฯ)",
+  EducationTutoring_AcademicTutoring = "ติววิชาการ (คณิต, วิทย์, สังคม, ดนตรี)",
+  EducationTutoring_ExamPrep = "ติวสอบ (GAT/PAT, IELTS/TOEFL)",
+  EducationTutoring_WorkshopCraftTeaching = "สอนเวิร์กช็อป/งานฝีมือ",
+
+  // Business & Admin Support
+  BusinessAdminSupport_DataEntry = "คีย์ข้อมูล",
+  BusinessAdminSupport_OnlineAssistant = "ผู้ช่วยออนไลน์",
+  BusinessAdminSupport_CustomerService = "บริการลูกค้า",
+  BusinessAdminSupport_AccountingFinance = "บัญชีและการเงิน",
+  BusinessAdminSupport_MarketResearch = "งานวิจัย/สำรวจตลาด",
+
+  // IT & Technical
+  ITTechnical_SoftwareDevelopment = "พัฒนาโปรแกรม",
+  ITTechnical_ITSupportRepair = "ซ่อมคอมและช่วยเหลือด้านไอที",
+  ITTechnical_AIDataAnalysis = "งาน AI และวิเคราะห์ข้อมูล",
+  ITTechnical_WebsiteMaintenance = "ดูแลเว็บไซต์",
+
+  // Sales, Events & Promotion
+  SalesEventsPromotion_SalesPromotionStaff = "พนักงานขาย/โปรโมทสินค้า",
+  SalesEventsPromotion_EventStaffMCFlyer = "พนักงานอีเวนต์/MC/แจกใบปลิว",
+  SalesEventsPromotion_MarketSurveyStaff = "สำรวจตลาด",
+  SalesEventsPromotion_BoothStaff = "พนักงานบูธ/ออกบูธ",
+
+  // Home, Delivery & Lifestyle
+  HomeDeliveryLifestyle_HousekeepingCleaning = "แม่บ้าน/ทำความสะอาด",
+  HomeDeliveryLifestyle_DeliveryErrands = "รับส่งของ/งานธุรการ (รับ-ส่งเอกสาร, ช่วยซื้อของ)",
+  HomeDeliveryLifestyle_RepairmanHandyman = "ช่างซ่อม/ซ่อมแซม (ช่างไฟ, ช่างประปา)",
+  HomeDeliveryLifestyle_GardeningPetCare = "ดูแลสวน/สัตว์เลี้ยง (เดินสุนัข, เลี้ยงสัตว์)",
+  HomeDeliveryLifestyle_MovingHauling = "ช่วยขนย้าย/รถรับจ้าง",
+
+  // Food & Service
+  FoodService_Barista = "พนักงานร้านกาแฟ",
+  FoodService_KitchenAssistantCook = "ผู้ช่วยครัว/พ่อครัว/แม่ครัว",
+  FoodService_CateringServing = "จัดเลี้ยง/เสิร์ฟอาหาร",
+  FoodService_WaiterWaitress = "พนักงานเสิร์ฟ",
+
+  // Health, Fitness & Wellness
+  HealthFitnessWellness_PersonalTrainerFitnessCoach = "เทรนเนอร์ส่วนตัว/โค้ชฟิตเนส",
+  HealthFitnessWellness_MassageSpa = "นวด/สปา",
+  HealthFitnessWellness_YogaPilatesInstructor = "ครูสอนโยคะ/พิลาทิส",
+  HealthFitnessWellness_HealthNutritionCoach = "โค้ชสุขภาพ/โภชนาการ",
+
+  // Arts, Crafts & Performance
+  ArtsCraftsPerformance_HandicraftsGifts = "งานฝีมือ/ของขวัญทำมือ",
+  ArtsCraftsPerformance_PhotographyVideography = "ถ่ายภาพ/วิดีโอ",
+  ArtsCraftsPerformance_MusicPerformanceSinger = "ดนตรี/การแสดง/นักร้อง",
+  ArtsCraftsPerformance_PaintingArtist = "วาดภาพ/ศิลปิน",
+
+  // Short-term & Misc
+  ShortTermMisc_TemporaryDailyWorker = "พนักงานชั่วคราว/รายวัน",
+  ShortTermMisc_SeasonalProjectWork = "งานตามฤดูกาล/โปรเจกต์",
+  ShortTermMisc_OtherMiscTasks = "งานอื่นๆ/งานจิปาถะ",
+}
+
+export const JOB_SUBCATEGORIES_MAP: Record<JobCategory, JobSubCategory[]> = {
+  [JobCategory.DigitalCreative]: [
+    JobSubCategory.DigitalCreative_GraphicDesign,
+    JobSubCategory.DigitalCreative_WritingTranslation,
+    JobSubCategory.DigitalCreative_WebMobileDev,
+    JobSubCategory.DigitalCreative_VideoAudioEditing,
+    JobSubCategory.DigitalCreative_MarketingSocialMedia,
+  ],
+  [JobCategory.EducationTutoring]: [
+    JobSubCategory.EducationTutoring_LanguageTeaching,
+    JobSubCategory.EducationTutoring_AcademicTutoring,
+    JobSubCategory.EducationTutoring_ExamPrep,
+    JobSubCategory.EducationTutoring_WorkshopCraftTeaching,
+  ],
+  [JobCategory.BusinessAdminSupport]: [
+    JobSubCategory.BusinessAdminSupport_DataEntry,
+    JobSubCategory.BusinessAdminSupport_OnlineAssistant,
+    JobSubCategory.BusinessAdminSupport_CustomerService,
+    JobSubCategory.BusinessAdminSupport_AccountingFinance,
+    JobSubCategory.BusinessAdminSupport_MarketResearch,
+  ],
+  [JobCategory.ITTechnical]: [
+    JobSubCategory.ITTechnical_SoftwareDevelopment,
+    JobSubCategory.ITTechnical_ITSupportRepair,
+    JobSubCategory.ITTechnical_AIDataAnalysis,
+    JobSubCategory.ITTechnical_WebsiteMaintenance,
+  ],
+  [JobCategory.SalesEventsPromotion]: [
+    JobSubCategory.SalesEventsPromotion_SalesPromotionStaff,
+    JobSubCategory.SalesEventsPromotion_EventStaffMCFlyer,
+    JobSubCategory.SalesEventsPromotion_MarketSurveyStaff,
+    JobSubCategory.SalesEventsPromotion_BoothStaff,
+  ],
+  [JobCategory.HomeDeliveryLifestyle]: [
+    JobSubCategory.HomeDeliveryLifestyle_HousekeepingCleaning,
+    JobSubCategory.HomeDeliveryLifestyle_DeliveryErrands,
+    JobSubCategory.HomeDeliveryLifestyle_RepairmanHandyman,
+    JobSubCategory.HomeDeliveryLifestyle_GardeningPetCare,
+    JobSubCategory.HomeDeliveryLifestyle_MovingHauling,
+  ],
+  [JobCategory.FoodService]: [
+    JobSubCategory.FoodService_Barista,
+    JobSubCategory.FoodService_KitchenAssistantCook,
+    JobSubCategory.FoodService_CateringServing,
+    JobSubCategory.FoodService_WaiterWaitress,
+  ],
+  [JobCategory.HealthFitnessWellness]: [
+    JobSubCategory.HealthFitnessWellness_PersonalTrainerFitnessCoach,
+    JobSubCategory.HealthFitnessWellness_MassageSpa,
+    JobSubCategory.HealthFitnessWellness_YogaPilatesInstructor,
+    JobSubCategory.HealthFitnessWellness_HealthNutritionCoach,
+  ],
+  [JobCategory.ArtsCraftsPerformance]: [
+    JobSubCategory.ArtsCraftsPerformance_HandicraftsGifts,
+    JobSubCategory.ArtsCraftsPerformance_PhotographyVideography,
+    JobSubCategory.ArtsCraftsPerformance_MusicPerformanceSinger,
+    JobSubCategory.ArtsCraftsPerformance_PaintingArtist,
+  ],
+  [JobCategory.ShortTermMisc]: [
+    JobSubCategory.ShortTermMisc_TemporaryDailyWorker,
+    JobSubCategory.ShortTermMisc_SeasonalProjectWork,
+    JobSubCategory.ShortTermMisc_OtherMiscTasks,
+  ],
+};
+
+
 export interface WebboardPost {
   id: string;
   title: string;
@@ -177,7 +352,7 @@ export interface WebboardPost {
   image?: string;
   userId: string;
   username: string;
-  ownerId?: string; // For Firebase rules
+  ownerId?: string; 
   authorPhoto?: string;
   createdAt: string | Date;
   updatedAt: string | Date;
@@ -191,7 +366,7 @@ export interface WebboardComment {
   postId: string;
   userId: string;
   username: string;
-  ownerId?: string; // For Firebase rules
+  ownerId?: string; 
   authorPhoto?: string;
   text: string;
   createdAt: string | Date;
@@ -247,9 +422,8 @@ export interface EnrichedWebboardComment extends WebboardComment {
   authorLevel: UserLevel;
 }
 
-// For site configuration in Firestore, e.g., /config/siteStatus
 export interface SiteConfig {
     isSiteLocked: boolean;
     updatedAt?: string | Date;
-    updatedBy?: string; // Admin UID
+    updatedBy?: string; 
 }

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import type { EnrichedHelperProfile, User } from '../types'; // Added User
-import { GenderOption, HelperEducationLevelOption, View } from '../types'; 
+import type { EnrichedHelperProfile, User } from '../types'; 
+import { GenderOption, HelperEducationLevelOption, View, JobCategory, JOB_CATEGORY_STYLES } from '../types'; 
 import { Button } from './Button';
 import { Modal } from './Modal';
 
@@ -10,8 +10,8 @@ interface HelperCardProps {
   onNavigateToPublicProfile: (userId: string) => void; 
   navigateTo: (view: View) => void; 
   onLogHelperContact: (helperProfileId: string) => void;
-  currentUser: User | null; // Added currentUser
-  requestLoginForAction: (view: View, payload?: any) => void; // Added requestLoginForAction
+  currentUser: User | null; 
+  requestLoginForAction: (view: View, payload?: any) => void; 
 }
 
 const FallbackAvatarDisplay: React.FC<{ name?: string, size?: string, className?: string }> = ({ name, size = "w-16 h-16", className = "" }) => {
@@ -82,7 +82,6 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
 
   const handleContact = () => {
-    // This will only be called if currentUser exists
     setIsWarningModalOpen(true); 
   };
 
@@ -95,7 +94,6 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
   };
 
   const handleProceedToContact = () => {
-    // This will only be called if currentUser exists
     onLogHelperContact(profile.id); 
     setIsWarningModalOpen(false); 
     setIsContactModalOpen(true); 
@@ -125,6 +123,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
 
   const shortAddress = profile.userAddress ? profile.userAddress.split(',')[0] : null;
   const detailsPreview = profile.details.substring(0, 150);
+  const categoryStyle = profile.category ? JOB_CATEGORY_STYLES[profile.category] : JOB_CATEGORY_STYLES[JobCategory.ShortTermMisc];
 
 
   return (
@@ -164,6 +163,17 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
           </div>
         </div>
         
+        <div className="my-1">
+          <span className={`text-xs font-sans font-medium px-2 py-0.5 rounded-full inline-block ${categoryStyle.bg} ${categoryStyle.text} ${categoryStyle.border ? `border ${categoryStyle.border}`: ''}`}>
+            {profile.category}
+          </span>
+        </div>
+        {profile.subCategory && (
+          <p className="text-xs font-serif text-neutral-medium dark:text-dark-textMuted mb-2 ml-1">
+            └ {profile.subCategory}
+          </p>
+        )}
+
         <TrustBadgesDisplay profile={profile} />
 
         <div className="space-y-2 text-neutral-dark dark:text-dark-textMuted mb-4 flex-grow font-normal">

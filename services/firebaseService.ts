@@ -1,17 +1,14 @@
 
-import { auth, db, storage } from '../firebase'; // auth is expected to be a v9 Auth instance
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  updateProfile,
-  User as FirebaseAuthUser // v9 User type
+  User as FirebaseUser,
 } from 'firebase/auth';
-
 import {
-  doc,
   collection,
+  doc,
   addDoc,
   setDoc,
   getDoc,
@@ -21,209 +18,109 @@ import {
   query,
   where,
   orderBy,
+  limit,
   onSnapshot,
   serverTimestamp,
-  increment,
-  arrayRemove,
-  arrayUnion,
   Timestamp,
   writeBatch,
-  type QueryDocumentSnapshot,
-  type DocumentData,
-  type WhereFilterOp,
-  type OrderByDirection,
-  type Unsubscribe,
+  WriteBatch,
+  QueryConstraint,
+  collectionGroup
 } from 'firebase/firestore';
 import {
   ref,
-  uploadString,
   uploadBytes,
   getDownloadURL,
   deleteObject,
-  type StorageReference,
+  uploadString,
 } from 'firebase/storage';
 
-import type { User, UserRole, Job, HelperProfile, WebboardPost, WebboardComment, SiteConfig, WebboardCategory, Interaction } from '../types';
+import { auth, db, storage } from '../firebase'; // Corrected import path
+import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserRole } from '../types';
+import { WebboardCategory } from '../types'; // Added import for WebboardCategory
 import { logFirebaseError } from '../firebase/logging';
 
-// Helper function to parse storage path from HTTPS URL (remains the same)
-const getPathFromHttpUrl = (url: string): string | null => {
-  try {
-    const urlObj = new URL(url);
-    if (urlObj.hostname === 'firebasestorage.googleapis.com' || urlObj.hostname.endsWith('.appspot.com')) {
-      const pathSegments = urlObj.pathname.split('/o/');
-      if (pathSegments.length > 1) {
-        const encodedPath = pathSegments[1].split('?')[0];
-        return decodeURIComponent(encodedPath);
-      } else {
-        const pathParts = urlObj.pathname.substring(1).split('/');
-        if (pathParts.length > 1) {
-          return decodeURIComponent(pathParts.slice(1).join('/'));
-        }
-      }
-    }
-  } catch (e) { logFirebaseError("getPathFromHttpUrl", e); }
-  return null;
+// Collection Names
+const USERS_COLLECTION = 'users';
+const JOBS_COLLECTION = 'jobs';
+const HELPER_PROFILES_COLLECTION = 'helperProfiles';
+const WEBBOARD_POSTS_COLLECTION = 'webboardPosts';
+const WEBBOARD_COMMENTS_COLLECTION = 'webboardComments';
+const INTERACTIONS_COLLECTION = 'interactions';
+const SITE_CONFIG_COLLECTION = 'siteConfig';
+const SITE_CONFIG_DOC_ID = 'main';
+const FEEDBACK_COLLECTION = 'feedback';
+
+
+// --- Helper to convert Firestore Timestamps to ISO strings for consistency ---
+const convertTimestamps = (data: any): any => {
+  if (data === null || typeof data !== 'object') {
+    return data;
+  }
+  if (data instanceof Timestamp) {
+    return data.toDate().toISOString();
+  }
+  if (Array.isArray(data)) {
+    return data.map(convertTimestamps);
+  }
+  const result: { [key: string]: any } = {};
+  for (const key in data) {
+    result[key] = convertTimestamps(data[key]);
+  }
+  return result;
 };
 
-// Helper function to handle dates (remains the same)
-const convertTimestamp = (timestampInput: any): string => {
-  if (!timestampInput) return new Date().toISOString();
-  if (timestampInput instanceof Timestamp) {
-    return timestampInput.toDate().toISOString();
-  }
-  if (timestampInput && typeof timestampInput.toDate === 'function') {
-    return timestampInput.toDate().toISOString();
-  }
-  if (typeof timestampInput === 'string') {
-    try {
-      const parsedDate = new Date(timestampInput);
-      if (!isNaN(parsedDate.getTime())) {
-        return parsedDate.toISOString();
-      }
-      return timestampInput;
-    } catch (e) {
-      return timestampInput;
-    }
-  }
+// --- Authentication Services ---
+export const signUpWithEmailPasswordService = async (
+  userData: Omit<User, 'id' | 'userLevel' | 'profileComplete'> & { password: string }
+): Promise<User | null> => {
   try {
-    return new Date(timestampInput).toISOString();
-  } catch (e) {
-    return new Date().toISOString();
-  }
-};
+    const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
+    const firebaseUser = userCredential.user;
+    const { password, ...userProfileData } = userData;
 
-// --- Image Upload Helper --- (remains the same)
-const uploadImageToStorageService = async (fileOrBase64: string | File, path: string): Promise<string> => {
-  const sRef: StorageReference = ref(storage, path);
-  try {
-    if (typeof fileOrBase64 === 'string' && fileOrBase64.startsWith('data:image')) {
-      await uploadString(sRef, fileOrBase64, 'data_url');
-    } else if (fileOrBase64 instanceof File) {
-      await uploadBytes(sRef, fileOrBase64);
-    } else {
-      throw new Error('Invalid image format for upload.');
-    }
-    return await getDownloadURL(sRef);
-  } catch (error) {
-    logFirebaseError('uploadImageToStorageService (' + path + ')', error);
-    throw error;
-  }
-};
-
-const deleteImageFromStorageService = async (imageUrl: string | undefined | null): Promise<void> => {
-    if (!imageUrl || !(imageUrl.startsWith('https://firebasestorage.googleapis.com/') || imageUrl.includes('.appspot.com/'))) {
-        return;
-    }
-    try {
-        const filePath = getPathFromHttpUrl(imageUrl);
-        if (filePath) {
-            const imageStorageRef: StorageReference = ref(storage, filePath);
-            await deleteObject(imageStorageRef);
-        }
-    } catch (error: any) {
-        if (error.code === 'storage/object-not-found') {
-            // console.warn('Image not found for deletion, but proceeding: ' + imageUrl);
-        } else {
-            logFirebaseError('deleteImageFromStorageService (' + imageUrl + ')', error);
-        }
-    }
-};
-
-// --- User Authentication Services (v9 Modular Style) ---
-export const signUpWithEmailPasswordService = async (userData: Omit<User, 'id' | 'userLevel' | 'profileComplete' | 'photo' | 'address'> & {password: string}): Promise<User | null> => {
-  try {
-    const result = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
-    const firebaseUser = result.user;
-
-    if (!firebaseUser) {
-        throw new Error("User creation failed, no user object returned.");
-    }
-
-    await updateProfile(firebaseUser, { displayName: userData.displayName });
-
-    const newUserForDb = {
-        displayName: userData.displayName,
-        username: userData.username,
-        email: firebaseUser.email!,
-        role: userData.role,
-        mobile: userData.mobile,
-        lineId: userData.lineId || null,
-        facebook: userData.facebook || null,
-        gender: userData.gender || null,
-        birthdate: userData.birthdate || null,
-        educationLevel: userData.educationLevel || null,
-        photo: null,
-        address: null,
-        favoriteMusic: userData.favoriteMusic || null,
-        favoriteBook: userData.favoriteBook || null,
-        favoriteMovie: userData.favoriteMovie || null,
-        hobbies: userData.hobbies || null,
-        favoriteFood: userData.favoriteFood || null,
-        dislikedThing: userData.dislikedThing || null,
-        introSentence: userData.introSentence || null,
-        isMuted: false,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-    };
-
-    const userDocRef = doc(db, 'users', firebaseUser.uid);
-    await setDoc(userDocRef, newUserForDb);
-
-    const createdUser: User = {
-      id: firebaseUser.uid,
-      displayName: newUserForDb.displayName,
-      username: newUserForDb.username,
-      email: newUserForDb.email,
-      role: newUserForDb.role,
-      mobile: newUserForDb.mobile,
-      lineId: newUserForDb.lineId,
-      facebook: newUserForDb.facebook,
-      gender: newUserForDb.gender,
-      birthdate: newUserForDb.birthdate,
-      educationLevel: newUserForDb.educationLevel,
-      photo: newUserForDb.photo,
-      address: newUserForDb.address,
-      favoriteMusic: newUserForDb.favoriteMusic,
-      favoriteBook: newUserForDb.favoriteBook,
-      favoriteMovie: newUserForDb.favoriteMovie,
-      hobbies: newUserForDb.hobbies,
-      favoriteFood: newUserForDb.favoriteFood,
-      dislikedThing: newUserForDb.dislikedThing,
-      introSentence: newUserForDb.introSentence,
-      userLevel: { name: '🐣 มือใหม่หัดโพสต์', minScore: 0, colorClass: 'bg-green-200 dark:bg-green-700/50', textColorClass: 'text-green-800 dark:text-green-200' },
-      profileComplete: false,
+    const newUser: Omit<User, 'id'> = {
+      ...userProfileData,
+      photo: null, // Will be updated if they upload one
+      address: '', // Default empty
+      userLevel: { name: "🐣 มือใหม่หัดโพสต์", minScore: 0, colorClass: 'bg-green-200 dark:bg-green-700/50', textColorClass: 'text-green-800 dark:text-green-200' }, // Default level
+      profileComplete: false, // Default
       isMuted: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: serverTimestamp() as any, // Firestore will convert this
+      updatedAt: serverTimestamp() as any,
     };
-    return createdUser;
 
-  } catch (error) {
+    await setDoc(doc(db, USERS_COLLECTION, firebaseUser.uid), newUser);
+    return { id: firebaseUser.uid, ...convertTimestamps(newUser) };
+  } catch (error: any) {
     logFirebaseError("signUpWithEmailPasswordService", error);
-    throw error;
+    throw error; // Re-throw for App.tsx to handle UI
   }
 };
 
 export const signInWithEmailPasswordService = async (loginIdentifier: string, passwordAttempt: string): Promise<User | null> => {
   try {
-    let emailToLogin = loginIdentifier;
+    let emailToSignIn = loginIdentifier;
+    // If loginIdentifier is not an email, try to find user by username
     if (!loginIdentifier.includes('@')) {
-      const usersCollRef = collection(db, 'users');
-      const q = query(usersCollRef, where('username', '==', loginIdentifier));
-      const usersSnapshot = await getDocs(q);
-      if (usersSnapshot.empty) {
-        throw new Error('ไม่พบชื่อผู้ใช้นี้');
-      }
-      const foundUserDoc = usersSnapshot.docs[0];
-      emailToLogin = foundUserDoc.data().email;
-       if (!emailToLogin) {
-        throw new Error('ไม่พบอีเมลสำหรับชื่อผู้ใช้นี้');
+      const usersRef = collection(db, USERS_COLLECTION);
+      const q = query(usersRef, where("username", "==", loginIdentifier), limit(1));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        emailToSignIn = querySnapshot.docs[0].data().email;
+      } else {
+        throw new Error("User not found with this username.");
       }
     }
-    await signInWithEmailAndPassword(auth, emailToLogin, passwordAttempt);
-    return getCurrentUserService();
-  } catch (error) {
+
+    const userCredential = await signInWithEmailAndPassword(auth, emailToSignIn, passwordAttempt);
+    const firebaseUser = userCredential.user;
+    const userDoc = await getDoc(doc(db, USERS_COLLECTION, firebaseUser.uid));
+    if (userDoc.exists()) {
+      return { id: firebaseUser.uid, ...convertTimestamps(userDoc.data()) } as User;
+    }
+    throw new Error("User data not found in Firestore.");
+  } catch (error: any) {
     logFirebaseError("signInWithEmailPasswordService", error);
     throw error;
   }
@@ -232,598 +129,495 @@ export const signInWithEmailPasswordService = async (loginIdentifier: string, pa
 export const signOutUserService = async (): Promise<void> => {
   try {
     await signOut(auth);
-  } catch (error) {
+  } catch (error: any) {
     logFirebaseError("signOutUserService", error);
     throw error;
   }
 };
 
-export const onAuthChangeService = (callback: (user: User | null) => void): Unsubscribe => {
-  return onAuthStateChanged(auth, async (firebaseUser: FirebaseAuthUser | null) => {
+export const onAuthChangeService = (callback: (user: User | null) => void): (() => void) => {
+  return onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
     if (firebaseUser) {
-      const user = await getCurrentUserService();
-      callback(user);
+      const userDocRef = doc(db, USERS_COLLECTION, firebaseUser.uid);
+      try {
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+          callback({ id: firebaseUser.uid, ...convertTimestamps(userDocSnap.data()) } as User);
+        } else {
+          // This case might happen if user record in Firestore is deleted but auth record remains
+          logFirebaseError("onAuthChangeService", new Error(`User ${firebaseUser.uid} not found in Firestore.`));
+          callback(null); // Treat as signed out
+          await signOut(auth); // Sign out from Firebase Auth as well
+        }
+      } catch (error) {
+        logFirebaseError("onAuthChangeService - getDoc", error);
+        callback(null);
+      }
     } else {
       callback(null);
     }
   });
 };
 
-export const getCurrentUserService = async (): Promise<User | null> => {
-  const firebaseUserAuth = auth.currentUser; 
-  if (!firebaseUserAuth) return null;
 
+// --- Storage Service ---
+export const uploadImageService = async (path: string, fileOrBase64: File | string): Promise<string> => {
   try {
-    const userDocRef = doc(db, 'users', firebaseUserAuth.uid);
-    const userDocSnap = await getDoc(userDocRef);
-
-    if (userDocSnap.exists()) {
-      const userData = userDocSnap.data() as Omit<User, 'id'>;
-      return {
-        id: firebaseUserAuth.uid,
-        ...userData,
-        photo: firebaseUserAuth.photoURL || userData.photo || null,
-        displayName: firebaseUserAuth.displayName || userData.displayName,
-        userLevel: userData.userLevel || { name: '🐣 มือใหม่หัดโพสต์', minScore: 0, colorClass: 'bg-green-200 dark:bg-green-700/50', textColorClass: 'text-green-800 dark:text-green-200' },
-        profileComplete: userData.profileComplete || false,
-        createdAt: convertTimestamp(userData.createdAt),
-        updatedAt: convertTimestamp(userData.updatedAt),
-      };
+    const storageRef = ref(storage, path);
+    if (typeof fileOrBase64 === 'string') { // Assuming base64 data URL
+      await uploadString(storageRef, fileOrBase64, 'data_url');
+    } else { // Assuming File object
+      await uploadBytes(storageRef, fileOrBase64);
     }
-    logFirebaseError("getCurrentUserService", 'User ' + firebaseUserAuth.uid + ' exists in Auth but not Firestore.');
-    return null;
-  } catch (error) {
-    logFirebaseError("getCurrentUserService", error);
-    return null;
+    return await getDownloadURL(storageRef);
+  } catch (error: any) {
+    logFirebaseError("uploadImageService", error);
+    throw error;
   }
 };
 
-// --- Firestore Read Services (Real-time Subscriptions) --- (Remain v9 modular)
-const createSubscriptionService = <T extends { id: string }>(
-  collectionName: string,
-  mapFn: (doc: QueryDocumentSnapshot<DocumentData>) => T,
-  defaultOrderByField: string = 'createdAt',
-  defaultOrderByDirection: OrderByDirection = 'desc',
-  additionalQueryConstraints: { field: string, op: WhereFilterOp, value: any }[] = []
-) => (callback: (data: T[]) => void): Unsubscribe => {
-  const collRef = collection(db, collectionName);
-  let q = query(collRef, orderBy(defaultOrderByField, defaultOrderByDirection));
-
-  additionalQueryConstraints.forEach(constraint => {
-    q = query(q, where(constraint.field, constraint.op, constraint.value));
-  });
-
-  return onSnapshot(q, (snapshot) => {
-    const dataList = snapshot.docs.map(d => mapFn(d));
-    callback(dataList);
-  }, (error) => {
-    logFirebaseError('subscribeTo' + collectionName.charAt(0).toUpperCase() + collectionName.slice(1) + 'Service', error);
-    callback([]);
-  });
-};
-
-export const subscribeToJobsService = createSubscriptionService<Job>('jobs', d => ({
-  id: d.id, ...d.data(), postedAt: convertTimestamp(d.data().postedAt), createdAt: convertTimestamp(d.data().createdAt), updatedAt: convertTimestamp(d.data().updatedAt)
-} as Job));
-
-export const subscribeToHelperProfilesService = createSubscriptionService<HelperProfile>('helperProfiles', d => ({
-  id: d.id, ...d.data(), postedAt: convertTimestamp(d.data().postedAt), createdAt: convertTimestamp(d.data().createdAt), updatedAt: convertTimestamp(d.data().updatedAt)
-} as HelperProfile));
-
-export const subscribeToUsersService = createSubscriptionService<User>('users', d => ({
-  id: d.id, ...d.data(), createdAt: convertTimestamp(d.data().createdAt), updatedAt: convertTimestamp(d.data().updatedAt),
-  userLevel: d.data().userLevel || { name: '🐣 มือใหม่หัดโพสต์', minScore: 0, colorClass: 'bg-green-200 dark:bg-green-700/50', textColorClass: 'text-green-800 dark:text-green-200' }
-} as User), 'username', 'asc');
-
-
-export const subscribeToWebboardPostsService = (callback: (data: WebboardPost[]) => void): Unsubscribe => {
-  const collRef = collection(db, 'webboardPosts');
-  const q = query(collRef, orderBy('isPinned', 'desc'), orderBy('createdAt', 'desc'));
-
-  return onSnapshot(q, (snapshot) => {
-    const dataList = snapshot.docs.map(d => ({
-        id: d.id, ...d.data(), likes: d.data().likes || [], createdAt: convertTimestamp(d.data().createdAt), updatedAt: convertTimestamp(d.data().updatedAt)
-    } as WebboardPost));
-    callback(dataList);
-  }, (error) => {
-    logFirebaseError('subscribeToWebboardPostsService', error);
-    callback([]);
-  });
-};
-
-export const subscribeToWebboardCommentsService = createSubscriptionService<WebboardComment>('webboardComments', d => ({
-  id: d.id, ...d.data(), createdAt: convertTimestamp(d.data().createdAt), updatedAt: convertTimestamp(d.data().updatedAt)
-} as WebboardComment), 'createdAt', 'asc');
-
-export const subscribeToInteractionsService = createSubscriptionService<Interaction>('interactions', d => ({
-  id: d.id,
-  ...d.data(),
-  timestamp: convertTimestamp(d.data().timestamp),
-  createdAt: convertTimestamp(d.data().createdAt),
-  helperProfileId: d.data().helperProfileId || null
-} as Interaction), 'timestamp', 'desc');
-
-export const subscribeToSiteConfigService = (callback: (config: SiteConfig) => void): Unsubscribe => {
-  const docRef = doc(db, 'config', 'siteStatus');
-  return onSnapshot(docRef, (docSnap) => {
-    if (docSnap.exists()) {
-      const data = docSnap.data() as DocumentData;
-      callback({
-        isSiteLocked: data.isSiteLocked || false,
-        updatedAt: data.updatedAt ? convertTimestamp(data.updatedAt) : undefined,
-        updatedBy: data.updatedBy || null,
-      });
-    } else {
-      callback({ isSiteLocked: false });
+export const deleteImageService = async (imageUrl?: string | null): Promise<void> => {
+  if (!imageUrl) return;
+  try {
+    const storageRef = ref(storage, imageUrl);
+    await deleteObject(storageRef);
+  } catch (error: any) {
+    // Ignore "object-not-found" errors, as it might have been already deleted or never existed.
+    if (error.code !== 'storage/object-not-found') {
+      logFirebaseError("deleteImageService", error);
+      throw error;
     }
-  }, (error) => {
-    logFirebaseError("subscribeToSiteConfigService", error);
-    callback({ isSiteLocked: false });
-  });
+  }
 };
 
-// --- Firestore Write Services ---
-// User Profile
+// --- User Profile Service ---
 export const updateUserProfileService = async (
   userId: string,
-  profileData: Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username' | 'userLevel' | 'profileComplete'>>
+  profileData: Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username'>>
 ): Promise<boolean> => {
-  const currentUserAuth = auth.currentUser; 
-  if (!currentUserAuth || currentUserAuth.uid !== userId) {
-    throw new Error("Unauthorized attempt to update profile or user mismatch.");
-  }
   try {
-    const userDocRef = doc(db, 'users', userId); 
-    const dataToUpdate: { [key: string]: any } = { updatedAt: serverTimestamp() };
-
-    let newPhotoURL: string | null | undefined = profileData.photo;
+    const userDocRef = doc(db, USERS_COLLECTION, userId);
+    let dataToUpdate: Partial<User> = { ...profileData, updatedAt: serverTimestamp() as any };
 
     if (profileData.photo && typeof profileData.photo === 'string' && profileData.photo.startsWith('data:image')) {
-      const oldUserDoc = await getDoc(userDocRef);
-      const oldPhotoURL = oldUserDoc.exists() ? oldUserDoc.data()?.photo : null;
-      if (oldPhotoURL && typeof oldPhotoURL === 'string') {
-          await deleteImageFromStorageService(oldPhotoURL);
+      // If new photo is base64, upload it
+      const oldUserSnap = await getDoc(userDocRef);
+      if(oldUserSnap.exists() && oldUserSnap.data().photo) {
+          await deleteImageService(oldUserSnap.data().photo);
       }
-      newPhotoURL = await uploadImageToStorageService(profileData.photo, 'profileImages/' + userId + '/' + Date.now());
-      dataToUpdate.photo = newPhotoURL;
+      dataToUpdate.photo = await uploadImageService(`profileImages/${userId}/${Date.now()}`, profileData.photo);
     } else if (profileData.hasOwnProperty('photo') && profileData.photo === undefined) {
-      const oldUserDoc = await getDoc(userDocRef);
-      const oldPhotoURL = oldUserDoc.exists() ? oldUserDoc.data()?.photo : null;
-      if (oldPhotoURL && typeof oldPhotoURL === 'string') {
-          await deleteImageFromStorageService(oldPhotoURL);
-      }
-      newPhotoURL = null;
+      // If photo is explicitly set to undefined, it means remove it
+       const oldUserSnap = await getDoc(userDocRef);
+       if(oldUserSnap.exists() && oldUserSnap.data().photo) {
+           await deleteImageService(oldUserSnap.data().photo);
+       }
       dataToUpdate.photo = null;
-    } else if (profileData.hasOwnProperty('photo') && profileData.photo !== undefined) {
-      dataToUpdate.photo = profileData.photo;
     }
+    // If profileData.photo is an existing URL or not provided, it won't be processed here for upload.
 
-    const fieldsToProcess: Array<keyof typeof profileData> = [
-        'displayName', 'mobile', 'lineId', 'facebook', 'gender', 'birthdate',
-        'educationLevel', 'address', 'favoriteMusic', 'favoriteBook',
-        'favoriteMovie', 'hobbies', 'favoriteFood', 'dislikedThing', 'introSentence'
-    ];
-
-    fieldsToProcess.forEach(key => {
-        if (profileData.hasOwnProperty(key)) {
-            const value = profileData[key];
-            dataToUpdate[key] = value === undefined ? null : value;
-        }
-    });
-
-    await updateDoc(userDocRef, dataToUpdate); 
-
-    let authProfileUpdates: { displayName?: string | null; photoURL?: string | null } = {};
-     if (profileData.hasOwnProperty('displayName') && (profileData.displayName || null) !== currentUserAuth.displayName) {
-        authProfileUpdates.displayName = profileData.displayName || null;
-    }
-     if (newPhotoURL !== undefined && newPhotoURL !== currentUserAuth.photoURL) {
-        authProfileUpdates.photoURL = newPhotoURL;
-    }
-
-    if (Object.keys(authProfileUpdates).length > 0) {
-        await updateProfile(currentUserAuth, authProfileUpdates); 
-    }
+    await updateDoc(userDocRef, dataToUpdate);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     logFirebaseError("updateUserProfileService", error);
     throw error;
   }
 };
 
 
-// --- Jobs --- (Firestore remains v9 modular)
+// --- Generic Firestore Subscription Service ---
+const subscribeToCollectionService = <T>(
+  collectionName: string,
+  callback: (data: T[]) => void,
+  constraints: QueryConstraint[] = []
+): (() => void) => {
+  const q = query(collection(db, collectionName), ...constraints);
+  return onSnapshot(q, (querySnapshot) => {
+    const items = querySnapshot.docs.map(docSnap => ({
+      id: docSnap.id,
+      ...convertTimestamps(docSnap.data()),
+    } as T));
+    callback(items);
+  }, (error) => {
+    logFirebaseError(`subscribeToCollectionService (${collectionName})`, error);
+  });
+};
+
+// --- Specific Data Services ---
+
+// Jobs
 type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'username' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt'>;
-export const addJobService = async (jobData: JobFormData, contactInfo: string): Promise<string> => {
-  const currentUserAuth = auth.currentUser; 
-  if (!currentUserAuth) throw new Error("User not authenticated");
+export const addJobService = async (jobData: JobFormData, author: { userId: string; username: string; contact: string }): Promise<string> => {
   try {
-    const jobPayload = {
-      title: jobData.title,
-      location: jobData.location,
-      dateTime: jobData.dateTime,
-      payment: jobData.payment,
-      description: jobData.description,
-      desiredAgeStart: jobData.desiredAgeStart === undefined ? null : jobData.desiredAgeStart,
-      desiredAgeEnd: jobData.desiredAgeEnd === undefined ? null : jobData.desiredAgeEnd,
-      preferredGender: jobData.preferredGender || null,
-      desiredEducationLevel: jobData.desiredEducationLevel || null,
-      dateNeededFrom: jobData.dateNeededFrom || null,
-      dateNeededTo: jobData.dateNeededTo || null,
-      timeNeededStart: jobData.timeNeededStart || null,
-      timeNeededEnd: jobData.timeNeededEnd || null,
-      userId: currentUserAuth.uid,
-      username: currentUserAuth.displayName || 'Anonymous',
-      contact: contactInfo,
-      isSuspicious: false,
+    const newJobDoc: Omit<Job, 'id'> = {
+      ...jobData,
+      userId: author.userId,
+      username: author.username,
+      contact: author.contact,
+      ownerId: author.userId,
       isPinned: false,
       isHired: false,
-      createdAt: serverTimestamp(), 
-      updatedAt: serverTimestamp(), 
+      isSuspicious: false,
+      postedAt: serverTimestamp() as any,
+      createdAt: serverTimestamp() as any,
+      updatedAt: serverTimestamp() as any,
     };
-    const docRef = await addDoc(collection(db, 'jobs'), jobPayload); 
+    const docRef = await addDoc(collection(db, JOBS_COLLECTION), newJobDoc);
     return docRef.id;
-  } catch (error) {
+  } catch (error: any) {
     logFirebaseError("addJobService", error);
     throw error;
   }
 };
-
-export const updateJobService = async (jobId: string, jobData: JobFormData, contactInfo: string): Promise<void> => {
+export const updateJobService = async (jobId: string, jobData: Partial<JobFormData>, contact: string): Promise<boolean> => {
   try {
-    const jobDocRef = doc(db, 'jobs', jobId); 
-    const jobUpdatePayload = {
-      title: jobData.title,
-      location: jobData.location,
-      dateTime: jobData.dateTime,
-      payment: jobData.payment,
-      description: jobData.description,
-      desiredAgeStart: jobData.desiredAgeStart === undefined ? null : jobData.desiredAgeStart,
-      desiredAgeEnd: jobData.desiredAgeEnd === undefined ? null : jobData.desiredAgeEnd,
-      preferredGender: jobData.preferredGender || null,
-      desiredEducationLevel: jobData.desiredEducationLevel || null,
-      dateNeededFrom: jobData.dateNeededFrom || null,
-      dateNeededTo: jobData.dateNeededTo || null,
-      timeNeededStart: jobData.timeNeededStart || null,
-      timeNeededEnd: jobData.timeNeededEnd || null,
-      contact: contactInfo,
-      updatedAt: serverTimestamp(), 
-    };
-    await updateDoc(jobDocRef, jobUpdatePayload); 
-  } catch (error) {
+    await updateDoc(doc(db, JOBS_COLLECTION, jobId), { ...jobData, contact, updatedAt: serverTimestamp() as any });
+    return true;
+  } catch (error: any) {
     logFirebaseError("updateJobService", error);
     throw error;
   }
 };
-
 export const deleteJobService = async (jobId: string): Promise<boolean> => {
   try {
-    const jobDocRef = doc(db, 'jobs', jobId); 
-    await deleteDoc(jobDocRef); 
+    await deleteDoc(doc(db, JOBS_COLLECTION, jobId));
     return true;
-  } catch (error) {
+  } catch (error: any) {
     logFirebaseError("deleteJobService", error);
     throw error;
   }
 };
+export const subscribeToJobsService = (callback: (data: Job[]) => void) =>
+  subscribeToCollectionService<Job>(JOBS_COLLECTION, callback, [orderBy("isPinned", "desc"), orderBy("postedAt", "desc")]);
 
-// --- Helper Profiles --- (Firestore remains v9 modular)
+
+// Helper Profiles
 type HelperProfileFormData = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'username' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt'>;
-type HelperProfileUserServiceData = Pick<User, 'username' | 'gender' | 'birthdate' | 'educationLevel'> & {
-    userId: string;
-    contact: string;
-};
-
-export const addHelperProfileService = async (profileData: HelperProfileFormData, userServiceData: HelperProfileUserServiceData): Promise<string> => {
-  const currentUserAuth = auth.currentUser; 
-  if (!currentUserAuth || currentUserAuth.uid !== userServiceData.userId) throw new Error("User not authenticated or mismatch");
+interface HelperProfileAuthorInfo { userId: string; username: string; contact: string; gender: User['gender']; birthdate: User['birthdate']; educationLevel: User['educationLevel']; }
+export const addHelperProfileService = async (profileData: HelperProfileFormData, author: HelperProfileAuthorInfo): Promise<string> => {
   try {
-    const helperProfilePayload = {
-      profileTitle: profileData.profileTitle,
-      details: profileData.details,
-      area: profileData.area,
-      availability: profileData.availability,
-      availabilityDateFrom: profileData.availabilityDateFrom || null,
-      availabilityDateTo: profileData.availabilityDateTo || null,
-      availabilityTimeDetails: profileData.availabilityTimeDetails || null,
-      userId: userServiceData.userId,
-      username: userServiceData.username,
-      contact: userServiceData.contact,
-      gender: userServiceData.gender || null,
-      birthdate: userServiceData.birthdate || null,
-      educationLevel: userServiceData.educationLevel || null,
-      isSuspicious: false,
-      isPinned: false,
-      isUnavailable: false,
-      adminVerifiedExperience: false,
-      interestedCount: 0,
-      createdAt: serverTimestamp(), 
-      updatedAt: serverTimestamp(), 
+    const newProfileDoc: Omit<HelperProfile, 'id'> = {
+      ...profileData,
+      userId: author.userId,
+      username: author.username,
+      contact: author.contact,
+      gender: author.gender,
+      birthdate: author.birthdate,
+      educationLevel: author.educationLevel,
+      ownerId: author.userId,
+      isPinned: false, isUnavailable: false, isSuspicious: false, adminVerifiedExperience: false, interestedCount: 0,
+      postedAt: serverTimestamp() as any,
+      createdAt: serverTimestamp() as any,
+      updatedAt: serverTimestamp() as any,
     };
-    const docRef = await addDoc(collection(db, 'helperProfiles'), helperProfilePayload); 
+    const docRef = await addDoc(collection(db, HELPER_PROFILES_COLLECTION), newProfileDoc);
     return docRef.id;
-  } catch (error) {
+  } catch (error: any) {
     logFirebaseError("addHelperProfileService", error);
     throw error;
   }
 };
-
-export const updateHelperProfileService = async (profileId: string, profileData: HelperProfileFormData, contactInfo: string): Promise<void> => {
+export const updateHelperProfileService = async (profileId: string, profileData: Partial<HelperProfileFormData>, contact: string): Promise<boolean> => {
   try {
-    const profileDocRef = doc(db, 'helperProfiles', profileId); 
-    const helperProfileUpdatePayload = {
-      profileTitle: profileData.profileTitle,
-      details: profileData.details,
-      area: profileData.area,
-      availability: profileData.availability,
-      availabilityDateFrom: profileData.availabilityDateFrom || null,
-      availabilityDateTo: profileData.availabilityDateTo || null,
-      availabilityTimeDetails: profileData.availabilityTimeDetails || null,
-      contact: contactInfo,
-      updatedAt: serverTimestamp(), 
-    };
-    await updateDoc(profileDocRef, helperProfileUpdatePayload); 
-  } catch (error) {
+    await updateDoc(doc(db, HELPER_PROFILES_COLLECTION, profileId), { ...profileData, contact, updatedAt: serverTimestamp() as any });
+    return true;
+  } catch (error: any) {
     logFirebaseError("updateHelperProfileService", error);
     throw error;
   }
 };
-
 export const deleteHelperProfileService = async (profileId: string): Promise<boolean> => {
   try {
-    const profileDocRef = doc(db, 'helperProfiles', profileId); 
-    await deleteDoc(profileDocRef); 
+    await deleteDoc(doc(db, HELPER_PROFILES_COLLECTION, profileId));
     return true;
-  } catch (error) {
+  } catch (error: any) {
     logFirebaseError("deleteHelperProfileService", error);
     throw error;
   }
 };
+export const subscribeToHelperProfilesService = (callback: (data: HelperProfile[]) => void) =>
+  subscribeToCollectionService<HelperProfile>(HELPER_PROFILES_COLLECTION, callback, [orderBy("isPinned", "desc"), orderBy("postedAt", "desc")]);
 
-// --- Interactions --- (Firestore remains v9 modular)
-export const logHelperContactInteractionService = async (helperProfileId: string, employerUserId: string): Promise<void> => {
+// Webboard Posts
+interface WebboardPostAuthorInfo { userId: string; username: string; photo?: string | null; }
+export const addWebboardPostService = async (postData: { title: string; body: string; category: WebboardCategory; image?: string }, author: WebboardPostAuthorInfo): Promise<string> => {
   try {
-    const helperProfileDocRef = doc(db, 'helperProfiles', helperProfileId);
-    const helperProfileDoc = await getDoc(helperProfileDocRef);
-    if (!helperProfileDoc.exists()) throw new Error("Helper profile not found.");
-    const helperUserId = helperProfileDoc.data()?.userId;
-    if (!helperUserId) throw new Error("Helper profile has no user ID.");
-
-    await addDoc(collection(db, 'interactions'), {
-      helperUserId: helperUserId,
-      helperProfileId: helperProfileId || null,
-      employerUserId: employerUserId,
-      timestamp: serverTimestamp(),
-      type: 'contact_helper',
-      createdAt: serverTimestamp(),
-    });
-    const profileRef = doc(db, 'helperProfiles', helperProfileId);
-    await updateDoc(profileRef, { interestedCount: increment(1) });
-
-  } catch (error) {
-    logFirebaseError("logHelperContactInteractionService", error);
+    let imageUrl: string | undefined = undefined;
+    if (postData.image) {
+      imageUrl = await uploadImageService(`webboardImages/${author.userId}/${Date.now()}`, postData.image);
+    }
+    const newPostDoc: Omit<WebboardPost, 'id'> = {
+      title: postData.title,
+      body: postData.body,
+      category: postData.category,
+      image: imageUrl,
+      userId: author.userId,
+      username: author.username,
+      authorPhoto: author.photo || undefined,
+      ownerId: author.userId,
+      likes: [],
+      isPinned: false,
+      createdAt: serverTimestamp() as any,
+      updatedAt: serverTimestamp() as any,
+    };
+    const docRef = await addDoc(collection(db, WEBBOARD_POSTS_COLLECTION), newPostDoc);
+    return docRef.id;
+  } catch (error: any) {
+    logFirebaseError("addWebboardPostService", error);
     throw error;
   }
 };
+export const updateWebboardPostService = async (postId: string, postData: { title?: string; body?: string; category?: WebboardCategory; image?: string | null }, currentUserPhoto?: string | null): Promise<boolean> => {
+  try {
+    const postRef = doc(db, WEBBOARD_POSTS_COLLECTION, postId);
+    const updatePayload: Partial<WebboardPost> = { ...postData, updatedAt: serverTimestamp() as any };
 
-// --- Webboard Posts --- (Firestore remains v9 modular, storage v9 modular)
-export const addWebboardPostService = async (
-    postData: { title: string; body: string; category: WebboardCategory; image?: string },
-    authorInfo: { userId: string; username: string; photo?: string }
-): Promise<string> => {
-    try {
-        let imageUrl: string | undefined = undefined;
-        if (postData.image && postData.image.startsWith('data:image')) {
-            imageUrl = await uploadImageToStorageService(postData.image, 'webboardImages/' + authorInfo.userId + '/' + Date.now());
-        }
-
-        const webboardPostPayload = {
-            title: postData.title,
-            body: postData.body,
-            category: postData.category,
-            image: imageUrl || null,
-            userId: authorInfo.userId,
-            username: authorInfo.username,
-            authorPhoto: authorInfo.photo || null,
-            likes: [],
-            isPinned: false,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-        };
-        const docRef = await addDoc(collection(db, 'webboardPosts'), webboardPostPayload);
-        return docRef.id;
-    } catch (error) {
-        logFirebaseError("addWebboardPostService", error);
-        throw error;
+    if (postData.image && typeof postData.image === 'string' && postData.image.startsWith('data:image')) {
+      const oldPostSnap = await getDoc(postRef);
+      if(oldPostSnap.exists() && oldPostSnap.data().image) {
+        await deleteImageService(oldPostSnap.data().image);
+      }
+      updatePayload.image = await uploadImageService(`webboardImages/${auth.currentUser?.uid}/${Date.now()}_edit`, postData.image);
+    } else if (postData.hasOwnProperty('image') && postData.image === null) {
+      const oldPostSnap = await getDoc(postRef);
+      if(oldPostSnap.exists() && oldPostSnap.data().image) {
+        await deleteImageService(oldPostSnap.data().image);
+      }
+      updatePayload.image = undefined; // Explicitly remove image
     }
-};
-
-export const updateWebboardPostService = async (
-    postId: string,
-    postData: { title: string; body: string; category: WebboardCategory; image?: string },
-    authorPhoto?: string
-): Promise<void> => {
-    try {
-        const postDocRef = doc(db, 'webboardPosts', postId);
-        const updatePayload: { [key: string]: any } = {
-            title: postData.title,
-            body: postData.body,
-            category: postData.category,
-            updatedAt: serverTimestamp(),
-        };
-
-        if (postData.hasOwnProperty('image')) {
-            const oldPostDoc = await getDoc(postDocRef);
-            const oldImageUrl = oldPostDoc.exists() ? oldPostDoc.data()?.image : null;
-
-            if (postData.image && postData.image.startsWith('data:image')) {
-                if (oldImageUrl) await deleteImageFromStorageService(oldImageUrl);
-                updatePayload.image = await uploadImageToStorageService(postData.image, 'webboardImages/' + (auth.currentUser?.uid || 'unknown_user') + '/' + Date.now());
-            } else if (postData.image === undefined && oldImageUrl) {
-                await deleteImageFromStorageService(oldImageUrl);
-                updatePayload.image = null;
-            } else if (postData.image !== undefined) {
-                updatePayload.image = postData.image;
-            }
-        }
-
-        if (authorPhoto !== undefined) {
-             updatePayload.authorPhoto = authorPhoto || null;
-        }
-
-        await updateDoc(postDocRef, updatePayload);
-    } catch (error) {
-        logFirebaseError("updateWebboardPostService", error);
-        throw error;
+    if (currentUserPhoto !== undefined) {
+        updatePayload.authorPhoto = currentUserPhoto || undefined;
     }
-};
 
+    await updateDoc(postRef, updatePayload);
+    return true;
+  } catch (error: any) {
+    logFirebaseError("updateWebboardPostService", error);
+    throw error;
+  }
+};
 export const deleteWebboardPostService = async (postId: string): Promise<boolean> => {
   try {
-    const postDocRef = doc(db, 'webboardPosts', postId);
-    const postDocSnap = await getDoc(postDocRef);
-    if (postDocSnap.exists() && postDocSnap.data().image) {
-        await deleteImageFromStorageService(postDocSnap.data().image);
+    const postRef = doc(db, WEBBOARD_POSTS_COLLECTION, postId);
+    const postSnap = await getDoc(postRef);
+    if (postSnap.exists() && postSnap.data().image) {
+      await deleteImageService(postSnap.data().image);
     }
-    await deleteDoc(postDocRef);
-
-    const commentsCollRef = collection(db, 'webboardComments');
-    const q = query(commentsCollRef, where('postId', '==', postId));
-    const commentsSnapshot = await getDocs(q);
-
-    const batch = writeBatch(db);
-    commentsSnapshot.docs.forEach(d => batch.delete(d.ref));
+    // Delete comments associated with the post
+    const commentsQuery = query(collection(db, WEBBOARD_COMMENTS_COLLECTION), where("postId", "==", postId));
+    const commentsSnapshot = await getDocs(commentsQuery);
+    const batch: WriteBatch = writeBatch(db);
+    commentsSnapshot.forEach(commentDoc => batch.delete(commentDoc.ref));
     await batch.commit();
+
+    await deleteDoc(postRef);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     logFirebaseError("deleteWebboardPostService", error);
     throw error;
   }
 };
+export const subscribeToWebboardPostsService = (callback: (data: WebboardPost[]) => void) =>
+  subscribeToCollectionService<WebboardPost>(WEBBOARD_POSTS_COLLECTION, callback, [orderBy("isPinned", "desc"), orderBy("createdAt", "desc")]);
 
-// --- Webboard Comments --- (Firestore remains v9 modular)
-export const addWebboardCommentService = async (
-  postId: string, text: string, authorInfo: { userId: string; username: string; photo?: string }
-): Promise<string> => {
+
+// Webboard Comments
+interface WebboardCommentAuthorInfo { userId: string; username: string; photo?: string | null; }
+export const addWebboardCommentService = async (postId: string, text: string, author: WebboardCommentAuthorInfo): Promise<string> => {
   try {
-    const commentPayload = {
+    const newCommentDoc: Omit<WebboardComment, 'id'> = {
       postId,
       text,
-      userId: authorInfo.userId,
-      username: authorInfo.username,
-      authorPhoto: authorInfo.photo || null,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      userId: author.userId,
+      username: author.username,
+      authorPhoto: author.photo || undefined,
+      ownerId: author.userId,
+      createdAt: serverTimestamp() as any,
+      updatedAt: serverTimestamp() as any,
     };
-    const docRef = await addDoc(collection(db, 'webboardComments'), commentPayload);
+    const docRef = await addDoc(collection(db, WEBBOARD_COMMENTS_COLLECTION), newCommentDoc);
     return docRef.id;
-  } catch (error) {
+  } catch (error: any) {
     logFirebaseError("addWebboardCommentService", error);
     throw error;
   }
 };
-
-export const updateWebboardCommentService = async (commentId: string, newText: string): Promise<void> => {
+export const updateWebboardCommentService = async (commentId: string, newText: string): Promise<boolean> => {
   try {
-    const commentDocRef = doc(db, 'webboardComments', commentId);
-    await updateDoc(commentDocRef, {
-      text: newText,
-      updatedAt: serverTimestamp(),
-    });
-  } catch (error) {
+    await updateDoc(doc(db, WEBBOARD_COMMENTS_COLLECTION, commentId), { text: newText, updatedAt: serverTimestamp() as any });
+    return true;
+  } catch (error: any) {
     logFirebaseError("updateWebboardCommentService", error);
     throw error;
   }
 };
-
 export const deleteWebboardCommentService = async (commentId: string): Promise<boolean> => {
   try {
-    const commentDocRef = doc(db, 'webboardComments', commentId);
-    await deleteDoc(commentDocRef);
+    await deleteDoc(doc(db, WEBBOARD_COMMENTS_COLLECTION, commentId));
     return true;
-  } catch (error) {
+  } catch (error: any) {
     logFirebaseError("deleteWebboardCommentService", error);
     throw error;
   }
 };
+export const subscribeToWebboardCommentsService = (callback: (data: WebboardComment[]) => void, postId?: string) => {
+  const constraints = postId ? [where("postId", "==", postId), orderBy("createdAt", "asc")] : [orderBy("createdAt", "asc")];
+  return subscribeToCollectionService<WebboardComment>(WEBBOARD_COMMENTS_COLLECTION, callback, constraints);
+}
 
-// --- Admin & Generic Item Toggles --- (Firestore remains v9 modular)
-export const toggleItemFlagService = async (
-    collectionName: 'jobs' | 'helperProfiles' | 'webboardPosts',
-    itemId: string,
-    flagName: keyof Job | keyof HelperProfile | keyof WebboardPost, // Ensure flagName is a valid key
-    currentValue?: boolean // Pass current value if known, to avoid extra read
-): Promise<boolean> => {
-    try {
-        const itemDocRef = doc(db, collectionName, itemId);
-        let valueToSet: boolean;
 
-        if (currentValue !== undefined) {
-            valueToSet = !currentValue;
-        } else {
-            const itemSnap = await getDoc(itemDocRef);
-            if (!itemSnap.exists()) throw new Error("Item not found for toggle.");
-            valueToSet = !itemSnap.data()?.[flagName as string];
-        }
+// Interactions
+export const logHelperContactInteractionService = async (helperProfileId: string, employerUserId: string, helperUserId: string): Promise<string> => {
+  try {
+    // Check for recent interaction to prevent spamming interestedCount
+    const interactionsRef = collection(db, INTERACTIONS_COLLECTION);
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000); // 10 minutes ago
+    const q = query(interactionsRef,
+      where("helperProfileId", "==", helperProfileId),
+      where("employerUserId", "==", employerUserId),
+      where("timestamp", ">", tenMinutesAgo)
+    );
+    const recentInteractionsSnap = await getDocs(q);
 
-        await updateDoc(itemDocRef, { [flagName]: valueToSet, updatedAt: serverTimestamp() });
-        return true;
-    } catch (error) {
-        logFirebaseError('toggle' + flagName.charAt(0).toUpperCase() + flagName.slice(1) + 'Service for ' + collectionName, error);
-        throw error;
+    if (!recentInteractionsSnap.empty) {
+        // Already logged recently, just return existing ID to avoid duplicate count increase
+        return recentInteractionsSnap.docs[0].id;
     }
+
+    const newInteractionDoc: Omit<Interaction, 'id'> = {
+      helperUserId: helperUserId,
+      helperProfileId,
+      employerUserId,
+      timestamp: serverTimestamp() as any,
+      type: 'contact_helper',
+      createdAt: serverTimestamp() as any,
+    };
+    const docRef = await addDoc(collection(db, INTERACTIONS_COLLECTION), newInteractionDoc);
+
+    // Increment interestedCount on HelperProfile
+    const helperProfileRef = doc(db, HELPER_PROFILES_COLLECTION, helperProfileId);
+    const helperProfileSnap = await getDoc(helperProfileRef);
+    if (helperProfileSnap.exists()) {
+      const currentCount = helperProfileSnap.data().interestedCount || 0;
+      await updateDoc(helperProfileRef, { interestedCount: currentCount + 1 });
+    }
+    return docRef.id;
+  } catch (error: any) {
+    logFirebaseError("logHelperContactInteractionService", error);
+    throw error;
+  }
+};
+export const subscribeToInteractionsService = (callback: (data: Interaction[]) => void) =>
+  subscribeToCollectionService<Interaction>(INTERACTIONS_COLLECTION, callback, [orderBy("timestamp", "desc")]);
+
+
+// Site Config
+export const subscribeToSiteConfigService = (callback: (config: SiteConfig) => void): (() => void) => {
+  const docRef = doc(db, SITE_CONFIG_COLLECTION, SITE_CONFIG_DOC_ID);
+  return onSnapshot(docRef, (docSnap) => {
+    if (docSnap.exists()) {
+      callback(convertTimestamps(docSnap.data()) as SiteConfig);
+    } else {
+      // Default config if not found
+      callback({ isSiteLocked: false });
+    }
+  }, (error) => {
+    logFirebaseError("subscribeToSiteConfigService", error);
+    callback({ isSiteLocked: false }); // Fallback on error
+  });
+};
+export const setSiteLockService = async (isLocked: boolean, adminUserId: string): Promise<boolean> => {
+  try {
+    await setDoc(doc(db, SITE_CONFIG_COLLECTION, SITE_CONFIG_DOC_ID), {
+      isSiteLocked: isLocked,
+      updatedAt: serverTimestamp() as any,
+      updatedBy: adminUserId,
+    }, { merge: true });
+    return true;
+  } catch (error: any) {
+    logFirebaseError("setSiteLockService", error);
+    throw error;
+  }
 };
 
-// Specific toggle functions leveraging the generic one
-export const togglePinnedJobService = (jobId: string, currentValue?: boolean) => toggleItemFlagService('jobs', jobId, 'isPinned', currentValue);
-export const toggleHiredJobService = (jobId: string, currentValue?: boolean) => toggleItemFlagService('jobs', jobId, 'isHired', currentValue);
-export const toggleSuspiciousJobService = (jobId: string, currentValue?: boolean) => toggleItemFlagService('jobs', jobId, 'isSuspicious', currentValue);
-
-export const togglePinnedHelperProfileService = (profileId: string, currentValue?: boolean) => toggleItemFlagService('helperProfiles', profileId, 'isPinned', currentValue);
-export const toggleUnavailableHelperProfileService = (profileId: string, currentValue?: boolean) => toggleItemFlagService('helperProfiles', profileId, 'isUnavailable', currentValue);
-export const toggleSuspiciousHelperProfileService = (profileId: string, currentValue?: boolean) => toggleItemFlagService('helperProfiles', profileId, 'isSuspicious', currentValue);
-export const toggleVerifiedExperienceService = (profileId: string, currentValue?: boolean) => toggleItemFlagService('helperProfiles', profileId, 'adminVerifiedExperience', currentValue);
-
-export const togglePinWebboardPostService = (postId: string, currentValue?: boolean) => toggleItemFlagService('webboardPosts', postId, 'isPinned', currentValue);
-
-export const toggleWebboardPostLikeService = async (postId: string, userId: string): Promise<void> => {
+// User Management (Admin)
+export const setUserRoleService = async (userIdToUpdate: string, newRole: UserRole): Promise<boolean> => {
   try {
-    const postDocRef = doc(db, 'webboardPosts', postId);
-    const postSnap = await getDoc(postDocRef);
-    if (!postSnap.exists()) throw new Error("Post not found for like toggle.");
-    
-    const likesArray = postSnap.data()?.likes || [];
-    if (likesArray.includes(userId)) {
-      await updateDoc(postDocRef, { likes: arrayRemove(userId), updatedAt: serverTimestamp() });
+    await updateDoc(doc(db, USERS_COLLECTION, userIdToUpdate), { role: newRole, updatedAt: serverTimestamp() as any });
+    return true;
+  } catch (error: any) {
+    logFirebaseError("setUserRoleService", error);
+    throw error;
+  }
+};
+export const subscribeToUsersService = (callback: (data: User[]) => void) =>
+  subscribeToCollectionService<User>(USERS_COLLECTION, callback, [orderBy("createdAt", "desc")]);
+
+// Generic Item Flag Toggler
+type ItemWithFlags = Job | HelperProfile | WebboardPost;
+type ItemFlagKeys = 'isPinned' | 'isHired' | 'isSuspicious' | 'isUnavailable' | 'adminVerifiedExperience';
+
+export const toggleItemFlagService = async (
+  collectionName: 'jobs' | 'helperProfiles' | 'webboardPosts',
+  itemId: string,
+  flagName: ItemFlagKeys,
+  currentValue?: boolean // Optional: pass current value to ensure toggle logic is correct if state is stale
+): Promise<boolean> => {
+  try {
+    const itemRef = doc(db, collectionName, itemId);
+    let finalValueToSet: boolean;
+
+    if (typeof currentValue === 'boolean') {
+        finalValueToSet = !currentValue;
     } else {
-      await updateDoc(postDocRef, { likes: arrayUnion(userId), updatedAt: serverTimestamp() });
+        const itemSnap = await getDoc(itemRef);
+        if (!itemSnap.exists()) throw new Error("Item not found.");
+        finalValueToSet = !(itemSnap.data() as any)[flagName];
     }
-  } catch (error) {
+
+    await updateDoc(itemRef, { [flagName]: finalValueToSet, updatedAt: serverTimestamp() as any });
+    return true;
+  } catch (error: any) {
+    logFirebaseError(`toggleItemFlagService for ${flagName} on ${collectionName}`, error);
+    throw error;
+  }
+};
+
+export const toggleWebboardPostLikeService = async (postId: string, userId: string): Promise<boolean> => {
+  try {
+    const postRef = doc(db, WEBBOARD_POSTS_COLLECTION, postId);
+    const postSnap = await getDoc(postRef);
+    if (!postSnap.exists()) throw new Error("Post not found.");
+
+    const postData = postSnap.data() as WebboardPost;
+    const likes = postData.likes || [];
+    const userLikedIndex = likes.indexOf(userId);
+
+    let newLikes: string[];
+    if (userLikedIndex > -1) {
+      newLikes = likes.filter(id => id !== userId); // Unlike
+    } else {
+      newLikes = [...likes, userId]; // Like
+    }
+    await updateDoc(postRef, { likes: newLikes, updatedAt: serverTimestamp() as any });
+    return true;
+  } catch (error: any) {
     logFirebaseError("toggleWebboardPostLikeService", error);
     throw error;
   }
 };
 
-export const setUserRoleService = async (userIdToUpdate: string, newRole: UserRole): Promise<void> => {
+export const submitFeedbackService = async (feedbackText: string, page: string, userId?: string): Promise<boolean> => {
   try {
-    const userDocRef = doc(db, 'users', userIdToUpdate);
-    await updateDoc(userDocRef, { role: newRole, updatedAt: serverTimestamp() });
+    await addDoc(collection(db, FEEDBACK_COLLECTION), {
+      text: feedbackText,
+      page,
+      userId: userId || null,
+      submittedAt: serverTimestamp(),
+    });
+    return true;
   } catch (error) {
-    logFirebaseError("setUserRoleService", error);
-    throw error;
-  }
-};
-
-export const setSiteLockService = async (isLocked: boolean, adminUserId: string): Promise<void> => {
-  try {
-    const siteConfigDocRef = doc(db, 'config', 'siteStatus');
-    await setDoc(siteConfigDocRef, { 
-      isSiteLocked: isLocked,
-      updatedAt: serverTimestamp(),
-      updatedBy: adminUserId,
-    }, { merge: true });
-  } catch (error) {
-    logFirebaseError("setSiteLockService", error);
+    logFirebaseError("submitFeedbackService", error);
     throw error;
   }
 };

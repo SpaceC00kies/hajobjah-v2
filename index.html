@@ -98,15 +98,20 @@
       }
     </script>
     <style>
-      html, body, #root {
+      html {
         height: 100%;
+        background-color: #FAFAF4; /* neutral.light */
       }
       body {
+        height: 100%;
+        background-color: #FAFAF4; /* neutral.light, ensure it overrides Tailwind defaults if needed */
         overflow-x: hidden; /* Prevent horizontal scrollbars if any */
       }
       #root {
+        height: 100%;
         display: flex;
         flex-direction: column;
+        background-color: #FAFAF4; /* Ensure #root also has the light background */
       }
     </style>
   <script type="importmap">
@@ -117,7 +122,8 @@
     "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
     "path": "https://esm.sh/path@^0.12.7",
     "vite": "https://esm.sh/vite@^6.3.5",
-    "firebase/": "https://esm.sh/firebase@^11.8.1/"
+    "firebase/": "https://esm.sh/firebase@^11.8.1/",
+    "@firebase/auth": "https://esm.sh/@firebase/auth@^1.10.6"
   }
 }
 </script>

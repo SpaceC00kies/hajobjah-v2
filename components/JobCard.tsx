@@ -1,15 +1,15 @@
 
 import React, { useState } from 'react';
-import type { Job, User } from '../types'; // Added User
-import { View } from '../types'; 
+import type { Job, User } from '../types'; 
+import { View, JobCategory, JOB_CATEGORY_STYLES } from '../types'; 
 import { Button } from './Button';
 import { Modal } from './Modal'; 
 
 interface JobCardProps {
   job: Job;
   navigateTo: (view: View) => void;
-  currentUser: User | null; // Added currentUser
-  requestLoginForAction: (view: View, payload?: any) => void; // Added requestLoginForAction
+  currentUser: User | null; 
+  requestLoginForAction: (view: View, payload?: any) => void; 
 }
 
 const formatDateDisplay = (dateInput?: string | Date): string | null => {
@@ -32,7 +32,6 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
 
   const handleInterest = () => {
-    // This will only be called if currentUser exists due to button logic change
     setIsWarningModalOpen(true); 
   };
 
@@ -45,7 +44,6 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
   };
 
   const handleProceedToContact = () => {
-    // This will only be called if currentUser exists
     setIsWarningModalOpen(false); 
     setIsInterestModalOpen(true); 
   };
@@ -89,6 +87,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
                                 (contactText.includes('เบอร์โทร:') || contactText.includes('LINE ID:') || contactText.includes('Facebook:'));
   
   const descriptionPreview = job.description.substring(0, 150);
+  const categoryStyle = job.category ? JOB_CATEGORY_STYLES[job.category] : JOB_CATEGORY_STYLES[JobCategory.ShortTermMisc];
 
   return (
     <>
@@ -114,7 +113,20 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
             </p>
           </div>
         )}
-        <h3 className="text-2xl font-sans font-semibold text-primary dark:text-dark-primary-DEFAULT mb-2">{job.title}</h3>
+        <h3 className="text-2xl font-sans font-semibold text-primary dark:text-dark-primary-DEFAULT mb-1">{job.title}</h3>
+        
+        <div className="mb-1">
+          <span className={`text-xs font-sans font-medium px-2 py-0.5 rounded-full inline-block ${categoryStyle.bg} ${categoryStyle.text} ${categoryStyle.border ? `border ${categoryStyle.border}`: ''}`}>
+            {job.category}
+          </span>
+        </div>
+        {job.subCategory && (
+          <p className="text-xs font-serif text-neutral-medium dark:text-dark-textMuted mb-3 ml-1">
+            └ {job.subCategory}
+          </p>
+        )}
+
+
         <div className="space-y-2 text-neutral-dark dark:text-dark-textMuted mb-4 flex-grow font-normal">
           <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📍 สถานที่:</strong> {job.location}</p>
           

@@ -1,9 +1,9 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import type { Job } from '../types'; 
-import { JobDesiredEducationLevelOption } from '../types';
+import { JobDesiredEducationLevelOption, JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP } from '../types';
 import { Button } from './Button';
-import { containsBlacklistedWords } from '../App'; // Import blacklist checker
+import { containsBlacklistedWords } from '../App'; 
 
 type FormDataType = Omit<Job, 'id' | 'postedAt' | 'userId' | 'username' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt'>;
 
@@ -21,6 +21,8 @@ const initialFormStateForCreate: FormDataType = {
   dateTime: '', 
   payment: '',
   description: '',
+  category: '' as JobCategory,
+  subCategory: undefined,
   desiredAgeStart: undefined,
   desiredAgeEnd: undefined,
   preferredGender: undefined,
@@ -37,12 +39,13 @@ type FormErrorsType = Partial<Record<keyof FormDataType, string>>;
 export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel, initialData, isEditing }) => {
   const [formData, setFormData] = useState<FormDataType>(initialFormStateForCreate);
   const [formErrors, setFormErrors] = useState<FormErrorsType>({});
+  const [availableSubCategories, setAvailableSubCategories] = useState<JobSubCategory[]>([]);
 
   useEffect(() => {
     if (isEditing && initialData) {
       const { 
         id, postedAt, userId, username, isSuspicious, isPinned, isHired, contact, 
-        ownerId, createdAt, updatedAt, // Destructure to exclude
+        ownerId, createdAt, updatedAt, 
         ...editableFieldsBase 
       } = initialData;
       
@@ -52,11 +55,12 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
         dateTime: editableFieldsBase.dateTime || '',
         payment: editableFieldsBase.payment || '',
         description: editableFieldsBase.description || '',
+        category: editableFieldsBase.category || ('' as JobCategory),
+        subCategory: editableFieldsBase.subCategory || undefined,
         desiredAgeStart: editableFieldsBase.desiredAgeStart,
         desiredAgeEnd: editableFieldsBase.desiredAgeEnd,
         preferredGender: editableFieldsBase.preferredGender,
         desiredEducationLevel: editableFieldsBase.desiredEducationLevel,
-        // Ensure date fields are strings in YYYY-MM-DD format
         dateNeededFrom: editableFieldsBase.dateNeededFrom 
                         ? (editableFieldsBase.dateNeededFrom instanceof Date 
                             ? editableFieldsBase.dateNeededFrom.toISOString().split('T')[0] 
@@ -70,9 +74,15 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
         timeNeededStart: editableFieldsBase.timeNeededStart || '',
         timeNeededEnd: editableFieldsBase.timeNeededEnd || '',
       };
-      setFormData(editableFields); 
+      setFormData(editableFields);
+      if (editableFields.category && JOB_SUBCATEGORIES_MAP[editableFields.category]) {
+        setAvailableSubCategories(JOB_SUBCATEGORIES_MAP[editableFields.category]);
+      } else {
+        setAvailableSubCategories([]);
+      }
     } else {
       setFormData(initialFormStateForCreate);
+      setAvailableSubCategories([]);
     }
   }, [isEditing, initialData]);
 
@@ -81,8 +91,18 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
     const { name, value } = e.target;
     const currentKey = name as keyof FormDataType;
 
-    setFormData(prev => {
-      if (currentKey === 'desiredAgeStart' || currentKey === 'desiredAgeEnd') {
+    let newFormData = { ...formData };
+
+    if (currentKey === 'category') {
+      const newCategory = value as JobCategory;
+      newFormData = { ...newFormData, category: newCategory, subCategory: undefined }; // Reset subCategory
+      setAvailableSubCategories(JOB_SUBCATEGORIES_MAP[newCategory] || []);
+      if (formErrors.subCategory) {
+        setFormErrors(prev => ({ ...prev, subCategory: undefined }));
+      }
+    } else if (currentKey === 'subCategory') {
+        newFormData = { ...newFormData, subCategory: value as JobSubCategory || undefined };
+    } else if (currentKey === 'desiredAgeStart' || currentKey === 'desiredAgeEnd') {
         let processedValue: number | undefined;
         if (value === '') {
           processedValue = undefined;
@@ -90,21 +110,16 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
           const parsedInt = parseInt(value, 10);
           processedValue = isNaN(parsedInt) ? undefined : parsedInt;
         }
-
-        if (currentKey === 'desiredAgeStart') {
-          return { ...prev, desiredAgeStart: processedValue };
-        } else { 
-          return { ...prev, desiredAgeEnd: processedValue };
-        }
-      } else if (currentKey === 'desiredEducationLevel') {
-        return { ...prev, [currentKey]: value as JobDesiredEducationLevelOption || undefined };
-      } else if (currentKey === 'preferredGender') {
-         return { ...prev, [currentKey]: value as Job['preferredGender'] || undefined };
-      }
-      else {
-        return { ...prev, [currentKey]: value };
-      }
-    });
+        newFormData = { ...newFormData, [currentKey]: processedValue };
+    } else if (currentKey === 'desiredEducationLevel') {
+        newFormData = { ...newFormData, [currentKey]: value as JobDesiredEducationLevelOption || undefined };
+    } else if (currentKey === 'preferredGender') {
+         newFormData = { ...newFormData, [currentKey]: value as Job['preferredGender'] || undefined };
+    } else {
+        newFormData = { ...newFormData, [currentKey]: value };
+    }
+    
+    setFormData(newFormData);
 
     if (formErrors[currentKey]) {
       setFormErrors(prev => ({ ...prev, [currentKey]: undefined }));
@@ -126,10 +141,13 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
 
     if (!formData.location.trim()) errors.location = 'กรุณากรอกสถานที่';
     if (!formData.payment.trim()) errors.payment = 'กรุณากรอกค่าจ้าง';
+    if (!formData.category) errors.category = 'กรุณาเลือกหมวดหมู่งาน';
+    else if (JOB_SUBCATEGORIES_MAP[formData.category]?.length > 0 && !formData.subCategory) {
+        errors.subCategory = 'กรุณาเลือกหมวดหมู่ย่อย';
+    }
     
     if (!formData.description.trim()) errors.description = 'กรุณากรอกรายละเอียดงาน';
     else if (containsBlacklistedWords(formData.description)) errors.description = 'รายละเอียดงานมีคำที่ไม่เหมาะสม โปรดแก้ไข';
-
 
     if (formData.desiredAgeStart && formData.desiredAgeEnd && formData.desiredAgeStart > formData.desiredAgeEnd) {
       errors.desiredAgeEnd = 'อายุสิ้นสุดต้องไม่น้อยกว่าอายุเริ่มต้น';
@@ -155,7 +173,8 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
     }
     onSubmitJob(dataToSubmit);
     if (!isEditing) { 
-        setFormData(initialFormStateForCreate); 
+        setFormData(initialFormStateForCreate);
+        setAvailableSubCategories([]);
     }
   };
 
@@ -206,6 +225,47 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
           </div>
         ))}
 
+        <div>
+          <label htmlFor="category" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
+            หมวดหมู่งาน <span className="text-red-500 dark:text-red-400">*</span>
+          </label>
+          <select
+            id="category"
+            name="category"
+            value={formData.category}
+            onChange={handleChange}
+            className={`${selectBaseStyle} ${formErrors.category ? inputErrorStyle : inputFocusStyle}`}
+          >
+            <option value="" disabled>-- เลือกหมวดหมู่ --</option>
+            {Object.values(JobCategory).map(categoryValue => (
+              <option key={categoryValue} value={categoryValue}>{categoryValue}</option>
+            ))}
+          </select>
+          {formErrors.category && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.category}</p>}
+        </div>
+
+        {availableSubCategories.length > 0 && (
+          <div>
+            <label htmlFor="subCategory" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
+              หมวดหมู่ย่อย <span className="text-red-500 dark:text-red-400">*</span>
+            </label>
+            <select
+              id="subCategory"
+              name="subCategory"
+              value={formData.subCategory || ''}
+              onChange={handleChange}
+              className={`${selectBaseStyle} ${formErrors.subCategory ? inputErrorStyle : inputFocusStyle}`}
+              disabled={availableSubCategories.length === 0}
+            >
+              <option value="" disabled>-- เลือกหมวดหมู่ย่อย --</option>
+              {availableSubCategories.map(subCategoryValue => (
+                <option key={subCategoryValue} value={subCategoryValue}>{subCategoryValue}</option>
+              ))}
+            </select>
+            {formErrors.subCategory && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.subCategory}</p>}
+          </div>
+        )}
+        
         <div>
           <div className="flex justify-between items-center mb-1">
             <label htmlFor="description" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text">

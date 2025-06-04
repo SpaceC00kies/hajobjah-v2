@@ -127,7 +127,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
 
   if (currentDetailedPost) {
     return (
-      <div className="container mx-auto p-4 sm:p-6">
+      <div className="p-4 sm:p-6"> {/* Removed container mx-auto */}
         <Button 
           onClick={() => setSelectedPostId(null)} 
           variant="outline" 
@@ -159,7 +159,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
   const selectBaseStyle = `${inputBaseStyle} appearance-none`;
 
   return (
-    <div className="container mx-auto p-4 sm:p-6">
+    <div className="p-4 sm:p-6"> {/* Removed container mx-auto */}
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <h2 className="text-2xl sm:text-3xl font-sans font-semibold text-neutral-700 dark:text-neutral-300 text-center sm:text-left">
           💬 กระทู้พูดคุย ชุมชนหาจ๊อบจ้า

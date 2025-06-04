@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import type { HelperProfile } from '../types';
+import { JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP } from '../types';
 import { Button } from './Button';
-import { containsBlacklistedWords } from '../App'; // Import blacklist checker
+import { containsBlacklistedWords } from '../App'; 
 
 type FormDataType = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'username' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt'>;
 
@@ -18,6 +19,8 @@ const initialFormStateForCreate: FormDataType = {
   profileTitle: '',
   details: '',
   area: '',
+  category: '' as JobCategory,
+  subCategory: undefined,
   availability: '', 
   availabilityDateFrom: '',
   availabilityDateTo: '',
@@ -30,13 +33,15 @@ type FormErrorsType = Partial<Record<Exclude<keyof HelperProfile, 'id' | 'posted
 export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, onCancel, initialData, isEditing }) => {
   const [formData, setFormData] = useState<FormDataType>(initialFormStateForCreate);
   const [formErrors, setFormErrors] = useState<FormErrorsType>({});
+  const [availableSubCategories, setAvailableSubCategories] = useState<JobSubCategory[]>([]);
+
 
   useEffect(() => {
     if (isEditing && initialData) {
       const { 
         id, postedAt, userId, username, isSuspicious, isPinned, isUnavailable, contact,
         gender, birthdate, educationLevel, adminVerifiedExperience, interestedCount, 
-        ownerId, createdAt, updatedAt, // Destructure to exclude
+        ownerId, createdAt, updatedAt, 
         ...editableFieldsBase
       } = initialData;
       
@@ -44,6 +49,8 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
         profileTitle: editableFieldsBase.profileTitle || '',
         details: editableFieldsBase.details || '',
         area: editableFieldsBase.area || '',
+        category: editableFieldsBase.category || ('' as JobCategory),
+        subCategory: editableFieldsBase.subCategory || undefined,
         availability: editableFieldsBase.availability || '',
         availabilityDateFrom: editableFieldsBase.availabilityDateFrom 
                                 ? (editableFieldsBase.availabilityDateFrom instanceof Date 
@@ -57,9 +64,15 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
                                 : '',
         availabilityTimeDetails: editableFieldsBase.availabilityTimeDetails || '',
       };
-      setFormData(editableFields); 
+      setFormData(editableFields);
+      if (editableFields.category && JOB_SUBCATEGORIES_MAP[editableFields.category]) {
+        setAvailableSubCategories(JOB_SUBCATEGORIES_MAP[editableFields.category]);
+      } else {
+        setAvailableSubCategories([]);
+      }
     } else {
       setFormData(initialFormStateForCreate);
+      setAvailableSubCategories([]);
     }
   }, [isEditing, initialData]);
 
@@ -67,7 +80,22 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
     const { name, value } = e.target;
     const key = name as keyof FormDataType; 
 
-    setFormData(prev => ({ ...prev, [key]: value }));
+    let newFormData = { ...formData };
+
+    if (key === 'category') {
+        const newCategory = value as JobCategory;
+        newFormData = { ...newFormData, category: newCategory, subCategory: undefined }; // Reset subCategory
+        setAvailableSubCategories(JOB_SUBCATEGORIES_MAP[newCategory] || []);
+        if (formErrors.subCategory) {
+            setFormErrors(prev => ({ ...prev, subCategory: undefined }));
+        }
+    } else if (key === 'subCategory') {
+        newFormData = { ...newFormData, subCategory: value as JobSubCategory || undefined };
+    } else {
+        newFormData = { ...newFormData, [key]: value };
+    }
+    
+    setFormData(newFormData);
 
     if (formErrors[key as keyof FormErrorsType]) { 
       setFormErrors(prev => ({ ...prev, [key as keyof FormErrorsType]: undefined }));
@@ -83,6 +111,10 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
     else if (containsBlacklistedWords(formData.details)) errors.details = 'รายละเอียดมีคำที่ไม่เหมาะสม โปรดแก้ไข';
 
     if (!formData.area.trim()) errors.area = 'กรุณากรอกพื้นที่ที่สะดวก';
+    if (!formData.category) errors.category = 'กรุณาเลือกหมวดหมู่งานที่ถนัด';
+    else if (JOB_SUBCATEGORIES_MAP[formData.category]?.length > 0 && !formData.subCategory) {
+        errors.subCategory = 'กรุณาเลือกหมวดหมู่ย่อยที่ถนัด';
+    }
     
     if (formData.availabilityDateFrom && formData.availabilityDateTo && formData.availabilityDateTo < formData.availabilityDateFrom) {
         errors.availabilityDateTo = 'วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่มต้น';
@@ -102,18 +134,21 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
     onSubmitProfile(dataToSubmit);
      if (!isEditing) {
         setFormData(initialFormStateForCreate);
+        setAvailableSubCategories([]);
     }
   };
 
   const baseProfileFields = [
     { name: 'profileTitle', label: 'หัวข้อโปรไฟล์', placeholder: 'เช่น รับจ้างขนของ, ช่วยสอนพิเศษคณิต', type: 'text', required: true },
     { name: 'area', label: 'พื้นที่ที่สะดวก (เช่น เขต, ถนน, ย่าน)', placeholder: 'เช่น ในตัวเมืองเชียงใหม่, ย่านนิมมานเหมินท์', type: 'text', required: true },
-    { name: 'availability', label: 'หมายเหตุเรื่องวันเวลาที่ว่างโดยรวม (ถ้ามี)', placeholder: 'เช่น "สะดวกเฉพาะช่วงเย็น", "ไม่ว่างวันที่ 10-15 นี้"', type: 'text', required: false },
   ] as const;
+
+  const availabilityField = { name: 'availability', label: 'หมายเหตุเรื่องวันเวลาที่ว่างโดยรวม (ถ้ามี)', placeholder: 'เช่น "สะดวกเฉพาะช่วงเย็น", "ไม่ว่างวันที่ 10-15 นี้"', type: 'text', required: false };
   
   const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border border-[#CCCCCC] dark:border-dark-border rounded-[10px] text-neutral-dark dark:text-dark-text font-serif font-normal focus:outline-none";
   const inputFocusStyle = "focus:border-secondary dark:focus:border-dark-secondary-DEFAULT focus:ring-2 focus:ring-secondary focus:ring-opacity-70 dark:focus:ring-dark-secondary-DEFAULT dark:focus:ring-opacity-70";
   const inputErrorStyle = "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-2 focus:ring-red-500 focus:ring-opacity-70 dark:focus:ring-red-400 dark:focus:ring-opacity-70";
+  const selectBaseStyle = `${inputBaseStyle} appearance-none`;
 
   const getDateString = (dateValue: string | Date | undefined): string => {
     if (!dateValue) return '';
@@ -134,32 +169,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
       <form onSubmit={handleSubmit} className="space-y-6">
         
         <div className="pt-4 border-t border-neutral-DEFAULT dark:border-dark-border/50 mt-6">
-            <h3 className="text-xl font-sans font-semibold text-neutral-dark dark:text-dark-text mb-4">ช่วงเวลาที่สะดวกทำงาน</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4">
-                <div>
-                    <label htmlFor="availabilityDateFrom" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ช่วงวันที่ว่าง: ตั้งแต่</label>
-                    <input type="date" id="availabilityDateFrom" name="availabilityDateFrom" value={getDateString(formData.availabilityDateFrom)} onChange={handleChange}
-                        className={`${inputBaseStyle} ${formErrors.availabilityDateFrom ? inputErrorStyle : inputFocusStyle}`} />
-                    {formErrors.availabilityDateFrom && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.availabilityDateFrom}</p>}
-                </div>
-                <div>
-                    <label htmlFor="availabilityDateTo" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ถึง (ถ้ามี)</label>
-                    <input type="date" id="availabilityDateTo" name="availabilityDateTo" value={getDateString(formData.availabilityDateTo)} onChange={handleChange}
-                        min={getDateString(formData.availabilityDateFrom) || undefined} className={`${inputBaseStyle} ${formErrors.availabilityDateTo ? inputErrorStyle : inputFocusStyle}`} />
-                    {formErrors.availabilityDateTo && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.availabilityDateTo}</p>}
-                </div>
-            </div>
-            <div>
-                <label htmlFor="availabilityTimeDetails" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">รายละเอียดวัน/เวลาที่สะดวกเพิ่มเติม (ถ้ามี)</label>
-                <textarea id="availabilityTimeDetails" name="availabilityTimeDetails" value={formData.availabilityTimeDetails || ''} onChange={handleChange} rows={3}
-                    placeholder="เช่น ทุกวัน จ-ศ หลัง 17:00 น., เสาร์-อาทิตย์ทั้งวัน, เฉพาะช่วงปิดเทอม"
-                    className={`${inputBaseStyle} ${formErrors.availabilityTimeDetails ? inputErrorStyle : inputFocusStyle}`} />
-                {formErrors.availabilityTimeDetails && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.availabilityTimeDetails}</p>}
-            </div>
-        </div>
-
-         <div className="pt-4 border-t border-neutral-DEFAULT dark:border-dark-border/50 mt-6">
-             <h3 className="text-xl font-sans font-semibold text-neutral-dark dark:text-dark-text mb-4">ข้อมูลโปรไฟล์และเกี่ยวกับฉัน</h3>
+            <h3 className="text-xl font-sans font-semibold text-neutral-dark dark:text-dark-text mb-4">ข้อมูลโปรไฟล์และเกี่ยวกับฉัน</h3>
             {baseProfileFields.map(field => (
             <div key={field.name} className="mb-6 last:mb-0">
                 <label htmlFor={field.name} className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
@@ -177,6 +187,48 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
                 {formErrors[field.name as keyof FormErrorsType] && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors[field.name as keyof FormErrorsType]}</p>}
             </div>
             ))}
+
+            <div className="mb-6">
+              <label htmlFor="category" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
+                หมวดหมู่งานที่ถนัด <span className="text-red-500 dark:text-red-400">*</span>
+              </label>
+              <select
+                id="category"
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                className={`${selectBaseStyle} ${formErrors.category ? inputErrorStyle : inputFocusStyle}`}
+              >
+                <option value="" disabled>-- เลือกหมวดหมู่ --</option>
+                {Object.values(JobCategory).map(categoryValue => (
+                  <option key={categoryValue} value={categoryValue}>{categoryValue}</option>
+                ))}
+              </select>
+              {formErrors.category && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.category}</p>}
+            </div>
+
+            {availableSubCategories.length > 0 && (
+                <div className="mb-6">
+                    <label htmlFor="subCategory" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
+                    หมวดหมู่ย่อยที่ถนัด <span className="text-red-500 dark:text-red-400">*</span>
+                    </label>
+                    <select
+                    id="subCategory"
+                    name="subCategory"
+                    value={formData.subCategory || ''}
+                    onChange={handleChange}
+                    className={`${selectBaseStyle} ${formErrors.subCategory ? inputErrorStyle : inputFocusStyle}`}
+                    disabled={availableSubCategories.length === 0}
+                    >
+                    <option value="" disabled>-- เลือกหมวดหมู่ย่อย --</option>
+                    {availableSubCategories.map(subCategoryValue => (
+                        <option key={subCategoryValue} value={subCategoryValue}>{subCategoryValue}</option>
+                    ))}
+                    </select>
+                    {formErrors.subCategory && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.subCategory}</p>}
+                </div>
+            )}
+            
             <div>
             <label htmlFor="details" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
                 รายละเอียดเกี่ยวกับตัวเอง (ทักษะ, ประสบการณ์) <span className="text-red-500 dark:text-red-400">*</span>
@@ -193,6 +245,47 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
             {formErrors.details && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.details}</p>}
             </div>
         </div>
+
+        <div className="pt-4 border-t border-neutral-DEFAULT dark:border-dark-border/50 mt-6">
+            <h3 className="text-xl font-sans font-semibold text-neutral-dark dark:text-dark-text mb-4">ช่วงเวลาที่สะดวกทำงาน</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4">
+                <div>
+                    <label htmlFor="availabilityDateFrom" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ช่วงวันที่ว่าง: ตั้งแต่</label>
+                    <input type="date" id="availabilityDateFrom" name="availabilityDateFrom" value={getDateString(formData.availabilityDateFrom)} onChange={handleChange}
+                        className={`${inputBaseStyle} ${formErrors.availabilityDateFrom ? inputErrorStyle : inputFocusStyle}`} />
+                    {formErrors.availabilityDateFrom && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.availabilityDateFrom}</p>}
+                </div>
+                <div>
+                    <label htmlFor="availabilityDateTo" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ถึง (ถ้ามี)</label>
+                    <input type="date" id="availabilityDateTo" name="availabilityDateTo" value={getDateString(formData.availabilityDateTo)} onChange={handleChange}
+                        min={getDateString(formData.availabilityDateFrom) || undefined} className={`${inputBaseStyle} ${formErrors.availabilityDateTo ? inputErrorStyle : inputFocusStyle}`} />
+                    {formErrors.availabilityDateTo && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.availabilityDateTo}</p>}
+                </div>
+            </div>
+            <div className="mb-6"> 
+                <label htmlFor={availabilityField.name} className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
+                  {availabilityField.label} {availabilityField.required && <span className="text-red-500 dark:text-red-400">*</span>}
+                </label>
+                <input
+                  type={availabilityField.type}
+                  id={availabilityField.name}
+                  name={availabilityField.name}
+                  value={(formData[availabilityField.name as keyof typeof formData] as string) ?? ''} 
+                  onChange={handleChange}
+                  placeholder={availabilityField.placeholder}
+                  className={`${inputBaseStyle} ${formErrors[availabilityField.name as keyof FormErrorsType] ? inputErrorStyle : inputFocusStyle}`}
+                />
+                {formErrors[availabilityField.name as keyof FormErrorsType] && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors[availabilityField.name as keyof FormErrorsType]}</p>}
+            </div>
+            <div>
+                <label htmlFor="availabilityTimeDetails" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">รายละเอียดวัน/เวลาที่สะดวกเพิ่มเติม (ถ้ามี)</label>
+                <textarea id="availabilityTimeDetails" name="availabilityTimeDetails" value={formData.availabilityTimeDetails || ''} onChange={handleChange} rows={3}
+                    placeholder="เช่น ทุกวัน จ-ศ หลัง 17:00 น., เสาร์-อาทิตย์ทั้งวัน, เฉพาะช่วงปิดเทอม"
+                    className={`${inputBaseStyle} ${formErrors.availabilityTimeDetails ? inputErrorStyle : inputFocusStyle}`} />
+                {formErrors.availabilityTimeDetails && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.availabilityTimeDetails}</p>}
+            </div>
+        </div>
+
 
         <div className="flex flex-col sm:flex-row gap-4 pt-4">
           <Button type="submit" variant="secondary" size="lg" className="w-full sm:w-auto flex-grow">
