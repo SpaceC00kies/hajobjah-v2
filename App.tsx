@@ -23,7 +23,7 @@ import { UserLevelBadge } from './components/UserLevelBadge';
 import { SiteLockOverlay } from './components/SiteLockOverlay';
 
 import * as firebaseService from './services/firebaseService';
-import { logFirebaseError } from './firebase/logging'; 
+import { logFirebaseError } from './firebase/logging';
 
 const USE_FIREBASE = import.meta.env.VITE_USE_FIREBASE === 'true';
 
@@ -127,30 +127,29 @@ const App: React.FC = () => {
   // Real-time Data Subscriptions
   useEffect(() => {
     if (!USE_FIREBASE) return;
-    
+
     const processUsers = (fetchedUsers: User[], currentPosts: WebboardPost[], currentComments: WebboardComment[]) => {
-        const updatedUsers = fetchedUsers.map(u => ({
-            ...u,
-            userLevel: calculateUserLevel(u.id, currentPosts, currentComments),
-            profileComplete: checkProfileCompleteness(u)
-        }));
-        setUsers(updatedUsers);
+      const updatedUsers = fetchedUsers.map(u => ({
+          ...u,
+          userLevel: calculateUserLevel(u.id, currentPosts, currentComments),
+          profileComplete: checkProfileCompleteness(u)
+      }));
+      setUsers(updatedUsers);
 
-        if (currentUser) {
-            const updatedCurrentUser = updatedUsers.find(u => u.id === currentUser.id);
-            if (updatedCurrentUser) {
-                 // Check if relevant fields actually changed to avoid unnecessary re-renders
-                const hasLevelChanged = updatedCurrentUser.userLevel.name !== currentUser.userLevel?.name;
-                const hasProfileCompletenessChanged = updatedCurrentUser.profileComplete !== currentUser.profileComplete;
-                const hasPhotoChanged = updatedCurrentUser.photo !== currentUser.photo;
-                const hasDisplayNameChanged = updatedCurrentUser.displayName !== currentUser.displayName;
+      if (currentUser) {
+          const updatedCurrentUser = updatedUsers.find(u => u.id === currentUser.id);
+          if (updatedCurrentUser) {
+              // Check if relevant fields actually changed to avoid unnecessary re-renders
+              const hasLevelChanged = updatedCurrentUser.userLevel.name !== currentUser.userLevel?.name;
+              const hasProfileCompletenessChanged = updatedCurrentUser.profileComplete !== currentUser.profileComplete;
+              const hasPhotoChanged = updatedCurrentUser.photo !== currentUser.photo;
+              const hasDisplayNameChanged = updatedCurrentUser.displayName !== currentUser.displayName;
 
-
-                if (hasLevelChanged || hasProfileCompletenessChanged || hasPhotoChanged || hasDisplayNameChanged) {
-                    setCurrentUser(prev => prev ? ({...prev, ...updatedCurrentUser}) : updatedCurrentUser);
-                }
-            }
-        }
+              if (hasLevelChanged || hasProfileCompletenessChanged || hasPhotoChanged || hasDisplayNameChanged) {
+                  setCurrentUser(prev => prev ? ({...prev, ...updatedCurrentUser}) : updatedCurrentUser);
+              }
+          }
+      }
     };
 
     // Initial setup, webboardPosts and webboardComments might be empty
@@ -171,7 +170,7 @@ const App: React.FC = () => {
         setWebboardComments(fetchedComments);
         processUsers(users, webboardPosts, fetchedComments); // Re-process users if comments change (for levels)
     });
-    
+
     return () => {
       unsubUsers();
       unsubJobs();
@@ -182,7 +181,6 @@ const App: React.FC = () => {
       unsubWebboardComments();
     };
   }, [currentUser?.id]); // Rerun user processing if currentUser.id changes, other dependencies handled by closures
-
 
   const requestLoginForAction = (originalView: View, originalPayload?: any) => {
     if (!currentUser) {
@@ -226,7 +224,7 @@ const App: React.FC = () => {
     if (!userData.gender || !userData.birthdate || !userData.educationLevel) { alert('กรุณากรอกข้อมูลส่วนตัวให้ครบถ้วน'); return false; }
     try {
       await firebaseService.signUpWithEmailPasswordService({ ...userData, role: UserRole.Member });
-      alert('ลงทะเบียนสำเร็จแล้ว!'); 
+      alert('ลงทะเบียนสำเร็จแล้ว!');
       if (loginRedirectInfo) {
         navigateTo(loginRedirectInfo.view, loginRedirectInfo.payload);
         setLoginRedirectInfo(null);
@@ -241,7 +239,7 @@ const App: React.FC = () => {
     if (!USE_FIREBASE) { alert("Firebase is not enabled."); return false; }
     try {
       await firebaseService.signInWithEmailPasswordService(loginIdentifier, passwordAttempt);
-      alert(`ยินดีต้อนรับ!`); 
+      alert(`ยินดีต้อนรับ!`);
       if (loginRedirectInfo) {
         navigateTo(loginRedirectInfo.view, loginRedirectInfo.payload);
         setLoginRedirectInfo(null);
@@ -260,7 +258,7 @@ const App: React.FC = () => {
     if (!updatedProfileData.educationLevel || updatedProfileData.educationLevel === HelperEducationLevelOption.NotStated) { alert('กรุณาเลือกระดับการศึกษา'); return false; }
     try {
       const success = await firebaseService.updateUserProfileService(currentUser.id, updatedProfileData);
-      if (success) { alert('อัปเดตโปรไฟล์เรียบร้อยแล้ว'); return true; } 
+      if (success) { alert('อัปเดตโปรไฟล์เรียบร้อยแล้ว'); return true; }
       else { alert('อัปเดตโปรไฟล์ไม่สำเร็จ (service error)'); return false; }
     } catch (error: any) { logFirebaseError("handleUpdateUserProfile", error); alert(`อัปเดตโปรไฟล์ไม่สำเร็จ: ${error.message}`); return false; }
   };
@@ -328,7 +326,7 @@ const App: React.FC = () => {
     if (containsBlacklistedWords(newJobData.description) || containsBlacklistedWords(newJobData.title)) { alert('เนื้อหาหรือหัวข้อมีคำที่ไม่เหมาะสม'); return; }
     try {
       const contactInfo = generateContactString(currentUser);
-      await firebaseService.addJobService(newJobData, contactInfo); 
+      await firebaseService.addJobService(newJobData, contactInfo); // No ID returned by real service
       navigateTo(sourceViewForForm === View.MyPosts ? View.MyPosts : View.FindJobs);
       setSourceViewForForm(null); alert('ประกาศงานของคุณถูกเพิ่มแล้ว!');
     } catch (error: any) { logFirebaseError("handleAddJob", error); alert(`เพิ่มประกาศงานไม่สำเร็จ: ${error.message}`); }
@@ -362,10 +360,8 @@ const App: React.FC = () => {
     }
     try {
       const contactInfo = generateContactString(currentUser);
-      await firebaseService.addHelperProfileService(newProfileData, {
-          userId: currentUser.id, username: currentUser.username, contact: contactInfo,
-          gender: currentUser.gender, birthdate: currentUser.birthdate, educationLevel: currentUser.educationLevel
-      });
+      const authorInfo = { userId: currentUser.id, username: currentUser.username, contact: contactInfo, gender: currentUser.gender, birthdate: currentUser.birthdate, educationLevel: currentUser.educationLevel };
+      await firebaseService.addHelperProfileService(newProfileData, authorInfo); // No ID returned
       navigateTo(sourceViewForForm === View.MyPosts ? View.MyPosts : View.FindHelpers); setSourceViewForForm(null);
       alert('โปรไฟล์ของคุณถูกเพิ่มแล้ว!');
     } catch (error: any) { logFirebaseError("handleAddHelperProfile", error); alert(`เพิ่มโปรไฟล์ไม่สำเร็จ: ${error.message}`); }
@@ -378,7 +374,7 @@ const App: React.FC = () => {
     if (!canEditOrDelete(originalProfile.userId, originalProfile.ownerId)) { alert('คุณไม่มีสิทธิ์แก้ไขโปรไฟล์นี้'); return; }
     if (containsBlacklistedWords(updatedProfileDataFromForm.details) || containsBlacklistedWords(updatedProfileDataFromForm.profileTitle)) { alert('เนื้อหาหรือหัวข้อมีคำที่ไม่เหมาะสม'); return; }
     try {
-      const contactInfo = generateContactString(currentUser); // Regenerate
+      const contactInfo = generateContactString(currentUser); // Regenerate in case user's profile changed
       await firebaseService.updateHelperProfileService(updatedProfileDataFromForm.id, updatedProfileDataFromForm, contactInfo);
       setItemToEdit(null); setEditingItemType(null); navigateTo(sourceViewForForm || View.Home);
       setSourceViewForForm(null); alert('แก้ไขโปรไฟล์เรียบร้อยแล้ว');
@@ -481,7 +477,7 @@ const App: React.FC = () => {
       if (postIdToUpdate) {
         const postToEdit = webboardPosts.find(p => p.id === postIdToUpdate);
         if (!postToEdit || !canEditOrDelete(postToEdit.userId, postToEdit.ownerId)) { alert('ไม่พบโพสต์ หรือไม่มีสิทธิ์แก้ไข'); return; }
-        await firebaseService.updateWebboardPostService(postIdToUpdate, postData, currentUser.photo); // Pass current user photo for authorPhoto update if needed (service decides)
+        await firebaseService.updateWebboardPostService(postIdToUpdate, postData, currentUser.photo); 
         alert('แก้ไขโพสต์เรียบร้อยแล้ว!');
       } else {
         finalPostId = await firebaseService.addWebboardPostService(postData, {userId: currentUser.id, username: currentUser.username, photo: currentUser.photo});
@@ -554,8 +550,7 @@ const App: React.FC = () => {
     } catch (error: any) { logFirebaseError("handleFeedbackSubmit", error); setFeedbackSubmissionStatus('error'); setFeedbackSubmissionMessage(`เกิดข้อผิดพลาดในการส่งความคิดเห็น: ${error.message}`); return false; }
   };
 
-  // --- RENDER FUNCTIONS (No changes here, only in data fetching and handlers above) ---
-  const renderNavLinks = (isMobile: boolean) => { /* ... UI only, no changes ... */ 
+  const renderNavLinks = (isMobile: boolean) => { 
     const displayBadge = getUserDisplayBadge(currentUser, webboardPosts, webboardComments);
     const commonButtonPropsBase = isMobile
       ? { size: 'md' as const, className: 'font-medium w-full text-left justify-start py-3 px-4 text-base' }
@@ -678,7 +673,7 @@ const App: React.FC = () => {
         );
     }
   };
-  const renderHeader = () => { /* ... UI only, no changes ... */ 
+  const renderHeader = () => { 
       return (
       <header
         className="sticky top-0 z-30 w-full bg-headerBlue-DEFAULT text-neutral-dark p-3 sm:p-4 shadow-md"
@@ -695,31 +690,31 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex items-center flex-shrink-0">
-              <nav className="hidden sm:flex items-center justify-end gap-1 sm:gap-2 flex-wrap">
-              {renderNavLinks(false)}
+              <nav className="hidden lg:flex items-center justify-end gap-1 sm:gap-2 flex-wrap">
+                {renderNavLinks(false)}
               </nav>
 
-              <div className="sm:hidden ml-2">
-              <button
-                  onClick={() => setIsMobileMenuOpen(true)}
-                  className="p-2 rounded-md text-neutral-dark hover:bg-neutral/20 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-neutral"
-                  aria-label="Open menu"
-                  aria-expanded={isMobileMenuOpen}
-              >
-                  <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-              </button>
+              <div className="lg:hidden ml-2">
+                <button
+                    onClick={() => setIsMobileMenuOpen(true)}
+                    className="p-2 rounded-md text-neutral-dark hover:bg-neutral/20 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-neutral"
+                    aria-label="Open menu"
+                    aria-expanded={isMobileMenuOpen}
+                >
+                    <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
               </div>
           </div>
         </div>
       </header>
     );
   };
-  const renderMobileMenu = () => { /* ... UI only, no changes ... */ 
+  const renderMobileMenu = () => { 
     if (!isMobileMenuOpen) return null;
     return (
-      <div className="fixed inset-0 z-40 sm:hidden" role="dialog" aria-modal="true">
+      <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true">
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} aria-hidden="true"></div>
         <div className={`fixed top-0 right-0 h-full w-4/5 max-w-xs bg-white shadow-xl p-5 z-50 transform transition-transform duration-300 ease-in-out overflow-y-auto ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
           <div className="flex justify-between items-center mb-6">
@@ -733,7 +728,7 @@ const App: React.FC = () => {
       </div>
     );
   };
-  const renderHome = () => { /* ... UI only, no changes ... */ 
+  const renderHome = () => { 
     return (
     <div className="flex flex-col items-center justify-center pt-3 sm:pt-4 pb-6 px-6 sm:pb-8 sm:px-8 text-center">
       <h2 className="text-3xl sm:text-4xl font-sans font-medium text-neutral-dark mb-2 tracking-tight leading-snug"> ✨ หาจ๊อบจ้า ✨ </h2>
@@ -768,7 +763,7 @@ const App: React.FC = () => {
   };
   const renderPostJob = () => { if (!currentUser) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทางไปยังหน้าเข้าสู่ระบบ...</p>; return <PostJobForm onSubmitJob={handleSubmitJobForm} onCancel={handleCancelEditOrPost} initialData={editingItemType === 'job' ? itemToEdit as Job : undefined} isEditing={!!itemToEdit && editingItemType === 'job'} />; };
   const renderOfferHelpForm = () => { if (!currentUser) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทางไปยังหน้าเข้าสู่ระบบ...</p>; return <OfferHelpForm onSubmitProfile={handleSubmitHelperProfileForm} onCancel={handleCancelEditOrPost} initialData={editingItemType === 'profile' ? itemToEdit as HelperProfile : undefined} isEditing={!!itemToEdit && editingItemType === 'profile'} />; };
-  const renderFindJobs = () => { /* ... UI only, no changes ... */ 
+  const renderFindJobs = () => { 
     return (
     <div className="container mx-auto p-4 sm:p-8">
       <h2 className="text-3xl font-sans font-semibold text-primary mb-3 text-center">👀 รายการงาน</h2>
@@ -777,7 +772,7 @@ const App: React.FC = () => {
       {jobs.length === 0 ? (<div className="text-center py-10"><svg className="mx-auto h-24 w-24 text-neutral-DEFAULT" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg><p className="mt-3 text-xl font-serif text-neutral-dark font-normal">ยังไม่มีงานประกาศในขณะนี้ ลองแวะมาใหม่นะ</p>{currentUser && jobs.length === 0 && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="mt-6 font-medium"> เป็นคนแรกที่ลงประกาศงาน! </Button> )}{!currentUser && jobs.length === 0 && (<Button onClick={() => requestLoginForAction(View.PostJob)} variant="primary" size="md" className="mt-6 font-medium"> เข้าสู่ระบบเพื่อลงประกาศงาน </Button>)}</div>) : (<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">{jobs.map(job => (<JobCard key={job.id} job={job} navigateTo={navigateTo} currentUser={currentUser} requestLoginForAction={requestLoginForAction} />))}</div>)}
     </div>
   );};
-  const renderFindHelpers = () => { /* ... UI only, no changes ... */ 
+  const renderFindHelpers = () => { 
      const enrichedHelperProfilesList: EnrichedHelperProfile[] = helperProfiles.map(hp => {
       const user = users.find(u => u.id === hp.userId);
       return { ...hp, userPhoto: user?.photo, userAddress: user?.address, userDisplayName: user?.displayName || user?.username || 'User', verifiedExperienceBadge: hp.adminVerifiedExperience || false, profileCompleteBadge: user?.profileComplete || false, warningBadge: hp.isSuspicious || false, interestedCount: hp.interestedCount || 0, };
@@ -797,12 +792,13 @@ const App: React.FC = () => {
   const renderAboutUsPage = () => <AboutUsPage />;
   const renderSafetyPage = () => <SafetyPage />;
   const renderPublicProfile = () => { if (!currentUser) return <p className="text-center p-8 font-serif">คุณต้องเข้าสู่ระบบเพื่อดูโปรไฟล์นี้...</p>; if (!viewingProfileId) { navigateTo(View.Home); return <p className="text-center p-8 font-serif">ไม่พบ ID โปรไฟล์...</p>; } const profileUser = users.find(u => u.id === viewingProfileId); if (!profileUser) return <p className="text-center p-8 font-serif text-red-500">ไม่พบโปรไฟล์ผู้ใช้</p>; if (profileUser.role === UserRole.Admin) return <div className="text-center p-8 font-serif text-red-500">โปรไฟล์ของแอดมินไม่สามารถดูในหน้านี้ได้</div>; const helperProfileForBio = helperProfiles.find(hp => hp.userId === viewingProfileId); const displayBadge = getUserDisplayBadge(profileUser, webboardPosts, webboardComments); return <PublicProfilePage currentUser={currentUser} user={{...profileUser, userLevel: displayBadge}} helperProfile={helperProfileForBio} onBack={() => navigateTo(View.FindHelpers)} />; };
-  const renderWebboardPage = () => { /* ... UI only, no changes ... */ 
+  const renderWebboardPage = () => { 
     return (<WebboardPage currentUser={currentUser} users={users} posts={webboardPosts} comments={webboardComments} onAddOrUpdatePost={handleAddOrUpdateWebboardPost} onAddComment={handleAddWebboardComment} onToggleLike={handleToggleWebboardPostLike} onDeletePost={handleDeleteWebboardPost} onPinPost={handlePinWebboardPost} onEditPost={(post) => { setItemToEdit({...post, isEditing: true}); setEditingItemType('webboardPost'); setSelectedPostId('create'); setCurrentView(View.Webboard); }} onDeleteComment={handleDeleteWebboardComment} onUpdateComment={handleUpdateWebboardComment} selectedPostId={selectedPostId} setSelectedPostId={setSelectedPostId} navigateTo={navigateTo} editingPost={editingItemType === 'webboardPost' ? itemToEdit as WebboardPost : null} onCancelEdit={() => { setItemToEdit(null); setEditingItemType(null); setSelectedPostId(null); }} getUserDisplayBadge={(user) => getUserDisplayBadge(user, webboardPosts, webboardComments)} requestLoginForAction={requestLoginForAction} />);};
 
   let currentViewContent;
-  if (isLoadingAuth && USE_FIREBASE) { currentViewContent = (<div className="flex justify-center items-center h-screen"><p className="text-xl font-sans text-neutral-dark dark:text-dark-text">กำลังโหลดข้อมูลผู้ใช้...</p></div>); } 
-  else {
+  if (isLoadingAuth && USE_FIREBASE) { 
+    currentViewContent = (<div className="flex justify-center items-center h-screen"><p className="text-xl font-sans text-neutral-dark dark:text-dark-text">กำลังโหลดข้อมูลผู้ใช้...</p></div>); 
+  } else {
     switch (currentView) {
         case View.Home: currentViewContent = renderHome(); break;
         case View.PostJob: currentViewContent = renderPostJob(); break;
