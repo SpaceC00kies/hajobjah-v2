@@ -10,7 +10,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyAmhIItKW9XR4cgtCxtTUm2EKCY17xNOlo", // REPLACE THIS
   authDomain: "hajobjah.firebaseapp.com",        // REPLACE THIS if different
   projectId: "hajobjah",                         // REPLACE THIS if different
-  storageBucket: "hajobjah.firebasestorage.app  ",       // REPLACE THIS (often hajobjah.appspot.com)
+  storageBucket: "hajobjah.firebasestorage.app",       // REPLACE THIS (often hajobjah.appspot.com)
   messagingSenderId: "441394350866",             // REPLACE THIS if different
   appId: "1:441394350866:web:7b83583818449c0f3901cb" // REPLACE THIS
 };
