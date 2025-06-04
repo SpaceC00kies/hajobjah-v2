@@ -59,9 +59,35 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
   const canDeletePost = isAuthor || isAdmin || canModeratorDeletePost;
 
 
-  const timeSince = (dateInput: string | Date): string => {
-    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
-    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+  const timeSince = (dateInput: string | Date | null | undefined): string => {
+    if (dateInput === null || dateInput === undefined) {
+      return "just now";
+    }
+
+    let dateObject: Date;
+    if (dateInput instanceof Date) {
+      dateObject = dateInput;
+    } else if (typeof dateInput === 'string') {
+      dateObject = new Date(dateInput);
+    } else {
+      if (typeof dateInput === 'object' && dateInput && 'toDate' in dateInput && typeof (dateInput as any).toDate === 'function') {
+        dateObject = (dateInput as any).toDate();
+      } else {
+        console.warn("timeSince received unexpected dateInput type:", dateInput);
+        return "Invalid date input";
+      }
+    }
+
+    if (isNaN(dateObject.getTime())) {
+      return "Processing date...";
+    }
+
+    const seconds = Math.floor((new Date().getTime() - dateObject.getTime()) / 1000);
+
+    if (seconds < 0) {
+      return "just now";
+    }
+    if (seconds < 5) return "just now";
     let interval = seconds / 31536000;
     if (interval > 1) return Math.floor(interval) + " ปีก่อน";
     interval = seconds / 2592000;

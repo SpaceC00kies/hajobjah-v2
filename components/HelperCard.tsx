@@ -40,17 +40,37 @@ const calculateAge = (birthdateString?: string): number | null => {
   return age;
 };
 
-const formatDateDisplay = (dateInput?: string | Date): string | null => {
-  if (!dateInput) return null;
+const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
+  if (dateInput === null || dateInput === undefined) {
+    return null;
+  }
+
+  let dateObject: Date;
+  if (dateInput instanceof Date) {
+    dateObject = dateInput;
+  } else if (typeof dateInput === 'string') {
+    dateObject = new Date(dateInput);
+  } else {
+    if (typeof dateInput === 'object' && dateInput && 'toDate' in dateInput && typeof (dateInput as any).toDate === 'function') {
+      dateObject = (dateInput as any).toDate();
+    } else {
+      console.warn("formatDateDisplay received unexpected dateInput type:", dateInput);
+      return "Invalid date input";
+    }
+  }
+
+  if (isNaN(dateObject.getTime())) {
+    return null; 
+  }
+
   try {
-    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
-    if (isNaN(date.getTime())) return null;
-    return date.toLocaleDateString('th-TH', {
+    return dateObject.toLocaleDateString('th-TH', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
     });
   } catch (e) {
+    console.error("Error formatting date:", e);
     return null;
   }
 };
@@ -103,10 +123,10 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
   const availabilityDateFromText = formatDateDisplay(profile.availabilityDateFrom);
   const availabilityDateToText = formatDateDisplay(profile.availabilityDateTo);
   
-  const postedAtDate = profile.postedAt ? (profile.postedAt instanceof Date ? profile.postedAt : new Date(profile.postedAt)) : null;
-  const formattedPostedAt = postedAtDate && !isNaN(postedAtDate.getTime()) ? formatDateDisplay(postedAtDate) : null;
+  const postedAtDate = profile.postedAt ? (profile.postedAt instanceof Date ? profile.postedAt : new Date(profile.postedAt as string)) : null;
+  const formattedPostedAt = postedAtDate && !isNaN(postedAtDate.getTime()) ? formatDateDisplay(postedAtDate) : "Processing date...";
   
-  const isExpired = !profile.isUnavailable && postedAtDate ? (new Date().getTime() - postedAtDate.getTime()) / (1000 * 60 * 60 * 24) > 30 : false;
+  const isExpired = !profile.isUnavailable && postedAtDate && !isNaN(postedAtDate.getTime()) ? (new Date().getTime() - postedAtDate.getTime()) / (1000 * 60 * 60 * 24) > 30 : false;
 
   let availabilityDateDisplay = '';
   if (availabilityDateFromText && availabilityDateToText) {

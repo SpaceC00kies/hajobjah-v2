@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import type { Job, HelperProfile, User, Interaction, WebboardPost, WebboardComment, UserLevel } from '../types';
 import { UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, USER_LEVELS } from '../types';
@@ -64,12 +63,30 @@ interface AdminDashboardProps {
   onToggleSiteLock: () => void; // New prop
 }
 
-const formatDateDisplay = (dateInput?: string | Date): string => {
-  if (!dateInput) return 'N/A';
+const formatDateDisplay = (dateInput?: string | Date | null): string => {
+  if (dateInput === null || dateInput === undefined) {
+    return 'N/A';
+  }
+
+  let dateObject: Date;
+  if (dateInput instanceof Date) {
+    dateObject = dateInput;
+  } else if (typeof dateInput === 'string') {
+    dateObject = new Date(dateInput);
+  } else {
+    if (typeof dateInput === 'object' && dateInput && 'toDate' in dateInput && typeof (dateInput as any).toDate === 'function') {
+      dateObject = (dateInput as any).toDate();
+    } else {
+      console.warn("formatDateDisplay received unexpected dateInput type:", dateInput);
+      return "Invalid date input";
+    }
+  }
+
+  if (isNaN(dateObject.getTime())) {
+    return 'Invalid Date';
+  }
   try {
-    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
-    if (isNaN(date.getTime())) return 'Invalid Date';
-    return date.toLocaleDateString('th-TH', {
+    return dateObject.toLocaleDateString('th-TH', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -77,6 +94,7 @@ const formatDateDisplay = (dateInput?: string | Date): string => {
       minute: '2-digit',
     }) + ' น.';
   } catch (e) {
+    console.error("Error formatting date:", e);
     return 'Error Formatting Date';
   }
 };
@@ -211,8 +229,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const renderStatusBadges = (item: AdminItem) => {
-    const postedAtDate = item.postedAt ? new Date(item.postedAt) : null;
-    const isExpired = item.itemType !== 'webboardPost' && !item.isHiredOrUnavailable && postedAtDate ? (new Date().getTime() - postedAtDate.getTime()) / (1000 * 60 * 60 * 24) > 30 : false;
+    const postedAtVal = item.postedAt ? new Date(item.postedAt) : null;
+    const isExpired = item.itemType !== 'webboardPost' && !item.isHiredOrUnavailable && postedAtVal && !isNaN(postedAtVal.getTime())
+        ? (new Date().getTime() - postedAtVal.getTime()) / (1000 * 60 * 60 * 24) > 30 
+        : false;
+
 
     let statusElements = [];
 

@@ -39,18 +39,46 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
   const isQuestion = post.title.includes('?') || questionKeywords.some(keyword => post.title.toLowerCase().includes(keyword.toLowerCase()));
 
 
-  const timeSince = (dateInput: string | Date): string => {
-    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
-    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-    let interval = seconds / 31536000; // years
+  const timeSince = (dateInput: string | Date | null | undefined): string => {
+    if (dateInput === null || dateInput === undefined) {
+      return "just now";
+    }
+
+    let dateObject: Date;
+    if (dateInput instanceof Date) {
+      dateObject = dateInput;
+    } else if (typeof dateInput === 'string') {
+      dateObject = new Date(dateInput);
+    } else {
+      // Fallback for unexpected types, though Firestore Timestamps should be converted to string/Date upstream.
+      // Firestore Timestamps have a toDate() method.
+      if (typeof dateInput === 'object' && dateInput && 'toDate' in dateInput && typeof (dateInput as any).toDate === 'function') {
+        dateObject = (dateInput as any).toDate();
+      } else {
+        console.warn("timeSince received unexpected dateInput type:", dateInput);
+        return "Invalid date input";
+      }
+    }
+
+    if (isNaN(dateObject.getTime())) {
+      return "Processing date...";
+    }
+
+    const seconds = Math.floor((new Date().getTime() - dateObject.getTime()) / 1000);
+
+    if (seconds < 0) { 
+      return "just now";
+    }
+    if (seconds < 5) return "just now";
+    let interval = seconds / 31536000;
     if (interval > 1) return Math.floor(interval) + " ปีก่อน";
-    interval = seconds / 2592000; // months
+    interval = seconds / 2592000;
     if (interval > 1) return Math.floor(interval) + " เดือนก่อน";
-    interval = seconds / 86400; // days
+    interval = seconds / 86400;
     if (interval > 1) return Math.floor(interval) + " วันก่อน";
-    interval = seconds / 3600; // hours
+    interval = seconds / 3600;
     if (interval > 1) return Math.floor(interval) + " ชม.ก่อน";
-    interval = seconds / 60; // minutes
+    interval = seconds / 60;
     if (interval > 1) return Math.floor(interval) + " นาทีที่แล้ว";
     return Math.floor(seconds) + " วินาทีที่แล้ว";
   };
