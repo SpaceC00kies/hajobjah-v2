@@ -647,7 +647,7 @@ const App: React.FC = () => {
             {!isMobile && (
                <div className={`font-sans font-medium mr-4 text-sm lg:text-base items-center flex gap-2`}>
                 สวัสดี, @{currentUser.displayName}!
-                <UserLevelBadge level={displayBadge} size="sm" />
+                {/* UserLevelBadge is removed for desktop view to save space */}
               </div>
             )}
 
