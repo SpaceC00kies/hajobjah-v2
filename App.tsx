@@ -1,11 +1,11 @@
 
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   onAuthChangeService,
   signUpWithEmailPasswordService,
   signInWithEmailPasswordService,
   signOutUserService,
+  sendPasswordResetEmailService, // Added import
   updateUserProfileService,
   addJobService,
   updateJobService,
@@ -43,6 +43,7 @@ import { OfferHelpForm } from './components/OfferHelpForm';
 import { HelperCard } from './components/HelperCard';
 import { RegistrationForm } from './components/RegistrationForm';
 import { LoginForm } from './components/LoginForm';
+import { ForgotPasswordModal } from './components/ForgotPasswordModal'; // Added import
 import { AdminDashboard } from './components/AdminDashboard';
 import { ConfirmModal } from './components/ConfirmModal';
 import { MyPostsPage } from './components/MyPostsPage';
@@ -141,6 +142,7 @@ const App: React.FC = () => {
   const [confirmModalTitle, setConfirmModalTitle] = useState('');
   const [onConfirmAction, setOnConfirmAction] = useState<(() => void) | null>(null);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false); // New state for forgot password modal
   // Feedback submission state removed as Formspree handles it
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [isSiteLocked, setIsSiteLocked] = useState<boolean>(false);
@@ -297,6 +299,24 @@ const App: React.FC = () => {
       return false;
     }
   };
+
+  const handleSendPasswordResetEmail = async (email: string): Promise<string | void> => {
+    try {
+      await sendPasswordResetEmailService(email);
+      // Success is implicit, modal will show a generic success message
+    } catch (error: any) {
+      logFirebaseError("handleSendPasswordResetEmail", error);
+      if (error.code === 'auth/invalid-email') {
+        return 'รูปแบบอีเมลไม่ถูกต้อง';
+      } else if (error.code === 'auth/user-not-found') {
+        // For security, don't reveal if user exists. The modal shows a generic success message.
+        // So, we don't return a specific error here, letting the generic success message display.
+        return; // Treat as "success" from modal's perspective to show generic message
+      }
+      return 'เกิดข้อผิดพลาดในการส่งอีเมลรีเซ็ตรหัสผ่าน โปรดลองอีกครั้ง';
+    }
+  };
+
 
   const handleUpdateUserProfile = async (updatedProfileData: Pick<User, 'mobile' | 'lineId' | 'facebook' | 'gender' | 'birthdate' | 'educationLevel' | 'photo' | 'address' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'displayName'>): Promise<boolean> => {
     if (!currentUser) { alert('ผู้ใช้ไม่ได้เข้าสู่ระบบ'); return false; }
@@ -811,7 +831,7 @@ const App: React.FC = () => {
           <h3 className="text-lg font-sans font-semibold text-primary mb-4">หาคนทำงาน</h3>
           <div className="space-y-4">
             <Button onClick={() => { setSourceViewForForm(View.Home); navigateTo(View.PostJob); }} variant="primary" size="md" className="w-full">
-              <span className="flex items-center justify-center gap-2"><span>📢</span><span>มีงานด่วน? ฝากตรงนี้</span></span>
+              <span className="flex items-center justify-center gap-2"><span>📢</span><span>มีงานด่วน? ฝากไว้ตรงนี้</span></span>
             </Button>
             <Button onClick={() => navigateTo(View.FindHelpers)} variant="outline" colorScheme="primary" size="md" className="w-full">
               <span className="flex items-center justify-center gap-2"><span>🔍</span><span>กำลังหาคนช่วย? ดูโปรไฟล์เลย</span></span>
@@ -869,7 +889,7 @@ const App: React.FC = () => {
     <div className="p-4 sm:p-6">
       <div className="text-center mb-6 lg:mb-8">
         <h2 className="text-3xl font-sans font-semibold text-primary mb-3">👀 รายการงาน</h2>
-        <p className="text-md font-serif text-neutral-dark mb-6 max-w-xl mx-auto font-normal"> มีงานอะไรให้ทำ ลองประกาศดูนะ! </p>
+        <p className="text-md font-serif text-neutral-dark mb-6 max-w-xl mx-auto font-normal"> มีเวลา มีทักษะ ลองทำดูนะ! </p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-x-8">
         <aside className="lg:col-span-3 mb-8 lg:mb-0">
@@ -877,7 +897,7 @@ const App: React.FC = () => {
             <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedJobCategoryFilter} onSelectCategory={setSelectedJobCategoryFilter} />
             <SearchInputWithRecent searchTerm={jobSearchTerm} onSearchTermChange={handleJobSearch} placeholder="ค้นหางาน, รายละเอียด..." recentSearches={recentJobSearches} onRecentSearchSelect={(term) => { setJobSearchTerm(term); addRecentSearch('recentJobSearches', term); setRecentJobSearches(getRecentSearches('recentJobSearches')); }} ariaLabel="ค้นหางาน" />
             {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="w-full sm:px-4 sm:text-sm">
-              <span className="flex items-center justify-center gap-2"><span>📣</span><span>มีงานด่วน? ฝากตรงนี้</span></span>
+              <span className="flex items-center justify-center gap-2"><span>📣</span><span>มีงานด่วน? ฝากไว้ตรงนี้</span></span>
             </Button> )}
           </div>
         </aside>
@@ -952,7 +972,7 @@ const App: React.FC = () => {
       </div>
     </div>);};
   const renderRegister = () => <RegistrationForm onRegister={handleRegister} onSwitchToLogin={() => navigateTo(View.Login)} />;
-  const renderLogin = () => <LoginForm onLogin={handleLogin} onSwitchToRegister={() => navigateTo(View.Register)} />;
+  const renderLogin = () => <LoginForm onLogin={handleLogin} onSwitchToRegister={() => navigateTo(View.Register)} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />;
   const renderUserProfile = () => { if (!currentUser) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทางไปยังหน้าเข้าสู่ระบบ...</p>; return (<UserProfilePage currentUser={currentUser} onUpdateProfile={handleUpdateUserProfile} onCancel={() => navigateTo(View.Home)} />); };
   const renderAdminDashboard = () => { if (currentUser?.role !== UserRole.Admin) return <p className="text-center p-8 font-serif">คุณไม่มีสิทธิ์เข้าถึงหน้านี้...</p>; return (<AdminDashboard jobs={jobs} helperProfiles={helperProfiles} users={users} interactions={interactions} webboardPosts={webboardPosts} webboardComments={webboardComments} onDeleteJob={handleDeleteJob} onDeleteHelperProfile={handleDeleteHelperProfile} onToggleSuspiciousJob={handleToggleSuspiciousJob} onToggleSuspiciousHelperProfile={handleToggleSuspiciousHelperProfile} onTogglePinnedJob={handleTogglePinnedJob} onTogglePinnedHelperProfile={handleTogglePinnedHelperProfile} onToggleHiredJob={handleToggleHiredJobForUserOrAdmin} onToggleUnavailableHelperProfile={handleToggleUnavailableHelperProfileForUserOrAdmin} onToggleVerifiedExperience={handleToggleVerifiedExperience} onDeleteWebboardPost={handleDeleteWebboardPost} onPinWebboardPost={handlePinWebboardPost} onStartEditItem={handleStartEditItemFromAdmin} onSetUserRole={handleSetUserRole} currentUser={currentUser} isSiteLocked={isSiteLocked} onToggleSiteLock={handleToggleSiteLock} />); };
   const renderMyPostsPage = () => { if (!currentUser || currentUser.role === UserRole.Admin) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทาง...</p>; return (<MyPostsPage currentUser={currentUser} jobs={jobs} helperProfiles={helperProfiles} webboardPosts={webboardPosts} webboardComments={webboardComments} onEditItem={handleStartEditMyItem} onDeleteItem={handleDeleteItemFromMyPosts} onToggleHiredStatus={handleToggleItemStatusFromMyPosts} navigateTo={navigateTo} getUserDisplayBadge={(user) => getUserDisplayBadge(user, webboardPosts, webboardComments)} />); };
@@ -1019,6 +1039,11 @@ const App: React.FC = () => {
         isOpen={isFeedbackModalOpen}
         onClose={() => setIsFeedbackModalOpen(false)}
         currentUserEmail={currentUser?.email}
+      />
+      <ForgotPasswordModal
+        isOpen={isForgotPasswordModalOpen}
+        onClose={() => setIsForgotPasswordModalOpen(false)}
+        onSendResetEmail={handleSendPasswordResetEmail}
       />
     </div>
   );

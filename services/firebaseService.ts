@@ -4,6 +4,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  sendPasswordResetEmail, // Import sendPasswordResetEmail
   User as FirebaseUser,
 } from 'firebase/auth';
 import {
@@ -172,6 +173,18 @@ export const onAuthChangeService = (callback: (user: User | null) => void): (() 
       callback(null);
     }
   });
+};
+
+export const sendPasswordResetEmailService = async (email: string): Promise<void> => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+  } catch (error: any) {
+    logFirebaseError("sendPasswordResetEmailService", error);
+    // Firebase errors like 'auth/user-not-found' or 'auth/invalid-email' could be caught here.
+    // For better UX, we might not want to expose 'user-not-found' directly.
+    // The modal itself will handle displaying a generic success or a specific error message based on the promise.
+    throw error; 
+  }
 };
 
 

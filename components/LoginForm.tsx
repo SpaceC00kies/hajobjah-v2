@@ -5,9 +5,10 @@ import { Button } from './Button';
 interface LoginFormProps {
   onLogin: (loginIdentifier: string, passwordAttempt: string) => Promise<boolean>; // Returns true on success
   onSwitchToRegister: () => void;
+  onForgotPassword: () => void; // New prop to open the forgot password modal
 }
 
-export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegister }) => {
+export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegister, onForgotPassword }) => {
   const [loginIdentifier, setLoginIdentifier] = useState(''); // Can be username or email
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -51,9 +52,18 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegiste
           />
         </div>
         <div>
-          <label htmlFor="password" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
-            รหัสผ่าน
-          </label>
+          <div className="flex justify-between items-center mb-1">
+            <label htmlFor="password" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text">
+              รหัสผ่าน
+            </label>
+            <button 
+              type="button" 
+              onClick={onForgotPassword} 
+              className="text-xs font-sans text-neutral-medium dark:text-dark-textMuted hover:text-brandGreen dark:hover:text-dark-brandGreen-DEFAULT hover:underline focus:outline-none"
+            >
+              ลืมรหัสผ่าน?
+            </button>
+          </div>
           <input
             type="password"
             id="password"
