@@ -162,7 +162,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
          {profile.isUnavailable && !profileIsTrulyExpired && (
            <div className="mb-3 p-2 bg-red-100 dark:bg-red-700/30 border border-red-300 dark:border-red-500/50 rounded-md text-center">
             <p className="text-sm font-sans font-medium text-red-700 dark:text-red-300">
-              🚫 ผู้ช่วยคนนี้ไม่ว่างแล้ว
+              🚫 ไม่ว่างแล้ว
             </p>
           </div>
         )}
