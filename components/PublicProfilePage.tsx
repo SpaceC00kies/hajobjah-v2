@@ -44,11 +44,7 @@ const TrustBadgesPublicProfile: React.FC<{ user: User, helperProfile?: HelperPro
       {user.profileComplete && (
         <span className="bg-green-100 text-green-700 dark:bg-green-700/30 dark:text-green-200 text-sm px-2.5 py-1 rounded-full font-medium">🟢 โปรไฟล์ครบถ้วน</span>
       )}
-      {(helperProfile?.interestedCount || 0) > 0 && (
-         <span className="bg-sky-100 text-sky-700 dark:bg-sky-700/30 dark:text-sky-200 text-sm px-2.5 py-1 rounded-full font-medium">
-          👀 มีผู้สนใจแล้ว {helperProfile.interestedCount} ครั้ง
-        </span>
-      )}
+      {/* Removed interestedCount badge from here as per user request */}
       {helperProfile?.isSuspicious && ( 
         <span className="bg-red-100 text-red-700 dark:bg-red-700/30 dark:text-red-200 text-sm px-2.5 py-1 rounded-full font-medium">🔺 ระวังผู้ใช้นี้</span>
       )}
