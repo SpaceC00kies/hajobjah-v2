@@ -4,22 +4,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" 
-          content="default-src 'self'; 
-                   script-src 'self' https://esm.sh https://cdn.tailwindcss.com 'unsafe-inline'; 
-                   style-src 'self' https://fonts.googleapis.com; 
-                   font-src 'self' https://fonts.gstatic.com; 
-                   img-src 'self' data: https://*.googleusercontent.com https://firebasestorage.googleapis.com; 
-                   connect-src 'self' https://*.firebaseio.com wss://*.firebaseio.com https://securetoken.googleapis.com https://firestore.googleapis.com https://www.googleapis.com https://firebaseinstallations.googleapis.com https://fcmtoken.googleapis.com https://formspree.io; 
-                   form-action 'self' https://formspree.io; 
-                   object-src 'none'; 
-                   base-uri 'self';" />
     <title>✨ หาจ๊อบจ้า ✨ - งานด่วน หางานเชียงใหม่</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Thai:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="index.css">
     <script>
       tailwind.config = {
         darkMode: 'class', // Enable class-based dark mode
@@ -108,6 +97,23 @@
         }
       }
     </script>
+    <style>
+      html {
+        height: 100%;
+        background-color: #FAFAF4; /* neutral.light */
+      }
+      body {
+        height: 100%;
+        background-color: #FAFAF4; /* neutral.light, ensure it overrides Tailwind defaults if needed */
+        overflow-x: hidden; /* Prevent horizontal scrollbars if any */
+      }
+      #root {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        background-color: #FAFAF4; /* Ensure #root also has the light background */
+      }
+    </style>
   <script type="importmap">
 {
   "imports": {
@@ -121,9 +127,11 @@
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
   <body class="bg-neutral-light font-serif text-neutral-dark">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
-</html>
+</html><link rel="stylesheet" href="index.css">
+<script src="index.tsx" type="module"></script>
