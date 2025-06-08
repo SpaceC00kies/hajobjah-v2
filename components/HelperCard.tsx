@@ -266,7 +266,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
                 disabled={profile.isUnavailable || profileIsTrulyExpired}
                 aria-label={`ดูโปรไฟล์เต็มของ ${profile.authorDisplayName}`}
             >
-                โปรไฟล์
+                👤 ดูโปรไฟล์
             </Button>
              <Button
                 onClick={currentUser ? handleContact : () => requestLoginForAction(View.FindHelpers, { intent: 'contactHelper', postId: profile.id })}
@@ -275,7 +275,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
                 className="w-full sm:flex-grow"
                 disabled={profile.isUnavailable || profileIsTrulyExpired}
             >
-                {profile.isUnavailable ? '🚫 ผู้ช่วยนี้ไม่ว่าง' : profileIsTrulyExpired ? '⛔ หมดอายุแล้ว' : (currentUser ? '📨 ติดต่อผู้ช่วย' : 'เข้าสู่ระบบเพื่อติดต่อ')}
+                {profile.isUnavailable ? '🚫 ผู้ช่วยนี้ไม่ว่าง' : profileIsTrulyExpired ? '⛔ หมดอายุแล้ว' : (currentUser ? '📨 ติดต่อ' : 'เข้าสู่ระบบเพื่อติดต่อ')}
             </Button>
         </div>
         {currentUser?.id === profile.userId && !profile.isUnavailable && !profileIsTrulyExpired && (
@@ -288,7 +288,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
                 disabled={!canBump}
                 title={canBump ? "Bump โปรไฟล์ของคุณขึ้นไปบนสุด" : `คุณสามารถ Bump โปรไฟล์นี้ได้อีก ${bumpDaysRemaining} วัน`}
             >
-                🚀 Bump โปรไฟล์ {canBump ? '(พร้อมใช้งาน)' : `(รออีก ${bumpDaysRemaining} วัน)`}
+                🚀 Bump {canBump ? '(พร้อมใช้งาน)' : `(รออีก ${bumpDaysRemaining} วัน)`}
             </Button>
         )}
       </div>
