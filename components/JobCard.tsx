@@ -117,7 +117,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
          {job.isHired && !jobIsTrulyExpired && (
            <div className="mb-3 p-2 bg-green-100 dark:bg-green-700/30 border border-green-300 dark:border-green-500/50 rounded-md text-center">
             <p className="text-sm font-sans font-medium text-green-700 dark:text-green-300">
-              ✅ งานนี้มีคนทำแล้ว
+              ✅ มีคนทำแล้ว
             </p>
           </div>
         )}
@@ -206,7 +206,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
             size="md"
             className="w-full"
             disabled={job.isHired || jobIsTrulyExpired}
-            aria-label={job.isHired ? "งานนี้มีคนทำแล้ว" : jobIsTrulyExpired ? "งานหมดอายุแล้ว" : (currentUser ? "แสดงความสนใจ/ติดต่อ" : "เข้าสู่ระบบเพื่อติดต่อ")}
+            aria-label={job.isHired ? "งานนี้มีคนทำแล้ว" : jobIsTrulyExpired ? "งานหมดอายุแล้ว" : (currentUser ? "ติดต่องานนี้" : "เข้าสู่ระบบเพื่อติดต่อ")}
           >
             {job.isHired ? '✅ งานนี้มีคนทำแล้ว' : jobIsTrulyExpired ? '⛔ งานหมดอายุแล้ว' : (currentUser ? '📨 แสดงความสนใจ/ติดต่อ' : 'เข้าสู่ระบบเพื่อติดต่อ')}
           </Button>

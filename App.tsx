@@ -1109,7 +1109,7 @@ const App: React.FC = () => {
     return (
     <div className="p-4 sm:p-6">
       <div className="text-center mb-6 lg:mb-8">
-        <h2 className="text-3xl font-sans font-semibold text-primary mb-3">👀 รายการงาน</h2>
+        <h2 className="text-3xl font-sans font-semibold text-primary mb-3">👀 ประกาศงาน</h2>
         <p className="text-md font-serif text-neutral-dark mb-6 max-w-xl mx-auto font-normal"> งานด่วน งานเร่ง งานจิปาถะ โพสต์หาคนดูนะ! </p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-x-8">
@@ -1170,7 +1170,7 @@ const App: React.FC = () => {
     return (
     <div className="p-4 sm:p-6">
       <div className="text-center mb-6 lg:mb-8">
-        <h2 className="text-3xl font-sans font-semibold text-secondary-hover mb-3">🧑‍🔧 คนขยันพร้อมช่วย อยู่ตรงนี้แล้ว</h2>
+        <h2 className="text-3xl font-sans font-semibold text-secondary-hover mb-3">🧑‍🔧 คนขยันอยู่ตรงนี้</h2>
         <p className="text-md font-serif text-neutral-dark mb-6 max-w-xl mx-auto font-normal"> เลือกคนที่ตรงกับความต้องการ แล้วติดต่อได้เลย! </p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-x-8">
