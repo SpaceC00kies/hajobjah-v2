@@ -8,7 +8,6 @@ interface WebboardCommentFormProps {
   currentUser: User | null; 
   onAddComment: (postId: string, text: string) => void;
   requestLoginForAction: (view: View, payload?: any) => void; 
-  // checkWebboardCommentLimits prop is no longer used for limiting, but kept for structural consistency if App.tsx still passes it.
   checkWebboardCommentLimits: (user: User) => { canPost: boolean; message?: string };
 }
 
@@ -24,30 +23,24 @@ const FallbackAvatarCommentForm: React.FC<{ name?: string, photo?: string, size?
     );
   };
 
-// COMMENT_COOLDOWN_SECONDS removed
-
 export const WebboardCommentForm: React.FC<WebboardCommentFormProps> = ({ postId, currentUser, onAddComment, requestLoginForAction, checkWebboardCommentLimits }) => {
   const [commentText, setCommentText] = useState('');
   const [error, setError] = useState<string | null>(null);
-  // Removed state: isCoolingDown, cooldownTimeLeft, hourlyLimitMessage, canPostHourly
-
-  // getCooldownStorageKey removed
+  // Removed: isCoolingDown, cooldownTimeLeft, hourlyLimitMessage, canPostHourly related states
 
   useEffect(() => {
     if (!currentUser) {
-      // No specific logic needed here now for cooldown/limits when logged out
       return;
     }
-    // Hourly limit check from props is not actively used to block posting anymore
-    // but the prop might still be passed.
-    // const hourlyLimits = checkWebboardCommentLimits(currentUser);
-    // setCanPostHourly(hourlyLimits.canPost);
-    // setHourlyLimitMessage(hourlyLimits.message || null);
-
-    // Per-post cooldown logic removed
+    // Call checkWebboardCommentLimits for consistency, though its direct enforcement is removed.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const limits = checkWebboardCommentLimits(currentUser);
+    // setCanPostHourly(limits.canPost); // No longer used to block
+    // setHourlyLimitMessage(limits.message || null); // No longer used to block
+    
+    // Per-post cooldown logic and related timer useEffect have been removed.
   }, [postId, currentUser, checkWebboardCommentLimits]);
 
-  // Timer useEffect for cooldownTimeLeft removed
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,15 +48,10 @@ export const WebboardCommentForm: React.FC<WebboardCommentFormProps> = ({ postId
       requestLoginForAction(View.Webboard, { action: 'comment', postId: postId });
       return;
     }
-    // Hourly limit and cooldown checks removed
-    // if (!canPostHourly) {
-    //   setError(hourlyLimitMessage || "ไม่สามารถแสดงความคิดเห็นได้ในขณะนี้");
-    //   return;
-    // }
-    // if (isCoolingDown) {
-    //   setError(`โปรดรออีก ${cooldownTimeLeft} วินาทีก่อนแสดงความคิดเห็นอีกครั้งในกระทู้นี้`);
-    //   return;
-    // }
+    
+    // Hourly limit and cooldown checks removed from here.
+    // The checkWebboardCommentLimits function in App.tsx now always returns canPost: true.
+
     if (!commentText.trim()) {
       setError("กรุณาใส่ความคิดเห็น");
       return;
@@ -71,25 +59,15 @@ export const WebboardCommentForm: React.FC<WebboardCommentFormProps> = ({ postId
     onAddComment(postId, commentText);
     setCommentText('');
     setError(null);
-    // localStorage.setItem for cooldown removed
-    // setIsCoolingDown(true); // Cooldown state removed
-    // setCooldownTimeLeft(COMMENT_COOLDOWN_SECONDS); // Cooldown state removed
-
-    // Re-check hourly limit state (though not enforced for posting)
-    // if (currentUser) {
-    //     const limits = checkWebboardCommentLimits(currentUser);
-    //     // setCanPostHourly(limits.canPost);
-    //     // setHourlyLimitMessage(limits.message || null);
-    // }
+    // Cooldown state updates and localStorage logic removed.
   };
   
-  const isDisabled = !currentUser || !commentText.trim(); // Simplified disabled logic
+  const isDisabled = !currentUser || !commentText.trim(); 
   let placeholderText = "แสดงความคิดเห็นของคุณ...";
-  if (!currentUser) placeholderText = "เข้าสู่ระบบเพื่อแสดงความคิดเห็น";
-  // Placeholder logic for cooldown/hourly limit removed
-  // else if (!canPostHourly) placeholderText = hourlyLimitMessage || "จำกัดการแสดงความคิดเห็นชั่วคราว";
-  // else if (isCoolingDown) placeholderText = `รออีก ${cooldownTimeLeft} วินาที ก่อนคอมเมนต์ในกระทู้นี้อีกครั้ง...`;
-
+  if (!currentUser) {
+    placeholderText = "เข้าสู่ระบบเพื่อแสดงความคิดเห็น";
+  }
+  // Placeholder logic for cooldown/hourly limit removed.
 
   return (
     <form onSubmit={handleSubmit} className="mt-4 p-3 bg-neutral-light/50 dark:bg-dark-inputBg/30 rounded-lg">
@@ -110,7 +88,7 @@ export const WebboardCommentForm: React.FC<WebboardCommentFormProps> = ({ postId
                             ? 'border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500 focus:ring-opacity-70 dark:focus:ring-red-400 dark:focus:ring-opacity-70' 
                             : 'border-gray-200 dark:border-gray-700 focus:border-gray-300 dark:focus:border-gray-600 focus:ring-gray-300 focus:ring-opacity-70 dark:focus:ring-gray-600 dark:focus:ring-opacity-70'}`}
             placeholder={placeholderText}
-            disabled={!currentUser} // Only disable if not logged in; button handles empty text
+            disabled={!currentUser} 
             aria-label="แสดงความคิดเห็น"
             aria-invalid={!!error}
             aria-describedby={error ? "comment-error" : undefined}
@@ -128,7 +106,6 @@ export const WebboardCommentForm: React.FC<WebboardCommentFormProps> = ({ postId
             disabled={isDisabled}
           >
             ส่งความคิดเห็น
-            {/* Cooldown text removed from button */}
           </Button>
         </div>
       )}

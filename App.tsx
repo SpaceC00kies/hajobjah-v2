@@ -102,7 +102,7 @@ const BUMP_COOLDOWN_DAYS = 30;
 const MAX_ACTIVE_JOBS_NORMAL = 2;
 const MAX_ACTIVE_HELPER_PROFILES_NORMAL = 1;
 const MAX_WEBBOARD_POSTS_DAILY_NORMAL = 3;
-// const MAX_WEBBOARD_COMMENTS_HOURLY = 10; // Removed
+// const MAX_WEBBOARD_COMMENTS_HOURLY = 10; // Removed - No longer enforced
 
 // For users with "🔥 ขยันใช้เว็บ" badge
 const MAX_ACTIVE_JOBS_BADGE = 4;
@@ -292,7 +292,7 @@ const App: React.FC = () => {
                       ...defaultPostingLimits.dailyWebboardPosts,
                       ...(u.postingLimits?.dailyWebboardPosts || {})
                     },
-                    hourlyComments: { // Keep structure but don't enforce limits based on it
+                    hourlyComments: { // Kept for structure, not for enforcement
                       ...defaultPostingLimits.hourlyComments,
                       ...(u.postingLimits?.hourlyComments || {})
                     }
@@ -538,6 +538,9 @@ const App: React.FC = () => {
 
   const checkWebboardCommentLimits = (user: User): { canPost: boolean; message?: string } => {
     // Hourly limit removed, always allow posting if other conditions met.
+    // The user parameter is kept for structural consistency if needed in the future.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _user = user; 
     return { canPost: true };
   };
 
@@ -600,16 +603,17 @@ const App: React.FC = () => {
         userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, contact: generateContactString(currentUser),
         gender: currentUser.gender, birthdate: currentUser.birthdate, educationLevel: currentUser.educationLevel
       });
-      const updatedUser = await getUserDocument(currentUser.id);
+      const updatedUser = await getUserDocument(currentUser.id); // Refetch user to update limits state
       if (updatedUser) setCurrentUser(updatedUser);
 
-      navigateTo(sourceViewForForm === View.MyPosts ? View.MyPosts : View.FindHelpers); setSourceViewForForm(null);
+      navigateTo(sourceViewForForm === View.MyPosts ? View.MyPosts : View.FindHelpers); 
+      setSourceViewForForm(null);
       alert('โปรไฟล์ของคุณถูกเพิ่มแล้ว!');
     } catch (error: any) {
       logFirebaseError("handleAddHelperProfile", error);
       alert(`เกิดข้อผิดพลาดในการเพิ่มโปรไฟล์: ${error.message}`);
     }
-  }, [currentUser, sourceViewForForm, navigateTo, users, helperProfiles]); 
+  }, [currentUser, sourceViewForForm, navigateTo, helperProfiles]); // Removed 'users' as it's not directly used for this logic flow. helperProfiles is used by checkHelperProfilePostingLimits.
 
   const handleUpdateHelperProfile = async (updatedProfileDataFromForm: HelperProfileFormData & { id: string }) => {
     if (!currentUser) { requestLoginForAction(View.OfferHelp); return; }
@@ -774,12 +778,11 @@ const App: React.FC = () => {
 
   const handleAddWebboardComment = async (postId: string, text: string) => {
     if (!currentUser) { requestLoginForAction(View.Webboard, { action: 'comment', postId: postId }); return; }
-    // Hourly limit check removed
-    // const limitCheck = checkWebboardCommentLimits(currentUser);
-    // if (!limitCheck.canPost) {
-    //   alert(limitCheck.message);
-    //   return;
-    // }
+    const limitCheck = checkWebboardCommentLimits(currentUser); // Still call for consistency, but it always returns true
+    if (!limitCheck.canPost) { // This condition will likely not be met anymore
+      alert(limitCheck.message);
+      return;
+    }
     if (containsBlacklistedWords(text)) { alert('เนื้อหาคอมเมนต์มีคำที่ไม่เหมาะสม'); return; }
     try {
         await addWebboardCommentService(postId, text, {userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, photo: currentUser.photo});
@@ -1218,7 +1221,7 @@ const App: React.FC = () => {
       requestLoginForAction={requestLoginForAction} 
       onNavigateToPublicProfile={handleNavigateToPublicProfile}
       checkWebboardPostLimits={checkWebboardPostLimits}
-      checkWebboardCommentLimits={checkWebboardCommentLimits} // Prop remains for structure, but function itself is simplified
+      checkWebboardCommentLimits={checkWebboardCommentLimits} 
     />);};
   const renderPasswordResetPage = () => <PasswordResetPage navigateTo={navigateTo} />; 
 
