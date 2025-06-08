@@ -1,13 +1,15 @@
+
 import React from 'react';
 import type { User, HelperProfile } from '../types'; 
 import { HelperEducationLevelOption, GenderOption } from '../types';
 import { Button } from './Button';
+import { UserLevelBadge } from './UserLevelBadge'; // Import UserLevelBadge
 
 interface PublicProfilePageProps {
   user: User; 
   helperProfile?: HelperProfile; 
   onBack: () => void; 
-  currentUser: User | null; // Added currentUser
+  currentUser: User | null; 
 }
 
 const FallbackAvatarPublic: React.FC<{ name?: string, size?: string }> = ({ name, size = "w-40 h-40" }) => {
@@ -57,8 +59,8 @@ const TrustBadgesPublicProfile: React.FC<{ user: User, helperProfile?: HelperPro
 export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, helperProfile, onBack, currentUser }) => {
   const age = calculateAgePublic(user.birthdate);
 
-  const renderInfoItem = (label: string, value?: string | number | null, highlight: boolean = false, isMultiline: boolean = false) => {
-    if (!value && value !== 0) return null; 
+  const renderInfoItem = (label: string, value?: string | number | null, highlight: boolean = false, isMultiline: boolean = false, fullWidth: boolean = false) => {
+    if ((value === undefined || value === null || (typeof value === 'string' && !value.trim())) && value !== 0) return null;
     
     let valueClass = 'text-neutral-medium dark:text-dark-textMuted';
     if (highlight) {
@@ -66,12 +68,12 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, help
     }
 
     return (
-      <div className="mb-3">
+      <div className={`mb-3 ${fullWidth ? 'md:col-span-2' : ''}`}>
         <span className="font-sans font-medium text-neutral-dark dark:text-dark-text">{label}: </span>
         {isMultiline ? (
-            <p className={`font-serif whitespace-pre-wrap ${valueClass}`}>
+            <div className={`font-serif whitespace-pre-wrap ${valueClass} mt-1`}>
              {value}
-            </p>
+            </div>
         ) : (
             <span className={`font-serif ${valueClass}`}>
             {value}
@@ -105,24 +107,22 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, help
           <h2 className="text-3xl font-sans font-bold text-secondary-hover dark:text-dark-secondary-hover mt-4">
             {user.publicDisplayName}
           </h2>
-          <p className="text-md font-sans text-neutral-medium dark:text-dark-textMuted">@{user.username}</p>
+          {/* Removed @username display */}
+          {user.userLevel && <UserLevelBadge level={user.userLevel} size="md" />}
           <TrustBadgesPublicProfile user={user} helperProfile={helperProfile} />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 mb-6">
-          <div>
-            {renderInfoItem("อายุ", age ? `${age} ปี` : (user.birthdate ? 'ข้อมูลวันเกิดไม่ถูกต้อง' : null))}
-            {renderInfoItem("เพศ", user.gender !== GenderOption.NotSpecified ? user.gender : null)}
-            {renderInfoItem("ระดับการศึกษา", user.educationLevel !== HelperEducationLevelOption.NotStated ? user.educationLevel : null)}
-          </div>
-          <div>
-            {user.address && (
-                <div>
-                    <span className="font-sans font-medium text-neutral-dark dark:text-dark-text">ที่อยู่: </span>
-                    <p className="font-serif text-neutral-medium dark:text-dark-textMuted whitespace-pre-wrap">{user.address}</p>
-                </div>
-            )}
-          </div>
+        <div className="mb-6 pt-4 border-t border-neutral-DEFAULT/30 dark:border-dark-border/30">
+            <h3 className="text-xl font-sans font-semibold text-neutral-dark dark:text-dark-text mb-3">ข้อมูลส่วนตัว:</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0"> {/* Reduced gap-y for tighter packing */}
+                {renderInfoItem("ชื่อเล่น", user.nickname)}
+                {renderInfoItem("ชื่อจริง", user.firstName)}
+                {renderInfoItem("นามสกุล", user.lastName)}
+                {renderInfoItem("อายุ", age ? `${age} ปี` : (user.birthdate ? 'ข้อมูลวันเกิดไม่ถูกต้อง' : null))}
+                {renderInfoItem("เพศ", user.gender !== GenderOption.NotSpecified ? user.gender : null)}
+                {renderInfoItem("ระดับการศึกษา", user.educationLevel !== HelperEducationLevelOption.NotStated ? user.educationLevel : null)}
+                {renderInfoItem("ที่อยู่", user.address, false, true, true)}
+            </div>
         </div>
         
         {helperProfile?.details && (
@@ -136,7 +136,7 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, help
         
         {personalityItems.length > 0 && (
           <div className="mb-6 pt-4 border-t border-neutral-DEFAULT/30 dark:border-dark-border/30">
-            <h3 className="text-xl font-sans font-semibold text-neutral-dark dark:text-dark-text mb-3">ข้อมูลบุคลิกภาพ:</h3>
+            <h3 className="text-xl font-sans font-semibold text-neutral-dark dark:text-dark-text mb-3">ข้อมูลเพิ่มเติม:</h3>
             <div className="space-y-2 bg-neutral-light/50 dark:bg-dark-inputBg/30 p-4 rounded-lg">
                 {personalityItems.map(item => renderInfoItem(item.label, item.value, false, item.isMultiline))}
             </div>
@@ -157,7 +157,15 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, help
             </>
           ) : (
              <p className="font-serif text-neutral-medium dark:text-dark-textMuted p-3 bg-neutral-light dark:bg-dark-inputBg/50 rounded-md text-center">
-                <button onClick={onBack} className="font-sans text-secondary dark:text-dark-secondary-DEFAULT hover:underline">
+                <button 
+                    onClick={() => {
+                        // This assumes onBack typically navigates to a view that might prompt login
+                        // Or, we might need a specific login prompt here.
+                        // For now, using onBack as it's the existing prop.
+                        onBack(); 
+                    }} 
+                    className="font-sans text-secondary dark:text-dark-secondary-DEFAULT hover:underline"
+                >
                     เข้าสู่ระบบ
                 </button> เพื่อดูข้อมูลติดต่อ
             </p>
