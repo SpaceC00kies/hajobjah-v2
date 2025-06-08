@@ -924,7 +924,7 @@ const App: React.FC = () => {
             <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedJobCategoryFilter} onSelectCategory={setSelectedJobCategoryFilter} />
             <SearchInputWithRecent searchTerm={jobSearchTerm} onSearchTermChange={handleJobSearch} placeholder="ค้นหางาน, รายละเอียด..." recentSearches={recentJobSearches} onRecentSearchSelect={(term) => { setJobSearchTerm(term); addRecentSearch('recentJobSearches', term); setRecentJobSearches(getRecentSearches('recentJobSearches')); }} ariaLabel="ค้นหางาน" />
             {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="w-full sm:px-4 sm:text-sm">
-              <span className="flex items-center justify-center gap-2"><span>📣</span><span>มีงานด่วน? ฝากตรงนี้</span></span>
+              <span className="flex items-center justify-center gap-2"><span>📣</span><span>ฝากงานตรงนี้</span></span>
             </Button> )}
           </div>
         </aside>
@@ -983,7 +983,7 @@ const App: React.FC = () => {
             <div className="sticky top-24 space-y-6 p-4 bg-white dark:bg-dark-cardBg rounded-xl shadow-lg border dark:border-dark-border">
                 <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedHelperCategoryFilter} onSelectCategory={setSelectedHelperCategoryFilter} />
                 <SearchInputWithRecent searchTerm={helperSearchTerm} onSearchTermChange={handleHelperSearch} placeholder="ค้นหาผู้ช่วย, ทักษะ, พื้นที่..." recentSearches={recentHelperSearches} onRecentSearchSelect={(term) => { setHelperSearchTerm(term); addRecentSearch('recentHelperSearches', term); setRecentHelperSearches(getRecentSearches('recentHelperSearches')); }} ariaLabel="ค้นหาผู้ช่วย" />
-                {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateTo(View.OfferHelp); }} variant="secondary" size="md" className="w-full"> <span className="flex items-center justify-center gap-2"><span>🙋</span><span>ว่างอยู่! พร้อมรับงาน</span></span> </Button> )}
+                {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateTo(View.OfferHelp); }} variant="secondary" size="md" className="w-full"> <span className="flex items-center justify-center gap-2"><span>🙋</span><span>เสนองานตรงนี้</span></span> </Button> )}
             </div>
         </aside>
         <section className="lg:col-span-9">
