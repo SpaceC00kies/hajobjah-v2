@@ -13,7 +13,7 @@ interface HelperCardProps {
   onLogHelperContact: (helperProfileId: string) => void;
   currentUser: User | null;
   requestLoginForAction: (view: View, payload?: any) => void;
-  onBumpProfile: (profileId: string) => void; // New prop
+  onBumpProfile: (profileId: string) => void; 
 }
 
 const FallbackAvatarDisplay: React.FC<{ name?: string, size?: string, className?: string }> = ({ name, size = "w-16 h-16", className = "" }) => {
@@ -79,7 +79,7 @@ const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
 
 const TrustBadgesDisplay: React.FC<{ profile: EnrichedHelperProfile }> = ({ profile }) => {
   return (
-    <div className="flex gap-1 flex-wrap my-2 font-sans">
+    <div className="flex gap-1 flex-wrap my-2 font-sans justify-start">
       {profile.verifiedExperienceBadge && (
         <span className="bg-yellow-200 text-yellow-800 dark:bg-yellow-600/30 dark:text-yellow-200 text-xs px-2 py-0.5 rounded-full font-medium">⭐ ผ่านงานมาก่อน</span>
       )}
@@ -206,33 +206,32 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
 
         <TrustBadgesDisplay profile={profile} />
 
-        <div className="space-y-2 text-neutral-dark dark:text-dark-textMuted mb-4 flex-grow font-normal">
+        <div className="space-y-1.5 text-neutral-dark dark:text-dark-textMuted mb-4 flex-grow font-normal">
           {profile.gender && profile.gender !== GenderOption.NotSpecified && (
-            <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">เพศ:</strong> {profile.gender}</p>
+            <p className="font-serif flex items-center"><span className="mr-2 text-lg">👤</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">เพศ:</strong> {profile.gender}</p>
           )}
           {age !== null && (
-            <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">อายุ:</strong> {age} ปี</p>
+            <p className="font-serif flex items-center"><span className="mr-2 text-lg">🎂</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">อายุ:</strong> {age} ปี</p>
           )}
           {profile.educationLevel && profile.educationLevel !== HelperEducationLevelOption.NotStated && (
-            <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">ระดับการศึกษา:</strong> {profile.educationLevel}</p>
+            <p className="font-serif flex items-center"><span className="mr-2 text-lg">🎓</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">ระดับการศึกษา:</strong> {profile.educationLevel}</p>
           )}
-          <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📍 พื้นที่สะดวก:</strong> {profile.area}{shortAddress && `, ${shortAddress}`}</p>
+          <p className="font-serif flex items-center"><span className="mr-2 text-lg">📍</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">พื้นที่สะดวก:</strong> {profile.area}{shortAddress && `, ${shortAddress}`}</p>
 
           {availabilityDateDisplay && (
-             <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">🗓️ ช่วงวันที่สะดวก:</strong> {availabilityDateDisplay}</p>
+             <p className="font-serif flex items-center"><span className="mr-2 text-lg">🗓️</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">ช่วงวันที่สะดวก:</strong> {availabilityDateDisplay}</p>
           )}
           {profile.availabilityTimeDetails && (
-             <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">⏰ เวลาที่สะดวก (เพิ่มเติม):</strong> {profile.availabilityTimeDetails}</p>
+             <p className="font-serif flex items-center"><span className="mr-2 text-lg">⏰</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">เวลาที่สะดวก (เพิ่มเติม):</strong> {profile.availabilityTimeDetails}</p>
           )}
           {profile.availability && (!availabilityDateDisplay || !profile.availabilityTimeDetails) && (
-            <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">🕒 วันเวลาที่ว่าง (หมายเหตุ):</strong> {profile.availability}</p>
+            <p className="font-serif flex items-center"><span className="mr-2 text-lg">🕒</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">วันเวลาที่ว่าง (หมายเหตุ):</strong> {profile.availability}</p>
           )}
 
-          {/* Contact information direct display removed as per request */}
 
-           <div className="mt-2">
+           <div className="mt-2 pt-2 border-t border-neutral-DEFAULT/20 dark:border-dark-border/20">
             <strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📝 เกี่ยวกับฉัน:</strong>
-            <div className="mt-1 text-sm font-serif bg-neutral-light dark:bg-dark-inputBg dark:text-dark-text p-3 rounded-md whitespace-pre-wrap h-24 overflow-y-auto font-normal border border-neutral-DEFAULT/50 dark:border-dark-border/50">
+            <div className="mt-1 text-sm font-serif bg-neutral-light dark:bg-dark-inputBg dark:text-dark-text p-3 rounded-md whitespace-pre-wrap h-32 overflow-y-auto font-normal border border-neutral-DEFAULT/50 dark:border-dark-border/50">
                 {(!currentUser || profileIsTrulyExpired) && profile.details.length > 150 ? (
                     <>
                     {detailsPreview}...
