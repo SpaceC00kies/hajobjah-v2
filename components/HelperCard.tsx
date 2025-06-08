@@ -4,6 +4,7 @@ import type { EnrichedHelperProfile, User } from '../types';
 import { GenderOption, HelperEducationLevelOption, View, JobCategory, JOB_CATEGORY_STYLES } from '../types';
 import { Button } from './Button';
 import { Modal } from './Modal';
+import { isDateInPast, calculateDaysRemaining } from '../App'; // Import utilities
 
 interface HelperCardProps {
   profile: EnrichedHelperProfile;
@@ -12,6 +13,7 @@ interface HelperCardProps {
   onLogHelperContact: (helperProfileId: string) => void;
   currentUser: User | null;
   requestLoginForAction: (view: View, payload?: any) => void;
+  onBumpProfile: (profileId: string) => void; // New prop
 }
 
 const FallbackAvatarDisplay: React.FC<{ name?: string, size?: string, className?: string }> = ({ name, size = "w-16 h-16", className = "" }) => {
@@ -97,7 +99,7 @@ const TrustBadgesDisplay: React.FC<{ profile: EnrichedHelperProfile }> = ({ prof
 };
 
 
-export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPublicProfile, navigateTo, onLogHelperContact, currentUser, requestLoginForAction }) => {
+export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPublicProfile, navigateTo, onLogHelperContact, currentUser, requestLoginForAction, onBumpProfile }) => {
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
 
@@ -126,7 +128,12 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
   const postedAtDate = profile.postedAt ? (profile.postedAt instanceof Date ? profile.postedAt : new Date(profile.postedAt as string)) : null;
   const formattedPostedAt = postedAtDate && !isNaN(postedAtDate.getTime()) ? formatDateDisplay(postedAtDate) : "Processing date...";
 
-  const isExpired = !profile.isUnavailable && postedAtDate && !isNaN(postedAtDate.getTime()) ? (new Date().getTime() - postedAtDate.getTime()) / (1000 * 60 * 60 * 24) > 30 : false;
+  const profileIsTrulyExpired = profile.isExpired || (profile.expiresAt ? isDateInPast(profile.expiresAt) : false);
+  const BUMP_COOLDOWN_DAYS_CARD = 30;
+  const lastBumpDate = currentUser?.postingLimits?.lastBumpDates?.[profile.id] || profile.lastBumpedAt;
+  const bumpDaysRemaining = lastBumpDate ? calculateDaysRemaining(new Date(new Date(lastBumpDate as string).getTime() + BUMP_COOLDOWN_DAYS_CARD * 24 * 60 * 60 * 1000)) : 0;
+  const canBump = bumpDaysRemaining === 0 && !profileIsTrulyExpired && !profile.isUnavailable;
+
 
   let availabilityDateDisplay = '';
   if (availabilityDateFromText && availabilityDateToText) {
@@ -156,14 +163,21 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
             </p>
           </div>
         )}
-        {profile.isUnavailable && (
+         {profile.isUnavailable && !profileIsTrulyExpired && (
            <div className="mb-3 p-2 bg-red-100 dark:bg-red-700/30 border border-red-300 dark:border-red-500/50 rounded-md text-center">
             <p className="text-sm font-sans font-medium text-red-700 dark:text-red-300">
               🚫 ผู้ช่วยคนนี้ไม่ว่างแล้ว
             </p>
           </div>
         )}
-        {profile.isSuspicious && !profile.warningBadge && ( // warningBadge is derived from isSuspicious in EnrichedHelperProfile
+         {profileIsTrulyExpired && (
+          <div className="mb-3 p-2 bg-red-200 dark:bg-red-700/40 border border-red-400 dark:border-red-600/60 rounded-md text-center">
+            <p className="text-sm font-sans font-medium text-red-800 dark:text-red-200">
+              ⛔ หมดอายุแล้ว
+            </p>
+          </div>
+        )}
+        {profile.isSuspicious && !profile.warningBadge && ( 
           <div className="mb-3 p-2 bg-red-100 dark:bg-red-700/30 border border-red-300 dark:border-red-500/50 rounded-md text-center">
             <p className="text-sm font-sans font-medium text-red-700 dark:text-red-300">
               ⚠️ โปรไฟล์นี้น่าสงสัย โปรดใช้ความระมัดระวังเป็นพิเศษ
@@ -218,7 +232,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
             <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">🕒 วันเวลาที่ว่าง (หมายเหตุ):</strong> {profile.availability}</p>
           )}
 
-          {currentUser && (
+          {currentUser && !profileIsTrulyExpired && (
             useBoxStyleForContact ? (
                 <div className="mt-2">
                 <strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📞 ช่องทางติดต่อ:</strong>
@@ -234,7 +248,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
            <div className="mt-2">
             <strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📝 เกี่ยวกับฉัน:</strong>
             <div className="mt-1 text-sm font-serif bg-neutral-light dark:bg-dark-inputBg dark:text-dark-text p-3 rounded-md whitespace-pre-wrap h-24 overflow-y-auto font-normal border border-neutral-DEFAULT/50 dark:border-dark-border/50">
-                {!currentUser && profile.details.length > 150 ? (
+                {(!currentUser || profileIsTrulyExpired) && profile.details.length > 150 ? (
                     <>
                     {detailsPreview}...
                     <button
@@ -258,41 +272,44 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
           )}
         </div>
         
-        {isExpired && (
-          <div className="text-center mt-3 mb-2">
-            <span className="bg-red-100 text-red-700 dark:bg-red-700/30 dark:text-red-300 text-xs sm:text-sm px-3 py-1.5 rounded-full font-sans font-medium inline-block">
-              ⛔ โพสต์นี้เกิน 1 เดือนแล้ว
-            </span>
-          </div>
-        )}
-
         <div className="mt-auto flex flex-col sm:flex-row gap-3">
-            {currentUser && (
-                <Button
-                    onClick={() => onNavigateToPublicProfile(profile.userId)}
-                    variant="outline"
-                    colorScheme="secondary"
-                    size="md"
-                    className="w-full sm:w-1/2"
-                    disabled={profile.isUnavailable}
-                    aria-label={`ดูโปรไฟล์เต็มของ ${profile.authorDisplayName}`}
-                >
-                    ดูโปรไฟล์เต็ม
-                </Button>
-            )}
+            <Button
+                onClick={() => onNavigateToPublicProfile(profile.userId)}
+                variant="outline"
+                colorScheme="secondary"
+                size="md"
+                className="w-full sm:w-1/2"
+                disabled={profile.isUnavailable || profileIsTrulyExpired}
+                aria-label={`ดูโปรไฟล์เต็มของ ${profile.authorDisplayName}`}
+            >
+                ดูโปรไฟล์เต็ม
+            </Button>
              <Button
                 onClick={currentUser ? handleContact : () => requestLoginForAction(View.FindHelpers, { intent: 'contactHelper', postId: profile.id })}
                 variant="secondary"
                 size="md"
                 className="w-full sm:flex-grow"
-                disabled={profile.isUnavailable}
+                disabled={profile.isUnavailable || profileIsTrulyExpired}
             >
-                {profile.isUnavailable ? '🚫 ผู้ช่วยนี้ไม่ว่าง' : (currentUser ? '📨 ติดต่อผู้ช่วย' : 'เข้าสู่ระบบเพื่อติดต่อ')}
+                {profile.isUnavailable ? '🚫 ผู้ช่วยนี้ไม่ว่าง' : profileIsTrulyExpired ? '⛔ หมดอายุแล้ว' : (currentUser ? '📨 ติดต่อผู้ช่วย' : 'เข้าสู่ระบบเพื่อติดต่อ')}
             </Button>
         </div>
+        {currentUser?.id === profile.userId && !profile.isUnavailable && !profileIsTrulyExpired && (
+            <Button
+                onClick={() => onBumpProfile(profile.id)}
+                variant="outline"
+                colorScheme="primary"
+                size="sm"
+                className="w-full mt-3"
+                disabled={!canBump}
+                title={canBump ? "Bump โปรไฟล์ของคุณขึ้นไปบนสุด" : `คุณสามารถ Bump โปรไฟล์นี้ได้อีก ${bumpDaysRemaining} วัน`}
+            >
+                🚀 Bump โปรไฟล์ {canBump ? '(พร้อมใช้งาน)' : `(รออีก ${bumpDaysRemaining} วัน)`}
+            </Button>
+        )}
       </div>
 
-      {currentUser && (
+      {currentUser && !profileIsTrulyExpired && (
         <>
             <Modal isOpen={isWarningModalOpen} onClose={closeWarningModal} title="⚠️ โปรดระวังมิจฉาชีพ">
             <div className="bg-amber-50 dark:bg-amber-700/20 border border-amber-300 dark:border-amber-600/40 p-4 rounded-md my-2 text-neutral-dark dark:text-dark-textMuted font-serif">

@@ -1,15 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from './Button';
-import { View } from '../types'; // Import View
+import { View, User } from '../types'; // Import User
 
 interface WebboardCommentFormProps {
   postId: string;
-  currentUserPhoto?: string;
-  currentUsername?: string;
+  currentUser: User | null; // Added currentUser
   onAddComment: (postId: string, text: string) => void;
-  isLoggedIn: boolean;
   requestLoginForAction: (view: View, payload?: any) => void; 
+  // Utility function from App.tsx to check comment limits
+  checkWebboardCommentLimits: (user: User) => { canPost: boolean; message?: string };
 }
 
 const FallbackAvatarCommentForm: React.FC<{ name?: string, photo?: string, size?: string, className?: string }> = ({ name, photo, size = "w-10 h-10", className = "" }) => {
@@ -26,21 +26,37 @@ const FallbackAvatarCommentForm: React.FC<{ name?: string, photo?: string, size?
 
 const COMMENT_COOLDOWN_SECONDS = 30;
 
-export const WebboardCommentForm: React.FC<WebboardCommentFormProps> = ({ postId, currentUserPhoto, currentUsername, onAddComment, isLoggedIn, requestLoginForAction }) => {
+export const WebboardCommentForm: React.FC<WebboardCommentFormProps> = ({ postId, currentUser, onAddComment, requestLoginForAction, checkWebboardCommentLimits }) => {
   const [commentText, setCommentText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isCoolingDown, setIsCoolingDown] = useState(false);
   const [cooldownTimeLeft, setCooldownTimeLeft] = useState(0);
+  const [hourlyLimitMessage, setHourlyLimitMessage] = useState<string | null>(null);
+  const [canPostHourly, setCanPostHourly] = useState(true);
 
   const getCooldownStorageKey = () => `lastCommentTime_${postId}`;
 
   useEffect(() => {
-    if (!isLoggedIn) {
+    if (!currentUser) {
         setIsCoolingDown(false);
+        setCooldownTimeLeft(0);
+        setHourlyLimitMessage(null);
+        setCanPostHourly(true); // Allow showing login prompt
+        return;
+    }
+
+    // Check hourly limit first
+    const hourlyLimits = checkWebboardCommentLimits(currentUser);
+    setCanPostHourly(hourlyLimits.canPost);
+    setHourlyLimitMessage(hourlyLimits.message || null);
+    
+    if (!hourlyLimits.canPost) {
+        setIsCoolingDown(false); // Don't show per-post cooldown if hourly limit hit
         setCooldownTimeLeft(0);
         return;
     }
 
+    // Check per-post cooldown if hourly limit allows
     const storageKey = getCooldownStorageKey();
     const lastCommentTime = localStorage.getItem(storageKey);
     if (lastCommentTime) {
@@ -48,9 +64,13 @@ export const WebboardCommentForm: React.FC<WebboardCommentFormProps> = ({ postId
       if (timeSinceLastComment < COMMENT_COOLDOWN_SECONDS) {
         setIsCoolingDown(true);
         setCooldownTimeLeft(Math.ceil(COMMENT_COOLDOWN_SECONDS - timeSinceLastComment));
+      } else {
+        setIsCoolingDown(false);
       }
+    } else {
+        setIsCoolingDown(false);
     }
-  }, [postId, isLoggedIn]);
+  }, [postId, currentUser, checkWebboardCommentLimits, hourlyLimitMessage]); // Re-check if hourlyLimitMessage changes (e.g., after an hour passes)
 
   useEffect(() => {
     let timer: number | undefined;
@@ -67,12 +87,16 @@ export const WebboardCommentForm: React.FC<WebboardCommentFormProps> = ({ postId
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isLoggedIn) {
+    if (!currentUser) {
       requestLoginForAction(View.Webboard, { action: 'comment', postId: postId });
       return;
     }
+    if (!canPostHourly) {
+      setError(hourlyLimitMessage || "ไม่สามารถแสดงความคิดเห็นได้ในขณะนี้");
+      return;
+    }
     if (isCoolingDown) {
-      setError(`โปรดรออีก ${cooldownTimeLeft} วินาทีก่อนแสดงความคิดเห็นอีกครั้ง`);
+      setError(`โปรดรออีก ${cooldownTimeLeft} วินาทีก่อนแสดงความคิดเห็นอีกครั้งในกระทู้นี้`);
       return;
     }
     if (!commentText.trim()) {
@@ -85,12 +109,25 @@ export const WebboardCommentForm: React.FC<WebboardCommentFormProps> = ({ postId
     localStorage.setItem(getCooldownStorageKey(), Date.now().toString());
     setIsCoolingDown(true);
     setCooldownTimeLeft(COMMENT_COOLDOWN_SECONDS);
+    // Re-check hourly limit state after successful post, as it might have changed
+    if (currentUser) {
+        const limits = checkWebboardCommentLimits(currentUser);
+        setCanPostHourly(limits.canPost);
+        setHourlyLimitMessage(limits.message || null);
+    }
   };
+  
+  const isDisabled = !currentUser || isCoolingDown || !canPostHourly;
+  let placeholderText = "แสดงความคิดเห็นของคุณ...";
+  if (!currentUser) placeholderText = "เข้าสู่ระบบเพื่อแสดงความคิดเห็น";
+  else if (!canPostHourly) placeholderText = hourlyLimitMessage || "จำกัดการแสดงความคิดเห็นชั่วคราว";
+  else if (isCoolingDown) placeholderText = `รออีก ${cooldownTimeLeft} วินาที ก่อนคอมเมนต์ในกระทู้นี้อีกครั้ง...`;
+
 
   return (
     <form onSubmit={handleSubmit} className="mt-4 p-3 bg-neutral-light/50 dark:bg-dark-inputBg/30 rounded-lg">
       <div className="flex items-start space-x-3">
-        <FallbackAvatarCommentForm name={currentUsername} photo={currentUserPhoto} className="mt-1" />
+        <FallbackAvatarCommentForm name={currentUser?.publicDisplayName} photo={currentUser?.photo} className="mt-1" />
         <div className="flex-1">
           <textarea
             value={commentText}
@@ -105,8 +142,8 @@ export const WebboardCommentForm: React.FC<WebboardCommentFormProps> = ({ postId
                         ${error 
                             ? 'border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500 focus:ring-opacity-70 dark:focus:ring-red-400 dark:focus:ring-opacity-70' 
                             : 'border-gray-200 dark:border-gray-700 focus:border-gray-300 dark:focus:border-gray-600 focus:ring-gray-300 focus:ring-opacity-70 dark:focus:ring-gray-600 dark:focus:ring-opacity-70'}`}
-            placeholder={isLoggedIn ? (isCoolingDown ? `รออีก ${cooldownTimeLeft} วิ...` : "แสดงความคิดเห็นของคุณ...") : "เข้าสู่ระบบเพื่อแสดงความคิดเห็น"}
-            disabled={!isLoggedIn || isCoolingDown}
+            placeholder={placeholderText}
+            disabled={isDisabled}
             aria-label="แสดงความคิดเห็น"
             aria-invalid={!!error}
             aria-describedby={error ? "comment-error" : undefined}
@@ -114,16 +151,16 @@ export const WebboardCommentForm: React.FC<WebboardCommentFormProps> = ({ postId
           {error && <p id="comment-error" className="text-red-500 dark:text-red-400 text-xs mt-1">{error}</p>}
         </div>
       </div>
-      {isLoggedIn && (
+      {currentUser && (
         <div className="text-right mt-2">
           <Button 
             type="submit" 
             variant="outline" 
             colorScheme="neutral" 
             size="sm" 
-            disabled={!commentText.trim() || isCoolingDown}
+            disabled={!commentText.trim() || isDisabled}
           >
-            {isCoolingDown ? `รอ (${cooldownTimeLeft} วิ)` : 'ส่งความคิดเห็น'}
+            {isCoolingDown ? `รอ (${cooldownTimeLeft} วิ)` : (!canPostHourly ? 'จำกัดชั่วคราว' : 'ส่งความคิดเห็น')}
           </Button>
         </div>
       )}

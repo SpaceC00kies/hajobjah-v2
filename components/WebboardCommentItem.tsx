@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import type { EnrichedWebboardComment, User } from '../types';
+import type { EnrichedWebboardComment, User, View } from '../types'; // Added View
 import { UserRole } from '../types';
 import { UserLevelBadge } from './UserLevelBadge';
 import { Button } from './Button';
@@ -10,6 +11,7 @@ interface WebboardCommentItemProps {
   currentUser: User | null;
   onDeleteComment?: (commentId: string) => void;
   onUpdateComment?: (commentId: string, newText: string) => void;
+  onNavigateToPublicProfile: (userId: string) => void; // New prop
 }
 
 const FallbackAvatarComment: React.FC<{ name?: string, photo?: string, size?: string, className?: string }> = ({ name, photo, size = "w-10 h-10", className = "" }) => {
@@ -24,7 +26,7 @@ const FallbackAvatarComment: React.FC<{ name?: string, photo?: string, size?: st
   );
 };
 
-export const WebboardCommentItem: React.FC<WebboardCommentItemProps> = ({ comment, currentUser, onDeleteComment, onUpdateComment }) => {
+export const WebboardCommentItem: React.FC<WebboardCommentItemProps> = ({ comment, currentUser, onDeleteComment, onUpdateComment, onNavigateToPublicProfile }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedText, setEditedText] = useState(comment.text);
   const [editError, setEditError] = useState<string | null>(null);
@@ -33,11 +35,7 @@ export const WebboardCommentItem: React.FC<WebboardCommentItemProps> = ({ commen
   const isAdmin = currentUser?.role === UserRole.Admin;
   const isModerator = currentUser?.role === UserRole.Moderator;
   
-  // Delete button visibility based on props and roles
-  // Fine-grained permission (Mod cannot delete Admin comment) handled in App.tsx
   const showDeleteButton = onDeleteComment && (isAuthor || isAdmin || isModerator);
-
-  // Edit button visibility
   const showEditButton = onUpdateComment && isAuthor;
 
 
@@ -125,7 +123,15 @@ export const WebboardCommentItem: React.FC<WebboardCommentItemProps> = ({ commen
       <div className="flex-1">
         <div className="flex items-center justify-between">
             <div className="flex items-center">
-                <span className="text-sm font-semibold text-neutral-dark dark:text-dark-text">@{comment.authorDisplayName}</span>
+                <span 
+                    className="text-sm font-semibold text-neutral-dark dark:text-dark-text cursor-pointer hover:underline"
+                    onClick={() => onNavigateToPublicProfile(comment.userId)}
+                    role="link"
+                    tabIndex={0}
+                    onKeyPress={(e) => e.key === 'Enter' && onNavigateToPublicProfile(comment.userId)}
+                >
+                    @{comment.authorDisplayName}
+                </span>
                 <UserLevelBadge level={comment.authorLevel} size="sm" />
             </div>
             <div className="flex items-center space-x-2">

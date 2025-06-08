@@ -27,6 +27,9 @@ interface WebboardPageProps {
   onCancelEdit: () => void; 
   getUserDisplayBadge: (user: User | null | undefined, posts: WebboardPost[], comments: WebboardComment[]) => UserLevel;
   requestLoginForAction: (view: View, payload?: any) => void; 
+  onNavigateToPublicProfile: (userId: string) => void;
+  checkWebboardPostLimits: (user: User) => { canPost: boolean; message?: string };
+  checkWebboardCommentLimits: (user: User) => { canPost: boolean; message?: string };
 }
 
 export const WebboardPage: React.FC<WebboardPageProps> = ({
@@ -49,6 +52,9 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
   onCancelEdit,
   getUserDisplayBadge,
   requestLoginForAction, 
+  onNavigateToPublicProfile,
+  checkWebboardPostLimits,
+  checkWebboardCommentLimits,
 }) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<WebboardCategory | 'all'>('all');
@@ -150,6 +156,8 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
           onDeleteComment={onDeleteComment}
           onUpdateComment={onUpdateComment}
           requestLoginForAction={requestLoginForAction} 
+          onNavigateToPublicProfile={onNavigateToPublicProfile}
+          checkWebboardCommentLimits={checkWebboardCommentLimits}
         />
       </div>
     );
@@ -243,6 +251,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
               onPinPost={onPinPost}
               onEditPost={onEditPost}
               requestLoginForAction={requestLoginForAction} 
+              onNavigateToPublicProfile={onNavigateToPublicProfile}
             />
           ))}
         </div>
@@ -252,6 +261,8 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
         onClose={handleCloseCreateModal}
         onSubmit={handleSubmitPostForm}
         editingPost={editingPost || null}
+        currentUser={currentUser}
+        checkWebboardPostLimits={checkWebboardPostLimits}
       />
     </div>
   );

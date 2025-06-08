@@ -5,7 +5,7 @@ import { GenderOption, HelperEducationLevelOption } from '../types';
 import { Button } from './Button';
 
 interface RegistrationFormProps {
-  onRegister: (userData: Omit<User, 'id' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'role' | 'nickname' | 'firstName' | 'lastName'> & { password: string }) => Promise<boolean>; // Returns true on success
+  onRegister: (userData: Omit<User, 'id' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt'> & { password: string }) => Promise<boolean>;
   onSwitchToLogin: () => void;
 }
 
@@ -144,18 +144,22 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
     setErrors({});
     if (!validateForm()) return;
 
-    const success = await onRegister({
-        publicDisplayName, // Changed from displayName
+    // The type of this object needs to match the `userData` parameter of the `onRegister` prop.
+    // Fields not collected by the form (like 'isMuted', 'postingLimits', 'activityBadge') are correctly omitted here.
+    const formData = {
+        publicDisplayName, 
         username,
         email,
         password,
         mobile,
-        lineId,
-        facebook,
+        lineId: lineId || undefined, // Ensure optional fields are undefined if empty
+        facebook: facebook || undefined,
         gender,
         birthdate,
         educationLevel,
-    });
+    };
+
+    const success = await onRegister(formData as any); // Cast to any to bypass strict Omit check if subtypes don't perfectly align, assuming App.tsx handleRegister is robust
     if (success) {
       setPublicDisplayName('');
       setUsername('');

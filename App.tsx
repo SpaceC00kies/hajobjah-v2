@@ -5,7 +5,7 @@ import {
   signUpWithEmailPasswordService,
   signInWithEmailPasswordService,
   signOutUserService,
-  sendPasswordResetEmailService, // Added import
+  sendPasswordResetEmailService, 
   updateUserProfileService,
   addJobService,
   updateJobService,
@@ -15,6 +15,7 @@ import {
   updateHelperProfileService,
   deleteHelperProfileService,
   subscribeToHelperProfilesService,
+  bumpHelperProfileService, // Added bump service
   addWebboardPostService,
   updateWebboardPostService,
   deleteWebboardPostService,
@@ -31,11 +32,11 @@ import {
   setUserRoleService,
   toggleItemFlagService,
   logHelperContactInteractionService,
-  // submitFeedbackService, // Removed as FeedbackForm now uses Formspree
-} from './services/firebaseService'; // Updated import
-import type { Job, HelperProfile, User, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory } from './types';
+  getUserDocument, // To fetch user for limit checks
+} from './services/firebaseService'; 
+import type { Job, HelperProfile, User, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge } from './types';
 import type { AdminItem as AdminItemType } from './components/AdminDashboard';
-import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP } from './types'; // JOB_CATEGORY_EMOJIS_MAP might be unused if categories don't show emojis
+import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP, ACTIVITY_BADGE_DETAILS } from './types'; 
 import { PostJobForm } from './components/PostJobForm';
 import { JobCard } from './components/JobCard';
 import { Button } from './components/Button';
@@ -43,7 +44,7 @@ import { OfferHelpForm } from './components/OfferHelpForm';
 import { HelperCard } from './components/HelperCard';
 import { RegistrationForm } from './components/RegistrationForm';
 import { LoginForm } from './components/LoginForm';
-import { ForgotPasswordModal } from './components/ForgotPasswordModal'; // Added import
+import { ForgotPasswordModal } from './components/ForgotPasswordModal'; 
 import { AdminDashboard } from './components/AdminDashboard';
 import { ConfirmModal } from './components/ConfirmModal';
 import { MyPostsPage } from './components/MyPostsPage';
@@ -57,7 +58,7 @@ import { UserLevelBadge } from './components/UserLevelBadge';
 import { SiteLockOverlay } from './components/SiteLockOverlay';
 import { CategoryFilterBar } from './components/CategoryFilterBar';
 import { SearchInputWithRecent } from './components/SearchInputWithRecent';
-import { PasswordResetPage } from './components/PasswordResetPage'; // Added import
+import { PasswordResetPage } from './components/PasswordResetPage'; 
 
 import { logFirebaseError } from './firebase/logging';
 
@@ -75,23 +76,60 @@ export const isValidThaiMobileNumberUtil = (mobile: string): boolean => {
   return /^0[689]\d{8}$/.test(cleaned);
 };
 
+// --- Date & Limit Utility Functions ---
+export const calculateDaysRemaining = (targetDateString?: string | Date): number => {
+    if (!targetDateString) return 0;
+    const targetDate = new Date(targetDateString);
+    const now = new Date();
+    const diffTime = targetDate.getTime() - now.getTime();
+    if (diffTime <= 0) return 0;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+};
+
+export const isDateInPast = (dateString?: string | Date): boolean => {
+    if (!dateString) return false; // No date means not in past (or handle as error)
+    const dateToCheck = new Date(dateString);
+    if (isNaN(dateToCheck.getTime())) { // Invalid date string
+        return false; 
+    }
+    return dateToCheck < new Date();
+};
+
+
+const JOB_COOLDOWN_DAYS = 7;
+const HELPER_PROFILE_COOLDOWN_DAYS = 7;
+const BUMP_COOLDOWN_DAYS = 30;
+const MAX_ACTIVE_JOBS_NORMAL = 2;
+const MAX_ACTIVE_HELPER_PROFILES_NORMAL = 1;
+const MAX_WEBBOARD_POSTS_DAILY_NORMAL = 3;
+const MAX_WEBBOARD_COMMENTS_HOURLY = 10;
+
+// For users with "🔥 ขยันใช้เว็บ" badge
+const MAX_ACTIVE_JOBS_BADGE = 4;
+const MAX_ACTIVE_HELPER_PROFILES_BADGE = 2;
+const MAX_WEBBOARD_POSTS_DAILY_BADGE = 4; // Increased from 3
+
 export const checkProfileCompleteness = (user: User): boolean => {
   if (!user) return false;
   const hasRequiredContact = !!user.mobile;
   const hasPhoto = !!user.photo;
   const hasAddress = !!user.address && user.address.trim() !== '';
-  // Consider if new personal info fields should be part of completeness
   const hasPersonalityInfo = !!(
     user.favoriteMusic?.trim() || user.favoriteBook?.trim() || user.favoriteMovie?.trim() ||
     user.hobbies?.trim() || user.favoriteFood?.trim() || user.dislikedThing?.trim() || user.introSentence?.trim()
   );
-  return hasRequiredContact && hasPhoto && hasAddress && hasPersonalityInfo;
+  // Core requirements for completeness regarding posting jobs/profiles
+  const hasCoreInfo = !!user.gender && user.gender !== GenderOption.NotSpecified &&
+                      !!user.birthdate &&
+                      !!user.educationLevel && user.educationLevel !== HelperEducationLevelOption.NotStated;
+  
+  return hasRequiredContact && hasPhoto && hasAddress && hasPersonalityInfo && hasCoreInfo;
 };
 
 export const calculateUserLevel = (userId: string, posts: WebboardPost[], comments: WebboardComment[]): UserLevel => {
   const userPostsCount = posts.filter(p => p.userId === userId).length;
   const userCommentsCount = comments.filter(c => c.userId === userId).length;
-  const score = (userPostsCount * 2) + (userCommentsCount * 0.5); // Example scoring
+  const score = (userPostsCount * 2) + (userCommentsCount * 0.5); 
   for (let i = USER_LEVELS.length - 1; i >= 0; i--) {
     if (USER_LEVELS[i].minScore !== undefined && score >= USER_LEVELS[i].minScore!) {
       return USER_LEVELS[i];
@@ -104,14 +142,14 @@ export const getUserDisplayBadge = (user: User | null | undefined, posts: Webboa
   if (!user) return USER_LEVELS[0];
   if (user.role === UserRole.Admin) return ADMIN_BADGE_DETAILS;
   if (user.role === UserRole.Moderator) return MODERATOR_BADGE_DETAILS;
-  return user.userLevel || calculateUserLevel(user.id, posts, comments); // Fallback if userLevel isn't set on user object yet
+  return user.userLevel || calculateUserLevel(user.id, posts, comments); 
 };
 
 const MAX_RECENT_SEARCHES = 5;
 
 const getRecentSearches = (key: string): string[] => {
   try {
-    const item = localStorage.getItem(key); // localStorage can still be used for client-side preferences like recent searches
+    const item = localStorage.getItem(key); 
     return item ? JSON.parse(item) : [];
   } catch (error) {
     console.error("Error reading recent searches from localStorage:", error);
@@ -136,6 +174,9 @@ const searchMappings: Record<string, string[]> = {
   'clean': ['ทำความสะอาด', 'แม่บ้าน'], 'cook': ['ทำอาหาร', 'ครัว', 'เชฟ']
 };
 
+type RegistrationDataType = Omit<User, 'id' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt'> & { password: string };
+
+
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>(View.Home);
   const [viewingProfileId, setViewingProfileId] = useState<string | null>(null);
@@ -144,8 +185,7 @@ const App: React.FC = () => {
   const [confirmModalTitle, setConfirmModalTitle] = useState('');
   const [onConfirmAction, setOnConfirmAction] = useState<(() => void) | null>(null);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
-  const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false); // New state for forgot password modal
-  // Feedback submission state removed as Formspree handles it
+  const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false); 
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [isSiteLocked, setIsSiteLocked] = useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -172,9 +212,8 @@ const App: React.FC = () => {
   const [recentJobSearches, setRecentJobSearches] = useState<string[]>([]);
   const [recentHelperSearches, setRecentHelperSearches] = useState<string[]>([]);
 
-
   useEffect(() => {
-    document.documentElement.classList.remove('dark'); // Default to light mode
+    document.documentElement.classList.remove('dark'); 
     setRecentJobSearches(getRecentSearches('recentJobSearches'));
     setRecentHelperSearches(getRecentSearches('recentHelperSearches'));
 
@@ -187,16 +226,11 @@ const App: React.FC = () => {
     const mode = params.get('mode');
     const oobCode = params.get('oobCode');
     const pathname = window.location.pathname;
-    // Normalize pathname by removing trailing slash if present
     const normalizedPathname = pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
 
-
-    // Check for password reset link specifically on the /reset-password path
-    // and if mode=resetPassword and oobCode are present in query params.
     if (normalizedPathname === '/reset-password' && mode === 'resetPassword' && oobCode) {
         setCurrentView(View.PasswordReset);
     }
-
 
     const unsubscribeJobs = subscribeToJobsService(setJobs);
     const unsubscribeHelperProfiles = subscribeToHelperProfilesService(setHelperProfiles);
@@ -216,16 +250,64 @@ const App: React.FC = () => {
       unsubscribeInteractions();
       unsubscribeSiteConfig();
     };
-  }, []); // Run once on initial app load
+  }, []); 
 
-   useEffect(() => {
-    if (!isLoadingAuth && users.length > 0 && (webboardPosts.length > 0 || webboardComments.length > 0)) {
-        const updatedUsers = users.map(u => ({
-            ...u,
-            userLevel: calculateUserLevel(u.id, webboardPosts, webboardComments),
-            profileComplete: checkProfileCompleteness(u)
-        }));
-        setUsers(updatedUsers); // This might cause a loop if not careful, ensure dependencies are correct
+  useEffect(() => {
+    if (!isLoadingAuth && users.length > 0) {
+        const updatedUsers = users.map(u => {
+            let last30DaysActivity = 0;
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            if (webboardPosts.length > 0 || webboardComments.length > 0) {
+                const userPostsLast30Days = webboardPosts.filter(p => p.userId === u.id && p.createdAt && new Date(p.createdAt as string) >= thirtyDaysAgo).length;
+                const userCommentsLast30Days = webboardComments.filter(c => c.userId === u.id && c.createdAt && new Date(c.createdAt as string) >= thirtyDaysAgo).length;
+                last30DaysActivity = userPostsLast30Days + userCommentsLast30Days;
+            }
+            
+            const accountAgeInDays = u.createdAt ? (new Date().getTime() - new Date(u.createdAt as string).getTime()) / (1000 * 60 * 60 * 24) : 0;
+            const isActivityBadgeActive = accountAgeInDays >= 30 && last30DaysActivity >= 15;
+
+            const defaultPostingLimits: UserPostingLimits = {
+              lastJobPostDate: new Date(0).toISOString(),
+              lastHelperProfileDate: new Date(0).toISOString(),
+              dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() },
+              hourlyComments: { count: 0, resetTime: new Date(0).toISOString() },
+              lastBumpDates: {},
+            };
+
+            const defaultActivityBadge: UserActivityBadge = {
+              isActive: false,
+              last30DaysActivity: 0,
+              lastActivityCheck: new Date(0).toISOString(),
+            };
+            
+            return {
+                ...u,
+                userLevel: calculateUserLevel(u.id, webboardPosts, webboardComments),
+                profileComplete: checkProfileCompleteness(u),
+                postingLimits: { // Ensure postingLimits exists and has all fields
+                    ...defaultPostingLimits,
+                    ...(u.postingLimits || {}),
+                    dailyWebboardPosts: {
+                      ...defaultPostingLimits.dailyWebboardPosts,
+                      ...(u.postingLimits?.dailyWebboardPosts || {})
+                    },
+                    hourlyComments: {
+                      ...defaultPostingLimits.hourlyComments,
+                      ...(u.postingLimits?.hourlyComments || {})
+                    }
+                },
+                activityBadge: { 
+                    ...defaultActivityBadge,
+                    ...(u.activityBadge || {}),
+                    isActive: isActivityBadgeActive,
+                    last30DaysActivity: last30DaysActivity,
+                    lastActivityCheck: new Date().toISOString(),
+                },
+            };
+        });
+        setUsers(updatedUsers);
 
         if (currentUser) {
             const updatedCurrentUser = updatedUsers.find(u => u.id === currentUser.id);
@@ -237,9 +319,7 @@ const App: React.FC = () => {
             }
         }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [webboardPosts, webboardComments, isLoadingAuth, currentUser?.id]); // Careful with users in dependency array
-
+  }, [webboardPosts, webboardComments, isLoadingAuth, currentUser?.id]); 
 
   const requestLoginForAction = (originalView: View, originalPayload?: any) => {
     if (!currentUser) {
@@ -254,8 +334,7 @@ const App: React.FC = () => {
     const protectedViews: View[] = [View.PostJob, View.OfferHelp, View.UserProfile, View.MyPosts, View.AdminDashboard];
     if (view === View.PublicProfile && typeof payload === 'string') {
       const targetUser = users.find(u => u.id === payload);
-      if (targetUser && targetUser.role === UserRole.Admin) { alert("โปรไฟล์ของแอดมินไม่สามารถดูในหน้านี้ได้"); return; }
-      if (!currentUser) { requestLoginForAction(view, payload); return; }
+      if (targetUser && targetUser.role === UserRole.Admin && currentUser?.id !== targetUser.id) { alert("โปรไฟล์ของแอดมินไม่สามารถดูในหน้านี้ได้"); return; }
       setViewingProfileId(payload);
     } else if (view !== View.PublicProfile) {
       if (viewingProfileId !== null) setViewingProfileId(null);
@@ -265,7 +344,7 @@ const App: React.FC = () => {
       if (typeof payload === 'string') setSelectedPostId(payload === 'create' ? 'create' : payload);
       else if (payload && typeof payload === 'object' && payload.postId) setSelectedPostId(payload.postId);
       else if (payload === null || payload === undefined) setSelectedPostId(null);
-    } else if (selectedPostId !== null && view !== View.AdminDashboard && view !== View.PasswordReset) { // Keep selectedPostId if navigating to password reset
+    } else if (selectedPostId !== null && view !== View.AdminDashboard && view !== View.PasswordReset) { 
       setSelectedPostId(null);
     }
     setCurrentView(view);
@@ -273,7 +352,7 @@ const App: React.FC = () => {
 
   const handleNavigateToPublicProfile = (userId: string) => navigateTo(View.PublicProfile, userId);
 
-  const handleRegister = async (userData: Omit<User, 'id' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName'> & { password: string }): Promise<boolean> => {
+  const handleRegister = async (userData: RegistrationDataType): Promise<boolean> => {
     try {
       if (!isValidThaiMobileNumberUtil(userData.mobile)) { alert('รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง'); return false; }
       if (!userData.gender || !userData.birthdate || !userData.educationLevel) { alert('กรุณากรอกข้อมูลส่วนตัวให้ครบถ้วน'); return false; }
@@ -321,20 +400,16 @@ const App: React.FC = () => {
   const handleSendPasswordResetEmail = async (email: string): Promise<string | void> => {
     try {
       await sendPasswordResetEmailService(email);
-      // Success is implicit, modal will show a generic success message
     } catch (error: any) {
       logFirebaseError("handleSendPasswordResetEmail", error);
       if (error.code === 'auth/invalid-email') {
         return 'รูปแบบอีเมลไม่ถูกต้อง';
       } else if (error.code === 'auth/user-not-found') {
-        // For security, don't reveal if user exists. The modal shows a generic success message.
-        // So, we don't return a specific error here, letting the generic success message display.
-        return; // Treat as "success" from modal's perspective to show generic message
+        return; 
       }
       return 'เกิดข้อผิดพลาดในการส่งอีเมลรีเซ็ตรหัสผ่าน โปรดลองอีกครั้ง';
     }
   };
-
 
   const handleUpdateUserProfile = async (updatedProfileData: Pick<User, 'publicDisplayName' | 'mobile' | 'lineId' | 'facebook' | 'gender' | 'birthdate' | 'educationLevel' | 'photo' | 'address' | 'nickname' | 'firstName' | 'lastName' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence'>): Promise<boolean> => {
     if (!currentUser) { alert('ผู้ใช้ไม่ได้เข้าสู่ระบบ'); return false; }
@@ -345,7 +420,6 @@ const App: React.FC = () => {
       if (!updatedProfileData.educationLevel || updatedProfileData.educationLevel === HelperEducationLevelOption.NotStated) { alert('กรุณาเลือกระดับการศึกษา'); return false; }
 
       await updateUserProfileService(currentUser.id, updatedProfileData);
-      // The onAuthChangeService or users subscription should update the currentUser state
       alert('อัปเดตโปรไฟล์เรียบร้อยแล้ว');
       return true;
     } catch (error: any) {
@@ -401,8 +475,8 @@ const App: React.FC = () => {
     } else { alert("ไม่พบรายการ หรือไม่มีสิทธิ์แก้ไข"); }
   };
 
-  type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt'>;
-  type HelperProfileFormData = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt'>;
+  type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired'>;
+  type HelperProfileFormData = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt'>;
 
   const generateContactString = (user: User): string => {
     let contactParts: string[] = [];
@@ -411,19 +485,95 @@ const App: React.FC = () => {
     if (user.facebook) contactParts.push(`Facebook: ${user.facebook}`);
     return contactParts.join('\n') || 'ไม่ระบุช่องทางติดต่อ (โปรดอัปเดตโปรไฟล์)';
   };
+  
+  const checkJobPostingLimits = async (user: User): Promise<{ canPost: boolean; message?: string }> => {
+    if (user.postingLimits.lastJobPostDate) {
+        const daysSinceLastPost = (new Date().getTime() - new Date(user.postingLimits.lastJobPostDate as string).getTime()) / (1000 * 60 * 60 * 24);
+        if (daysSinceLastPost < JOB_COOLDOWN_DAYS) {
+            const daysRemaining = JOB_COOLDOWN_DAYS - Math.floor(daysSinceLastPost);
+            return { canPost: false, message: `คุณสามารถโพสต์งานใหม่ได้ในอีก ${daysRemaining} วัน` };
+        }
+    }
+    const userActiveJobs = jobs.filter(job => job.userId === user.id && !isDateInPast(job.expiresAt) && !job.isExpired).length;
+    const maxJobs = user.activityBadge?.isActive ? MAX_ACTIVE_JOBS_BADGE : MAX_ACTIVE_JOBS_NORMAL;
+    if (userActiveJobs >= maxJobs) {
+        return { canPost: false, message: `คุณมีงานที่ยังไม่หมดอายุ ${userActiveJobs}/${maxJobs} งานแล้ว` };
+    }
+    return { canPost: true };
+  };
+
+  const checkHelperProfilePostingLimits = async (user: User): Promise<{ canPost: boolean; message?: string }> => {
+    if (user.postingLimits.lastHelperProfileDate) {
+        const daysSinceLastPost = (new Date().getTime() - new Date(user.postingLimits.lastHelperProfileDate as string).getTime()) / (1000 * 60 * 60 * 24);
+        if (daysSinceLastPost < HELPER_PROFILE_COOLDOWN_DAYS) {
+            const daysRemaining = HELPER_PROFILE_COOLDOWN_DAYS - Math.floor(daysSinceLastPost);
+            return { canPost: false, message: `คุณสามารถสร้างโปรไฟล์ผู้ช่วยใหม่ได้ในอีก ${daysRemaining} วัน` };
+        }
+    }
+    const userActiveProfiles = helperProfiles.filter(p => p.userId === user.id && !isDateInPast(p.expiresAt) && !p.isExpired).length;
+    const maxProfiles = user.activityBadge?.isActive ? MAX_ACTIVE_HELPER_PROFILES_BADGE : MAX_ACTIVE_HELPER_PROFILES_NORMAL;
+    if (userActiveProfiles >= maxProfiles) {
+        return { canPost: false, message: `คุณมีโปรไฟล์ผู้ช่วยที่ยังไม่หมดอายุ ${userActiveProfiles}/${maxProfiles} โปรไฟล์แล้ว` };
+    }
+    return { canPost: true };
+  };
+  
+  const checkWebboardPostLimits = (user: User): { canPost: boolean; message?: string } => {
+    const today = new Date().toISOString().split('T')[0];
+    const userPostingLimits = user.postingLimits;
+    const resetDate = userPostingLimits.dailyWebboardPosts.resetDate ? new Date(userPostingLimits.dailyWebboardPosts.resetDate as string).toISOString().split('T')[0] : null;
+    
+    let currentDailyCount = userPostingLimits.dailyWebboardPosts.count || 0;
+    if (resetDate !== today) {
+        currentDailyCount = 0; 
+    }
+
+    const maxPosts = user.activityBadge?.isActive ? MAX_WEBBOARD_POSTS_DAILY_BADGE : MAX_WEBBOARD_POSTS_DAILY_NORMAL;
+    const postsRemaining = maxPosts - currentDailyCount;
+
+    if (currentDailyCount >= maxPosts) {
+        return { canPost: false, message: "คุณโพสต์ครบจำนวนครั้งสำหรับวันนี้แล้ว" };
+    }
+    return { canPost: true, message: `เหลือโพสต์ได้อีก ${postsRemaining} ครั้งวันนี้` };
+  };
+
+  const checkWebboardCommentLimits = (user: User): { canPost: boolean; message?: string } => {
+    const now = new Date();
+    const currentHourStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 0, 0, 0);
+    const userPostingLimits = user.postingLimits;
+    const resetTime = userPostingLimits.hourlyComments.resetTime ? new Date(userPostingLimits.hourlyComments.resetTime as string) : null;
+
+    let currentHourlyCount = userPostingLimits.hourlyComments.count || 0;
+    if (!resetTime || resetTime.getTime() !== currentHourStart.getTime()) {
+        currentHourlyCount = 0; 
+    }
+
+    if (currentHourlyCount >= MAX_WEBBOARD_COMMENTS_HOURLY) {
+        return { canPost: false, message: `คุณแสดงความคิดเห็นครบ ${MAX_WEBBOARD_COMMENTS_HOURLY} ครั้งในชั่วโมงนี้แล้ว` };
+    }
+    return { canPost: true };
+  };
 
   const handleAddJob = useCallback(async (newJobData: JobFormData) => {
     if (!currentUser) { requestLoginForAction(View.PostJob); return; }
+    const limitCheck = await checkJobPostingLimits(currentUser);
+    if (!limitCheck.canPost) {
+      alert(limitCheck.message);
+      return;
+    }
     if (containsBlacklistedWords(newJobData.description) || containsBlacklistedWords(newJobData.title)) { alert('เนื้อหาหรือหัวข้อมีคำที่ไม่เหมาะสม'); return; }
     try {
       await addJobService(newJobData, {userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, contact: generateContactString(currentUser)});
+      const updatedUser = await getUserDocument(currentUser.id);
+      if (updatedUser) setCurrentUser(updatedUser);
+
       navigateTo(sourceViewForForm === View.MyPosts ? View.MyPosts : View.FindJobs);
       setSourceViewForForm(null); alert('ประกาศงานของคุณถูกเพิ่มแล้ว!');
     } catch (error: any) {
       logFirebaseError("handleAddJob", error);
       alert(`เกิดข้อผิดพลาดในการเพิ่มประกาศงาน: ${error.message}`);
     }
-  }, [currentUser, sourceViewForForm, navigateTo, users]); // users dependency might be for generateContactString if it uses users state
+  }, [currentUser, sourceViewForForm, navigateTo, users, jobs]); 
 
   const handleUpdateJob = async (updatedJobDataFromForm: JobFormData & { id: string }) => {
     if (!currentUser) { requestLoginForAction(View.PostJob); return; }
@@ -449,6 +599,11 @@ const App: React.FC = () => {
 
  const handleAddHelperProfile = useCallback(async (newProfileData: HelperProfileFormData) => {
     if (!currentUser) { requestLoginForAction(View.OfferHelp); return; }
+    const limitCheck = await checkHelperProfilePostingLimits(currentUser);
+    if (!limitCheck.canPost) {
+      alert(limitCheck.message);
+      return;
+    }
     if (containsBlacklistedWords(newProfileData.details) || containsBlacklistedWords(newProfileData.profileTitle)) { alert('เนื้อหาหรือหัวข้อมีคำที่ไม่เหมาะสม'); return; }
     if (!currentUser.gender || !currentUser.birthdate || !currentUser.educationLevel || currentUser.gender === GenderOption.NotSpecified || currentUser.educationLevel === HelperEducationLevelOption.NotStated) {
         alert('กรุณาอัปเดตข้อมูลส่วนตัว (เพศ, วันเกิด, ระดับการศึกษา) ในหน้าโปรไฟล์ของคุณก่อน'); navigateTo(View.UserProfile); return;
@@ -458,13 +613,16 @@ const App: React.FC = () => {
         userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, contact: generateContactString(currentUser),
         gender: currentUser.gender, birthdate: currentUser.birthdate, educationLevel: currentUser.educationLevel
       });
+      const updatedUser = await getUserDocument(currentUser.id);
+      if (updatedUser) setCurrentUser(updatedUser);
+
       navigateTo(sourceViewForForm === View.MyPosts ? View.MyPosts : View.FindHelpers); setSourceViewForForm(null);
       alert('โปรไฟล์ของคุณถูกเพิ่มแล้ว!');
     } catch (error: any) {
       logFirebaseError("handleAddHelperProfile", error);
       alert(`เกิดข้อผิดพลาดในการเพิ่มโปรไฟล์: ${error.message}`);
     }
-  }, [currentUser, sourceViewForForm, navigateTo, users]); // users dependency
+  }, [currentUser, sourceViewForForm, navigateTo, users, helperProfiles]); 
 
   const handleUpdateHelperProfile = async (updatedProfileDataFromForm: HelperProfileFormData & { id: string }) => {
     if (!currentUser) { requestLoginForAction(View.OfferHelp); return; }
@@ -485,6 +643,35 @@ const App: React.FC = () => {
   const handleSubmitHelperProfileForm = (formDataFromForm: HelperProfileFormData & { id?: string }) => {
     if (formDataFromForm.id && itemToEdit && editingItemType === 'profile') handleUpdateHelperProfile(formDataFromForm as HelperProfileFormData & { id: string });
     else handleAddHelperProfile(formDataFromForm);
+  };
+  
+  const handleBumpHelperProfile = async (profileId: string) => {
+    if (!currentUser) { requestLoginForAction(View.FindHelpers, {intent: 'bump', postId: profileId}); return; }
+    const profileToBump = helperProfiles.find(p => p.id === profileId);
+    if (!profileToBump || profileToBump.userId !== currentUser.id) {
+        alert("ไม่พบโปรไฟล์ หรือคุณไม่ใช่เจ้าของโปรไฟล์นี้");
+        return;
+    }
+
+    const lastBumpDateForThisProfile = currentUser.postingLimits.lastBumpDates?.[profileId] || profileToBump.lastBumpedAt;
+    if (lastBumpDateForThisProfile) {
+        const daysSinceLastBump = (new Date().getTime() - new Date(lastBumpDateForThisProfile as string).getTime()) / (1000 * 60 * 60 * 24);
+        if (daysSinceLastBump < BUMP_COOLDOWN_DAYS) {
+            const daysRemaining = BUMP_COOLDOWN_DAYS - Math.floor(daysSinceLastBump);
+            alert(`คุณสามารถ Bump โปรไฟล์นี้ได้อีกครั้งใน ${daysRemaining} วัน`);
+            return;
+        }
+    }
+    try {
+        await bumpHelperProfileService(profileId, currentUser.id);
+        alert("Bump โปรไฟล์สำเร็จ! โปรไฟล์ของคุณจะแสดงผลเป็นลำดับต้นๆ ชั่วคราว");
+        const updatedUser = await getUserDocument(currentUser.id);
+        if (updatedUser) setCurrentUser(updatedUser);
+
+    } catch (error: any) {
+        logFirebaseError("handleBumpHelperProfile", error);
+        alert(`เกิดข้อผิดพลาดในการ Bump โปรไฟล์: ${error.message}`);
+    }
   };
 
   const handleCancelEditOrPost = () => {
@@ -530,7 +717,7 @@ const App: React.FC = () => {
   const toggleItemFlag = async (
     collectionName: 'jobs' | 'helperProfiles' | 'webboardPosts',
     itemId: string,
-    flagName: keyof Job | keyof HelperProfile | keyof WebboardPost,
+    flagName: keyof Job | keyof HelperProfile | keyof WebboardPost | 'isExpired', 
     itemUserId: string,
     itemOwnerId?: string,
     currentValue?: boolean
@@ -539,7 +726,7 @@ const App: React.FC = () => {
     try {
       await toggleItemFlagService(collectionName, itemId, flagName as any, currentValue);
     } catch(error: any) {
-        logFirebaseError(`toggleItemFlag (${flagName})`, error);
+        logFirebaseError(`toggleItemFlag (${String(flagName)})`, error);
         alert(`เกิดข้อผิดพลาดในการอัปเดตสถานะ: ${error.message}`);
     }
   };
@@ -561,7 +748,6 @@ const App: React.FC = () => {
     if (!helperProfile || currentUser.id === helperProfile.userId) return;
     try {
         await logHelperContactInteractionService(helperProfileId, currentUser.id, helperProfile.userId);
-        // State update for interestedCount will be handled by the subscription to helperProfiles
     } catch(error: any) {
         logFirebaseError("handleLogHelperContactInteraction", error);
         alert(`เกิดข้อผิดพลาดในการบันทึกการติดต่อ: ${error.message}`);
@@ -570,7 +756,15 @@ const App: React.FC = () => {
 
   const handleAddOrUpdateWebboardPost = async (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => {
     if (!currentUser) { requestLoginForAction(View.Webboard, { action: postIdToUpdate ? 'editPost' : 'createPost', postId: postIdToUpdate }); return; }
+    if (!postIdToUpdate) { 
+      const limitCheck = checkWebboardPostLimits(currentUser);
+      if (!limitCheck.canPost) {
+        alert(limitCheck.message);
+        return;
+      }
+    }
     if (containsBlacklistedWords(postData.title) || containsBlacklistedWords(postData.body)) { alert('เนื้อหาหรือหัวข้อมีคำที่ไม่เหมาะสม'); return; }
+    if (postData.body.length > 2000) { alert('เนื้อหากระทู้ต้องไม่เกิน 2,000 ตัวอักษร'); return;}
     try {
         let finalPostId = postIdToUpdate;
         if (postIdToUpdate) {
@@ -580,6 +774,8 @@ const App: React.FC = () => {
             alert('แก้ไขโพสต์เรียบร้อยแล้ว!');
         } else {
             finalPostId = await addWebboardPostService(postData, {userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, photo: currentUser.photo});
+            const updatedUser = await getUserDocument(currentUser.id); 
+            if (updatedUser) setCurrentUser(updatedUser);
             alert('สร้างโพสต์ใหม่เรียบร้อยแล้ว!');
         }
         setItemToEdit(null); setEditingItemType(null); setSelectedPostId(finalPostId || null); navigateTo(View.Webboard, finalPostId);
@@ -591,9 +787,16 @@ const App: React.FC = () => {
 
   const handleAddWebboardComment = async (postId: string, text: string) => {
     if (!currentUser) { requestLoginForAction(View.Webboard, { action: 'comment', postId: postId }); return; }
+    const limitCheck = checkWebboardCommentLimits(currentUser);
+    if (!limitCheck.canPost) {
+      alert(limitCheck.message);
+      return;
+    }
     if (containsBlacklistedWords(text)) { alert('เนื้อหาคอมเมนต์มีคำที่ไม่เหมาะสม'); return; }
     try {
         await addWebboardCommentService(postId, text, {userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, photo: currentUser.photo});
+        const updatedUser = await getUserDocument(currentUser.id); 
+        if (updatedUser) setCurrentUser(updatedUser);
     } catch (error: any) {
         logFirebaseError("handleAddWebboardComment", error);
         alert(`เกิดข้อผิดพลาดในการเพิ่มคอมเมนต์: ${error.message}`);
@@ -660,7 +863,6 @@ const App: React.FC = () => {
     }
   };
 
-
   const renderNavLinks = (isMobile: boolean) => {
     const displayBadge = getUserDisplayBadge(currentUser, webboardPosts, webboardComments);
     const commonButtonPropsBase = isMobile
@@ -680,12 +882,13 @@ const App: React.FC = () => {
               <div className={`font-sans font-medium mb-3 py-2 px-4 border-b border-neutral-DEFAULT/50 dark:border-dark-border/50 w-full text-center`}>
                 สวัสดี, {currentUser.publicDisplayName}!
                 <UserLevelBadge level={displayBadge} size="sm" />
+                {currentUser.activityBadge?.isActive && <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm" />}
               </div>
             )}
             {!isMobile && (
                <div className={`font-sans font-medium mr-4 text-sm lg:text-base items-center flex gap-2`}>
                 สวัสดี, {currentUser.publicDisplayName}!
-                {/* UserLevelBadge is removed for desktop view to save space */}
+                {currentUser.activityBadge?.isActive && <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm" />}
               </div>
             )}
 
@@ -760,8 +963,7 @@ const App: React.FC = () => {
             </Button>
           </>
         );
-    } else { // Not logged in
-        // If currentView is PasswordReset, don't show login/register buttons, page has its own flow.
+    } else { 
         if (currentView === View.PasswordReset) {
             return null;
         }
@@ -789,8 +991,6 @@ const App: React.FC = () => {
     }
   };
   const renderHeader = () => {
-      // Do not render header if on PasswordReset page and not logged in (to avoid double nav)
-      // or if isLoadingAuth to prevent flashing nav states.
       if ((currentView === View.PasswordReset && !currentUser) || isLoadingAuth) {
         return null;
       }
@@ -809,7 +1009,7 @@ const App: React.FC = () => {
             </span>
           </div>
 
-          <div className="flex items-center flex-shrink-0 lg:ml-6"> {/* Added lg:ml-6 for spacing */}
+          <div className="flex items-center flex-shrink-0 lg:ml-6"> 
               <nav className="hidden lg:flex items-center justify-end gap-3 md:gap-4 lg:gap-5 flex-wrap">
                 {renderNavLinks(false)}
               </nav>
@@ -861,7 +1061,7 @@ const App: React.FC = () => {
               <span className="flex items-center justify-center gap-2"><span>📢</span><span>มีงานด่วน? ฝากตรงนี้</span></span>
             </Button>
             <Button onClick={() => navigateTo(View.FindHelpers)} variant="outline" colorScheme="primary" size="md" className="w-full">
-              <span className="flex items-center justify-center gap-2"><span>🔍</span><span>กำลังหาคนช่วย? ดูโปรไฟล์เลย</span></span>
+              <span className="flex items-center justify-center gap-2"><span>🔍</span><span>หาคนช่วย? ดูโปรไฟล์เลย</span></span>
             </Button>
           </div>
         </div>
@@ -880,8 +1080,8 @@ const App: React.FC = () => {
     </div>
   );
   };
-  const renderPostJob = () => { if (!currentUser) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทางไปยังหน้าเข้าสู่ระบบ...</p>; return <PostJobForm onSubmitJob={handleSubmitJobForm} onCancel={handleCancelEditOrPost} initialData={editingItemType === 'job' ? itemToEdit as Job : undefined} isEditing={!!itemToEdit && editingItemType === 'job'} />; };
-  const renderOfferHelpForm = () => { if (!currentUser) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทางไปยังหน้าเข้าสู่ระบบ...</p>; return <OfferHelpForm onSubmitProfile={handleSubmitHelperProfileForm} onCancel={handleCancelEditOrPost} initialData={editingItemType === 'profile' ? itemToEdit as HelperProfile : undefined} isEditing={!!itemToEdit && editingItemType === 'profile'} />; };
+  const renderPostJob = () => { if (!currentUser) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทางไปยังหน้าเข้าสู่ระบบ...</p>; return <PostJobForm onSubmitJob={handleSubmitJobForm} onCancel={handleCancelEditOrPost} initialData={editingItemType === 'job' ? itemToEdit as Job : undefined} isEditing={!!itemToEdit && editingItemType === 'job'} currentUser={currentUser} jobs={jobs} />; };
+  const renderOfferHelpForm = () => { if (!currentUser) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทางไปยังหน้าเข้าสู่ระบบ...</p>; return <OfferHelpForm onSubmitProfile={handleSubmitHelperProfileForm} onCancel={handleCancelEditOrPost} initialData={editingItemType === 'profile' ? itemToEdit as HelperProfile : undefined} isEditing={!!itemToEdit && editingItemType === 'profile'} currentUser={currentUser} helperProfiles={helperProfiles} />; };
 
   const handleJobSearch = (term: string) => {
     setJobSearchTerm(term);
@@ -892,9 +1092,10 @@ const App: React.FC = () => {
   };
 
   const renderFindJobs = () => {
+    const activeUserJobs = jobs.filter(job => !isDateInPast(job.expiresAt) && !job.isExpired);
     const jobsAfterCategoryFilter = selectedJobCategoryFilter === 'all'
-      ? jobs
-      : jobs.filter(job => job.category === selectedJobCategoryFilter);
+      ? activeUserJobs
+      : activeUserJobs.filter(job => job.category === selectedJobCategoryFilter);
 
     const finalFilteredJobs = jobSearchTerm.trim() === ''
       ? jobsAfterCategoryFilter
@@ -924,7 +1125,7 @@ const App: React.FC = () => {
             <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedJobCategoryFilter} onSelectCategory={setSelectedJobCategoryFilter} />
             <SearchInputWithRecent searchTerm={jobSearchTerm} onSearchTermChange={handleJobSearch} placeholder="ค้นหางาน, รายละเอียด..." recentSearches={recentJobSearches} onRecentSearchSelect={(term) => { setJobSearchTerm(term); addRecentSearch('recentJobSearches', term); setRecentJobSearches(getRecentSearches('recentJobSearches')); }} ariaLabel="ค้นหางาน" />
             {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="w-full sm:px-4 sm:text-sm">
-              <span className="flex items-center justify-center gap-2"><span>📣</span><span>ฝากงาน</span></span>
+              <span className="flex items-center justify-center gap-2"><span>📣</span><span>มีงานด่วน? ฝากงาน</span></span>
             </Button> )}
           </div>
         </aside>
@@ -951,7 +1152,8 @@ const App: React.FC = () => {
   };
 
   const renderFindHelpers = () => {
-    const profilesAfterCategoryFilter = selectedHelperCategoryFilter === 'all' ? helperProfiles : helperProfiles.filter(profile => profile.category === selectedHelperCategoryFilter);
+    const activeHelperProfiles = helperProfiles.filter(p => !isDateInPast(p.expiresAt) && !p.isExpired);
+    const profilesAfterCategoryFilter = selectedHelperCategoryFilter === 'all' ? activeHelperProfiles : activeHelperProfiles.filter(profile => profile.category === selectedHelperCategoryFilter);
     const finalFilteredProfiles = helperSearchTerm.trim() === '' ? profilesAfterCategoryFilter : profilesAfterCategoryFilter.filter(profile => {
       const termLower = helperSearchTerm.toLowerCase();
       const termsToSearch = [termLower, ...(searchMappings[termLower] || []).map(t => t.toLowerCase())];
@@ -994,7 +1196,7 @@ const App: React.FC = () => {
                 {currentUser && helperProfiles.length === 0 && !helperSearchTerm.trim() && selectedHelperCategoryFilter === 'all' && ( <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateTo(View.OfferHelp);}} variant="secondary" size="md" className="mt-6 font-medium"> เป็นคนแรกที่เสนอตัวช่วยงาน! </Button> )}
                 {!currentUser && helperProfiles.length === 0 && !helperSearchTerm.trim() && selectedHelperCategoryFilter === 'all' && (<Button onClick={() => requestLoginForAction(View.OfferHelp)} variant="secondary" size="md" className="mt-6 font-medium"> เข้าสู่ระบบเพื่อเสนอตัวช่วยงาน </Button>)}
             </div>
-            ) : ( <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"> {enrichedHelperProfilesList.map(profile => (<HelperCard key={profile.id} profile={profile} onNavigateToPublicProfile={handleNavigateToPublicProfile} navigateTo={navigateTo} onLogHelperContact={() => handleLogHelperContactInteraction(profile.id)} currentUser={currentUser} requestLoginForAction={requestLoginForAction} />))} </div> )}
+            ) : ( <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"> {enrichedHelperProfilesList.map(profile => (<HelperCard key={profile.id} profile={profile} onNavigateToPublicProfile={handleNavigateToPublicProfile} navigateTo={navigateTo} onLogHelperContact={() => handleLogHelperContactInteraction(profile.id)} currentUser={currentUser} requestLoginForAction={requestLoginForAction} onBumpProfile={handleBumpHelperProfile} />))} </div> )}
         </section>
       </div>
     </div>);};
@@ -1005,7 +1207,15 @@ const App: React.FC = () => {
   const renderMyPostsPage = () => { if (!currentUser || currentUser.role === UserRole.Admin) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทาง...</p>; return (<MyPostsPage currentUser={currentUser} jobs={jobs} helperProfiles={helperProfiles} webboardPosts={webboardPosts} webboardComments={webboardComments} onEditItem={handleStartEditMyItem} onDeleteItem={handleDeleteItemFromMyPosts} onToggleHiredStatus={handleToggleItemStatusFromMyPosts} navigateTo={navigateTo} getUserDisplayBadge={(user) => getUserDisplayBadge(user, webboardPosts, webboardComments)} />); };
   const renderAboutUsPage = () => <AboutUsPage />;
   const renderSafetyPage = () => <SafetyPage />;
-  const renderPublicProfile = () => { if (!currentUser) return <p className="text-center p-8 font-serif">คุณต้องเข้าสู่ระบบเพื่อดูโปรไฟล์นี้...</p>; if (!viewingProfileId) { navigateTo(View.Home); return <p className="text-center p-8 font-serif">ไม่พบ ID โปรไฟล์...</p>; } const profileUser = users.find(u => u.id === viewingProfileId); if (!profileUser) return <p className="text-center p-8 font-serif text-red-500">ไม่พบโปรไฟล์ผู้ใช้</p>; if (profileUser.role === UserRole.Admin) return <div className="text-center p-8 font-serif text-red-500">โปรไฟล์ของแอดมินไม่สามารถดูในหน้านี้ได้</div>; const helperProfileForBio = helperProfiles.find(hp => hp.userId === viewingProfileId); const displayBadge = getUserDisplayBadge(profileUser, webboardPosts, webboardComments); return <PublicProfilePage currentUser={currentUser} user={{...profileUser, userLevel: displayBadge}} helperProfile={helperProfileForBio} onBack={() => navigateTo(View.FindHelpers)} />; };
+  const renderPublicProfile = () => { 
+    if (!viewingProfileId) { navigateTo(View.Home); return <p className="text-center p-8 font-serif">ไม่พบ ID โปรไฟล์...</p>; } 
+    const profileUser = users.find(u => u.id === viewingProfileId); 
+    if (!profileUser) return <p className="text-center p-8 font-serif text-red-500">ไม่พบโปรไฟล์ผู้ใช้</p>; 
+    if (profileUser.role === UserRole.Admin && currentUser?.id !== viewingProfileId) return <div className="text-center p-8 font-serif text-red-500">โปรไฟล์ของแอดมินไม่สามารถดูในหน้านี้ได้</div>; 
+    const helperProfileForBio = helperProfiles.find(hp => hp.userId === viewingProfileId && !isDateInPast(hp.expiresAt) && !hp.isExpired); 
+    const displayBadge = getUserDisplayBadge(profileUser, webboardPosts, webboardComments); 
+    return <PublicProfilePage currentUser={currentUser} user={{...profileUser, userLevel: displayBadge}} helperProfile={helperProfileForBio} onBack={() => navigateTo(View.FindHelpers)} />; 
+  };
   const renderWebboardPage = () => {
     return (<WebboardPage
       currentUser={currentUser} users={users} posts={webboardPosts} comments={webboardComments}
@@ -1017,20 +1227,21 @@ const App: React.FC = () => {
       navigateTo={navigateTo} editingPost={editingItemType === 'webboardPost' ? itemToEdit as WebboardPost : null}
       onCancelEdit={() => { setItemToEdit(null); setEditingItemType(null); setSelectedPostId(null); }}
       getUserDisplayBadge={(user) => getUserDisplayBadge(user, webboardPosts, webboardComments)}
-      requestLoginForAction={requestLoginForAction}
+      requestLoginForAction={requestLoginForAction} 
+      onNavigateToPublicProfile={handleNavigateToPublicProfile}
+      checkWebboardPostLimits={checkWebboardPostLimits}
+      checkWebboardCommentLimits={checkWebboardCommentLimits}
     />);};
-  const renderPasswordResetPage = () => <PasswordResetPage navigateTo={navigateTo} />; // Added render function
+  const renderPasswordResetPage = () => <PasswordResetPage navigateTo={navigateTo} />; 
 
   let currentViewContent;
   if (isLoadingAuth) {
     currentViewContent = (<div className="flex justify-center items-center h-screen"><p className="text-xl font-sans text-neutral-dark dark:text-dark-text">กำลังโหลด...</p></div>);
   } else {
-    // If currentView is PasswordReset, it should take precedence, especially on initial load from URL
     if (currentView === View.PasswordReset) {
       currentViewContent = renderPasswordResetPage();
     } else if (isSiteLocked && currentUser?.role !== UserRole.Admin) {
-      // SiteLockOverlay takes precedence over other views if site is locked and user is not admin
-      return <SiteLockOverlay />; // Return early for SiteLockOverlay
+      return <SiteLockOverlay />; 
     } else {
       switch (currentView) {
           case View.Home: currentViewContent = renderHome(); break;
@@ -1047,23 +1258,18 @@ const App: React.FC = () => {
           case View.PublicProfile: currentViewContent = renderPublicProfile(); break;
           case View.Safety: currentViewContent = renderSafetyPage(); break;
           case View.Webboard: currentViewContent = renderWebboardPage(); break;
-          // View.PasswordReset is handled above to ensure it's prioritized from URL params.
-          // If it was not handled and reached here, it would default.
           default: currentViewContent = renderHome();
       }
     }
   }
 
-
   return (
     <div className="flex flex-col min-h-screen bg-neutral-light dark:bg-dark-pageBg font-serif text-neutral-dark dark:text-dark-text">
-      {/* Conditionally render header to avoid showing it on PasswordReset page if not logged in */}
       {!(currentView === View.PasswordReset && !currentUser) && renderHeader()}
       {renderMobileMenu()}
       <main className={`flex-grow container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 ${ (currentView !== View.PasswordReset) ? 'py-6 sm:py-8 lg:py-10 xl:py-12' : ''}`}>
         {currentViewContent}
       </main>
-      {/* Conditionally render footer to avoid showing it on PasswordReset page if not logged in */}
       {!(currentView === View.PasswordReset && !currentUser) && (
         <footer className="bg-neutral-light dark:bg-dark-headerBg/70 text-neutral-dark dark:text-dark-textMuted p-4 text-center text-xs font-sans">
           <p>&copy; {new Date().getFullYear()} HAJOBJA.COM - All rights reserved.</p>

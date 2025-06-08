@@ -19,13 +19,17 @@ export interface Job {
   timeNeededEnd?: string;
   postedAt?: string | Date;
   userId: string;
-  authorDisplayName: string; // Renamed from username
+  authorDisplayName: string;
   ownerId?: string;
   isSuspicious?: boolean;
   isPinned?: boolean;
   isHired?: boolean;
   createdAt?: string | Date;
   updatedAt?: string | Date;
+
+  // New fields for expiration
+  expiresAt?: string | Date; // Date when the job expires
+  isExpired?: boolean;     // Flag indicating if the job has expired
 }
 
 export enum GenderOption {
@@ -70,7 +74,7 @@ export interface HelperProfile {
   availabilityTimeDetails?: string;
   postedAt?: string | Date;
   userId: string;
-  authorDisplayName: string; // Renamed from username
+  authorDisplayName: string;
   ownerId?: string;
   isSuspicious?: boolean;
   isPinned?: boolean;
@@ -79,6 +83,11 @@ export interface HelperProfile {
   interestedCount?: number;
   createdAt?: string | Date;
   updatedAt?: string | Date;
+
+  // New fields for expiration and bump feature
+  expiresAt?: string | Date;   // Date when the profile expires
+  isExpired?: boolean;       // Flag indicating if the profile has expired
+  lastBumpedAt?: string | Date; // Timestamp of the last successful bump
 }
 
 export enum UserRole {
@@ -87,10 +96,33 @@ export enum UserRole {
   Member = 'Member',
 }
 
+export interface UserPostingLimits {
+  lastJobPostDate?: string | Date; // Cooldown for jobs
+  lastHelperProfileDate?: string | Date; // Cooldown for helper profiles
+  dailyWebboardPosts: {
+    count: number;
+    resetDate: string | Date; // Timestamp for when the daily post count resets
+  };
+  hourlyComments: {
+    count: number;
+    resetTime: string | Date; // Timestamp for when the hourly comment count resets
+  };
+  lastBumpDates: { // For Helper Profile Bump Cooldown, maps profileId to last bump date
+    [profileId: string]: string | Date;
+  };
+}
+
+export interface UserActivityBadge {
+  isActive: boolean; // Whether the "🔥 ขยันใช้เว็บ" badge is active
+  lastActivityCheck?: string | Date; // Timestamp of the last activity check (optional, might derive from userLevel update)
+  last30DaysActivity: number; // Count of webboard posts + comments in the last 30 days
+}
+
+
 export interface User {
   id: string;
-  publicDisplayName: string; // Renamed from displayName
-  username: string; // Login username
+  publicDisplayName: string;
+  username: string;
   email: string;
   role: UserRole;
   mobile: string;
@@ -101,12 +133,9 @@ export interface User {
   educationLevel?: HelperEducationLevelOption;
   photo?: string;
   address?: string;
-
-  // New personal info fields
   nickname?: string;
   firstName?: string;
   lastName?: string;
-
   favoriteMusic?: string;
   favoriteBook?: string;
   favoriteMovie?: string;
@@ -114,12 +143,15 @@ export interface User {
   favoriteFood?: string;
   dislikedThing?: string;
   introSentence?: string;
-
   profileComplete?: boolean;
   userLevel: UserLevel;
   isMuted?: boolean;
   createdAt?: string | Date;
   updatedAt?: string | Date;
+
+  // New fields for posting limits and activity badge
+  postingLimits: UserPostingLimits;
+  activityBadge: UserActivityBadge;
 }
 
 export enum View {
@@ -143,7 +175,6 @@ export enum View {
 export interface EnrichedHelperProfile extends HelperProfile {
   userPhoto?: string;
   userAddress?: string;
-  // userDisplayName was derived, will now use authorDisplayName directly or fetch User's publicDisplayName
   profileCompleteBadge: boolean;
   warningBadge: boolean;
   verifiedExperienceBadge: boolean;
@@ -217,66 +248,46 @@ export const JOB_CATEGORY_STYLES: Record<JobCategory, { bg: string; text: string
   [JobCategory.ShortTermMisc]: { bg: 'bg-pink-100 dark:bg-pink-700/40', text: 'text-pink-700 dark:text-pink-200', border: 'border-pink-300 dark:border-pink-500' },
 };
 
-// --- SubCategory System ---
 export enum JobSubCategory {
-  // Digital & Creative
   DigitalCreative_GraphicDesign = "ออกแบบกราฟิก (โลโก้, โปสเตอร์, สื่อโซเชียล)",
   DigitalCreative_WritingTranslation = "เขียนและแปลภาษา (แปลภาษา, เขียนบทความ, คอนเทนต์)",
   DigitalCreative_WebMobileDev = "พัฒนาเว็บไซต์และแอป (เว็บไซต์, แอพมือถือ)",
   DigitalCreative_VideoAudioEditing = "ตัดต่อวิดีโอและเสียง (ตัดต่อวิดีโอ, ทำเพลง, พากย์เสียง)",
   DigitalCreative_MarketingSocialMedia = "การตลาดและโซเชียลมีเดีย (บริหารเพจ, โฆษณาออนไลน์)",
-
-  // Education & Tutoring
   EducationTutoring_LanguageTeaching = "สอนภาษา (สอนภาษาอังกฤษ, จีน, ญี่ปุ่น ฯลฯ)",
   EducationTutoring_AcademicTutoring = "ติววิชาการ (คณิต, วิทย์, สังคม, ดนตรี)",
   EducationTutoring_ExamPrep = "ติวสอบ (GAT/PAT, IELTS/TOEFL)",
   EducationTutoring_WorkshopCraftTeaching = "สอนเวิร์กช็อป/งานฝีมือ",
-
-  // Business & Admin Support
   BusinessAdminSupport_DataEntry = "คีย์ข้อมูล",
   BusinessAdminSupport_OnlineAssistant = "ผู้ช่วยออนไลน์",
   BusinessAdminSupport_CustomerService = "บริการลูกค้า",
   BusinessAdminSupport_AccountingFinance = "บัญชีและการเงิน",
   BusinessAdminSupport_MarketResearch = "งานวิจัย/สำรวจตลาด",
-
-  // IT & Technical
   ITTechnical_SoftwareDevelopment = "พัฒนาโปรแกรม",
   ITTechnical_ITSupportRepair = "ซ่อมคอมและช่วยเหลือด้านไอที",
   ITTechnical_AIDataAnalysis = "งาน AI และวิเคราะห์ข้อมูล",
   ITTechnical_WebsiteMaintenance = "ดูแลเว็บไซต์",
-
-  // Sales, Events & Promotion
   SalesEventsPromotion_SalesPromotionStaff = "พนักงานขาย/โปรโมทสินค้า",
   SalesEventsPromotion_EventStaffMCFlyer = "พนักงานอีเวนต์/MC/แจกใบปลิว",
   SalesEventsPromotion_MarketSurveyStaff = "สำรวจตลาด",
   SalesEventsPromotion_BoothStaff = "พนักงานบูธ/ออกบูธ",
-
-  // Home, Delivery & Lifestyle
   HomeDeliveryLifestyle_HousekeepingCleaning = "แม่บ้าน/ทำความสะอาด",
   HomeDeliveryLifestyle_DeliveryErrands = "รับส่งของ/งานธุรการ (รับ-ส่งเอกสาร, ช่วยซื้อของ)",
   HomeDeliveryLifestyle_RepairmanHandyman = "ช่างซ่อม/ซ่อมแซม (ช่างไฟ, ช่างประปา)",
   HomeDeliveryLifestyle_GardeningPetCare = "ดูแลสวน/สัตว์เลี้ยง (เดินสุนัข, เลี้ยงสัตว์)",
   HomeDeliveryLifestyle_MovingHauling = "ช่วยขนย้าย/รถรับจ้าง",
-
-  // Food & Service
   FoodService_Barista = "พนักงานร้านกาแฟ",
   FoodService_KitchenAssistantCook = "ผู้ช่วยครัว/พ่อครัว/แม่ครัว",
   FoodService_CateringServing = "จัดเลี้ยง/เสิร์ฟอาหาร",
   FoodService_WaiterWaitress = "พนักงานเสิร์ฟ",
-
-  // Health, Fitness & Wellness
   HealthFitnessWellness_PersonalTrainerFitnessCoach = "เทรนเนอร์ส่วนตัว/โค้ชฟิตเนส",
   HealthFitnessWellness_MassageSpa = "นวด/สปา",
   HealthFitnessWellness_YogaPilatesInstructor = "ครูสอนโยคะ/พิลาทิส",
   HealthFitnessWellness_HealthNutritionCoach = "โค้ชสุขภาพ/โภชนาการ",
-
-  // Arts, Crafts & Performance
   ArtsCraftsPerformance_HandicraftsGifts = "งานฝีมือ/ของขวัญทำมือ",
   ArtsCraftsPerformance_PhotographyVideography = "ถ่ายภาพ/วิดีโอ",
   ArtsCraftsPerformance_MusicPerformanceSinger = "ดนตรี/การแสดง/นักร้อง",
   ArtsCraftsPerformance_PaintingArtist = "วาดภาพ/ศิลปิน",
-
-  // Short-term & Misc
   ShortTermMisc_TemporaryDailyWorker = "พนักงานชั่วคราว/รายวัน",
   ShortTermMisc_SeasonalProjectWork = "งานตามฤดูกาล/โปรเจกต์",
   ShortTermMisc_OtherMiscTasks = "งานอื่นๆ/งานจิปาถะ",
@@ -355,7 +366,7 @@ export interface WebboardPost {
   category: WebboardCategory;
   image?: string;
   userId: string;
-  authorDisplayName: string; // Renamed from username
+  authorDisplayName: string;
   ownerId?: string;
   authorPhoto?: string;
   createdAt: string | Date;
@@ -369,7 +380,7 @@ export interface WebboardComment {
   id: string;
   postId: string;
   userId: string;
-  authorDisplayName: string; // Renamed from username
+  authorDisplayName: string;
   ownerId?: string;
   authorPhoto?: string;
   text: string;
@@ -414,6 +425,12 @@ export const MODERATOR_BADGE_DETAILS: UserLevel = {
   name: "👮 ผู้ตรวจการ",
   colorClass: 'bg-blue-400 dark:bg-blue-500/70',
   textColorClass: 'text-blue-900 dark:text-blue-50',
+};
+
+export const ACTIVITY_BADGE_DETAILS: UserLevel = { // For "🔥 ขยันใช้เว็บ"
+    name: "🔥 ขยันใช้เว็บ",
+    colorClass: 'bg-orange-200 dark:bg-orange-600/40',
+    textColorClass: 'text-orange-800 dark:text-orange-200',
 };
 
 export interface EnrichedWebboardPost extends WebboardPost {

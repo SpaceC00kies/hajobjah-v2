@@ -1,27 +1,32 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import type { WebboardPost } from '../types';
-import { WebboardCategory } from '../types'; // Import WebboardCategory
+import type { WebboardPost, User } from '../types'; // Added User
+import { WebboardCategory } from '../types'; 
 import { Button } from './Button';
 import { Modal } from './Modal';
-import { containsBlacklistedWords } from '../App'; // Import blacklist checker
+import { containsBlacklistedWords } from '../App'; 
 
 interface WebboardPostCreateFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => void;
   editingPost?: WebboardPost | null; 
+  currentUser: User | null; // Added currentUser
+  // Utility function to check limits, passed from App.tsx
+  checkWebboardPostLimits: (user: User) => { canPost: boolean; message?: string }; 
 }
 
 type FormDataType = {
   title: string;
   body: string;
-  category: WebboardCategory | ''; // Allow empty string for initial unselected state
+  category: WebboardCategory | ''; 
   image?: string; 
   imagePreviewUrl?: string; 
 };
 
 type FormErrorsType = Partial<Record<keyof Omit<FormDataType, 'imagePreviewUrl'>, string>>;
+
+const MAX_POST_CHARS = 2000;
 
 const WebboardRules: React.FC = () => {
   return (
@@ -51,32 +56,52 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
   onClose,
   onSubmit,
   editingPost,
+  currentUser,
+  checkWebboardPostLimits,
 }) => {
   const [formData, setFormData] = useState<FormDataType>({ title: '', body: '', category: '', image: undefined, imagePreviewUrl: undefined });
   const [errors, setErrors] = useState<FormErrorsType>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [limitMessage, setLimitMessage] = useState<string | null>(null);
+  const [canSubmitForm, setCanSubmitForm] = useState(true);
 
   useEffect(() => {
-    if (isOpen && editingPost) {
-      setFormData({
-        title: editingPost.title,
-        body: editingPost.body,
-        category: editingPost.category,
-        image: editingPost.image, 
-        imagePreviewUrl: editingPost.image, 
-      });
-      setErrors({});
-    } else if (isOpen && !editingPost) {
-      setFormData({ title: '', body: '', category: '', image: undefined, imagePreviewUrl: undefined });
-      setErrors({});
+    if (isOpen) {
+        setErrors({});
+        if (editingPost) {
+            setFormData({
+                title: editingPost.title,
+                body: editingPost.body,
+                category: editingPost.category,
+                image: editingPost.image, 
+                imagePreviewUrl: editingPost.image, 
+            });
+            setLimitMessage(null); // No limit checks for editing
+            setCanSubmitForm(true);
+        } else {
+            setFormData({ title: '', body: '', category: '', image: undefined, imagePreviewUrl: undefined });
+            if (currentUser) {
+                const limits = checkWebboardPostLimits(currentUser);
+                setLimitMessage(limits.message || null);
+                setCanSubmitForm(limits.canPost);
+            } else {
+                setLimitMessage("กรุณาเข้าสู่ระบบเพื่อสร้างกระทู้");
+                setCanSubmitForm(false);
+            }
+        }
     }
-  }, [isOpen, editingPost]);
+  }, [isOpen, editingPost, currentUser, checkWebboardPostLimits]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name as keyof FormErrorsType]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
+    }
+    if (name === 'body' && value.length > MAX_POST_CHARS) {
+        setErrors(prev => ({ ...prev, body: `เนื้อหาต้องไม่เกิน ${MAX_POST_CHARS} ตัวอักษร` }));
+    } else if (name === 'body' && errors.body && errors.body.includes('ตัวอักษร')) {
+        setErrors(prev => ({ ...prev, body: undefined }));
     }
   };
 
@@ -121,6 +146,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
 
     if (!formData.body.trim()) newErrors.body = 'กรุณากรอกเนื้อหากระทู้';
     else if (containsBlacklistedWords(formData.body)) newErrors.body = 'เนื้อหากระทู้มีคำที่ไม่เหมาะสม โปรดแก้ไข';
+    else if (formData.body.length > MAX_POST_CHARS) newErrors.body = `เนื้อหาต้องไม่เกิน ${MAX_POST_CHARS} ตัวอักษร (${formData.body.length}/${MAX_POST_CHARS})`;
     
     if (!formData.category) newErrors.category = 'กรุณาเลือกหมวดหมู่ของโพสต์';
     
@@ -133,9 +159,13 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canSubmitForm && !editingPost) {
+        alert(limitMessage || "ไม่สามารถโพสต์ได้ในขณะนี้");
+        return;
+    }
     if (!validateForm()) return;
     const { imagePreviewUrl, category, ...dataToSubmitRest } = formData; 
-    if (category === '') { // Should be caught by validation, but as a safeguard
+    if (category === '') { 
         setErrors(prev => ({ ...prev, category: 'กรุณาเลือกหมวดหมู่ของโพสต์' }));
         return;
     }
@@ -148,10 +178,20 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
   const inputErrorStyle = "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-2 focus:ring-red-500 focus:ring-opacity-70 dark:focus:ring-red-400 dark:focus:ring-opacity-70";
   const selectBaseStyle = `${inputBaseStyle} appearance-none`;
 
+  const charsLeft = MAX_POST_CHARS - formData.body.length;
+  const charCountColor = charsLeft < 0 ? 'text-red-500 dark:text-red-400' : charsLeft < MAX_POST_CHARS * 0.1 ? 'text-amber-600 dark:text-amber-400' : 'text-neutral-medium dark:text-dark-textMuted';
+
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={editingPost ? '📝 แก้ไขกระทู้' : '💬 สร้างกระทู้ใหม่'}>
       <form onSubmit={handleSubmit} className="space-y-4">
+        {!editingPost && limitMessage && (
+          <div className={`mb-4 p-3 text-center text-sm font-sans rounded-md 
+            ${canSubmitForm ? 'bg-sky-100 dark:bg-sky-700/30 text-sky-700 dark:text-sky-200 border border-sky-300 dark:border-sky-500' 
+                            : 'bg-yellow-100 dark:bg-yellow-700/30 text-yellow-700 dark:text-yellow-200 border border-yellow-300 dark:border-yellow-500'}`}>
+            {limitMessage}
+          </div>
+        )}
         <div>
           <label htmlFor="postTitle" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
             หัวข้อกระทู้ <span className="text-red-500 dark:text-red-400">*</span>
@@ -164,14 +204,20 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
             onChange={handleChange}
             className={`${inputBaseStyle} ${errors.title ? inputErrorStyle : inputFocusStyle}`}
             placeholder="เช่น มีใครเคยลอง... / ขอคำแนะนำเรื่อง..."
+            disabled={!canSubmitForm && !editingPost}
           />
           {errors.title && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.title}</p>}
         </div>
 
         <div>
-          <label htmlFor="postBody" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
-            เนื้อหากระทู้ <span className="text-red-500 dark:text-red-400">*</span>
-          </label>
+            <div className="flex justify-between items-center mb-1">
+                <label htmlFor="postBody" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text">
+                    เนื้อหากระทู้ <span className="text-red-500 dark:text-red-400">*</span>
+                </label>
+                <span className={`text-xs font-sans ${charCountColor}`}>
+                    {formData.body.length}/{MAX_POST_CHARS}
+                </span>
+            </div>
           <textarea
             id="postBody"
             name="body"
@@ -180,6 +226,8 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
             rows={6}
             className={`${inputBaseStyle} ${errors.body ? inputErrorStyle : inputFocusStyle}`}
             placeholder="เล่าเรื่องราว ถามคำถาม หรือแบ่งปันประสบการณ์ของคุณที่นี่..."
+            disabled={!canSubmitForm && !editingPost}
+            maxLength={MAX_POST_CHARS + 50} // Allow slight overtyping for UX, validate on submit
           />
           {errors.body && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.body}</p>}
         </div>
@@ -194,6 +242,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
             value={formData.category}
             onChange={handleChange}
             className={`${selectBaseStyle} ${errors.category ? inputErrorStyle : inputFocusStyle}`}
+            disabled={!canSubmitForm && !editingPost}
           >
             <option value="" disabled>-- กรุณาเลือกหมวดหมู่ --</option>
             {Object.values(WebboardCategory).map(cat => (
@@ -219,6 +268,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
                         file:bg-neutral-light/30 dark:file:bg-dark-inputBg/30 file:text-sm file:font-semibold file:text-neutral-medium dark:file:text-dark-textMuted
                         hover:file:bg-neutral-light/70 dark:hover:file:bg-dark-inputBg/50 hover:file:border-neutral-DEFAULT dark:hover:file:border-dark-border
                         ${errors.image ? inputErrorStyle : inputFocusStyle}`}
+             disabled={!canSubmitForm && !editingPost}
           />
           {errors.image && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.image}</p>}
           {formData.imagePreviewUrl && (
@@ -229,6 +279,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
                 onClick={handleRemoveImage} 
                 className="absolute top-1 right-1 bg-red-500/70 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs p-0 m-0 shadow"
                 aria-label="ลบรูปภาพ"
+                disabled={!canSubmitForm && !editingPost}
               >
                 &times;
               </Button>
@@ -242,8 +293,8 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
           <Button type="button" onClick={onClose} variant="outline" colorScheme="neutral" size="md">
             ยกเลิก
           </Button>
-          <Button type="submit" variant="login" size="md">
-            {editingPost ? '💾 บันทึกการแก้ไข' : '🚀 โพสต์กระทู้'}
+          <Button type="submit" variant="login" size="md" disabled={!canSubmitForm && !editingPost}>
+            {editingPost ? '💾 บันทึกการแก้ไข' : (canSubmitForm ? '🚀 โพสต์กระทู้' : 'ไม่สามารถโพสต์')}
           </Button>
         </div>
       </form>

@@ -1,6 +1,7 @@
+
 import React from 'react';
 import type { EnrichedWebboardPost, User, UserLevel } from '../types';
-import { UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES } // Import UserRole, View, WebboardCategory, and WEBBOARD_CATEGORY_STYLES
+import { UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES } 
 from '../types';
 import { Button } from './Button';
 
@@ -12,7 +13,8 @@ interface WebboardPostCardProps {
   onDeletePost?: (postId: string) => void;
   onPinPost?: (postId: string) => void;
   onEditPost?: (post: EnrichedWebboardPost) => void;
-  requestLoginForAction: (view: View, payload?: any) => void; // Added prop
+  requestLoginForAction: (view: View, payload?: any) => void; 
+  onNavigateToPublicProfile: (userId: string) => void; // New prop
 }
 
 export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
@@ -23,7 +25,8 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
   onDeletePost,
   onPinPost,
   onEditPost,
-  requestLoginForAction, // Destructure prop
+  requestLoginForAction, 
+  onNavigateToPublicProfile, // Destructure new prop
 }) => {
   const isAuthor = currentUser?.id === post.userId;
   const isAdmin = currentUser?.role === UserRole.Admin;
@@ -49,8 +52,6 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
     } else if (typeof dateInput === 'string') {
       dateObject = new Date(dateInput);
     } else {
-      // Fallback for unexpected types, though Firestore Timestamps should be converted to string/Date upstream.
-      // Firestore Timestamps have a toDate() method.
       if (typeof dateInput === 'object' && dateInput && 'toDate' in dateInput && typeof (dateInput as any).toDate === 'function') {
         dateObject = (dateInput as any).toDate();
       } else {
@@ -102,7 +103,15 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
       )}
       <div className="flex items-center mb-2">
         <div className="flex-grow flex items-center">
-          <span className="text-xs sm:text-sm font-semibold text-neutral-dark dark:text-dark-textMuted">@{post.authorDisplayName}</span>
+          <span 
+            className="text-xs sm:text-sm font-semibold text-neutral-dark dark:text-dark-textMuted cursor-pointer hover:underline"
+            onClick={() => onNavigateToPublicProfile(post.userId)}
+            role="link"
+            tabIndex={0}
+            onKeyPress={(e) => e.key === 'Enter' && onNavigateToPublicProfile(post.userId)}
+          >
+            @{post.authorDisplayName}
+          </span>
           <span className="mx-1 text-xs text-neutral-500 dark:text-neutral-400">·</span>
           <span className="text-xs text-neutral-500 dark:text-neutral-400" title={post.authorLevel.name}>{post.authorLevel.name}</span>
         </div>

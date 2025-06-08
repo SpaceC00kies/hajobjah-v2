@@ -4,6 +4,7 @@ import type { Job, User } from '../types';
 import { View, JobCategory, JOB_CATEGORY_STYLES } from '../types';
 import { Button } from './Button';
 import { Modal } from './Modal';
+import { isDateInPast } from '../App'; // Import isDateInPast
 
 interface JobCardProps {
   job: Job;
@@ -16,14 +17,12 @@ const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
   if (dateInput === null || dateInput === undefined) {
     return null;
   }
-
   let dateObject: Date;
   if (dateInput instanceof Date) {
     dateObject = dateInput;
   } else if (typeof dateInput === 'string') {
     dateObject = new Date(dateInput);
   } else {
-    // Fallback for unexpected types
     if (typeof dateInput === 'object' && dateInput && 'toDate' in dateInput && typeof (dateInput as any).toDate === 'function') {
       dateObject = (dateInput as any).toDate();
     } else {
@@ -31,11 +30,9 @@ const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
       return "Invalid date input";
     }
   }
-
   if (isNaN(dateObject.getTime())) {
-    return null; // Or "Invalid Date"
+    return null; 
   }
-
   try {
     return dateObject.toLocaleDateString('th-TH', {
       day: 'numeric',
@@ -85,8 +82,9 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
 
   const postedAtDate = job.postedAt ? (job.postedAt instanceof Date ? job.postedAt : new Date(job.postedAt as string)) : null;
   const formattedPostedAt = postedAtDate && !isNaN(postedAtDate.getTime()) ? formatDateDisplay(postedAtDate) : "Processing date...";
-
-  const isExpired = !job.isHired && postedAtDate && !isNaN(postedAtDate.getTime()) ? (new Date().getTime() - postedAtDate.getTime()) / (1000 * 60 * 60 * 24) > 30 : false;
+  
+  // Determine if the job is expired
+  const jobIsTrulyExpired = job.isExpired || (job.expiresAt ? isDateInPast(job.expiresAt) : false);
 
 
   let dateNeededDisplay = '';
@@ -120,10 +118,17 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
             </p>
           </div>
         )}
-         {job.isHired && (
+         {job.isHired && !jobIsTrulyExpired && ( // Show hired only if not also expired
            <div className="mb-3 p-2 bg-green-100 dark:bg-green-700/30 border border-green-300 dark:border-green-500/50 rounded-md text-center">
             <p className="text-sm font-sans font-medium text-green-700 dark:text-green-300">
               ✅ งานนี้มีคนทำแล้ว
+            </p>
+          </div>
+        )}
+        {jobIsTrulyExpired && (
+          <div className="mb-3 p-2 bg-red-200 dark:bg-red-700/40 border border-red-400 dark:border-red-600/60 rounded-md text-center">
+            <p className="text-sm font-sans font-medium text-red-800 dark:text-red-200">
+              ⛔ หมดอายุแล้ว
             </p>
           </div>
         )}
@@ -147,23 +152,14 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
           </p>
         )}
 
-
         <div className="space-y-2 text-neutral-dark dark:text-dark-textMuted mb-4 flex-grow font-normal">
           <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📍 สถานที่:</strong> {job.location}</p>
-
-          {dateNeededDisplay && (
-            <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">🗓️ วันที่ต้องการ:</strong> {dateNeededDisplay}</p>
-          )}
-          {timeNeededDisplay && (
-            <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">⏰ เวลา:</strong> {timeNeededDisplay}</p>
-          )}
-          {job.dateTime && (!dateNeededDisplay || !timeNeededDisplay) && (
-             <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📅 วันที่/เวลา (เพิ่มเติม):</strong> {job.dateTime}</p>
-          )}
-
+          {dateNeededDisplay && (<p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">🗓️ วันที่ต้องการ:</strong> {dateNeededDisplay}</p>)}
+          {timeNeededDisplay && (<p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">⏰ เวลา:</strong> {timeNeededDisplay}</p>)}
+          {job.dateTime && (!dateNeededDisplay || !timeNeededDisplay) && (<p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📅 วันที่/เวลา (เพิ่มเติม):</strong> {job.dateTime}</p>)}
           <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">💰 ค่าจ้าง:</strong> {job.payment}</p>
 
-          {currentUser && (
+          {currentUser && !jobIsTrulyExpired && (
             useBoxStyleForContact ? (
               <div className="mt-2">
                 <strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📞 ช่องทางติดต่อ:</strong>
@@ -177,117 +173,4 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
           )}
 
           {(ageRangeText || job.preferredGender || job.desiredEducationLevel) && (
-            <div className="pt-2 mt-2 border-t border-neutral-DEFAULT/50 dark:border-dark-border/30">
-              <p className="text-sm font-sans font-semibold text-neutral-dark dark:text-dark-text mb-1">คุณสมบัติผู้ช่วยที่ต้องการ:</p>
-              {ageRangeText && (
-                <p className="text-sm font-serif"><strong className="font-sans font-medium">ช่วงอายุ:</strong> {ageRangeText}</p>
-              )}
-              {job.preferredGender && (
-                <p className="text-sm font-serif"><strong className="font-sans font-medium">เพศ:</strong> {job.preferredGender}</p>
-              )}
-              {job.desiredEducationLevel && (
-                <p className="text-sm font-serif"><strong className="font-sans font-medium">ระดับการศึกษา:</strong> {job.desiredEducationLevel}</p>
-              )}
-            </div>
-          )}
-
-          <div className="mt-2">
-            <strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📝 รายละเอียดงาน:</strong>
-            <div className="mt-1 text-sm font-serif bg-neutral-light dark:bg-dark-inputBg dark:text-dark-text p-3 rounded-md whitespace-pre-wrap h-24 overflow-y-auto font-normal border border-neutral-DEFAULT/50 dark:border-dark-border/50">
-              {!currentUser && job.description.length > 150 ? (
-                <>
-                  {descriptionPreview}...
-                  <button
-                    onClick={() => requestLoginForAction(View.FindJobs, { focusOnPostId: job.id, type: 'job' })}
-                    className="text-primary dark:text-dark-primary-DEFAULT text-sm underline ml-1 font-sans"
-                    aria-label="เข้าสู่ระบบเพื่อดูรายละเอียดงานเพิ่มเติม"
-                  >
-                    เข้าสู่ระบบเพื่อดูเพิ่มเติม
-                  </button>
-                </>
-              ) : (
-                job.description || 'ไม่มีรายละเอียดเพิ่มเติม'
-              )}
-            </div>
-          </div>
-
-          {job.authorDisplayName && (
-            <p className="text-xs font-sans sm:text-sm text-neutral-medium dark:text-dark-textMuted mt-3">
-              📎 โพสต์โดย: {job.authorDisplayName}
-            </p>
-          )}
-
-          {formattedPostedAt && (
-            <p className="text-xs font-sans sm:text-sm text-neutral-medium dark:text-dark-textMuted mt-1 pt-2 border-t border-neutral-DEFAULT/30 dark:border-dark-border/20">
-              🕒 โพสต์เมื่อ: {formattedPostedAt}
-            </p>
-          )}
-        </div>
-        {isExpired && (
-          <div className="text-center mt-3 mb-2">
-            <span className="bg-red-100 text-red-700 dark:bg-red-700/30 dark:text-red-300 text-xs sm:text-sm px-3 py-1.5 rounded-full font-sans font-medium inline-block">
-              ⛔ โพสต์นี้เกิน 1 เดือนแล้ว
-            </span>
-          </div>
-        )}
-        {currentUser ? (
-            <Button
-            onClick={handleInterest}
-            variant="primary"
-            size="md"
-            className="w-full mt-auto"
-            disabled={job.isHired}
-            >
-            {job.isHired ? '✅ มีคนทำแล้ว' : '📨 สนใจงานนี้'}
-            </Button>
-        ) : (
-            <Button
-                onClick={() => requestLoginForAction(View.FindJobs, { intent: 'contactJob', postId: job.id })}
-                variant="primary"
-                size="md"
-                className="w-full mt-auto"
-            >
-                เข้าสู่ระบบเพื่อติดต่อ
-            </Button>
-        )}
-      </div>
-
-      {currentUser && (
-        <>
-            <Modal isOpen={isWarningModalOpen} onClose={closeWarningModal} title="⚠️ โปรดระวังมิจฉาชีพ">
-            <div className="bg-amber-50 dark:bg-amber-700/20 border border-amber-300 dark:border-amber-600/40 p-4 rounded-md my-2 text-neutral-dark dark:text-dark-textMuted font-serif">
-                <p className="mb-2">โปรดใช้ความระมัดระวัง <strong className="font-bold text-red-700 dark:text-red-400">ห้ามโอนเงินก่อนเริ่มงาน</strong> และควรนัดเจอในที่ปลอดภัย</p>
-                <p>
-                หาจ๊อบจ้าเป็นเพียงพื้นที่ให้คนเจอกัน โปรดใช้วิจารณญาณในการติดต่อ ฉบับเต็มโปรดอ่านที่หน้า{" "}
-                <button
-                    onClick={() => {
-                    closeWarningModal();
-                    navigateTo(View.Safety);
-                    }}
-                    className="font-serif font-normal underline text-neutral-dark dark:text-dark-textMuted hover:text-primary dark:hover:text-dark-primary-DEFAULT"
-                >
-                    "โปรดอ่านเพื่อความปลอดภัย"
-                </button>
-                </p>
-            </div>
-            <Button onClick={handleProceedToContact} variant="accent" className="w-full mt-4">
-                เข้าใจแล้ว ดำเนินการต่อ
-            </Button>
-            </Modal>
-
-            <Modal isOpen={isInterestModalOpen} onClose={closeInterestModal} title="ขอบคุณที่สนใจงานนี้!">
-            <div className="text-neutral-dark dark:text-dark-textMuted font-serif p-4 rounded-md">
-                <p className="mb-4">กรุณาติดต่อผู้ประกาศโดยตรงตามข้อมูลด้านล่างเพื่อสอบถามรายละเอียดเพิ่มเติม หรือนัดสัมภาษณ์</p>
-                <div className="bg-neutral-light dark:bg-dark-inputBg p-4 rounded-md border border-neutral-DEFAULT dark:border-dark-border whitespace-pre-wrap font-sans">
-                <p>{job.contact}</p>
-                </div>
-                <Button onClick={closeInterestModal} variant="primary" className="w-full mt-6">
-                ปิดหน้าต่างนี้
-                </Button>
-            </div>
-            </Modal>
-        </>
-      )}
-    </>
-  );
-};
+            <div className="pt-2 mt-2 border-t border-neutral-DEFAULT/50 dark:border

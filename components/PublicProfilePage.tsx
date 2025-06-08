@@ -1,9 +1,9 @@
 
 import React from 'react';
 import type { User, HelperProfile } from '../types'; 
-import { HelperEducationLevelOption, GenderOption } from '../types';
+import { HelperEducationLevelOption, GenderOption, ACTIVITY_BADGE_DETAILS } from '../types'; // Added ACTIVITY_BADGE_DETAILS
 import { Button } from './Button';
-import { UserLevelBadge } from './UserLevelBadge'; // Import UserLevelBadge
+import { UserLevelBadge } from './UserLevelBadge'; 
 
 interface PublicProfilePageProps {
   user: User; 
@@ -44,9 +44,11 @@ const TrustBadgesPublicProfile: React.FC<{ user: User, helperProfile?: HelperPro
       {user.profileComplete && (
         <span className="bg-green-100 text-green-700 dark:bg-green-700/30 dark:text-green-200 text-sm px-2.5 py-1 rounded-full font-medium">🟢 โปรไฟล์ครบถ้วน</span>
       )}
-      {/* Removed interestedCount badge from here as per user request */}
       {helperProfile?.isSuspicious && ( 
         <span className="bg-red-100 text-red-700 dark:bg-red-700/30 dark:text-red-200 text-sm px-2.5 py-1 rounded-full font-medium">🔺 ระวังผู้ใช้นี้</span>
+      )}
+      {user.activityBadge?.isActive && (
+        <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="md" />
       )}
     </div>
   );
@@ -103,14 +105,22 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, help
           <h2 className="text-3xl font-sans font-bold text-secondary-hover dark:text-dark-secondary-hover mt-4">
             {user.publicDisplayName}
           </h2>
-          {/* Removed @username display */}
           {user.userLevel && <UserLevelBadge level={user.userLevel} size="md" />}
           <TrustBadgesPublicProfile user={user} helperProfile={helperProfile} />
+           {user.activityBadge?.isActive && (
+            <div className="mt-2 p-2 bg-orange-50 dark:bg-orange-700/20 border border-orange-200 dark:border-orange-500/40 rounded-md text-xs font-sans">
+                <p className="font-medium text-orange-600 dark:text-orange-300">สิทธิพิเศษสำหรับผู้ใช้ "🔥 ขยันใช้เว็บ":</p>
+                <ul className="list-disc list-inside text-left ml-4 text-orange-500 dark:text-orange-400">
+                    <li>โพสต์กระทู้ได้ 4 ครั้ง/วัน (ปกติ 3)</li>
+                    <li>มีโปรไฟล์ผู้ช่วยได้ 2 โปรไฟล์พร้อมกัน (ปกติ 1)</li>
+                </ul>
+            </div>
+          )}
         </div>
 
         <div className="mb-6 pt-4 border-t border-neutral-DEFAULT/30 dark:border-dark-border/30">
             <h3 className="text-xl font-sans font-semibold text-neutral-dark dark:text-dark-text mb-3">ข้อมูลส่วนตัว:</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0"> {/* Reduced gap-y for tighter packing */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0"> 
                 {renderInfoItem("ชื่อเล่น", user.nickname)}
                 {renderInfoItem("ชื่อจริง", user.firstName)}
                 {renderInfoItem("นามสกุล", user.lastName)}
@@ -154,12 +164,7 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, help
           ) : (
              <p className="font-serif text-neutral-medium dark:text-dark-textMuted p-3 bg-neutral-light dark:bg-dark-inputBg/50 rounded-md text-center">
                 <button 
-                    onClick={() => {
-                        // This assumes onBack typically navigates to a view that might prompt login
-                        // Or, we might need a specific login prompt here.
-                        // For now, using onBack as it's the existing prop.
-                        onBack(); 
-                    }} 
+                    onClick={onBack} 
                     className="font-sans text-secondary dark:text-dark-secondary-DEFAULT hover:underline"
                 >
                     เข้าสู่ระบบ

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { EnrichedWebboardPost, EnrichedWebboardComment, User } from '../types';
 import { USER_LEVELS, UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES } // Import UserRole, View, WebboardCategory, and WEBBOARD_CATEGORY_STYLES
@@ -20,6 +21,8 @@ interface WebboardPostDetailProps {
   onDeleteComment?: (commentId: string) => void;
   onUpdateComment?: (commentId: string, newText: string) => void;
   requestLoginForAction: (view: View, payload?: any) => void; 
+  onNavigateToPublicProfile: (userId: string) => void;
+  checkWebboardCommentLimits: (user: User) => { canPost: boolean; message?: string };
 }
 
 const FallbackAvatarLarge: React.FC<{ name?: string, photo?: string, size?: string, className?: string }> = ({ name, photo, size = "w-12 h-12", className = "" }) => {
@@ -47,6 +50,8 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
   onDeleteComment,
   onUpdateComment,
   requestLoginForAction, 
+  onNavigateToPublicProfile,
+  checkWebboardCommentLimits,
 }) => {
   const isAuthor = currentUser?.id === post.userId;
   const isAdmin = currentUser?.role === UserRole.Admin;
@@ -214,6 +219,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
                             currentUser={currentUser} 
                             onDeleteComment={onDeleteComment}
                             onUpdateComment={onUpdateComment}
+                            onNavigateToPublicProfile={onNavigateToPublicProfile}
                         />
                     );
             })}
@@ -223,11 +229,10 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
         )}
         <WebboardCommentForm 
             postId={post.id} 
-            currentUserPhoto={currentUser?.photo}
-            currentUsername={currentUser?.username}
+            currentUser={currentUser}
             onAddComment={onAddComment} 
-            isLoggedIn={!!currentUser}
             requestLoginForAction={requestLoginForAction} 
+            checkWebboardCommentLimits={checkWebboardCommentLimits}
         />
       </div>
     </div>
