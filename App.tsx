@@ -15,7 +15,7 @@ import {
   updateHelperProfileService,
   deleteHelperProfileService,
   subscribeToHelperProfilesService,
-  bumpHelperProfileService, // Added bump service
+  bumpHelperProfileService, 
   addWebboardPostService,
   updateWebboardPostService,
   deleteWebboardPostService,
@@ -32,7 +32,7 @@ import {
   setUserRoleService,
   toggleItemFlagService,
   logHelperContactInteractionService,
-  getUserDocument, // To fetch user for limit checks
+  getUserDocument, 
 } from './services/firebaseService'; 
 import type { Job, HelperProfile, User, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge } from './types';
 import type { AdminItem as AdminItemType } from './components/AdminDashboard';
@@ -87,9 +87,9 @@ export const calculateDaysRemaining = (targetDateString?: string | Date): number
 };
 
 export const isDateInPast = (dateString?: string | Date): boolean => {
-    if (!dateString) return false; // No date means not in past (or handle as error)
+    if (!dateString) return false; 
     const dateToCheck = new Date(dateString);
-    if (isNaN(dateToCheck.getTime())) { // Invalid date string
+    if (isNaN(dateToCheck.getTime())) { 
         return false; 
     }
     return dateToCheck < new Date();
@@ -102,12 +102,12 @@ const BUMP_COOLDOWN_DAYS = 30;
 const MAX_ACTIVE_JOBS_NORMAL = 2;
 const MAX_ACTIVE_HELPER_PROFILES_NORMAL = 1;
 const MAX_WEBBOARD_POSTS_DAILY_NORMAL = 3;
-const MAX_WEBBOARD_COMMENTS_HOURLY = 10;
+// const MAX_WEBBOARD_COMMENTS_HOURLY = 10; // Removed
 
 // For users with "🔥 ขยันใช้เว็บ" badge
 const MAX_ACTIVE_JOBS_BADGE = 4;
 const MAX_ACTIVE_HELPER_PROFILES_BADGE = 2;
-const MAX_WEBBOARD_POSTS_DAILY_BADGE = 4; // Increased from 3
+const MAX_WEBBOARD_POSTS_DAILY_BADGE = 4; 
 
 export const checkProfileCompleteness = (user: User): boolean => {
   if (!user) return false;
@@ -118,7 +118,6 @@ export const checkProfileCompleteness = (user: User): boolean => {
     user.favoriteMusic?.trim() || user.favoriteBook?.trim() || user.favoriteMovie?.trim() ||
     user.hobbies?.trim() || user.favoriteFood?.trim() || user.dislikedThing?.trim() || user.introSentence?.trim()
   );
-  // Core requirements for completeness regarding posting jobs/profiles
   const hasCoreInfo = !!user.gender && user.gender !== GenderOption.NotSpecified &&
                       !!user.birthdate &&
                       !!user.educationLevel && user.educationLevel !== HelperEducationLevelOption.NotStated;
@@ -272,7 +271,7 @@ const App: React.FC = () => {
               lastJobPostDate: new Date(0).toISOString(),
               lastHelperProfileDate: new Date(0).toISOString(),
               dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() },
-              hourlyComments: { count: 0, resetTime: new Date(0).toISOString() },
+              hourlyComments: { count: 0, resetTime: new Date(0).toISOString() }, // Retained for structure but not used for limit
               lastBumpDates: {},
             };
 
@@ -286,14 +285,14 @@ const App: React.FC = () => {
                 ...u,
                 userLevel: calculateUserLevel(u.id, webboardPosts, webboardComments),
                 profileComplete: checkProfileCompleteness(u),
-                postingLimits: { // Ensure postingLimits exists and has all fields
+                postingLimits: { 
                     ...defaultPostingLimits,
                     ...(u.postingLimits || {}),
                     dailyWebboardPosts: {
                       ...defaultPostingLimits.dailyWebboardPosts,
                       ...(u.postingLimits?.dailyWebboardPosts || {})
                     },
-                    hourlyComments: {
+                    hourlyComments: { // Keep structure but don't enforce limits based on it
                       ...defaultPostingLimits.hourlyComments,
                       ...(u.postingLimits?.hourlyComments || {})
                     }
@@ -538,19 +537,7 @@ const App: React.FC = () => {
   };
 
   const checkWebboardCommentLimits = (user: User): { canPost: boolean; message?: string } => {
-    const now = new Date();
-    const currentHourStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 0, 0, 0);
-    const userPostingLimits = user.postingLimits;
-    const resetTime = userPostingLimits.hourlyComments.resetTime ? new Date(userPostingLimits.hourlyComments.resetTime as string) : null;
-
-    let currentHourlyCount = userPostingLimits.hourlyComments.count || 0;
-    if (!resetTime || resetTime.getTime() !== currentHourStart.getTime()) {
-        currentHourlyCount = 0; 
-    }
-
-    if (currentHourlyCount >= MAX_WEBBOARD_COMMENTS_HOURLY) {
-        return { canPost: false, message: `คุณแสดงความคิดเห็นครบ ${MAX_WEBBOARD_COMMENTS_HOURLY} ครั้งในชั่วโมงนี้แล้ว` };
-    }
+    // Hourly limit removed, always allow posting if other conditions met.
     return { canPost: true };
   };
 
@@ -787,11 +774,12 @@ const App: React.FC = () => {
 
   const handleAddWebboardComment = async (postId: string, text: string) => {
     if (!currentUser) { requestLoginForAction(View.Webboard, { action: 'comment', postId: postId }); return; }
-    const limitCheck = checkWebboardCommentLimits(currentUser);
-    if (!limitCheck.canPost) {
-      alert(limitCheck.message);
-      return;
-    }
+    // Hourly limit check removed
+    // const limitCheck = checkWebboardCommentLimits(currentUser);
+    // if (!limitCheck.canPost) {
+    //   alert(limitCheck.message);
+    //   return;
+    // }
     if (containsBlacklistedWords(text)) { alert('เนื้อหาคอมเมนต์มีคำที่ไม่เหมาะสม'); return; }
     try {
         await addWebboardCommentService(postId, text, {userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, photo: currentUser.photo});
@@ -1230,7 +1218,7 @@ const App: React.FC = () => {
       requestLoginForAction={requestLoginForAction} 
       onNavigateToPublicProfile={handleNavigateToPublicProfile}
       checkWebboardPostLimits={checkWebboardPostLimits}
-      checkWebboardCommentLimits={checkWebboardCommentLimits}
+      checkWebboardCommentLimits={checkWebboardCommentLimits} // Prop remains for structure, but function itself is simplified
     />);};
   const renderPasswordResetPage = () => <PasswordResetPage navigateTo={navigateTo} />; 
 

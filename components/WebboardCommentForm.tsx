@@ -5,10 +5,10 @@ import { View, User } from '../types'; // Import User
 
 interface WebboardCommentFormProps {
   postId: string;
-  currentUser: User | null; // Added currentUser
+  currentUser: User | null; 
   onAddComment: (postId: string, text: string) => void;
   requestLoginForAction: (view: View, payload?: any) => void; 
-  // Utility function from App.tsx to check comment limits
+  // checkWebboardCommentLimits prop is no longer used for limiting, but kept for structural consistency if App.tsx still passes it.
   checkWebboardCommentLimits: (user: User) => { canPost: boolean; message?: string };
 }
 
@@ -24,66 +24,30 @@ const FallbackAvatarCommentForm: React.FC<{ name?: string, photo?: string, size?
     );
   };
 
-const COMMENT_COOLDOWN_SECONDS = 30;
+// COMMENT_COOLDOWN_SECONDS removed
 
 export const WebboardCommentForm: React.FC<WebboardCommentFormProps> = ({ postId, currentUser, onAddComment, requestLoginForAction, checkWebboardCommentLimits }) => {
   const [commentText, setCommentText] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [isCoolingDown, setIsCoolingDown] = useState(false);
-  const [cooldownTimeLeft, setCooldownTimeLeft] = useState(0);
-  const [hourlyLimitMessage, setHourlyLimitMessage] = useState<string | null>(null);
-  const [canPostHourly, setCanPostHourly] = useState(true);
+  // Removed state: isCoolingDown, cooldownTimeLeft, hourlyLimitMessage, canPostHourly
 
-  const getCooldownStorageKey = () => `lastCommentTime_${postId}`;
+  // getCooldownStorageKey removed
 
   useEffect(() => {
     if (!currentUser) {
-        setIsCoolingDown(false);
-        setCooldownTimeLeft(0);
-        setHourlyLimitMessage(null);
-        setCanPostHourly(true); // Allow showing login prompt
-        return;
+      // No specific logic needed here now for cooldown/limits when logged out
+      return;
     }
+    // Hourly limit check from props is not actively used to block posting anymore
+    // but the prop might still be passed.
+    // const hourlyLimits = checkWebboardCommentLimits(currentUser);
+    // setCanPostHourly(hourlyLimits.canPost);
+    // setHourlyLimitMessage(hourlyLimits.message || null);
 
-    // Check hourly limit first
-    const hourlyLimits = checkWebboardCommentLimits(currentUser);
-    setCanPostHourly(hourlyLimits.canPost);
-    setHourlyLimitMessage(hourlyLimits.message || null);
-    
-    if (!hourlyLimits.canPost) {
-        setIsCoolingDown(false); // Don't show per-post cooldown if hourly limit hit
-        setCooldownTimeLeft(0);
-        return;
-    }
+    // Per-post cooldown logic removed
+  }, [postId, currentUser, checkWebboardCommentLimits]);
 
-    // Check per-post cooldown if hourly limit allows
-    const storageKey = getCooldownStorageKey();
-    const lastCommentTime = localStorage.getItem(storageKey);
-    if (lastCommentTime) {
-      const timeSinceLastComment = (Date.now() - parseInt(lastCommentTime, 10)) / 1000;
-      if (timeSinceLastComment < COMMENT_COOLDOWN_SECONDS) {
-        setIsCoolingDown(true);
-        setCooldownTimeLeft(Math.ceil(COMMENT_COOLDOWN_SECONDS - timeSinceLastComment));
-      } else {
-        setIsCoolingDown(false);
-      }
-    } else {
-        setIsCoolingDown(false);
-    }
-  }, [postId, currentUser, checkWebboardCommentLimits, hourlyLimitMessage]); // Re-check if hourlyLimitMessage changes (e.g., after an hour passes)
-
-  useEffect(() => {
-    let timer: number | undefined;
-    if (isCoolingDown && cooldownTimeLeft > 0) {
-      timer = window.setTimeout(() => {
-        setCooldownTimeLeft(prev => prev - 1);
-      }, 1000);
-    } else if (isCoolingDown && cooldownTimeLeft <= 0) {
-      setIsCoolingDown(false);
-    }
-    return () => clearTimeout(timer);
-  }, [isCoolingDown, cooldownTimeLeft]);
-
+  // Timer useEffect for cooldownTimeLeft removed
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,14 +55,15 @@ export const WebboardCommentForm: React.FC<WebboardCommentFormProps> = ({ postId
       requestLoginForAction(View.Webboard, { action: 'comment', postId: postId });
       return;
     }
-    if (!canPostHourly) {
-      setError(hourlyLimitMessage || "ไม่สามารถแสดงความคิดเห็นได้ในขณะนี้");
-      return;
-    }
-    if (isCoolingDown) {
-      setError(`โปรดรออีก ${cooldownTimeLeft} วินาทีก่อนแสดงความคิดเห็นอีกครั้งในกระทู้นี้`);
-      return;
-    }
+    // Hourly limit and cooldown checks removed
+    // if (!canPostHourly) {
+    //   setError(hourlyLimitMessage || "ไม่สามารถแสดงความคิดเห็นได้ในขณะนี้");
+    //   return;
+    // }
+    // if (isCoolingDown) {
+    //   setError(`โปรดรออีก ${cooldownTimeLeft} วินาทีก่อนแสดงความคิดเห็นอีกครั้งในกระทู้นี้`);
+    //   return;
+    // }
     if (!commentText.trim()) {
       setError("กรุณาใส่ความคิดเห็น");
       return;
@@ -106,22 +71,24 @@ export const WebboardCommentForm: React.FC<WebboardCommentFormProps> = ({ postId
     onAddComment(postId, commentText);
     setCommentText('');
     setError(null);
-    localStorage.setItem(getCooldownStorageKey(), Date.now().toString());
-    setIsCoolingDown(true);
-    setCooldownTimeLeft(COMMENT_COOLDOWN_SECONDS);
-    // Re-check hourly limit state after successful post, as it might have changed
-    if (currentUser) {
-        const limits = checkWebboardCommentLimits(currentUser);
-        setCanPostHourly(limits.canPost);
-        setHourlyLimitMessage(limits.message || null);
-    }
+    // localStorage.setItem for cooldown removed
+    // setIsCoolingDown(true); // Cooldown state removed
+    // setCooldownTimeLeft(COMMENT_COOLDOWN_SECONDS); // Cooldown state removed
+
+    // Re-check hourly limit state (though not enforced for posting)
+    // if (currentUser) {
+    //     const limits = checkWebboardCommentLimits(currentUser);
+    //     // setCanPostHourly(limits.canPost);
+    //     // setHourlyLimitMessage(limits.message || null);
+    // }
   };
   
-  const isDisabled = !currentUser || isCoolingDown || !canPostHourly;
+  const isDisabled = !currentUser || !commentText.trim(); // Simplified disabled logic
   let placeholderText = "แสดงความคิดเห็นของคุณ...";
   if (!currentUser) placeholderText = "เข้าสู่ระบบเพื่อแสดงความคิดเห็น";
-  else if (!canPostHourly) placeholderText = hourlyLimitMessage || "จำกัดการแสดงความคิดเห็นชั่วคราว";
-  else if (isCoolingDown) placeholderText = `รออีก ${cooldownTimeLeft} วินาที ก่อนคอมเมนต์ในกระทู้นี้อีกครั้ง...`;
+  // Placeholder logic for cooldown/hourly limit removed
+  // else if (!canPostHourly) placeholderText = hourlyLimitMessage || "จำกัดการแสดงความคิดเห็นชั่วคราว";
+  // else if (isCoolingDown) placeholderText = `รออีก ${cooldownTimeLeft} วินาที ก่อนคอมเมนต์ในกระทู้นี้อีกครั้ง...`;
 
 
   return (
@@ -143,7 +110,7 @@ export const WebboardCommentForm: React.FC<WebboardCommentFormProps> = ({ postId
                             ? 'border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500 focus:ring-opacity-70 dark:focus:ring-red-400 dark:focus:ring-opacity-70' 
                             : 'border-gray-200 dark:border-gray-700 focus:border-gray-300 dark:focus:border-gray-600 focus:ring-gray-300 focus:ring-opacity-70 dark:focus:ring-gray-600 dark:focus:ring-opacity-70'}`}
             placeholder={placeholderText}
-            disabled={isDisabled}
+            disabled={!currentUser} // Only disable if not logged in; button handles empty text
             aria-label="แสดงความคิดเห็น"
             aria-invalid={!!error}
             aria-describedby={error ? "comment-error" : undefined}
@@ -158,9 +125,10 @@ export const WebboardCommentForm: React.FC<WebboardCommentFormProps> = ({ postId
             variant="outline" 
             colorScheme="neutral" 
             size="sm" 
-            disabled={!commentText.trim() || isDisabled}
+            disabled={isDisabled}
           >
-            {isCoolingDown ? `รอ (${cooldownTimeLeft} วิ)` : (!canPostHourly ? 'จำกัดชั่วคราว' : 'ส่งความคิดเห็น')}
+            ส่งความคิดเห็น
+            {/* Cooldown text removed from button */}
           </Button>
         </div>
       )}

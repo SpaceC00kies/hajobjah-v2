@@ -1,856 +1,137 @@
 
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  sendPasswordResetEmail, 
-  User as FirebaseUser,
-  AuthError, 
-} from 'firebase/auth';
-import {
-  collection,
-  doc,
-  addDoc,
-  setDoc,
-  getDoc,
-  getDocs,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  limit,
-  onSnapshot,
-  serverTimestamp,
-  Timestamp,
-  writeBatch,
-  WriteBatch,
-  QueryConstraint,
-  collectionGroup,
-  deleteField, 
-} from 'firebase/firestore';
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL,
-  deleteObject,
-  uploadString,
-} from 'firebase/storage';
+import React, { useState, useEffect } from 'react';
+import { Button } from './Button';
+import { View, User } from '../types'; // Import User
 
-import { auth, db, storage } from '../firebase'; 
-import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge } from '../types';
-import { UserRole, WebboardCategory, USER_LEVELS, GenderOption, HelperEducationLevelOption } from '../types'; 
-import { logFirebaseError } from '../firebase/logging';
-
-// Collection Names
-const USERS_COLLECTION = 'users';
-const JOBS_COLLECTION = 'jobs';
-const HELPER_PROFILES_COLLECTION = 'helperProfiles';
-const WEBBOARD_POSTS_COLLECTION = 'webboardPosts';
-const WEBBOARD_COMMENTS_COLLECTION = 'webboardComments';
-const INTERACTIONS_COLLECTION = 'interactions';
-const SITE_CONFIG_COLLECTION = 'siteConfig';
-const SITE_CONFIG_DOC_ID = 'main';
-const FEEDBACK_COLLECTION = 'feedback';
-
-
-// --- Helper to convert Firestore Timestamps to ISO strings for consistency ---
-const convertTimestamps = (data: any): any => {
-  if (data === null || typeof data !== 'object') {
-    return data;
-  }
-  if (data instanceof Timestamp) {
-    return data.toDate().toISOString();
-  }
-  if (Array.isArray(data)) {
-    return data.map(convertTimestamps);
-  }
-  const result: { [key: string]: any } = {};
-  for (const key in data) {
-    result[key] = convertTimestamps(data[key]);
-  }
-  return result;
-};
-
-const cleanDataForFirestore = <T extends Record<string, any>>(data: T): Partial<T> => {
-  const cleanedData: Partial<T> = {};
-  for (const key in data) {
-    if (Object.prototype.hasOwnProperty.call(data, key)) {
-      const value = data[key];
-      if (value !== undefined) {
-        cleanedData[key] = value;
-      }
-    }
-  }
-  return cleanedData;
-};
-
-type RegistrationDataType = Omit<User, 'id' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt'> & { password: string };
-
-
-// --- Authentication Services ---
-export const signUpWithEmailPasswordService = async (
-  userData: RegistrationDataType
-): Promise<User | null> => {
-  try {
-    const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
-    const firebaseUser = userCredential.user;
-    const { password, ...userProfileData } = userData;
-
-    const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-    const newUser: Omit<User, 'id'> = {
-      ...userProfileData,
-      photo: undefined, // photo and address are not collected at registration
-      address: '',
-      nickname: '',
-      firstName: '',
-      lastName: '',
-      role: UserRole.Member, // Default role
-      userLevel: USER_LEVELS[0], // Default user level
-      profileComplete: false,
-      isMuted: false,
-      favoriteMusic: '', 
-      favoriteBook: '',
-      favoriteMovie: '',
-      hobbies: '',
-      favoriteFood: '',
-      dislikedThing: '',
-      introSentence: '',
-      postingLimits: {
-        lastJobPostDate: sevenDaysAgo.toISOString(),
-        lastHelperProfileDate: sevenDaysAgo.toISOString(),
-        dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() }, // Ensures first post is allowed
-        hourlyComments: { count: 0, resetTime: new Date(0).toISOString() }, // Ensures first comment is allowed
-        lastBumpDates: {},
-      },
-      activityBadge: {
-        isActive: false,
-        last30DaysActivity: 0,
-      },
-      createdAt: serverTimestamp() as any,
-      updatedAt: serverTimestamp() as any,
-    };
-
-    await setDoc(doc(db, USERS_COLLECTION, firebaseUser.uid), cleanDataForFirestore(newUser as Record<string, any>));
-    return { id: firebaseUser.uid, ...convertTimestamps(newUser) };
-  } catch (error: any) {
-    logFirebaseError("signUpWithEmailPasswordService", error);
-    throw error;
-  }
-};
-
-export const signInWithEmailPasswordService = async (loginIdentifier: string, passwordAttempt: string): Promise<User | null> => {
-  try {
-    let emailToSignIn = loginIdentifier;
-
-    if (!loginIdentifier.includes('@')) { 
-      const usersRef = collection(db, USERS_COLLECTION);
-      const q = query(usersRef, where("username", "==", loginIdentifier.toLowerCase()), limit(1));
-      const querySnapshot = await getDocs(q); 
-
-      if (!querySnapshot.empty) {
-        const userData = querySnapshot.docs[0].data();
-        if (userData && userData.email) {
-          emailToSignIn = userData.email;
-        } else {
-          logFirebaseError("signInWithEmailPasswordService", new Error(`User document for username ${loginIdentifier} lacks an email.`));
-          throw new Error("Invalid username or password."); 
-        }
-      } else {
-        logFirebaseError("signInWithEmailPasswordService", new Error(`Username ${loginIdentifier} not found.`));
-        throw new Error("Invalid username or password."); 
-      }
-    }
-
-    const userCredential = await signInWithEmailAndPassword(auth, emailToSignIn, passwordAttempt);
-    const firebaseUser = userCredential.user;
-
-    const userDoc = await getDoc(doc(db, USERS_COLLECTION, firebaseUser.uid));
-    if (userDoc.exists()) {
-      return { id: firebaseUser.uid, ...convertTimestamps(userDoc.data()) } as User;
-    } else {
-      logFirebaseError("signInWithEmailPasswordService", new Error(`User ${firebaseUser.uid} authenticated but no Firestore data.`));
-      await signOut(auth); 
-      throw new Error("Login failed due to a system issue. Please try again later.");
-    }
-
-  } catch (error: any) {
-    logFirebaseError("signInWithEmailPasswordService", error);
-    if (error.message === "Invalid username or password." || error.message === "Login failed due to a system issue. Please try again later.") {
-      throw error;
-    }
-    // Check if error is an object and has a code property before casting
-    if (typeof error === 'object' && error !== null && 'code' in error) {
-      const authErrorCode = (error as any).code; 
-      if (
-          authErrorCode === 'auth/wrong-password' ||
-          authErrorCode === 'auth/user-not-found' ||
-          authErrorCode === 'auth/invalid-credential' ||
-          authErrorCode === 'auth/invalid-email'
-      ) {
-        throw new Error("Invalid username or password.");
-      }
-    }
-    throw new Error("Login failed. Please try again.");
-  }
-};
-
-export const signOutUserService = async (): Promise<void> => {
-  try {
-    await signOut(auth);
-  } catch (error: any) {
-    logFirebaseError("signOutUserService", error);
-    throw error;
-  }
-};
-
-export const onAuthChangeService = (callback: (user: User | null) => void): (() => void) => {
-  return onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-    if (firebaseUser) {
-      const userDocRef = doc(db, USERS_COLLECTION, firebaseUser.uid);
-      try {
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) {
-          const userData = userDocSnap.data();
-          // Ensure postingLimits and activityBadge are initialized if they don't exist (for older users)
-          const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-          const postingLimits = userData.postingLimits || {
-            lastJobPostDate: sevenDaysAgo.toISOString(),
-            lastHelperProfileDate: sevenDaysAgo.toISOString(),
-            dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() },
-            hourlyComments: { count: 0, resetTime: new Date(0).toISOString() },
-            lastBumpDates: {},
-          };
-          const activityBadge = userData.activityBadge || {
-            isActive: false,
-            last30DaysActivity: 0,
-          };
-          callback({ id: firebaseUser.uid, ...convertTimestamps(userData), postingLimits: convertTimestamps(postingLimits), activityBadge: convertTimestamps(activityBadge) } as User);
-        } else {
-          logFirebaseError("onAuthChangeService", new Error(`User ${firebaseUser.uid} not found in Firestore.`));
-          callback(null);
-          await signOut(auth);
-        }
-      } catch (error) {
-        logFirebaseError("onAuthChangeService - getDoc", error);
-        callback(null);
-      }
-    } else {
-      callback(null);
-    }
-  });
-};
-
-export const sendPasswordResetEmailService = async (email: string): Promise<void> => {
-  try {
-    await sendPasswordResetEmail(auth, email);
-  } catch (error: any) {
-    logFirebaseError("sendPasswordResetEmailService", error);
-    throw error;
-  }
-};
-
-// --- Storage Service ---
-export const uploadImageService = async (path: string, fileOrBase64: File | string): Promise<string> => {
-  try {
-    const storageRef = ref(storage, path);
-    if (typeof fileOrBase64 === 'string') {
-      await uploadString(storageRef, fileOrBase64, 'data_url');
-    } else {
-      await uploadBytes(storageRef, fileOrBase64);
-    }
-    return await getDownloadURL(storageRef);
-  } catch (error: any) {
-    logFirebaseError("uploadImageService", error);
-    throw error;
-  }
-};
-
-export const deleteImageService = async (imageUrl?: string | null): Promise<void> => {
-  if (!imageUrl) return;
-  try {
-    const storageRef = ref(storage, imageUrl);
-    await deleteObject(storageRef);
-  } catch (error: any) {
-    if (typeof error === 'object' && error !== null && 'code' in error && (error as any).code !== 'storage/object-not-found') {
-      logFirebaseError("deleteImageService", error);
-      throw error;
-    } else if (typeof error === 'object' && error !== null && !('code' in error)) { // Non-Firebase error
-      logFirebaseError("deleteImageService", error);
-      throw error;
-    }
-    // If it is 'storage/object-not-found', we can ignore it.
-  }
-};
-
-// --- User Profile Service ---
-export const updateUserProfileService = async (
-  userId: string,
-  profileData: Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username' | 'postingLimits' | 'activityBadge' | 'userLevel'>>
-): Promise<boolean> => {
-  try {
-    const userDocRef = doc(db, USERS_COLLECTION, userId);
-    let dataToUpdate: Partial<User> = { ...profileData, updatedAt: serverTimestamp() as any };
-
-    if (profileData.photo && typeof profileData.photo === 'string' && profileData.photo.startsWith('data:image')) {
-      const oldUserSnap = await getDoc(userDocRef);
-      if(oldUserSnap.exists() && oldUserSnap.data().photo) {
-          await deleteImageService(oldUserSnap.data().photo);
-      }
-      dataToUpdate.photo = await uploadImageService(`profileImages/${userId}/${Date.now()}`, profileData.photo);
-    } else if (profileData.hasOwnProperty('photo') && profileData.photo === undefined) { 
-       const oldUserSnap = await getDoc(userDocRef);
-       if(oldUserSnap.exists() && oldUserSnap.data().photo) {
-           await deleteImageService(oldUserSnap.data().photo);
-       }
-      dataToUpdate.photo = null; 
-    }
-    await updateDoc(userDocRef, cleanDataForFirestore(dataToUpdate as Record<string, any>));
-    return true;
-  } catch (error: any) {
-    logFirebaseError("updateUserProfileService", error);
-    throw error;
-  }
-};
-
-// --- Generic Firestore Subscription Service ---
-const subscribeToCollectionService = <T>(
-  collectionName: string,
-  callback: (data: T[]) => void,
-  constraints: QueryConstraint[] = []
-): (() => void) => {
-  const q = query(collection(db, collectionName), ...constraints);
-  return onSnapshot(q, (querySnapshot) => {
-    const items = querySnapshot.docs.map(docSnap => ({
-      id: docSnap.id,
-      ...convertTimestamps(docSnap.data()),
-    } as T));
-    callback(items);
-  }, (error) => {
-    logFirebaseError(`subscribeToCollectionService (${collectionName})`, error);
-  });
-};
-
-// --- Specific Data Services ---
-
-// Jobs
-type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired'>;
-export const addJobService = async (jobData: JobFormData, author: { userId: string; authorDisplayName: string; contact: string }): Promise<string> => {
-  try {
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
-
-    const newJobDoc: Omit<Job, 'id'> = {
-      ...jobData,
-      userId: author.userId,
-      authorDisplayName: author.authorDisplayName,
-      contact: author.contact,
-      ownerId: author.userId,
-      isPinned: false,
-      isHired: false,
-      isSuspicious: false,
-      postedAt: serverTimestamp() as any,
-      createdAt: serverTimestamp() as any,
-      updatedAt: serverTimestamp() as any,
-      expiresAt: expiresAt.toISOString(),
-      isExpired: false,
-    };
-    const docRef = await addDoc(collection(db, JOBS_COLLECTION), cleanDataForFirestore(newJobDoc as Record<string, any>));
-    
-    // Update user's lastJobPostDate
-    await updateDoc(doc(db, USERS_COLLECTION, author.userId), {
-      'postingLimits.lastJobPostDate': serverTimestamp()
-    });
-    return docRef.id;
-  } catch (error: any) {
-    logFirebaseError("addJobService", error);
-    throw error;
-  }
-};
-export const updateJobService = async (jobId: string, jobData: Partial<JobFormData>, contact: string): Promise<boolean> => {
-  try {
-    const dataToUpdate = { ...jobData, contact, updatedAt: serverTimestamp() as any };
-    await updateDoc(doc(db, JOBS_COLLECTION, jobId), cleanDataForFirestore(dataToUpdate as Record<string, any>));
-    return true;
-  } catch (error: any) {
-    logFirebaseError("updateJobService", error);
-    throw error;
-  }
-};
-export const deleteJobService = async (jobId: string): Promise<boolean> => {
-  try {
-    await deleteDoc(doc(db, JOBS_COLLECTION, jobId));
-    return true;
-  } catch (error: any) {
-    logFirebaseError("deleteJobService", error);
-    throw error;
-  }
-};
-export const subscribeToJobsService = (callback: (data: Job[]) => void) =>
-  subscribeToCollectionService<Job>(JOBS_COLLECTION, callback, [orderBy("isPinned", "desc"), orderBy("postedAt", "desc")]);
-
-// Helper Profiles
-type HelperProfileFormData = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt'>;
-interface HelperProfileAuthorInfo { userId: string; authorDisplayName: string; contact: string; gender: User['gender']; birthdate: User['birthdate']; educationLevel: User['educationLevel']; }
-export const addHelperProfileService = async (profileData: HelperProfileFormData, author: HelperProfileAuthorInfo): Promise<string> => {
-  try {
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
-
-    const newProfileDoc: Omit<HelperProfile, 'id'> = {
-      ...profileData,
-      userId: author.userId,
-      authorDisplayName: author.authorDisplayName,
-      contact: author.contact,
-      gender: author.gender,
-      birthdate: author.birthdate,
-      educationLevel: author.educationLevel,
-      ownerId: author.userId,
-      isPinned: false, isUnavailable: false, isSuspicious: false, adminVerifiedExperience: false, interestedCount: 0,
-      postedAt: serverTimestamp() as any,
-      createdAt: serverTimestamp() as any,
-      updatedAt: serverTimestamp() as any,
-      expiresAt: expiresAt.toISOString(),
-      isExpired: false,
-      lastBumpedAt: null, // Initialize lastBumpedAt
-    };
-    const docRef = await addDoc(collection(db, HELPER_PROFILES_COLLECTION), cleanDataForFirestore(newProfileDoc as Record<string, any>));
-
-    // Update user's lastHelperProfileDate
-    await updateDoc(doc(db, USERS_COLLECTION, author.userId), {
-      'postingLimits.lastHelperProfileDate': serverTimestamp()
-    });
-    return docRef.id;
-  } catch (error: any) {
-    logFirebaseError("addHelperProfileService", error);
-    throw error;
-  }
-};
-
-export const updateHelperProfileService = async (profileId: string, profileData: Partial<HelperProfileFormData>, contact: string): Promise<boolean> => {
-  try {
-    const dataToUpdate = { ...profileData, contact, updatedAt: serverTimestamp() as any };
-    await updateDoc(doc(db, HELPER_PROFILES_COLLECTION, profileId), cleanDataForFirestore(dataToUpdate as Record<string, any>));
-    return true;
-  } catch (error: any) {
-    logFirebaseError("updateHelperProfileService", error);
-    throw error;
-  }
-};
-
-export const bumpHelperProfileService = async (profileId: string, userId: string): Promise<boolean> => {
-  try {
-    const now = serverTimestamp();
-    // Update profile's updatedAt and lastBumpedAt
-    await updateDoc(doc(db, HELPER_PROFILES_COLLECTION, profileId), {
-      updatedAt: now,
-      lastBumpedAt: now
-    });
-    // Update user's lastBumpDates for this profile
-    await updateDoc(doc(db, USERS_COLLECTION, userId), {
-      [`postingLimits.lastBumpDates.${profileId}`]: now
-    });
-    return true;
-  } catch (error: any) {
-    logFirebaseError("bumpHelperProfileService", error);
-    throw error;
-  }
-};
-
-export const deleteHelperProfileService = async (profileId: string): Promise<boolean> => {
-  try {
-    await deleteDoc(doc(db, HELPER_PROFILES_COLLECTION, profileId));
-    return true;
-  } catch (error: any) {
-    logFirebaseError("deleteHelperProfileService", error);
-    throw error;
-  }
-};
-export const subscribeToHelperProfilesService = (callback: (data: HelperProfile[]) => void) =>
-  subscribeToCollectionService<HelperProfile>(HELPER_PROFILES_COLLECTION, callback, [orderBy("isPinned", "desc"), orderBy("updatedAt", "desc")]); // Order by updatedAt for bumps
-
-
-// Webboard Posts
-interface WebboardPostAuthorInfo { userId: string; authorDisplayName: string; photo?: string | null; }
-export const addWebboardPostService = async (postData: { title: string; body: string; category: WebboardCategory; image?: string }, author: WebboardPostAuthorInfo): Promise<string> => {
-  try {
-    let imageUrl: string | undefined = undefined; 
-    if (postData.image && postData.image.startsWith('data:image')) { 
-      imageUrl = await uploadImageService(`webboardImages/${author.userId}/${Date.now()}`, postData.image);
-    }
-
-    const newPostDoc: Omit<WebboardPost, 'id'> = {
-      title: postData.title,
-      body: postData.body,
-      category: postData.category,
-      image: imageUrl, 
-      userId: author.userId,
-      authorDisplayName: author.authorDisplayName, 
-      authorPhoto: author.photo || undefined, 
-      ownerId: author.userId,
-      likes: [],
-      isPinned: false,
-      createdAt: serverTimestamp() as any,
-      updatedAt: serverTimestamp() as any,
-    };
-    const docRef = await addDoc(collection(db, WEBBOARD_POSTS_COLLECTION), cleanDataForFirestore(newPostDoc as Record<string, any>));
-    
-    // Update user's daily post count and activity
-    const userRef = doc(db, USERS_COLLECTION, author.userId);
-    const userSnap = await getDoc(userRef);
-    if (userSnap.exists()) {
-      const userData = userSnap.data() as User;
-      const today = new Date().toISOString().split('T')[0];
-      const currentResetDate = userData.postingLimits.dailyWebboardPosts.resetDate ? new Date(userData.postingLimits.dailyWebboardPosts.resetDate as string).toISOString().split('T')[0] : null;
-      
-      let newDailyCount = 1;
-      if (currentResetDate === today) {
-        newDailyCount = (userData.postingLimits.dailyWebboardPosts.count || 0) + 1;
-      }
-
-      await updateDoc(userRef, {
-        'postingLimits.dailyWebboardPosts.count': newDailyCount,
-        'postingLimits.dailyWebboardPosts.resetDate': new Date(today + 'T00:00:00Z').toISOString(), // Store as full ISO string at start of UTC day
-        'activityBadge.last30DaysActivity': (userData.activityBadge.last30DaysActivity || 0) + 1
-      });
-    }
-    return docRef.id;
-  } catch (error: any) {
-    logFirebaseError("addWebboardPostService", error);
-    throw error;
-  }
-};
-
-export const updateWebboardPostService = async (postId: string, postData: { title?: string; body?: string; category?: WebboardCategory; image?: string | null }, currentUserPhoto?: string | null): Promise<boolean> => {
-  try {
-    const postRef = doc(db, WEBBOARD_POSTS_COLLECTION, postId);
-    const basePayload: Partial<WebboardPost> = {};
-    if (postData.title !== undefined) basePayload.title = postData.title;
-    if (postData.body !== undefined) basePayload.body = postData.body;
-    if (postData.category !== undefined) basePayload.category = postData.category;
-
-    basePayload.updatedAt = serverTimestamp() as any;
-    if (currentUserPhoto !== undefined) {
-      basePayload.authorPhoto = currentUserPhoto || null; 
-    }
-
-    let finalUpdatePayload = { ...basePayload };
-
-    if (postData.hasOwnProperty('image')) { 
-      if (postData.image && typeof postData.image === 'string' && postData.image.startsWith('data:image')) {
-        const oldPostSnap = await getDoc(postRef);
-        if(oldPostSnap.exists() && oldPostSnap.data().image) {
-          await deleteImageService(oldPostSnap.data().image);
-        }
-        finalUpdatePayload.image = await uploadImageService(`webboardImages/${auth.currentUser?.uid}/${Date.now()}_edit`, postData.image);
-      } else if (postData.image === null) {
-        const oldPostSnap = await getDoc(postRef);
-        if(oldPostSnap.exists() && oldPostSnap.data().image) {
-          await deleteImageService(oldPostSnap.data().image);
-        }
-        finalUpdatePayload.image = null; 
-      }
-    }
-    await updateDoc(postRef, cleanDataForFirestore(finalUpdatePayload as Record<string, any>));
-    return true;
-  } catch (error: any) {
-    logFirebaseError("updateWebboardPostService", error);
-    throw error;
-  }
-};
-
-export const deleteWebboardPostService = async (postId: string): Promise<boolean> => {
-  try {
-    const postRef = doc(db, WEBBOARD_POSTS_COLLECTION, postId);
-    const postSnap = await getDoc(postRef);
-    const postData = postSnap.data() as WebboardPost;
-
-    if (postSnap.exists() && postData.image) {
-      await deleteImageService(postData.image);
-    }
-    const commentsQuery = query(collection(db, WEBBOARD_COMMENTS_COLLECTION), where("postId", "==", postId));
-    const commentsSnapshot = await getDocs(commentsQuery);
-    const batch: WriteBatch = writeBatch(db);
-    commentsSnapshot.forEach(commentDoc => batch.delete(commentDoc.ref));
-    await batch.commit();
-
-    await deleteDoc(postRef);
-
-    // Decrement user's activity count
-    if (postData && postData.userId) {
-        const userRef = doc(db, USERS_COLLECTION, postData.userId);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-            const userData = userSnap.data() as User;
-            await updateDoc(userRef, {
-                'activityBadge.last30DaysActivity': Math.max(0, (userData.activityBadge.last30DaysActivity || 0) - 1)
-            });
-        }
-    }
-    return true;
-  } catch (error: any) {
-    logFirebaseError("deleteWebboardPostService", error);
-    throw error;
-  }
-};
-export const subscribeToWebboardPostsService = (callback: (data: WebboardPost[]) => void) =>
-  subscribeToCollectionService<WebboardPost>(WEBBOARD_POSTS_COLLECTION, callback, [orderBy("isPinned", "desc"), orderBy("createdAt", "desc")]);
-
-
-// Webboard Comments
-interface WebboardCommentAuthorInfo { userId: string; authorDisplayName: string; photo?: string | null; }
-export const addWebboardCommentService = async (postId: string, text: string, author: WebboardCommentAuthorInfo): Promise<string> => {
-  try {
-    const newCommentDoc: Omit<WebboardComment, 'id'> = {
-      postId,
-      text,
-      userId: author.userId,
-      authorDisplayName: author.authorDisplayName, 
-      authorPhoto: author.photo || undefined,
-      ownerId: author.userId,
-      createdAt: serverTimestamp() as any,
-      updatedAt: serverTimestamp() as any,
-    };
-    const docRef = await addDoc(collection(db, WEBBOARD_COMMENTS_COLLECTION), cleanDataForFirestore(newCommentDoc as Record<string, any>));
-
-    // Update user's hourly comment count and activity
-    const userRef = doc(db, USERS_COLLECTION, author.userId);
-    const userSnap = await getDoc(userRef);
-    if (userSnap.exists()) {
-      const userData = userSnap.data() as User;
-      const now = new Date();
-      const currentHourStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 0, 0, 0).toISOString();
-      const currentResetTime = userData.postingLimits.hourlyComments.resetTime ? new Date(userData.postingLimits.hourlyComments.resetTime as string).toISOString() : null;
-      
-      let newHourlyCount = 1;
-      if (currentResetTime && new Date(currentResetTime).getTime() === new Date(currentHourStart).getTime()) {
-          newHourlyCount = (userData.postingLimits.hourlyComments.count || 0) + 1;
-      }
-
-      await updateDoc(userRef, {
-        'postingLimits.hourlyComments.count': newHourlyCount,
-        'postingLimits.hourlyComments.resetTime': currentHourStart,
-        'activityBadge.last30DaysActivity': (userData.activityBadge.last30DaysActivity || 0) + 1
-      });
-    }
-    return docRef.id;
-  } catch (error: any) {
-    logFirebaseError("addWebboardCommentService", error);
-    throw error;
-  }
-};
-export const updateWebboardCommentService = async (commentId: string, newText: string): Promise<boolean> => {
-  try {
-    const dataToUpdate = { text: newText, updatedAt: serverTimestamp() as any };
-    await updateDoc(doc(db, WEBBOARD_COMMENTS_COLLECTION, commentId), cleanDataForFirestore(dataToUpdate));
-    return true;
-  } catch (error: any) {
-    logFirebaseError("updateWebboardCommentService", error);
-    throw error;
-  }
-};
-export const deleteWebboardCommentService = async (commentId: string): Promise<boolean> => {
-  try {
-    const commentRef = doc(db, WEBBOARD_COMMENTS_COLLECTION, commentId);
-    const commentSnap = await getDoc(commentRef);
-    const commentData = commentSnap.data() as WebboardComment;
-
-    await deleteDoc(commentRef);
-
-    // Decrement user's activity count
-    if (commentData && commentData.userId) {
-        const userRef = doc(db, USERS_COLLECTION, commentData.userId);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-            const userData = userSnap.data() as User;
-            await updateDoc(userRef, {
-                'activityBadge.last30DaysActivity': Math.max(0, (userData.activityBadge.last30DaysActivity || 0) - 1)
-            });
-        }
-    }
-    return true;
-  } catch (error: any) {
-    logFirebaseError("deleteWebboardCommentService", error);
-    throw error;
-  }
-};
-export const subscribeToWebboardCommentsService = (callback: (data: WebboardComment[]) => void, postId?: string) => {
-  const constraints = postId ? [where("postId", "==", postId), orderBy("createdAt", "asc")] : [orderBy("createdAt", "asc")];
-  return subscribeToCollectionService<WebboardComment>(WEBBOARD_COMMENTS_COLLECTION, callback, constraints);
+interface WebboardCommentFormProps {
+  postId: string;
+  currentUser: User | null; 
+  onAddComment: (postId: string, text: string) => void;
+  requestLoginForAction: (view: View, payload?: any) => void; 
+  // checkWebboardCommentLimits prop is no longer used for limiting, but kept for structural consistency if App.tsx still passes it.
+  checkWebboardCommentLimits: (user: User) => { canPost: boolean; message?: string };
 }
 
-// Interactions
-export const logHelperContactInteractionService = async (helperProfileId: string, employerUserId: string, helperUserId: string): Promise<string> => {
-  try {
-    const interactionsRef = collection(db, INTERACTIONS_COLLECTION);
-    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-    const q = query(interactionsRef,
-      where("helperProfileId", "==", helperProfileId),
-      where("employerUserId", "==", employerUserId),
-      where("timestamp", ">", tenMinutesAgo)
+const FallbackAvatarCommentForm: React.FC<{ name?: string, photo?: string, size?: string, className?: string }> = ({ name, photo, size = "w-10 h-10", className = "" }) => {
+    if (photo) {
+      return <img src={photo} alt={name || 'avatar'} className={`${size} rounded-full object-cover ${className}`} />;
+    }
+    const initial = '💬'; 
+    return (
+      <div className={`${size} rounded-full bg-neutral-light dark:bg-dark-inputBg flex items-center justify-center text-md text-neutral-dark dark:text-dark-text ${className}`}>
+        {initial}
+      </div>
     );
-    const recentInteractionsSnap = await getDocs(q);
+  };
 
-    if (!recentInteractionsSnap.empty) {
-        return recentInteractionsSnap.docs[0].id;
+// COMMENT_COOLDOWN_SECONDS removed
+
+export const WebboardCommentForm: React.FC<WebboardCommentFormProps> = ({ postId, currentUser, onAddComment, requestLoginForAction, checkWebboardCommentLimits }) => {
+  const [commentText, setCommentText] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  // Removed state: isCoolingDown, cooldownTimeLeft, hourlyLimitMessage, canPostHourly
+
+  // getCooldownStorageKey removed
+
+  useEffect(() => {
+    if (!currentUser) {
+      // No specific logic needed here now for cooldown/limits when logged out
+      return;
     }
+    // Hourly limit check from props is not actively used to block posting anymore
+    // but the prop might still be passed.
+    // const hourlyLimits = checkWebboardCommentLimits(currentUser);
+    // setCanPostHourly(hourlyLimits.canPost);
+    // setHourlyLimitMessage(hourlyLimits.message || null);
 
-    const newInteractionDoc: Omit<Interaction, 'id'> = {
-      helperUserId: helperUserId,
-      helperProfileId,
-      employerUserId,
-      timestamp: serverTimestamp() as any,
-      type: 'contact_helper',
-      createdAt: serverTimestamp() as any,
-    };
-    const docRef = await addDoc(collection(db, INTERACTIONS_COLLECTION), cleanDataForFirestore(newInteractionDoc as Record<string, any>));
+    // Per-post cooldown logic removed
+  }, [postId, currentUser, checkWebboardCommentLimits]);
 
-    const helperProfileRef = doc(db, HELPER_PROFILES_COLLECTION, helperProfileId);
-    const helperProfileSnap = await getDoc(helperProfileRef);
-    if (helperProfileSnap.exists()) {
-      const currentCount = helperProfileSnap.data().interestedCount || 0;
-      await updateDoc(helperProfileRef, { interestedCount: currentCount + 1 });
+  // Timer useEffect for cooldownTimeLeft removed
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) {
+      requestLoginForAction(View.Webboard, { action: 'comment', postId: postId });
+      return;
     }
-    return docRef.id;
-  } catch (error: any) {
-    logFirebaseError("logHelperContactInteractionService", error);
-    throw error;
-  }
-};
-export const subscribeToInteractionsService = (callback: (data: Interaction[]) => void) =>
-  subscribeToCollectionService<Interaction>(INTERACTIONS_COLLECTION, callback, [orderBy("timestamp", "desc")]);
-
-
-// Site Config
-export const subscribeToSiteConfigService = (callback: (config: SiteConfig) => void): (() => void) => {
-  const docRef = doc(db, SITE_CONFIG_COLLECTION, SITE_CONFIG_DOC_ID);
-  return onSnapshot(docRef, (docSnap) => {
-    if (docSnap.exists()) {
-      callback(convertTimestamps(docSnap.data()) as SiteConfig);
-    } else {
-      callback({ isSiteLocked: false });
+    // Hourly limit and cooldown checks removed
+    // if (!canPostHourly) {
+    //   setError(hourlyLimitMessage || "ไม่สามารถแสดงความคิดเห็นได้ในขณะนี้");
+    //   return;
+    // }
+    // if (isCoolingDown) {
+    //   setError(`โปรดรออีก ${cooldownTimeLeft} วินาทีก่อนแสดงความคิดเห็นอีกครั้งในกระทู้นี้`);
+    //   return;
+    // }
+    if (!commentText.trim()) {
+      setError("กรุณาใส่ความคิดเห็น");
+      return;
     }
-  }, (error) => {
-    logFirebaseError("subscribeToSiteConfigService", error);
-    callback({ isSiteLocked: false });
-  });
-};
-export const setSiteLockService = async (isLocked: boolean, adminUserId: string): Promise<boolean> => {
-  try {
-    const dataToSet = {
-      isSiteLocked: isLocked,
-      updatedAt: serverTimestamp() as any,
-      updatedBy: adminUserId,
-    };
-    await setDoc(doc(db, SITE_CONFIG_COLLECTION, SITE_CONFIG_DOC_ID), cleanDataForFirestore(dataToSet), { merge: true });
-    return true;
-  } catch (error: any) {
-    logFirebaseError("setSiteLockService", error);
-    throw error;
-  }
-};
+    onAddComment(postId, commentText);
+    setCommentText('');
+    setError(null);
+    // localStorage.setItem for cooldown removed
+    // setIsCoolingDown(true); // Cooldown state removed
+    // setCooldownTimeLeft(COMMENT_COOLDOWN_SECONDS); // Cooldown state removed
 
-// User Management (Admin)
-export const setUserRoleService = async (userIdToUpdate: string, newRole: UserRole): Promise<boolean> => {
-  try {
-    const dataToUpdate = { role: newRole, updatedAt: serverTimestamp() as any };
-    await updateDoc(doc(db, USERS_COLLECTION, userIdToUpdate), cleanDataForFirestore(dataToUpdate));
-    return true;
-  } catch (error: any) {
-    logFirebaseError("setUserRoleService", error);
-    throw error;
-  }
-};
-
-// Helper to fetch user document - used internally for limit checks
-export const getUserDocument = async (userId: string): Promise<User | null> => {
-  try {
-    const userDocRef = doc(db, USERS_COLLECTION, userId);
-    const userDocSnap = await getDoc(userDocRef);
-    if (userDocSnap.exists()) {
-      return { id: userId, ...convertTimestamps(userDocSnap.data()) } as User;
-    }
-    return null;
-  } catch (error) {
-    logFirebaseError("getUserDocument", error);
-    return null;
-  }
-};
+    // Re-check hourly limit state (though not enforced for posting)
+    // if (currentUser) {
+    //     const limits = checkWebboardCommentLimits(currentUser);
+    //     // setCanPostHourly(limits.canPost);
+    //     // setHourlyLimitMessage(limits.message || null);
+    // }
+  };
+  
+  const isDisabled = !currentUser || !commentText.trim(); // Simplified disabled logic
+  let placeholderText = "แสดงความคิดเห็นของคุณ...";
+  if (!currentUser) placeholderText = "เข้าสู่ระบบเพื่อแสดงความคิดเห็น";
+  // Placeholder logic for cooldown/hourly limit removed
+  // else if (!canPostHourly) placeholderText = hourlyLimitMessage || "จำกัดการแสดงความคิดเห็นชั่วคราว";
+  // else if (isCoolingDown) placeholderText = `รออีก ${cooldownTimeLeft} วินาที ก่อนคอมเมนต์ในกระทู้นี้อีกครั้ง...`;
 
 
-export const subscribeToUsersService = (callback: (data: User[]) => void) =>
-  subscribeToCollectionService<User>(USERS_COLLECTION, callback, [orderBy("createdAt", "desc")]);
-
-// Generic Item Flag Toggler
-type ItemWithFlags = Job | HelperProfile | WebboardPost;
-type ItemFlagKeys = 'isPinned' | 'isHired' | 'isSuspicious' | 'isUnavailable' | 'adminVerifiedExperience' | 'isExpired';
-
-export const toggleItemFlagService = async (
-  collectionName: 'jobs' | 'helperProfiles' | 'webboardPosts',
-  itemId: string,
-  flagName: ItemFlagKeys,
-  currentValue?: boolean
-): Promise<boolean> => {
-  try {
-    const itemRef = doc(db, collectionName, itemId);
-    let finalValueToSet: boolean;
-
-    if (typeof currentValue === 'boolean') {
-        finalValueToSet = !currentValue;
-    } else {
-        const itemSnap = await getDoc(itemRef);
-        if (!itemSnap.exists()) throw new Error("Item not found.");
-        finalValueToSet = !(itemSnap.data() as any)[flagName];
-    }
-    const dataToUpdate = { [flagName]: finalValueToSet, updatedAt: serverTimestamp() as any };
-    await updateDoc(itemRef, cleanDataForFirestore(dataToUpdate));
-    return true;
-  } catch (error: any) {
-    logFirebaseError(`toggleItemFlagService for ${flagName} on ${collectionName}`, error);
-    throw error;
-  }
-};
-
-export const toggleWebboardPostLikeService = async (postId: string, userId: string): Promise<boolean> => {
-  try {
-    const postRef = doc(db, WEBBOARD_POSTS_COLLECTION, postId);
-    const postSnap = await getDoc(postRef);
-    if (!postSnap.exists()) throw new Error("Post not found.");
-
-    const postData = postSnap.data() as WebboardPost;
-    const likes = postData.likes || [];
-    const userLikedIndex = likes.indexOf(userId);
-
-    let newLikes: string[];
-    if (userLikedIndex > -1) {
-      newLikes = likes.filter(id => id !== userId);
-    } else {
-      newLikes = [...likes, userId];
-    }
-    const dataToUpdate = { likes: newLikes, updatedAt: serverTimestamp() as any };
-    await updateDoc(postRef, cleanDataForFirestore(dataToUpdate));
-    return true;
-  } catch (error: any) {
-    logFirebaseError("toggleWebboardPostLikeService", error);
-    throw error;
-  }
-};
-
-export const submitFeedbackService = async (feedbackText: string, page: string, userId?: string): Promise<boolean> => {
-  try {
-    const dataToAdd = {
-      text: feedbackText,
-      page,
-      userId: userId || null, 
-      submittedAt: serverTimestamp(),
-    };
-    await addDoc(collection(db, FEEDBACK_COLLECTION), cleanDataForFirestore(dataToAdd as Record<string, any>));
-    return true;
-  } catch (error) {
-    logFirebaseError("submitFeedbackService", error);
-    throw error;
-  }
+  return (
+    <form onSubmit={handleSubmit} className="mt-4 p-3 bg-neutral-light/50 dark:bg-dark-inputBg/30 rounded-lg">
+      <div className="flex items-start space-x-3">
+        <FallbackAvatarCommentForm name={currentUser?.publicDisplayName} photo={currentUser?.photo} className="mt-1" />
+        <div className="flex-1">
+          <textarea
+            value={commentText}
+            onChange={(e) => {
+              setCommentText(e.target.value);
+              if (error) setError(null);
+            }}
+            rows={3}
+            className={`w-full p-2 border rounded-md text-sm font-normal
+                        bg-white dark:bg-dark-inputBg text-neutral-dark dark:text-dark-text 
+                        focus:outline-none focus:ring-2
+                        ${error 
+                            ? 'border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500 focus:ring-opacity-70 dark:focus:ring-red-400 dark:focus:ring-opacity-70' 
+                            : 'border-gray-200 dark:border-gray-700 focus:border-gray-300 dark:focus:border-gray-600 focus:ring-gray-300 focus:ring-opacity-70 dark:focus:ring-gray-600 dark:focus:ring-opacity-70'}`}
+            placeholder={placeholderText}
+            disabled={!currentUser} // Only disable if not logged in; button handles empty text
+            aria-label="แสดงความคิดเห็น"
+            aria-invalid={!!error}
+            aria-describedby={error ? "comment-error" : undefined}
+          />
+          {error && <p id="comment-error" className="text-red-500 dark:text-red-400 text-xs mt-1">{error}</p>}
+        </div>
+      </div>
+      {currentUser && (
+        <div className="text-right mt-2">
+          <Button 
+            type="submit" 
+            variant="outline" 
+            colorScheme="neutral" 
+            size="sm" 
+            disabled={isDisabled}
+          >
+            ส่งความคิดเห็น
+            {/* Cooldown text removed from button */}
+          </Button>
+        </div>
+      )}
+    </form>
+  );
 };
