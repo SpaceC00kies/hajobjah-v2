@@ -51,7 +51,7 @@ const WEBBOARD_COMMENTS_COLLECTION = 'webboardComments';
 const INTERACTIONS_COLLECTION = 'interactions';
 const SITE_CONFIG_COLLECTION = 'siteConfig';
 const SITE_CONFIG_DOC_ID = 'main';
-const FEEDBACK_COLLECTION = 'feedback';
+// const FEEDBACK_COLLECTION = 'feedback'; // Removed
 
 
 // --- Helper to convert Firestore Timestamps to ISO strings for consistency ---
@@ -652,19 +652,5 @@ export const toggleWebboardPostLikeService = async (postId: string, userId: stri
     throw error;
   }
 };
-
-export const submitFeedbackService = async (feedbackText: string, page: string, userId?: string): Promise<boolean> => {
-  try {
-    const dataToAdd = {
-      text: feedbackText,
-      page,
-      userId: userId || null, // Ensure userId is null if undefined
-      submittedAt: serverTimestamp(),
-    };
-    await addDoc(collection(db, FEEDBACK_COLLECTION), cleanDataForFirestore(dataToAdd as Record<string, any>));
-    return true;
-  } catch (error) {
-    logFirebaseError("submitFeedbackService", error);
-    throw error;
-  }
-};
+// Removed submitFeedbackService as it's handled by Formspree
+// export const submitFeedbackService = async (feedbackText: string, page: string, userId?: string): Promise<boolean> => { ... };
