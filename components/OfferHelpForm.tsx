@@ -3,15 +3,15 @@ import React, { useState, useEffect } from 'react';
 import type { HelperProfile } from '../types';
 import { JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP } from '../types';
 import { Button } from './Button';
-import { containsBlacklistedWords } from '../App'; 
+import { containsBlacklistedWords } from '../App';
 
-type FormDataType = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'username' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt'>;
+type FormDataType = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt'>;
 
 
 interface OfferHelpFormProps {
-  onSubmitProfile: (profileData: FormDataType & { id?: string }) => void; 
+  onSubmitProfile: (profileData: FormDataType & { id?: string }) => void;
   onCancel: () => void;
-  initialData?: HelperProfile; 
+  initialData?: HelperProfile;
   isEditing?: boolean;
 }
 
@@ -21,13 +21,13 @@ const initialFormStateForCreate: FormDataType = {
   area: '',
   category: '' as JobCategory,
   subCategory: undefined,
-  availability: '', 
+  availability: '',
   availabilityDateFrom: '',
   availabilityDateTo: '',
-  availabilityTimeDetails: '', 
+  availabilityTimeDetails: '',
 };
 
-type FormErrorsType = Partial<Record<Exclude<keyof HelperProfile, 'id' | 'postedAt' | 'userId' | 'username' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt'>, string>>;
+type FormErrorsType = Partial<Record<Exclude<keyof HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt'>, string>>;
 
 
 export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, onCancel, initialData, isEditing }) => {
@@ -38,13 +38,13 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
 
   useEffect(() => {
     if (isEditing && initialData) {
-      const { 
-        id, postedAt, userId, username, isSuspicious, isPinned, isUnavailable, contact,
-        gender, birthdate, educationLevel, adminVerifiedExperience, interestedCount, 
-        ownerId, createdAt, updatedAt, 
+      const {
+        id, postedAt, userId, authorDisplayName, isSuspicious, isPinned, isUnavailable, contact,
+        gender, birthdate, educationLevel, adminVerifiedExperience, interestedCount,
+        ownerId, createdAt, updatedAt,
         ...editableFieldsBase
       } = initialData;
-      
+
       const editableFields: FormDataType = {
         profileTitle: editableFieldsBase.profileTitle || '',
         details: editableFieldsBase.details || '',
@@ -52,15 +52,15 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
         category: editableFieldsBase.category || ('' as JobCategory),
         subCategory: editableFieldsBase.subCategory || undefined,
         availability: editableFieldsBase.availability || '',
-        availabilityDateFrom: editableFieldsBase.availabilityDateFrom 
-                                ? (editableFieldsBase.availabilityDateFrom instanceof Date 
-                                    ? editableFieldsBase.availabilityDateFrom.toISOString().split('T')[0] 
-                                    : String(editableFieldsBase.availabilityDateFrom)) 
+        availabilityDateFrom: editableFieldsBase.availabilityDateFrom
+                                ? (editableFieldsBase.availabilityDateFrom instanceof Date
+                                    ? editableFieldsBase.availabilityDateFrom.toISOString().split('T')[0]
+                                    : String(editableFieldsBase.availabilityDateFrom))
                                 : '',
-        availabilityDateTo: editableFieldsBase.availabilityDateTo 
-                                ? (editableFieldsBase.availabilityDateTo instanceof Date 
-                                    ? editableFieldsBase.availabilityDateTo.toISOString().split('T')[0] 
-                                    : String(editableFieldsBase.availabilityDateTo)) 
+        availabilityDateTo: editableFieldsBase.availabilityDateTo
+                                ? (editableFieldsBase.availabilityDateTo instanceof Date
+                                    ? editableFieldsBase.availabilityDateTo.toISOString().split('T')[0]
+                                    : String(editableFieldsBase.availabilityDateTo))
                                 : '',
         availabilityTimeDetails: editableFieldsBase.availabilityTimeDetails || '',
       };
@@ -78,7 +78,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    const key = name as keyof FormDataType; 
+    const key = name as keyof FormDataType;
 
     let newFormData = { ...formData };
 
@@ -94,19 +94,19 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
     } else {
         newFormData = { ...newFormData, [key]: value };
     }
-    
+
     setFormData(newFormData);
 
-    if (formErrors[key as keyof FormErrorsType]) { 
+    if (formErrors[key as keyof FormErrorsType]) {
       setFormErrors(prev => ({ ...prev, [key as keyof FormErrorsType]: undefined }));
     }
   };
-  
+
   const validateForm = () => {
     const errors: FormErrorsType = {};
     if (!formData.profileTitle.trim()) errors.profileTitle = 'กรุณากรอกหัวข้อโปรไฟล์';
     else if (containsBlacklistedWords(formData.profileTitle)) errors.profileTitle = 'หัวข้อโปรไฟล์มีคำที่ไม่เหมาะสม โปรดแก้ไข';
-    
+
     if (!formData.details.trim()) errors.details = 'กรุณากรอกรายละเอียดเกี่ยวกับตัวเอง';
     else if (containsBlacklistedWords(formData.details)) errors.details = 'รายละเอียดมีคำที่ไม่เหมาะสม โปรดแก้ไข';
 
@@ -115,7 +115,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
     else if (JOB_SUBCATEGORIES_MAP[formData.category]?.length > 0 && !formData.subCategory) {
         errors.subCategory = 'กรุณาเลือกหมวดหมู่ย่อยที่ถนัด';
     }
-    
+
     if (formData.availabilityDateFrom && formData.availabilityDateTo && formData.availabilityDateTo < formData.availabilityDateFrom) {
         errors.availabilityDateTo = 'วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่มต้น';
     }
@@ -127,7 +127,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
     e.preventDefault();
     if (!validateForm()) return;
 
-    const dataToSubmit: FormDataType & { id?: string } = { ...formData }; 
+    const dataToSubmit: FormDataType & { id?: string } = { ...formData };
     if (isEditing && initialData) {
       dataToSubmit.id = initialData.id;
     }
@@ -144,7 +144,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
   ] as const;
 
   const availabilityField = { name: 'availability', label: 'หมายเหตุเรื่องวันเวลาที่ว่างโดยรวม (ถ้ามี)', placeholder: 'เช่น "สะดวกเฉพาะช่วงเย็น", "ไม่ว่างวันที่ 10-15 นี้"', type: 'text', required: false };
-  
+
   const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border border-[#CCCCCC] dark:border-dark-border rounded-[10px] text-neutral-dark dark:text-dark-text font-serif font-normal focus:outline-none";
   const inputFocusStyle = "focus:border-secondary dark:focus:border-dark-secondary-DEFAULT focus:ring-2 focus:ring-secondary focus:ring-opacity-70 dark:focus:ring-dark-secondary-DEFAULT dark:focus:ring-opacity-70";
   const inputErrorStyle = "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-2 focus:ring-red-500 focus:ring-opacity-70 dark:focus:ring-red-400 dark:focus:ring-opacity-70";
@@ -162,12 +162,12 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
         {isEditing ? '📝 แก้ไขโปรไฟล์ผู้ช่วย' : '🙋‍♀️ ฝากโปรไฟล์ไว้ เผื่อมีใครต้องการคนช่วย'}
       </h2>
       <p className="text-md font-serif text-neutral-dark dark:text-dark-textMuted mb-6 text-center font-normal">
-        {isEditing 
-          ? 'แก้ไขข้อมูลโปรไฟล์ของคุณ (ข้อมูลส่วนตัว เช่น เพศ, อายุ, การศึกษา และข้อมูลติดต่อ จะใช้จากโปรไฟล์หลักของคุณ)' 
+        {isEditing
+          ? 'แก้ไขข้อมูลโปรไฟล์ของคุณ (ข้อมูลส่วนตัว เช่น เพศ, อายุ, การศึกษา และข้อมูลติดต่อ จะใช้จากโปรไฟล์หลักของคุณ)'
           : 'ระบุว่าคุณช่วยอะไรได้ ว่างช่วงไหน ทำงานแถวไหนได้ (ข้อมูลส่วนตัว เช่น เพศ, อายุ, การศึกษา และข้อมูลติดต่อ จะดึงมาจากโปรไฟล์หลักของคุณโดยอัตโนมัติ)'}
       </p>
       <form onSubmit={handleSubmit} className="space-y-6">
-        
+
         <div className="pt-4 border-t border-neutral-DEFAULT dark:border-dark-border/50 mt-6">
             <h3 className="text-xl font-sans font-semibold text-neutral-dark dark:text-dark-text mb-4">ข้อมูลโปรไฟล์และเกี่ยวกับฉัน</h3>
             {baseProfileFields.map(field => (
@@ -179,7 +179,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
                   type={field.type}
                   id={field.name}
                   name={field.name}
-                  value={(formData[field.name as keyof typeof formData] as string) ?? ''} 
+                  value={(formData[field.name as keyof typeof formData] as string) ?? ''}
                   onChange={handleChange}
                   placeholder={field.placeholder}
                   className={`${inputBaseStyle} ${formErrors[field.name as keyof FormErrorsType] ? inputErrorStyle : inputFocusStyle}`}
@@ -228,7 +228,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
                     {formErrors.subCategory && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.subCategory}</p>}
                 </div>
             )}
-            
+
             <div>
             <label htmlFor="details" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
                 รายละเอียดเกี่ยวกับตัวเอง (ทักษะ, ประสบการณ์) <span className="text-red-500 dark:text-red-400">*</span>
@@ -262,7 +262,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
                     {formErrors.availabilityDateTo && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.availabilityDateTo}</p>}
                 </div>
             </div>
-            <div className="mb-6"> 
+            <div className="mb-6">
                 <label htmlFor={availabilityField.name} className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
                   {availabilityField.label} {availabilityField.required && <span className="text-red-500 dark:text-red-400">*</span>}
                 </label>
@@ -270,7 +270,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
                   type={availabilityField.type}
                   id={availabilityField.name}
                   name={availabilityField.name}
-                  value={(formData[availabilityField.name as keyof typeof formData] as string) ?? ''} 
+                  value={(formData[availabilityField.name as keyof typeof formData] as string) ?? ''}
                   onChange={handleChange}
                   placeholder={availabilityField.placeholder}
                   className={`${inputBaseStyle} ${formErrors[availabilityField.name as keyof FormErrorsType] ? inputErrorStyle : inputFocusStyle}`}

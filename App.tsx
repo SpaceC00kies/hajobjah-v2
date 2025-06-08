@@ -80,6 +80,7 @@ export const checkProfileCompleteness = (user: User): boolean => {
   const hasRequiredContact = !!user.mobile;
   const hasPhoto = !!user.photo;
   const hasAddress = !!user.address && user.address.trim() !== '';
+  // Consider if new personal info fields should be part of completeness
   const hasPersonalityInfo = !!(
     user.favoriteMusic?.trim() || user.favoriteBook?.trim() || user.favoriteMovie?.trim() ||
     user.hobbies?.trim() || user.favoriteFood?.trim() || user.dislikedThing?.trim() || user.introSentence?.trim()
@@ -149,9 +150,9 @@ const App: React.FC = () => {
   const [isSiteLocked, setIsSiteLocked] = useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loginRedirectInfo, setLoginRedirectInfo] = useState<{ view: View; payload?: any } | null>(null);
-  
-  const [currentUser, setCurrentUser] = useState<User | null>(null); 
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true); 
+
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
   const [users, setUsers] = useState<User[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -159,7 +160,7 @@ const App: React.FC = () => {
   const [interactions, setInteractions] = useState<Interaction[]>([]);
   const [webboardPosts, setWebboardPosts] = useState<WebboardPost[]>([]);
   const [webboardComments, setWebboardComments] = useState<WebboardComment[]>([]);
-  
+
   const [itemToEdit, setItemToEdit] = useState<Job | HelperProfile | WebboardPost | null>(null);
   const [editingItemType, setEditingItemType] = useState<'job' | 'profile' | 'webboardPost' | null>(null);
   const [sourceViewForForm, setSourceViewForForm] = useState<View | null>(null);
@@ -216,7 +217,7 @@ const App: React.FC = () => {
       unsubscribeSiteConfig();
     };
   }, []); // Run once on initial app load
-  
+
    useEffect(() => {
     if (!isLoadingAuth && users.length > 0 && (webboardPosts.length > 0 || webboardComments.length > 0)) {
         const updatedUsers = users.map(u => ({
@@ -272,11 +273,11 @@ const App: React.FC = () => {
 
   const handleNavigateToPublicProfile = (userId: string) => navigateTo(View.PublicProfile, userId);
 
-  const handleRegister = async (userData: Omit<User, 'id' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted'> & { password: string }): Promise<boolean> => {
+  const handleRegister = async (userData: Omit<User, 'id' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName'> & { password: string }): Promise<boolean> => {
     try {
       if (!isValidThaiMobileNumberUtil(userData.mobile)) { alert('รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง'); return false; }
       if (!userData.gender || !userData.birthdate || !userData.educationLevel) { alert('กรุณากรอกข้อมูลส่วนตัวให้ครบถ้วน'); return false; }
-      
+
       const signedUpUser = await signUpWithEmailPasswordService(userData);
       if (signedUpUser) {
         alert('ลงทะเบียนสำเร็จแล้ว!');
@@ -300,7 +301,7 @@ const App: React.FC = () => {
     try {
       const loggedInUser = await signInWithEmailPasswordService(loginIdentifier, passwordAttempt);
       if (loggedInUser) {
-        alert(`ยินดีต้อนรับ, @${loggedInUser.displayName}!`);
+        alert(`ยินดีต้อนรับ, ${loggedInUser.publicDisplayName}!`);
         if (loginRedirectInfo) {
           navigateTo(loginRedirectInfo.view, loginRedirectInfo.payload);
           setLoginRedirectInfo(null);
@@ -335,7 +336,7 @@ const App: React.FC = () => {
   };
 
 
-  const handleUpdateUserProfile = async (updatedProfileData: Pick<User, 'mobile' | 'lineId' | 'facebook' | 'gender' | 'birthdate' | 'educationLevel' | 'photo' | 'address' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'displayName'>): Promise<boolean> => {
+  const handleUpdateUserProfile = async (updatedProfileData: Pick<User, 'publicDisplayName' | 'mobile' | 'lineId' | 'facebook' | 'gender' | 'birthdate' | 'educationLevel' | 'photo' | 'address' | 'nickname' | 'firstName' | 'lastName' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence'>): Promise<boolean> => {
     if (!currentUser) { alert('ผู้ใช้ไม่ได้เข้าสู่ระบบ'); return false; }
     try {
       if (!isValidThaiMobileNumberUtil(updatedProfileData.mobile)) { alert('รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง'); return false; }
@@ -366,18 +367,18 @@ const App: React.FC = () => {
       alert(`เกิดข้อผิดพลาดในการออกจากระบบ: ${error.message}`);
     }
   };
-  
+
   const canEditOrDelete = (itemUserId: string, itemOwnerId?: string): boolean => {
     if (!currentUser) return false;
     if (currentUser.role === UserRole.Admin) return true;
     const itemAuthor = users.find(u => u.id === itemUserId);
     if (currentUser.role === UserRole.Moderator) {
-        return itemAuthor?.role !== UserRole.Admin; 
+        return itemAuthor?.role !== UserRole.Admin;
     }
     return currentUser.id === itemUserId || currentUser.id === itemOwnerId;
   };
 
- const handleStartEditItemFromAdmin = (item: AdminItemType) => { 
+ const handleStartEditItemFromAdmin = (item: AdminItemType) => {
     if (item.itemType === 'job') {
         setItemToEdit(item.originalItem as Job); setEditingItemType('job'); setSourceViewForForm(View.AdminDashboard); navigateTo(View.PostJob);
     } else if (item.itemType === 'profile') {
@@ -386,7 +387,7 @@ const App: React.FC = () => {
         setItemToEdit({ ...(item.originalItem as WebboardPost), isEditing: true }); setEditingItemType('webboardPost'); setSourceViewForForm(View.AdminDashboard); navigateTo(View.Webboard, 'create');
     }
  };
-  const handleStartEditMyItem = (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => { 
+  const handleStartEditMyItem = (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => {
     let originalItem: Job | HelperProfile | WebboardPost | undefined;
     if (itemType === 'job') originalItem = jobs.find(j => j.id === itemId);
     else if (itemType === 'profile') originalItem = helperProfiles.find(p => p.id === itemId);
@@ -400,8 +401,8 @@ const App: React.FC = () => {
     } else { alert("ไม่พบรายการ หรือไม่มีสิทธิ์แก้ไข"); }
   };
 
-  type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'username' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt'>;
-  type HelperProfileFormData = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'username' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt'>;
+  type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt'>;
+  type HelperProfileFormData = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt'>;
 
   const generateContactString = (user: User): string => {
     let contactParts: string[] = [];
@@ -415,14 +416,14 @@ const App: React.FC = () => {
     if (!currentUser) { requestLoginForAction(View.PostJob); return; }
     if (containsBlacklistedWords(newJobData.description) || containsBlacklistedWords(newJobData.title)) { alert('เนื้อหาหรือหัวข้อมีคำที่ไม่เหมาะสม'); return; }
     try {
-      await addJobService(newJobData, {userId: currentUser.id, username: currentUser.username, contact: generateContactString(currentUser)});
+      await addJobService(newJobData, {userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, contact: generateContactString(currentUser)});
       navigateTo(sourceViewForForm === View.MyPosts ? View.MyPosts : View.FindJobs);
       setSourceViewForForm(null); alert('ประกาศงานของคุณถูกเพิ่มแล้ว!');
     } catch (error: any) {
       logFirebaseError("handleAddJob", error);
       alert(`เกิดข้อผิดพลาดในการเพิ่มประกาศงาน: ${error.message}`);
     }
-  }, [currentUser, sourceViewForForm, navigateTo, users]);
+  }, [currentUser, sourceViewForForm, navigateTo, users]); // users dependency might be for generateContactString if it uses users state
 
   const handleUpdateJob = async (updatedJobDataFromForm: JobFormData & { id: string }) => {
     if (!currentUser) { requestLoginForAction(View.PostJob); return; }
@@ -454,7 +455,7 @@ const App: React.FC = () => {
     }
     try {
       await addHelperProfileService(newProfileData, {
-        userId: currentUser.id, username: currentUser.username, contact: generateContactString(currentUser),
+        userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, contact: generateContactString(currentUser),
         gender: currentUser.gender, birthdate: currentUser.birthdate, educationLevel: currentUser.educationLevel
       });
       navigateTo(sourceViewForForm === View.MyPosts ? View.MyPosts : View.FindHelpers); setSourceViewForForm(null);
@@ -463,7 +464,7 @@ const App: React.FC = () => {
       logFirebaseError("handleAddHelperProfile", error);
       alert(`เกิดข้อผิดพลาดในการเพิ่มโปรไฟล์: ${error.message}`);
     }
-  }, [currentUser, sourceViewForForm, navigateTo, users]);
+  }, [currentUser, sourceViewForForm, navigateTo, users]); // users dependency
 
   const handleUpdateHelperProfile = async (updatedProfileDataFromForm: HelperProfileFormData & { id: string }) => {
     if (!currentUser) { requestLoginForAction(View.OfferHelp); return; }
@@ -480,7 +481,7 @@ const App: React.FC = () => {
       alert(`เกิดข้อผิดพลาดในการแก้ไขโปรไฟล์: ${error.message}`);
     }
   };
-  
+
   const handleSubmitHelperProfileForm = (formDataFromForm: HelperProfileFormData & { id?: string }) => {
     if (formDataFromForm.id && itemToEdit && editingItemType === 'profile') handleUpdateHelperProfile(formDataFromForm as HelperProfileFormData & { id: string });
     else handleAddHelperProfile(formDataFromForm);
@@ -509,7 +510,7 @@ const App: React.FC = () => {
           else if (itemType === 'profile') await deleteHelperProfileService(itemId);
           else if (itemType === 'webboardPost') await deleteWebboardPostService(itemId);
           else if (itemType === 'webboardComment') await deleteWebboardCommentService(itemId);
-          alert(`ลบ "${itemTitle}" เรียบร้อยแล้ว`); 
+          alert(`ลบ "${itemTitle}" เรียบร้อยแล้ว`);
           if (itemType === 'webboardPost' && selectedPostId === itemId) { setSelectedPostId(null); navigateTo(View.Webboard); }
         } catch (error: any) {
             logFirebaseError(`handleDeleteItem (${itemType})`, error);
@@ -518,7 +519,7 @@ const App: React.FC = () => {
       }
     );
   };
-  
+
   const handleDeleteJob = (jobId: string) => { const job = jobs.find(j => j.id === jobId); if (job) handleDeleteItem(jobId, 'job', job.title, job.userId, job.ownerId); };
   const handleDeleteHelperProfile = (profileId: string) => { const profile = helperProfiles.find(p => p.id === profileId); if (profile) handleDeleteItem(profileId, 'profile', profile.profileTitle, profile.userId, profile.ownerId); };
   const handleDeleteWebboardPost = (postId: string) => { const post = webboardPosts.find(p => p.id === postId); if (post) handleDeleteItem(postId, 'webboardPost', post.title, post.userId, post.ownerId); };
@@ -527,12 +528,12 @@ const App: React.FC = () => {
   };
 
   const toggleItemFlag = async (
-    collectionName: 'jobs' | 'helperProfiles' | 'webboardPosts', 
-    itemId: string, 
-    flagName: keyof Job | keyof HelperProfile | keyof WebboardPost, 
-    itemUserId: string, 
+    collectionName: 'jobs' | 'helperProfiles' | 'webboardPosts',
+    itemId: string,
+    flagName: keyof Job | keyof HelperProfile | keyof WebboardPost,
+    itemUserId: string,
     itemOwnerId?: string,
-    currentValue?: boolean 
+    currentValue?: boolean
   ) => {
     if (!canEditOrDelete(itemUserId, itemOwnerId) && currentUser?.role !== UserRole.Admin) { alert('คุณไม่มีสิทธิ์ดำเนินการนี้'); return; }
     try {
@@ -578,7 +579,7 @@ const App: React.FC = () => {
             await updateWebboardPostService(postIdToUpdate, postData, currentUser.photo);
             alert('แก้ไขโพสต์เรียบร้อยแล้ว!');
         } else {
-            finalPostId = await addWebboardPostService(postData, {userId: currentUser.id, username: currentUser.username, photo: currentUser.photo});
+            finalPostId = await addWebboardPostService(postData, {userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, photo: currentUser.photo});
             alert('สร้างโพสต์ใหม่เรียบร้อยแล้ว!');
         }
         setItemToEdit(null); setEditingItemType(null); setSelectedPostId(finalPostId || null); navigateTo(View.Webboard, finalPostId);
@@ -592,7 +593,7 @@ const App: React.FC = () => {
     if (!currentUser) { requestLoginForAction(View.Webboard, { action: 'comment', postId: postId }); return; }
     if (containsBlacklistedWords(text)) { alert('เนื้อหาคอมเมนต์มีคำที่ไม่เหมาะสม'); return; }
     try {
-        await addWebboardCommentService(postId, text, {userId: currentUser.id, username: currentUser.username, photo: currentUser.photo});
+        await addWebboardCommentService(postId, text, {userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, photo: currentUser.photo});
     } catch (error: any) {
         logFirebaseError("handleAddWebboardComment", error);
         alert(`เกิดข้อผิดพลาดในการเพิ่มคอมเมนต์: ${error.message}`);
@@ -615,7 +616,7 @@ const App: React.FC = () => {
 
   const handleDeleteWebboardComment = (commentId: string) => {
     const comment = webboardComments.find(c => c.id === commentId);
-    if (comment) handleDeleteItem(commentId, 'webboardComment', `คอมเมนต์โดย @${comment.username}`, comment.userId, comment.ownerId);
+    if (comment) handleDeleteItem(commentId, 'webboardComment', `คอมเมนต์โดย ${comment.authorDisplayName}`, comment.userId, comment.ownerId);
     else alert('ไม่พบคอมเมนต์');
   };
 
@@ -628,13 +629,13 @@ const App: React.FC = () => {
         alert(`เกิดข้อผิดพลาดในการกดไลค์: ${error.message}`);
     }
   };
-  
+
   const handlePinWebboardPost = (postId: string) => {
     const post = webboardPosts.find(p => p.id === postId);
     if (post && currentUser?.role === UserRole.Admin) toggleItemFlag('webboardPosts', postId, "isPinned", post.userId, post.ownerId, post.isPinned);
     else if (currentUser?.role !== UserRole.Admin) alert("เฉพาะแอดมินเท่านั้นที่สามารถปักหมุดโพสต์ได้");
   };
-  
+
   const handleSetUserRole = async (userIdToUpdate: string, newRole: UserRole) => {
     if (currentUser?.role !== UserRole.Admin) { alert("คุณไม่มีสิทธิ์เปลี่ยนบทบาทผู้ใช้"); return; }
     if (userIdToUpdate === currentUser.id) { alert("ไม่สามารถเปลี่ยนบทบาทของตัวเองได้"); return; }
@@ -642,7 +643,7 @@ const App: React.FC = () => {
     if (userToUpdate && userToUpdate.role === UserRole.Admin && newRole !== UserRole.Admin) { /* Consider if this rule is needed */ }
     try {
         await setUserRoleService(userIdToUpdate, newRole);
-        alert(`อัปเดตบทบาทของผู้ใช้ @${userToUpdate?.username} เป็น ${newRole} เรียบร้อยแล้ว`);
+        alert(`อัปเดตบทบาทของผู้ใช้ @${userToUpdate?.username} (ชื่อแสดง: ${userToUpdate?.publicDisplayName}) เป็น ${newRole} เรียบร้อยแล้ว`);
     } catch (error: any) {
         logFirebaseError("handleSetUserRole", error);
         alert(`เกิดข้อผิดพลาดในการเปลี่ยนบทบาทผู้ใช้: ${error.message}`);
@@ -660,30 +661,30 @@ const App: React.FC = () => {
   };
 
 
-  const renderNavLinks = (isMobile: boolean) => { 
+  const renderNavLinks = (isMobile: boolean) => {
     const displayBadge = getUserDisplayBadge(currentUser, webboardPosts, webboardComments);
     const commonButtonPropsBase = isMobile
       ? { size: 'md' as const, className: 'font-medium w-full text-left justify-start py-3 px-4 text-base' }
       : { size: 'sm' as const, className: 'font-medium flex-shrink-0' };
 
     const navigateAndCloseMenu = (view: View, payload?: any) => {
-      navigateTo(view, payload); 
+      navigateTo(view, payload);
     };
-    
-    const navItemSpanClass = "inline-flex items-center gap-1.5"; 
+
+    const navItemSpanClass = "inline-flex items-center gap-1.5";
 
     if (currentUser) {
         return (
           <>
             {isMobile && (
               <div className={`font-sans font-medium mb-3 py-2 px-4 border-b border-neutral-DEFAULT/50 dark:border-dark-border/50 w-full text-center`}>
-                สวัสดี, @{currentUser.displayName}!
+                สวัสดี, {currentUser.publicDisplayName}!
                 <UserLevelBadge level={displayBadge} size="sm" />
               </div>
             )}
             {!isMobile && (
                <div className={`font-sans font-medium mr-4 text-sm lg:text-base items-center flex gap-2`}>
-                สวัสดี, @{currentUser.displayName}!
+                สวัสดี, {currentUser.publicDisplayName}!
                 {/* UserLevelBadge is removed for desktop view to save space */}
               </div>
             )}
@@ -717,7 +718,7 @@ const App: React.FC = () => {
                  <span className={navItemSpanClass}><span>💬</span><span>กระทู้พูดคุย</span></span>
                </Button>
             )}
-            
+
             {currentView === View.FindJobs ? (
               <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateAndCloseMenu(View.PostJob);}} variant="outline" colorScheme="primary" {...commonButtonPropsBase}>
                 + ลงประกาศงาน
@@ -749,7 +750,7 @@ const App: React.FC = () => {
             )}
 
             <Button
-              onClick={handleLogout} 
+              onClick={handleLogout}
               variant="outline"
               colorScheme="accent"
               className={`${commonButtonPropsBase.className} border-red-500 text-red-500 hover:bg-red-500 hover:text-white dark:border-red-400 dark:text-red-400 dark:hover:bg-red-400 dark:hover:text-neutral-dark focus:ring-red-500 dark:focus:ring-red-400`}
@@ -762,7 +763,7 @@ const App: React.FC = () => {
     } else { // Not logged in
         // If currentView is PasswordReset, don't show login/register buttons, page has its own flow.
         if (currentView === View.PasswordReset) {
-            return null; 
+            return null;
         }
         return (
             <>
@@ -771,9 +772,9 @@ const App: React.FC = () => {
                    <span className={navItemSpanClass}><span>🏠</span><span>หน้าแรก</span></span>
                 </Button>
               )}
-              <Button 
-                onClick={() => navigateAndCloseMenu(View.Login)} 
-                variant="outline" 
+              <Button
+                onClick={() => navigateAndCloseMenu(View.Login)}
+                variant="outline"
                 colorScheme="brandGreen"
                 size={commonButtonPropsBase.size}
                 className={`${commonButtonPropsBase.className}`}
@@ -787,7 +788,7 @@ const App: React.FC = () => {
         );
     }
   };
-  const renderHeader = () => { 
+  const renderHeader = () => {
       // Do not render header if on PasswordReset page and not logged in (to avoid double nav)
       // or if isLoadingAuth to prevent flashing nav states.
       if ((currentView === View.PasswordReset && !currentUser) || isLoadingAuth) {
@@ -830,7 +831,7 @@ const App: React.FC = () => {
       </header>
     );
   };
-  const renderMobileMenu = () => { 
+  const renderMobileMenu = () => {
     if (!isMobileMenuOpen) return null;
     return (
       <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true">
@@ -847,7 +848,7 @@ const App: React.FC = () => {
       </div>
     );
   };
-  const renderHome = () => { 
+  const renderHome = () => {
     return (
     <div className="flex flex-col items-center justify-center pt-6 sm:pt-8 lg:pt-10 pb-6 px-6 sm:pb-8 sm:px-8 text-center">
       <h2 className="text-3xl sm:text-4xl lg:text-5xl font-sans font-medium text-neutral-dark mb-2 tracking-tight leading-snug"> ✨ หาจ๊อบจ้า ✨ </h2>
@@ -881,7 +882,7 @@ const App: React.FC = () => {
   };
   const renderPostJob = () => { if (!currentUser) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทางไปยังหน้าเข้าสู่ระบบ...</p>; return <PostJobForm onSubmitJob={handleSubmitJobForm} onCancel={handleCancelEditOrPost} initialData={editingItemType === 'job' ? itemToEdit as Job : undefined} isEditing={!!itemToEdit && editingItemType === 'job'} />; };
   const renderOfferHelpForm = () => { if (!currentUser) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทางไปยังหน้าเข้าสู่ระบบ...</p>; return <OfferHelpForm onSubmitProfile={handleSubmitHelperProfileForm} onCancel={handleCancelEditOrPost} initialData={editingItemType === 'profile' ? itemToEdit as HelperProfile : undefined} isEditing={!!itemToEdit && editingItemType === 'profile'} />; };
-  
+
   const handleJobSearch = (term: string) => {
     setJobSearchTerm(term);
     if (term.trim()) {
@@ -890,7 +891,7 @@ const App: React.FC = () => {
     }
   };
 
-  const renderFindJobs = () => { 
+  const renderFindJobs = () => {
     const jobsAfterCategoryFilter = selectedJobCategoryFilter === 'all'
       ? jobs
       : jobs.filter(job => job.category === selectedJobCategoryFilter);
@@ -902,15 +903,15 @@ const App: React.FC = () => {
           const termsToSearch = [termLower, ...(searchMappings[termLower] || []).map(t => t.toLowerCase())];
           return termsToSearch.some(st =>
             job.title.toLowerCase().includes(st) || job.description.toLowerCase().includes(st) ||
-            job.category.toLowerCase().includes(st) || (job.subCategory && job.subCategory.toLowerCase().includes(st)) 
+            job.category.toLowerCase().includes(st) || (job.subCategory && job.subCategory.toLowerCase().includes(st))
           );
         });
-    
+
     let emptyStateMessage = "ยังไม่มีงานประกาศในขณะนี้";
     if (jobSearchTerm.trim() && selectedJobCategoryFilter !== 'all') emptyStateMessage = `ไม่พบงานที่ตรงกับคำค้นหา "${jobSearchTerm}" ในหมวดหมู่ "${selectedJobCategoryFilter}"`;
     else if (jobSearchTerm.trim()) emptyStateMessage = `ไม่พบงานที่ตรงกับคำค้นหา "${jobSearchTerm}"`;
     else if (selectedJobCategoryFilter !== 'all') emptyStateMessage = `ไม่พบงานในหมวดหมู่ "${selectedJobCategoryFilter}"`;
-    
+
     return (
     <div className="p-4 sm:p-6">
       <div className="text-center mb-6 lg:mb-8">
@@ -949,7 +950,7 @@ const App: React.FC = () => {
     }
   };
 
-  const renderFindHelpers = () => { 
+  const renderFindHelpers = () => {
     const profilesAfterCategoryFilter = selectedHelperCategoryFilter === 'all' ? helperProfiles : helperProfiles.filter(profile => profile.category === selectedHelperCategoryFilter);
     const finalFilteredProfiles = helperSearchTerm.trim() === '' ? profilesAfterCategoryFilter : profilesAfterCategoryFilter.filter(profile => {
       const termLower = helperSearchTerm.toLowerCase();
@@ -963,9 +964,9 @@ const App: React.FC = () => {
 
     const enrichedHelperProfilesList: EnrichedHelperProfile[] = finalFilteredProfiles.map(hp => {
       const user = users.find(u => u.id === hp.userId);
-      return { ...hp, userPhoto: user?.photo, userAddress: user?.address, userDisplayName: user?.displayName || user?.username || 'User', verifiedExperienceBadge: hp.adminVerifiedExperience || false, profileCompleteBadge: user?.profileComplete || false, warningBadge: hp.isSuspicious || false, interestedCount: hp.interestedCount || 0, };
+      return { ...hp, userPhoto: user?.photo, userAddress: user?.address, verifiedExperienceBadge: hp.adminVerifiedExperience || false, profileCompleteBadge: user?.profileComplete || false, warningBadge: hp.isSuspicious || false, interestedCount: hp.interestedCount || 0, };
     });
-    
+
     let emptyStateMessage = "ยังไม่มีผู้เสนอตัวช่วยงานในขณะนี้";
     if (helperSearchTerm.trim() && selectedHelperCategoryFilter !== 'all') emptyStateMessage = `ไม่พบผู้ช่วยที่ตรงกับคำค้นหา "${helperSearchTerm}" ในหมวดหมู่ "${selectedHelperCategoryFilter}"`;
     else if (helperSearchTerm.trim()) emptyStateMessage = `ไม่พบผู้ช่วยที่ตรงกับคำค้นหา "${helperSearchTerm}"`;
@@ -1005,24 +1006,24 @@ const App: React.FC = () => {
   const renderAboutUsPage = () => <AboutUsPage />;
   const renderSafetyPage = () => <SafetyPage />;
   const renderPublicProfile = () => { if (!currentUser) return <p className="text-center p-8 font-serif">คุณต้องเข้าสู่ระบบเพื่อดูโปรไฟล์นี้...</p>; if (!viewingProfileId) { navigateTo(View.Home); return <p className="text-center p-8 font-serif">ไม่พบ ID โปรไฟล์...</p>; } const profileUser = users.find(u => u.id === viewingProfileId); if (!profileUser) return <p className="text-center p-8 font-serif text-red-500">ไม่พบโปรไฟล์ผู้ใช้</p>; if (profileUser.role === UserRole.Admin) return <div className="text-center p-8 font-serif text-red-500">โปรไฟล์ของแอดมินไม่สามารถดูในหน้านี้ได้</div>; const helperProfileForBio = helperProfiles.find(hp => hp.userId === viewingProfileId); const displayBadge = getUserDisplayBadge(profileUser, webboardPosts, webboardComments); return <PublicProfilePage currentUser={currentUser} user={{...profileUser, userLevel: displayBadge}} helperProfile={helperProfileForBio} onBack={() => navigateTo(View.FindHelpers)} />; };
-  const renderWebboardPage = () => { 
-    return (<WebboardPage 
-      currentUser={currentUser} users={users} posts={webboardPosts} comments={webboardComments} 
-      onAddOrUpdatePost={handleAddOrUpdateWebboardPost} onAddComment={handleAddWebboardComment} 
-      onToggleLike={handleToggleWebboardPostLike} onDeletePost={handleDeleteWebboardPost} 
-      onPinPost={handlePinWebboardPost} onEditPost={(post) => { setItemToEdit({...post, isEditing: true}); setEditingItemType('webboardPost'); setSelectedPostId('create'); setCurrentView(View.Webboard); }} 
-      onDeleteComment={handleDeleteWebboardComment} onUpdateComment={handleUpdateWebboardComment} 
-      selectedPostId={selectedPostId} setSelectedPostId={setSelectedPostId} 
-      navigateTo={navigateTo} editingPost={editingItemType === 'webboardPost' ? itemToEdit as WebboardPost : null} 
-      onCancelEdit={() => { setItemToEdit(null); setEditingItemType(null); setSelectedPostId(null); }} 
-      getUserDisplayBadge={(user) => getUserDisplayBadge(user, webboardPosts, webboardComments)} 
-      requestLoginForAction={requestLoginForAction} 
+  const renderWebboardPage = () => {
+    return (<WebboardPage
+      currentUser={currentUser} users={users} posts={webboardPosts} comments={webboardComments}
+      onAddOrUpdatePost={handleAddOrUpdateWebboardPost} onAddComment={handleAddWebboardComment}
+      onToggleLike={handleToggleWebboardPostLike} onDeletePost={handleDeleteWebboardPost}
+      onPinPost={handlePinWebboardPost} onEditPost={(post) => { setItemToEdit({...post, isEditing: true}); setEditingItemType('webboardPost'); setSelectedPostId('create'); setCurrentView(View.Webboard); }}
+      onDeleteComment={handleDeleteWebboardComment} onUpdateComment={handleUpdateWebboardComment}
+      selectedPostId={selectedPostId} setSelectedPostId={setSelectedPostId}
+      navigateTo={navigateTo} editingPost={editingItemType === 'webboardPost' ? itemToEdit as WebboardPost : null}
+      onCancelEdit={() => { setItemToEdit(null); setEditingItemType(null); setSelectedPostId(null); }}
+      getUserDisplayBadge={(user) => getUserDisplayBadge(user, webboardPosts, webboardComments)}
+      requestLoginForAction={requestLoginForAction}
     />);};
   const renderPasswordResetPage = () => <PasswordResetPage navigateTo={navigateTo} />; // Added render function
 
   let currentViewContent;
-  if (isLoadingAuth) { 
-    currentViewContent = (<div className="flex justify-center items-center h-screen"><p className="text-xl font-sans text-neutral-dark dark:text-dark-text">กำลังโหลด...</p></div>); 
+  if (isLoadingAuth) {
+    currentViewContent = (<div className="flex justify-center items-center h-screen"><p className="text-xl font-sans text-neutral-dark dark:text-dark-text">กำลังโหลด...</p></div>);
   } else {
     // If currentView is PasswordReset, it should take precedence, especially on initial load from URL
     if (currentView === View.PasswordReset) {
@@ -1074,7 +1075,7 @@ const App: React.FC = () => {
         </footer>
       )}
       <ConfirmModal isOpen={isConfirmModalOpen} onClose={closeConfirmModal} onConfirm={handleConfirmDeletion} title={confirmModalTitle} message={confirmModalMessage} />
-      <FeedbackForm 
+      <FeedbackForm
         isOpen={isFeedbackModalOpen}
         onClose={() => setIsFeedbackModalOpen(false)}
         currentUserEmail={currentUser?.email}

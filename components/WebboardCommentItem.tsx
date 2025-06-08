@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import type { EnrichedWebboardComment, User } from '../types';
 import { UserRole } from '../types';
@@ -122,11 +121,11 @@ export const WebboardCommentItem: React.FC<WebboardCommentItemProps> = ({ commen
 
   return (
     <div className="flex items-start space-x-3 py-3 border-b border-neutral-DEFAULT/50 dark:border-dark-border/50 last:border-b-0">
-      <FallbackAvatarComment name={comment.username} photo={comment.authorPhoto} className="mt-1" />
+      <FallbackAvatarComment name={comment.authorDisplayName} photo={comment.authorPhoto} className="mt-1" />
       <div className="flex-1">
         <div className="flex items-center justify-between">
             <div className="flex items-center">
-                <span className="text-sm font-semibold text-neutral-dark dark:text-dark-text">@{comment.username}</span>
+                <span className="text-sm font-semibold text-neutral-dark dark:text-dark-text">@{comment.authorDisplayName}</span>
                 <UserLevelBadge level={comment.authorLevel} size="sm" />
             </div>
             <div className="flex items-center space-x-2">

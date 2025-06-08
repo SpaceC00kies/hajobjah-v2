@@ -5,12 +5,12 @@ import { GenderOption, HelperEducationLevelOption } from '../types';
 import { Button } from './Button';
 
 interface RegistrationFormProps {
-  onRegister: (userData: Omit<User, 'id' | 'hashedPassword' | 'isAdmin' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'hasBeenContacted' | 'role'> & { password: string }) => Promise<boolean>; // Returns true on success
+  onRegister: (userData: Omit<User, 'id' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'role' | 'nickname' | 'firstName' | 'lastName'> & { password: string }) => Promise<boolean>; // Returns true on success
   onSwitchToLogin: () => void;
 }
 
-type RegistrationFormErrorKeys = 
-  'displayName' | 'username' | 'email' | 'password' | 'confirmPassword' | 
+type RegistrationFormErrorKeys =
+  'publicDisplayName' | 'username' | 'email' | 'password' | 'confirmPassword' |
   'mobile' | 'lineId' | 'facebook' | 'gender' | 'birthdate' | 'educationLevel' | 'general';
 
 const isValidThaiMobileNumber = (mobile: string): boolean => {
@@ -24,7 +24,7 @@ const calculateAge = (birthdateString?: string): number | null => {
   const birthDate = new Date(birthdateString);
   if (isNaN(birthDate.getTime())) return null;
   const today = new Date();
-  if (birthDate > today) return null; 
+  if (birthDate > today) return null;
   let age = today.getFullYear() - birthDate.getFullYear();
   const monthDiff = today.getMonth() - birthDate.getMonth();
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
@@ -42,9 +42,12 @@ interface PasswordCriteria {
 }
 
 const SYMBOL_REGEX = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~]/;
+// Regex for public display name: Thai, English, spaces, dots, 2-30 characters.
+const PUBLIC_DISPLAY_NAME_REGEX = /^[a-zA-Zก-๏\s.]{2,30}$/u;
+
 
 export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, onSwitchToLogin }) => {
-  const [displayName, setDisplayName] = useState('');
+  const [publicDisplayName, setPublicDisplayName] = useState(''); // Renamed from displayName
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -70,7 +73,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
   const inputFocusStyle = "focus:border-brandGreen dark:focus:border-dark-brandGreen-DEFAULT focus:ring-2 focus:ring-brandGreen focus:ring-opacity-70 dark:focus:ring-dark-brandGreen-DEFAULT dark:focus:ring-opacity-70";
   const inputErrorStyle = "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-2 focus:ring-red-500 focus:ring-opacity-70 dark:focus:ring-red-400 dark:focus:ring-opacity-70";
   const selectBaseStyle = `${inputBaseStyle} appearance-none`;
-  
+
   const handleBirthdateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newBirthdate = e.target.value;
     setBirthdate(newBirthdate);
@@ -94,14 +97,19 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
 
   const validateForm = () => {
     const newErrors: Partial<Record<RegistrationFormErrorKeys, string>> = {};
-    if (!displayName.trim()) newErrors.displayName = 'กรุณากรอกชื่อที่ต้องการให้แสดง';
+    if (!publicDisplayName.trim()) {
+      newErrors.publicDisplayName = 'กรุณากรอกชื่อที่ต้องการให้แสดงบนเว็บไซต์';
+    } else if (!PUBLIC_DISPLAY_NAME_REGEX.test(publicDisplayName)) {
+      newErrors.publicDisplayName = 'ต้องมี 2-30 ตัวอักษร (ไทย/อังกฤษ, เว้นวรรค, จุด)';
+    }
+
     if (!username.trim()) newErrors.username = 'กรุณากรอกชื่อผู้ใช้';
     else if (username.trim().length < 3) newErrors.username = 'ชื่อผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร';
     else if (!/^[a-zA-Z0-9_]+$/.test(username)) newErrors.username = 'ชื่อผู้ใช้สามารถมีเฉพาะตัวอักษรภาษาอังกฤษ ตัวเลข และ _ เท่านั้น';
-    
+
     if (!email.trim()) newErrors.email = 'กรุณากรอกอีเมล';
     else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = 'รูปแบบอีเมลไม่ถูกต้อง';
-    
+
     if (!password) {
       newErrors.password = 'กรุณากรอกรหัสผ่าน';
     } else {
@@ -115,12 +123,12 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
         newErrors.password = `รหัสผ่านต้องประกอบด้วย: ${criteriaMessages.join(', ')}`;
       }
     }
-    
+
     if (password !== confirmPassword) newErrors.confirmPassword = 'รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน';
 
     if (!mobile.trim()) newErrors.mobile = 'กรุณากรอกเบอร์โทรศัพท์';
     else if (!isValidThaiMobileNumber(mobile)) newErrors.mobile = 'รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง (เช่น 08X-XXX-XXXX)';
-    
+
     if (!gender) newErrors.gender = 'กรุณาเลือกเพศ';
     if (!birthdate) newErrors.birthdate = 'กรุณาเลือกวันเกิด';
     else if (calculateAge(birthdate) === null) newErrors.birthdate = 'กรุณาเลือกวันเกิดที่ถูกต้อง (ต้องไม่ใช่วันในอนาคต)';
@@ -133,23 +141,23 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrors({}); 
+    setErrors({});
     if (!validateForm()) return;
 
-    const success = await onRegister({ 
-        displayName, 
-        username, 
-        email, 
-        password, 
-        mobile, 
-        lineId, 
+    const success = await onRegister({
+        publicDisplayName, // Changed from displayName
+        username,
+        email,
+        password,
+        mobile,
+        lineId,
         facebook,
-        gender, 
-        birthdate, 
+        gender,
+        birthdate,
         educationLevel,
     });
     if (success) {
-      setDisplayName('');
+      setPublicDisplayName('');
       setUsername('');
       setEmail('');
       setPassword('');
@@ -187,19 +195,22 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-            <label htmlFor="displayName" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ชื่อ (สำหรับแสดงผล) <span className="text-red-500 dark:text-red-400">*</span></label>
-            <input type="text" id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)}
-                    className={`${inputBaseStyle} ${errors.displayName ? inputErrorStyle : inputFocusStyle}`} placeholder="เช่น สมชาย ใจดี"/>
-            {errors.displayName && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.displayName}</p>}
+            <label htmlFor="publicDisplayName" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ชื่อที่แสดงบนเว็บไซต์ (สาธารณะ) <span className="text-red-500 dark:text-red-400">*</span></label>
+            <input type="text" id="publicDisplayName" value={publicDisplayName} onChange={(e) => setPublicDisplayName(e.target.value)}
+                    className={`${inputBaseStyle} ${errors.publicDisplayName ? inputErrorStyle : inputFocusStyle}`} placeholder="เช่น Sunny Y., ช่างภาพใจดี123"/>
+            <p className="text-xs font-sans text-neutral-medium dark:text-dark-textMuted mt-1">
+              ชื่อนี้จะแสดงบนที่สาธารณะ เช่น ประกาศงาน, โปรไฟล์และกระทู้ โปรดตั้งอย่างเหมาะสม (เช่น ชื่อจริงและนามสกุลย่อ Sunny J., หรือเกี่ยวกับตัวเรา นักการตลาดมือฉมัง1993) ห้ามใช้คำหยาบหรือสื่ออะไรที่ไม่เหมาะสม
+            </p>
+            {errors.publicDisplayName && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.publicDisplayName}</p>}
             </div>
             <div>
             <label htmlFor="username" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ชื่อผู้ใช้ (สำหรับเข้าระบบ) <span className="text-red-500 dark:text-red-400">*</span></label>
             <input type="text" id="username" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())}
-                    className={`${inputBaseStyle} ${errors.username ? inputErrorStyle : inputFocusStyle}`} placeholder="เช่น somchai_j"/>
+                    className={`${inputBaseStyle} ${errors.username ? inputErrorStyle : inputFocusStyle}`} placeholder="เช่น somchai_j (อังกฤษ/ตัวเลข)"/>
             {errors.username && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.username}</p>}
             </div>
         </div>
-        
+
         <div>
           <label htmlFor="email" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">อีเมล <span className="text-red-500 dark:text-red-400">*</span></label>
           <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)}
@@ -208,14 +219,14 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
         </div>
 
         <div className="pt-3 mt-3 border-t border-neutral-DEFAULT/50 dark:border-dark-border/30">
-             <h3 className="text-md font-sans font-medium text-neutral-dark dark:text-dark-text mb-2">ข้อมูลส่วนตัว</h3>
+             <h3 className="text-md font-sans font-medium text-neutral-dark dark:text-dark-text mb-2">ข้อมูลส่วนตัว (ใช้แสดงในโปรไฟล์)</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                  <div>
                     <label className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">เพศ <span className="text-red-500 dark:text-red-400">*</span></label>
                     <div className="space-y-1">
                         {Object.values(GenderOption).map(optionValue => (
                         <label key={optionValue} className="flex items-center space-x-2 cursor-pointer">
-                            <input type="radio" name="gender" value={optionValue} checked={gender === optionValue} 
+                            <input type="radio" name="gender" value={optionValue} checked={gender === optionValue}
                                     onChange={() => setGender(optionValue)}
                                     className="form-radio h-4 w-4 text-brandGreen dark:text-dark-brandGreen-DEFAULT border-[#CCCCCC] dark:border-dark-border focus:ring-brandGreen dark:focus:ring-dark-brandGreen-DEFAULT"/>
                             <span className="text-neutral-dark font-sans dark:text-dark-text font-normal text-sm">{optionValue}</span>
@@ -235,7 +246,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
             </div>
             <div className="mt-4">
                 <label htmlFor="educationLevel" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ระดับการศึกษา <span className="text-red-500 dark:text-red-400">*</span></label>
-                <select id="educationLevel" value={educationLevel || ''} 
+                <select id="educationLevel" value={educationLevel || ''}
                         onChange={(e) => setEducationLevel(e.target.value as HelperEducationLevelOption)}
                         className={`${selectBaseStyle} ${errors.educationLevel ? inputErrorStyle : inputFocusStyle}`}>
                     <option value="" disabled>-- กรุณาเลือก --</option>
@@ -249,7 +260,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
 
 
         <div className="pt-3 mt-3 border-t border-neutral-DEFAULT/50 dark:border-dark-border/30">
-          <h3 className="text-md font-sans font-medium text-neutral-dark dark:text-dark-text mb-2">ข้อมูลติดต่อ</h3>
+          <h3 className="text-md font-sans font-medium text-neutral-dark dark:text-dark-text mb-2">ข้อมูลติดต่อ (จะแสดงในโพสต์ของคุณ)</h3>
             <div>
             <label htmlFor="mobile" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">เบอร์โทรศัพท์ <span className="text-red-500 dark:text-red-400">*</span></label>
             <input type="tel" id="mobile" value={mobile} onChange={(e) => setMobile(e.target.value)}

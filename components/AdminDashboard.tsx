@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import type { Job, HelperProfile, User, Interaction, WebboardPost, WebboardComment, UserLevel } from '../types';
 import { UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, USER_LEVELS } from '../types';
@@ -10,7 +9,7 @@ export interface AdminItem {
   id: string;
   itemType: 'job' | 'profile' | 'webboardPost';
   title: string;
-  username?: string;
+  authorDisplayName?: string; // Updated from username
   userId?: string;
   postedAt?: string; // Ensured this will be a string or undefined
   isPinned?: boolean;
@@ -144,7 +143,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         id: job.id,
         itemType: 'job' as const,
         title: job.title,
-        username: job.username,
+        authorDisplayName: job.authorDisplayName,
         userId: job.userId,
         postedAt: ensureStringDate(job.postedAt),
         isPinned: job.isPinned,
@@ -161,7 +160,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             id: profile.id,
             itemType: 'profile' as const,
             title: profile.profileTitle,
-            username: profile.username,
+            authorDisplayName: profile.authorDisplayName,
             userId: profile.userId,
             postedAt: ensureStringDate(profile.postedAt),
             isPinned: profile.isPinned,
@@ -179,7 +178,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             id: post.id,
             itemType: 'webboardPost' as const,
             title: post.title,
-            username: post.username,
+            authorDisplayName: post.authorDisplayName,
             userId: post.userId,
             postedAt: ensureStringDate(post.createdAt), // Use createdAt for webboard posts
             isPinned: post.isPinned,
@@ -389,7 +388,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const filteredUsers = users.filter(user =>
       user.id !== currentUser?.id &&
       (user.username.toLowerCase().includes(lowerSearchTerm) ||
-       user.displayName.toLowerCase().includes(lowerSearchTerm))
+       user.publicDisplayName.toLowerCase().includes(lowerSearchTerm))
     );
 
     return (
@@ -410,7 +409,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 return (
                   <li key={user.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 border-b dark:border-dark-border/50 last:border-b-0">
                     <div>
-                      <span className="font-semibold text-neutral-dark dark:text-dark-text">@{user.username}</span> ({user.displayName})
+                      <span className="font-semibold text-neutral-dark dark:text-dark-text">@{user.username}</span> ({user.publicDisplayName})
                       <br/>
                       <span className={`text-xs px-1.5 py-0.5 rounded-full inline-block mt-1 ${displayBadge.colorClass} ${displayBadge.textColorClass || ''}`}>
                         {displayBadge.name}
@@ -492,7 +491,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           (!searchTerm ||
             (item.originalItem as Job).title.toLowerCase().includes(lowerSearchTerm) ||
             (item.originalItem as Job).description.toLowerCase().includes(lowerSearchTerm) ||
-            (item.username || '').toLowerCase().includes(lowerSearchTerm)
+            (item.authorDisplayName || '').toLowerCase().includes(lowerSearchTerm)
           )
         )
       );
@@ -505,7 +504,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           (!searchTerm ||
             (item.originalItem as HelperProfile).profileTitle.toLowerCase().includes(lowerSearchTerm) ||
             (item.originalItem as HelperProfile).details.toLowerCase().includes(lowerSearchTerm) ||
-            (item.username || '').toLowerCase().includes(lowerSearchTerm)
+            (item.authorDisplayName || '').toLowerCase().includes(lowerSearchTerm)
           )
         )
       );
@@ -518,7 +517,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           (!searchTerm ||
             (item.originalItem as WebboardPost).title.toLowerCase().includes(lowerSearchTerm) ||
             (item.originalItem as WebboardPost).body.toLowerCase().includes(lowerSearchTerm) ||
-            (item.username || '').toLowerCase().includes(lowerSearchTerm)
+            (item.authorDisplayName || '').toLowerCase().includes(lowerSearchTerm)
           )
         )
       );
@@ -547,7 +546,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </span>
                 </div>
                 <p className="text-xs sm:text-sm text-neutral-medium dark:text-dark-textMuted">
-                โพสต์โดย: @{item.username || 'N/A'} (User ID: {item.userId})
+                โพสต์โดย: @{item.authorDisplayName || 'N/A'} (User ID: {item.userId})
                 {item.itemType === 'webboardPost' && item.authorLevel && (
                     <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${item.authorLevel.colorClass} ${item.authorLevel.textColorClass || ''}`}>{item.authorLevel.name}</span>
                 )}

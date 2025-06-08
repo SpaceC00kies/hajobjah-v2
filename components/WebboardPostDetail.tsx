@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { EnrichedWebboardPost, EnrichedWebboardComment, User } from '../types';
 import { USER_LEVELS, UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES } // Import UserRole, View, WebboardCategory, and WEBBOARD_CATEGORY_STYLES
@@ -132,11 +131,11 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
       <h1 className="text-2xl md:text-3xl font-sans font-semibold text-neutral-800 dark:text-dark-text mb-4">{post.title}</h1>
 
       <div className="flex items-center mb-4 pb-3 border-b border-neutral-DEFAULT/30 dark:border-dark-border/30">
-        <FallbackAvatarLarge name={post.username} photo={postAuthor?.photo || post.authorPhoto} className="mr-3 flex-shrink-0" />
+        <FallbackAvatarLarge name={post.authorDisplayName} photo={postAuthor?.photo || post.authorPhoto} className="mr-3 flex-shrink-0" />
         <div className="font-sans">
           {/* Line 1: Username and Badge */}
           <div className="flex items-center">
-            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">@{post.username}</span>
+            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">@{post.authorDisplayName}</span>
             <UserLevelBadge level={post.authorLevel} size="sm" /> {/* Use sm for text-xs */}
           </div>
           {/* Line 2: Timestamp */}

@@ -1,15 +1,15 @@
 
 import React, { useState } from 'react';
-import type { Job, User } from '../types'; 
-import { View, JobCategory, JOB_CATEGORY_STYLES } from '../types'; 
+import type { Job, User } from '../types';
+import { View, JobCategory, JOB_CATEGORY_STYLES } from '../types';
 import { Button } from './Button';
-import { Modal } from './Modal'; 
+import { Modal } from './Modal';
 
 interface JobCardProps {
   job: Job;
   navigateTo: (view: View) => void;
-  currentUser: User | null; 
-  requestLoginForAction: (view: View, payload?: any) => void; 
+  currentUser: User | null;
+  requestLoginForAction: (view: View, payload?: any) => void;
 }
 
 const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
@@ -44,7 +44,7 @@ const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
     });
   } catch (e) {
     console.error("Error formatting date:", e);
-    return null; 
+    return null;
   }
 };
 
@@ -53,20 +53,20 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
 
   const handleInterest = () => {
-    setIsWarningModalOpen(true); 
+    setIsWarningModalOpen(true);
   };
 
   const closeInterestModal = () => {
     setIsInterestModalOpen(false);
   };
-  
+
   const closeWarningModal = () => {
     setIsWarningModalOpen(false);
   };
 
   const handleProceedToContact = () => {
-    setIsWarningModalOpen(false); 
-    setIsInterestModalOpen(true); 
+    setIsWarningModalOpen(false);
+    setIsInterestModalOpen(true);
   };
 
   const formatAgeRange = () => {
@@ -82,10 +82,10 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
   const ageRangeText = formatAgeRange();
   const dateNeededFromText = formatDateDisplay(job.dateNeededFrom);
   const dateNeededToText = formatDateDisplay(job.dateNeededTo);
-  
+
   const postedAtDate = job.postedAt ? (job.postedAt instanceof Date ? job.postedAt : new Date(job.postedAt as string)) : null;
   const formattedPostedAt = postedAtDate && !isNaN(postedAtDate.getTime()) ? formatDateDisplay(postedAtDate) : "Processing date...";
-  
+
   const isExpired = !job.isHired && postedAtDate && !isNaN(postedAtDate.getTime()) ? (new Date().getTime() - postedAtDate.getTime()) / (1000 * 60 * 60 * 24) > 30 : false;
 
 
@@ -104,9 +104,9 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
   }
 
   const contactText = job.contact;
-  const useBoxStyleForContact = typeof contactText === 'string' && 
+  const useBoxStyleForContact = typeof contactText === 'string' &&
                                 (contactText.includes('เบอร์โทร:') || contactText.includes('LINE ID:') || contactText.includes('Facebook:'));
-  
+
   const descriptionPreview = job.description.substring(0, 150);
   const categoryStyle = job.category ? JOB_CATEGORY_STYLES[job.category] : JOB_CATEGORY_STYLES[JobCategory.ShortTermMisc];
 
@@ -135,7 +135,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
           </div>
         )}
         <h3 className="text-2xl font-sans font-semibold text-primary dark:text-dark-primary-DEFAULT mb-1">{job.title}</h3>
-        
+
         <div className="mb-1">
           <span className={`text-xs font-sans font-medium px-2 py-0.5 rounded-full inline-block ${categoryStyle.bg} ${categoryStyle.text} ${categoryStyle.border ? `border ${categoryStyle.border}`: ''}`}>
             {job.category}
@@ -150,19 +150,19 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
 
         <div className="space-y-2 text-neutral-dark dark:text-dark-textMuted mb-4 flex-grow font-normal">
           <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📍 สถานที่:</strong> {job.location}</p>
-          
+
           {dateNeededDisplay && (
             <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">🗓️ วันที่ต้องการ:</strong> {dateNeededDisplay}</p>
           )}
           {timeNeededDisplay && (
             <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">⏰ เวลา:</strong> {timeNeededDisplay}</p>
           )}
-          {job.dateTime && (!dateNeededDisplay || !timeNeededDisplay) && ( 
+          {job.dateTime && (!dateNeededDisplay || !timeNeededDisplay) && (
              <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📅 วันที่/เวลา (เพิ่มเติม):</strong> {job.dateTime}</p>
           )}
 
           <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">💰 ค่าจ้าง:</strong> {job.payment}</p>
-          
+
           {currentUser && (
             useBoxStyleForContact ? (
               <div className="mt-2">
@@ -175,7 +175,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
               <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📞 ติดต่อ:</strong> {contactText}</p>
             )
           )}
-          
+
           {(ageRangeText || job.preferredGender || job.desiredEducationLevel) && (
             <div className="pt-2 mt-2 border-t border-neutral-DEFAULT/50 dark:border-dark-border/30">
               <p className="text-sm font-sans font-semibold text-neutral-dark dark:text-dark-text mb-1">คุณสมบัติผู้ช่วยที่ต้องการ:</p>
@@ -197,8 +197,8 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
               {!currentUser && job.description.length > 150 ? (
                 <>
                   {descriptionPreview}...
-                  <button 
-                    onClick={() => requestLoginForAction(View.FindJobs, { focusOnPostId: job.id, type: 'job' })} 
+                  <button
+                    onClick={() => requestLoginForAction(View.FindJobs, { focusOnPostId: job.id, type: 'job' })}
                     className="text-primary dark:text-dark-primary-DEFAULT text-sm underline ml-1 font-sans"
                     aria-label="เข้าสู่ระบบเพื่อดูรายละเอียดงานเพิ่มเติม"
                   >
@@ -211,19 +211,19 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
             </div>
           </div>
 
-          {job.username && (
+          {job.authorDisplayName && (
             <p className="text-xs font-sans sm:text-sm text-neutral-medium dark:text-dark-textMuted mt-3">
-              📎 โพสต์โดย: @{job.username}
+              📎 โพสต์โดย: {job.authorDisplayName}
             </p>
           )}
-          
+
           {formattedPostedAt && (
             <p className="text-xs font-sans sm:text-sm text-neutral-medium dark:text-dark-textMuted mt-1 pt-2 border-t border-neutral-DEFAULT/30 dark:border-dark-border/20">
               🕒 โพสต์เมื่อ: {formattedPostedAt}
             </p>
           )}
         </div>
-        {isExpired && ( 
+        {isExpired && (
           <div className="text-center mt-3 mb-2">
             <span className="bg-red-100 text-red-700 dark:bg-red-700/30 dark:text-red-300 text-xs sm:text-sm px-3 py-1.5 rounded-full font-sans font-medium inline-block">
               ⛔ โพสต์นี้เกิน 1 เดือนแล้ว
@@ -231,20 +231,20 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
           </div>
         )}
         {currentUser ? (
-            <Button 
-            onClick={handleInterest} 
-            variant="primary" 
-            size="md" 
+            <Button
+            onClick={handleInterest}
+            variant="primary"
+            size="md"
             className="w-full mt-auto"
-            disabled={job.isHired} 
+            disabled={job.isHired}
             >
             {job.isHired ? '✅ มีคนทำแล้ว' : '📨 สนใจงานนี้'}
             </Button>
         ) : (
-            <Button 
+            <Button
                 onClick={() => requestLoginForAction(View.FindJobs, { intent: 'contactJob', postId: job.id })}
-                variant="primary" 
-                size="md" 
+                variant="primary"
+                size="md"
                 className="w-full mt-auto"
             >
                 เข้าสู่ระบบเพื่อติดต่อ

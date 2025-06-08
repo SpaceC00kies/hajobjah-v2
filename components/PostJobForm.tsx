@@ -1,24 +1,24 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
-import type { Job } from '../types'; 
+import type { Job } from '../types';
 import { JobDesiredEducationLevelOption, JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP } from '../types';
 import { Button } from './Button';
-import { containsBlacklistedWords } from '../App'; 
+import { containsBlacklistedWords } from '../App';
 
-type FormDataType = Omit<Job, 'id' | 'postedAt' | 'userId' | 'username' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt'>;
+type FormDataType = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt'>;
 
 
 interface PostJobFormProps {
-  onSubmitJob: (jobData: FormDataType & { id?: string }) => void; 
+  onSubmitJob: (jobData: FormDataType & { id?: string }) => void;
   onCancel: () => void;
-  initialData?: Job; 
+  initialData?: Job;
   isEditing?: boolean;
 }
 
 const initialFormStateForCreate: FormDataType = {
   title: '',
   location: '',
-  dateTime: '', 
+  dateTime: '',
   payment: '',
   description: '',
   category: '' as JobCategory,
@@ -43,12 +43,12 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
 
   useEffect(() => {
     if (isEditing && initialData) {
-      const { 
-        id, postedAt, userId, username, isSuspicious, isPinned, isHired, contact, 
-        ownerId, createdAt, updatedAt, 
-        ...editableFieldsBase 
+      const {
+        id, postedAt, userId, authorDisplayName, isSuspicious, isPinned, isHired, contact,
+        ownerId, createdAt, updatedAt,
+        ...editableFieldsBase
       } = initialData;
-      
+
       const editableFields: FormDataType = {
         title: editableFieldsBase.title || '',
         location: editableFieldsBase.location || '',
@@ -61,15 +61,15 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
         desiredAgeEnd: editableFieldsBase.desiredAgeEnd,
         preferredGender: editableFieldsBase.preferredGender,
         desiredEducationLevel: editableFieldsBase.desiredEducationLevel,
-        dateNeededFrom: editableFieldsBase.dateNeededFrom 
-                        ? (editableFieldsBase.dateNeededFrom instanceof Date 
-                            ? editableFieldsBase.dateNeededFrom.toISOString().split('T')[0] 
-                            : String(editableFieldsBase.dateNeededFrom)) 
+        dateNeededFrom: editableFieldsBase.dateNeededFrom
+                        ? (editableFieldsBase.dateNeededFrom instanceof Date
+                            ? editableFieldsBase.dateNeededFrom.toISOString().split('T')[0]
+                            : String(editableFieldsBase.dateNeededFrom))
                         : '',
-        dateNeededTo: editableFieldsBase.dateNeededTo 
-                        ? (editableFieldsBase.dateNeededTo instanceof Date 
-                            ? editableFieldsBase.dateNeededTo.toISOString().split('T')[0] 
-                            : String(editableFieldsBase.dateNeededTo)) 
+        dateNeededTo: editableFieldsBase.dateNeededTo
+                        ? (editableFieldsBase.dateNeededTo instanceof Date
+                            ? editableFieldsBase.dateNeededTo.toISOString().split('T')[0]
+                            : String(editableFieldsBase.dateNeededTo))
                         : '',
         timeNeededStart: editableFieldsBase.timeNeededStart || '',
         timeNeededEnd: editableFieldsBase.timeNeededEnd || '',
@@ -118,14 +118,14 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
     } else {
         newFormData = { ...newFormData, [currentKey]: value };
     }
-    
+
     setFormData(newFormData);
 
     if (formErrors[currentKey]) {
       setFormErrors(prev => ({ ...prev, [currentKey]: undefined }));
     }
   };
-  
+
   const handleRadioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value as Job['preferredGender'] }));
@@ -145,7 +145,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
     else if (JOB_SUBCATEGORIES_MAP[formData.category]?.length > 0 && !formData.subCategory) {
         errors.subCategory = 'กรุณาเลือกหมวดหมู่ย่อย';
     }
-    
+
     if (!formData.description.trim()) errors.description = 'กรุณากรอกรายละเอียดงาน';
     else if (containsBlacklistedWords(formData.description)) errors.description = 'รายละเอียดงานมีคำที่ไม่เหมาะสม โปรดแก้ไข';
 
@@ -162,17 +162,17 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
-  
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-    
-    const dataToSubmit: FormDataType & { id?: string } = { ...formData }; 
+
+    const dataToSubmit: FormDataType & { id?: string } = { ...formData };
     if (isEditing && initialData) {
       dataToSubmit.id = initialData.id;
     }
     onSubmitJob(dataToSubmit);
-    if (!isEditing) { 
+    if (!isEditing) {
         setFormData(initialFormStateForCreate);
         setAvailableSubCategories([]);
     }
@@ -183,8 +183,8 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
     { name: 'location', label: 'สถานที่', placeholder: 'เช่น ร้านกาแฟ Cafe Amazon สาขานิมมาน', required: true },
     { name: 'dateTime', label: 'วันที่และเวลา (แบบข้อความ ถ้ามี)', placeholder: 'เช่น 15 ส.ค. 67 (10:00-18:00) หรือ "เสาร์-อาทิตย์นี้"', required: false },
     { name: 'payment', label: 'ค่าจ้าง', placeholder: 'เช่น 400 บาท/วัน, 60 บาท/ชั่วโมง', required: true },
-  ] as const; 
-  
+  ] as const;
+
   const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border border-[#CCCCCC] dark:border-dark-border rounded-[10px] text-neutral-dark dark:text-dark-text font-serif font-normal focus:outline-none";
   const inputFocusStyle = "focus:border-primary dark:focus:border-dark-primary-DEFAULT focus:ring-2 focus:ring-primary focus:ring-opacity-70 dark:focus:ring-dark-primary-DEFAULT dark:focus:ring-opacity-70";
   const inputErrorStyle = "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-2 focus:ring-red-500 focus:ring-opacity-70 dark:focus:ring-red-400 dark:focus:ring-opacity-70";
@@ -216,7 +216,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
               type="text"
               id={field.name}
               name={field.name}
-              value={(formData[field.name as keyof typeof formData] as string) ?? ''} 
+              value={(formData[field.name as keyof typeof formData] as string) ?? ''}
               onChange={handleChange}
               placeholder={field.placeholder}
               className={`${inputBaseStyle} ${formErrors[field.name as keyof FormErrorsType] ? inputErrorStyle : inputFocusStyle}`}
@@ -265,7 +265,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
             {formErrors.subCategory && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.subCategory}</p>}
           </div>
         )}
-        
+
         <div>
           <div className="flex justify-between items-center mb-1">
             <label htmlFor="description" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text">
@@ -286,7 +286,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
 
         <div className="pt-6 border-t border-neutral-DEFAULT dark:border-dark-border/50">
             <h3 className="text-xl font-sans font-semibold text-neutral-dark dark:text-dark-text mb-4">ข้อมูลผู้ช่วยที่ต้องการ (ถ้ามี)</h3>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4">
               <div>
                 <label htmlFor="dateNeededFrom" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">วันที่ต้องการ: ตั้งแต่</label>
@@ -342,9 +342,9 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
                         className={`${selectBaseStyle} ${formErrors.desiredAgeEnd ? inputErrorStyle : inputFocusStyle}`}
                     >
                          {ageOptions.map(age => (
-                            <option 
-                                key={`end-${age}`} 
-                                value={age} 
+                            <option
+                                key={`end-${age}`}
+                                value={age}
                                 disabled={formData.desiredAgeStart !== undefined && age !== '' && typeof age === 'number' ? age < formData.desiredAgeStart : false}
                             >
                                 {age === '' ? 'ไม่ระบุ' : `${age} ปี`}
@@ -354,7 +354,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
                      {formErrors.desiredAgeEnd && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.desiredAgeEnd}</p>}
                 </div>
             </div>
-            
+
             <div className="mb-4">
                 <label className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-2">
                     เพศที่ต้องการ

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { EnrichedWebboardPost, User, UserLevel } from '../types';
 import { UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES } // Import UserRole, View, WebboardCategory, and WEBBOARD_CATEGORY_STYLES
@@ -103,7 +102,7 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
       )}
       <div className="flex items-center mb-2">
         <div className="flex-grow flex items-center">
-          <span className="text-xs sm:text-sm font-semibold text-neutral-dark dark:text-dark-textMuted">@{post.username}</span>
+          <span className="text-xs sm:text-sm font-semibold text-neutral-dark dark:text-dark-textMuted">@{post.authorDisplayName}</span>
           <span className="mx-1 text-xs text-neutral-500 dark:text-neutral-400">·</span>
           <span className="text-xs text-neutral-500 dark:text-neutral-400" title={post.authorLevel.name}>{post.authorLevel.name}</span>
         </div>

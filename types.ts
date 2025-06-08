@@ -1,5 +1,4 @@
 
-
 export interface Job {
   id: string;
   title: string;
@@ -9,7 +8,7 @@ export interface Job {
   contact: string;
   description: string;
   category: JobCategory;
-  subCategory?: JobSubCategory; // Added subCategory
+  subCategory?: JobSubCategory;
   desiredAgeStart?: number;
   desiredAgeEnd?: number;
   preferredGender?: 'ชาย' | 'หญิง' | 'ไม่จำกัด';
@@ -18,15 +17,15 @@ export interface Job {
   dateNeededTo?: string | Date;
   timeNeededStart?: string;
   timeNeededEnd?: string;
-  postedAt?: string | Date; 
+  postedAt?: string | Date;
   userId: string;
-  username: string;
-  ownerId?: string; 
+  authorDisplayName: string; // Renamed from username
+  ownerId?: string;
   isSuspicious?: boolean;
   isPinned?: boolean;
   isHired?: boolean;
-  createdAt?: string | Date; 
-  updatedAt?: string | Date; 
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
 }
 
 export enum GenderOption {
@@ -62,7 +61,7 @@ export interface HelperProfile {
   availability: string;
   contact: string;
   category: JobCategory;
-  subCategory?: JobSubCategory; // Added subCategory
+  subCategory?: JobSubCategory;
   gender?: GenderOption;
   birthdate?: string;
   educationLevel?: HelperEducationLevelOption;
@@ -71,8 +70,8 @@ export interface HelperProfile {
   availabilityTimeDetails?: string;
   postedAt?: string | Date;
   userId: string;
-  username: string;
-  ownerId?: string; 
+  authorDisplayName: string; // Renamed from username
+  ownerId?: string;
   isSuspicious?: boolean;
   isPinned?: boolean;
   isUnavailable?: boolean;
@@ -89,9 +88,9 @@ export enum UserRole {
 }
 
 export interface User {
-  id: string; 
-  displayName: string;
-  username: string;
+  id: string;
+  publicDisplayName: string; // Renamed from displayName
+  username: string; // Login username
   email: string;
   role: UserRole;
   mobile: string;
@@ -100,8 +99,13 @@ export interface User {
   gender?: GenderOption;
   birthdate?: string;
   educationLevel?: HelperEducationLevelOption;
-  photo?: string; 
+  photo?: string;
   address?: string;
+
+  // New personal info fields
+  nickname?: string;
+  firstName?: string;
+  lastName?: string;
 
   favoriteMusic?: string;
   favoriteBook?: string;
@@ -113,7 +117,7 @@ export interface User {
 
   profileComplete?: boolean;
   userLevel: UserLevel;
-  isMuted?: boolean; 
+  isMuted?: boolean;
   createdAt?: string | Date;
   updatedAt?: string | Date;
 }
@@ -133,22 +137,22 @@ export enum View {
   PublicProfile = 'PUBLIC_PROFILE',
   Safety = 'SAFETY',
   Webboard = 'WEBBOARD',
-  PasswordReset = 'PASSWORD_RESET', // Added PasswordReset view
+  PasswordReset = 'PASSWORD_RESET',
 }
 
 export interface EnrichedHelperProfile extends HelperProfile {
   userPhoto?: string;
   userAddress?: string;
-  userDisplayName: string;
+  // userDisplayName was derived, will now use authorDisplayName directly or fetch User's publicDisplayName
   profileCompleteBadge: boolean;
   warningBadge: boolean;
   verifiedExperienceBadge: boolean;
 }
 
 export interface Interaction {
-  id: string; 
+  id: string;
   helperUserId: string;
-  helperProfileId?: string; 
+  helperProfileId?: string;
   employerUserId: string;
   timestamp: string | Date;
   type: 'contact_helper';
@@ -351,8 +355,8 @@ export interface WebboardPost {
   category: WebboardCategory;
   image?: string;
   userId: string;
-  username: string;
-  ownerId?: string; 
+  authorDisplayName: string; // Renamed from username
+  ownerId?: string;
   authorPhoto?: string;
   createdAt: string | Date;
   updatedAt: string | Date;
@@ -365,8 +369,8 @@ export interface WebboardComment {
   id: string;
   postId: string;
   userId: string;
-  username: string;
-  ownerId?: string; 
+  authorDisplayName: string; // Renamed from username
+  ownerId?: string;
   authorPhoto?: string;
   text: string;
   createdAt: string | Date;
@@ -425,5 +429,5 @@ export interface EnrichedWebboardComment extends WebboardComment {
 export interface SiteConfig {
     isSiteLocked: boolean;
     updatedAt?: string | Date;
-    updatedBy?: string; 
+    updatedBy?: string;
 }

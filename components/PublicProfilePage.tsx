@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { User, HelperProfile } from '../types'; 
 import { HelperEducationLevelOption, GenderOption } from '../types';
@@ -99,12 +98,12 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, help
         
         <div className="text-center mb-6">
           {user.photo ? (
-            <img src={user.photo} alt={user.displayName} className="w-40 h-40 rounded-full object-cover shadow-lg mx-auto mb-4" />
+            <img src={user.photo} alt={user.publicDisplayName} className="w-40 h-40 rounded-full object-cover shadow-lg mx-auto mb-4" />
           ) : (
-            <FallbackAvatarPublic name={user.displayName} />
+            <FallbackAvatarPublic name={user.publicDisplayName} />
           )}
           <h2 className="text-3xl font-sans font-bold text-secondary-hover dark:text-dark-secondary-hover mt-4">
-            {user.displayName}
+            {user.publicDisplayName}
           </h2>
           <p className="text-md font-sans text-neutral-medium dark:text-dark-textMuted">@{user.username}</p>
           <TrustBadgesPublicProfile user={user} helperProfile={helperProfile} />

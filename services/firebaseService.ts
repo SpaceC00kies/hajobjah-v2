@@ -91,7 +91,7 @@ const cleanDataForFirestore = <T extends Record<string, any>>(data: T): Partial<
 
 // --- Authentication Services ---
 export const signUpWithEmailPasswordService = async (
-  userData: Omit<User, 'id' | 'userLevel' | 'profileComplete'> & { password: string }
+  userData: Omit<User, 'id' | 'userLevel' | 'profileComplete' | 'nickname' | 'firstName' | 'lastName'> & { password: string }
 ): Promise<User | null> => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
@@ -99,9 +99,12 @@ export const signUpWithEmailPasswordService = async (
     const { password, ...userProfileData } = userData;
 
     const newUser: Omit<User, 'id'> = {
-      ...userProfileData,
+      ...userProfileData, // Contains publicDisplayName, username, email, mobile, gender, birthdate, educationLevel, lineId, facebook
       photo: null,
       address: '',
+      nickname: '', // Initialize new fields
+      firstName: '',
+      lastName: '',
       userLevel: { name: "🐣 มือใหม่หัดโพสต์", minScore: 0, colorClass: 'bg-green-200 dark:bg-green-700/50', textColorClass: 'text-green-800 dark:text-green-200' },
       profileComplete: false,
       isMuted: false,
@@ -165,12 +168,12 @@ export const signInWithEmailPasswordService = async (loginIdentifier: string, pa
     if (error.message === "Invalid username or password." || error.message === "Login failed due to a system issue. Please try again later.") {
       throw error;
     }
-    
+
     const authError = error as AuthError;
     if (authError.code && (
         authError.code === 'auth/wrong-password' ||
-        authError.code === 'auth/user-not-found' || 
-        authError.code === 'auth/invalid-credential' || 
+        authError.code === 'auth/user-not-found' ||
+        authError.code === 'auth/invalid-credential' ||
         authError.code === 'auth/invalid-email'
     )) {
       throw new Error("Invalid username or password.");
@@ -218,7 +221,7 @@ export const sendPasswordResetEmailService = async (email: string): Promise<void
     await sendPasswordResetEmail(auth, email);
   } catch (error: any) {
     logFirebaseError("sendPasswordResetEmailService", error);
-    throw error; 
+    throw error;
   }
 };
 
@@ -255,7 +258,7 @@ export const deleteImageService = async (imageUrl?: string | null): Promise<void
 // --- User Profile Service ---
 export const updateUserProfileService = async (
   userId: string,
-  profileData: Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username'>>
+  profileData: Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username'>> // Ensure all updatable User fields are here
 ): Promise<boolean> => {
   try {
     const userDocRef = doc(db, USERS_COLLECTION, userId);
@@ -306,13 +309,13 @@ const subscribeToCollectionService = <T>(
 // --- Specific Data Services ---
 
 // Jobs
-type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'username' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt'>;
-export const addJobService = async (jobData: JobFormData, author: { userId: string; username: string; contact: string }): Promise<string> => {
+type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt'>;
+export const addJobService = async (jobData: JobFormData, author: { userId: string; authorDisplayName: string; contact: string }): Promise<string> => {
   try {
     const newJobDoc: Omit<Job, 'id'> = {
       ...jobData,
       userId: author.userId,
-      username: author.username,
+      authorDisplayName: author.authorDisplayName, // Changed from username
       contact: author.contact,
       ownerId: author.userId,
       isPinned: false,
@@ -353,14 +356,14 @@ export const subscribeToJobsService = (callback: (data: Job[]) => void) =>
 
 
 // Helper Profiles
-type HelperProfileFormData = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'username' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt'>;
-interface HelperProfileAuthorInfo { userId: string; username: string; contact: string; gender: User['gender']; birthdate: User['birthdate']; educationLevel: User['educationLevel']; }
+type HelperProfileFormData = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt'>;
+interface HelperProfileAuthorInfo { userId: string; authorDisplayName: string; contact: string; gender: User['gender']; birthdate: User['birthdate']; educationLevel: User['educationLevel']; }
 export const addHelperProfileService = async (profileData: HelperProfileFormData, author: HelperProfileAuthorInfo): Promise<string> => {
   try {
     const newProfileDoc: Omit<HelperProfile, 'id'> = {
       ...profileData,
       userId: author.userId,
-      username: author.username,
+      authorDisplayName: author.authorDisplayName, // Changed from username
       contact: author.contact,
       gender: author.gender,
       birthdate: author.birthdate,
@@ -401,7 +404,7 @@ export const subscribeToHelperProfilesService = (callback: (data: HelperProfile[
   subscribeToCollectionService<HelperProfile>(HELPER_PROFILES_COLLECTION, callback, [orderBy("isPinned", "desc"), orderBy("postedAt", "desc")]);
 
 // Webboard Posts
-interface WebboardPostAuthorInfo { userId: string; username: string; photo?: string | null; }
+interface WebboardPostAuthorInfo { userId: string; authorDisplayName: string; photo?: string | null; }
 export const addWebboardPostService = async (postData: { title: string; body: string; category: WebboardCategory; image?: string }, author: WebboardPostAuthorInfo): Promise<string> => {
   try {
     let imageUrl: string | undefined = undefined; // Keep as undefined if no image
@@ -415,7 +418,7 @@ export const addWebboardPostService = async (postData: { title: string; body: st
       category: postData.category,
       image: imageUrl, // This will be undefined if no image, and cleanDataForFirestore will omit it
       userId: author.userId,
-      username: author.username,
+      authorDisplayName: author.authorDisplayName, // Changed from username
       authorPhoto: author.photo || undefined, // Omitted if undefined
       ownerId: author.userId,
       likes: [],
@@ -439,7 +442,7 @@ export const updateWebboardPostService = async (postId: string, postData: { titl
     if (postData.title !== undefined) basePayload.title = postData.title;
     if (postData.body !== undefined) basePayload.body = postData.body;
     if (postData.category !== undefined) basePayload.category = postData.category;
-    
+
     basePayload.updatedAt = serverTimestamp() as any;
     if (currentUserPhoto !== undefined) {
       basePayload.authorPhoto = currentUserPhoto || null; // Use null if currentUserPhoto is explicitly null
@@ -503,14 +506,14 @@ export const subscribeToWebboardPostsService = (callback: (data: WebboardPost[])
 
 
 // Webboard Comments
-interface WebboardCommentAuthorInfo { userId: string; username: string; photo?: string | null; }
+interface WebboardCommentAuthorInfo { userId: string; authorDisplayName: string; photo?: string | null; }
 export const addWebboardCommentService = async (postId: string, text: string, author: WebboardCommentAuthorInfo): Promise<string> => {
   try {
     const newCommentDoc: Omit<WebboardComment, 'id'> = {
       postId,
       text,
       userId: author.userId,
-      username: author.username,
+      authorDisplayName: author.authorDisplayName, // Changed from username
       authorPhoto: author.photo || undefined,
       ownerId: author.userId,
       createdAt: serverTimestamp() as any,
