@@ -101,10 +101,6 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
     timeNeededDisplay = `${job.timeNeededStart} น.`;
   }
 
-  const contactText = job.contact;
-  const useBoxStyleForContact = typeof contactText === 'string' &&
-                                (contactText.includes('เบอร์โทร:') || contactText.includes('LINE ID:') || contactText.includes('Facebook:'));
-
   const descriptionPreview = job.description.substring(0, 150);
   const categoryStyle = job.category ? JOB_CATEGORY_STYLES[job.category] : JOB_CATEGORY_STYLES[JobCategory.ShortTermMisc];
 
@@ -159,18 +155,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
           {job.dateTime && (!dateNeededDisplay || !timeNeededDisplay) && (<p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📅 วันที่/เวลา (เพิ่มเติม):</strong> {job.dateTime}</p>)}
           <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">💰 ค่าจ้าง:</strong> {job.payment}</p>
 
-          {currentUser && !jobIsTrulyExpired && (
-            useBoxStyleForContact ? (
-              <div className="mt-2">
-                <strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📞 ช่องทางติดต่อ:</strong>
-                <div className="mt-1 text-sm font-serif bg-neutral-light dark:bg-dark-inputBg dark:text-dark-text p-3 rounded-md whitespace-pre-wrap border border-neutral-DEFAULT/50 dark:border-dark-border/50">
-                  {contactText}
-                </div>
-              </div>
-            ) : (
-              <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📞 ติดต่อ:</strong> {contactText}</p>
-            )
-          )}
+          {/* Contact information direct display removed as per request */}
 
           {(ageRangeText || job.preferredGender || job.desiredEducationLevel) && (
             <div className="pt-2 mt-2 border-t border-neutral-DEFAULT/50 dark:border-dark-border/50">

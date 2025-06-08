@@ -149,29 +149,7 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, help
           </div>
         )}
 
-
-        <div className="mb-6 pt-4 border-t border-neutral-DEFAULT/30 dark:border-dark-border/30">
-          <h3 className="text-xl font-sans font-semibold text-neutral-dark dark:text-dark-text mb-3">ข้อมูลติดต่อ:</h3>
-          {currentUser ? (
-            <>
-                {renderInfoItem("เบอร์โทรศัพท์", user.mobile, true)}
-                {renderInfoItem("LINE ID", user.lineId)}
-                {renderInfoItem("Facebook", user.facebook)}
-                {!user.mobile && !user.lineId && !user.facebook && (
-                    <p className="font-serif text-neutral-medium dark:text-dark-textMuted">ผู้ใช้ไม่ได้ระบุข้อมูลติดต่อสาธารณะ</p>
-                )}
-            </>
-          ) : (
-             <p className="font-serif text-neutral-medium dark:text-dark-textMuted p-3 bg-neutral-light dark:bg-dark-inputBg/50 rounded-md text-center">
-                <button 
-                    onClick={onBack} 
-                    className="font-sans text-secondary dark:text-dark-secondary-DEFAULT hover:underline"
-                >
-                    เข้าสู่ระบบ
-                </button> เพื่อดูข้อมูลติดต่อ
-            </p>
-          )}
-        </div>
+        {/* Contact information section removed as per request */}
 
         <div className="mt-8 text-center">
           <Button onClick={onBack} variant="outline" colorScheme="secondary" size="md">

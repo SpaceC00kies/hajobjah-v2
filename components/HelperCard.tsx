@@ -144,10 +144,6 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
     availabilityDateDisplay = `ถึง ${availabilityDateToText}`;
   }
 
-  const contactText = profile.contact;
-  const useBoxStyleForContact = typeof contactText === 'string' &&
-                                (contactText.includes('เบอร์โทร:') || contactText.includes('LINE ID:') || contactText.includes('Facebook:'));
-
   const shortAddress = profile.userAddress ? profile.userAddress.split(',')[0] : null;
   const detailsPreview = profile.details.substring(0, 150);
   const categoryStyle = profile.category ? JOB_CATEGORY_STYLES[profile.category] : JOB_CATEGORY_STYLES[JobCategory.ShortTermMisc];
@@ -232,18 +228,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
             <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">🕒 วันเวลาที่ว่าง (หมายเหตุ):</strong> {profile.availability}</p>
           )}
 
-          {currentUser && !profileIsTrulyExpired && (
-            useBoxStyleForContact ? (
-                <div className="mt-2">
-                <strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📞 ช่องทางติดต่อ:</strong>
-                <div className="mt-1 text-sm font-serif bg-neutral-light dark:bg-dark-inputBg dark:text-dark-text p-3 rounded-md whitespace-pre-wrap border border-neutral-DEFAULT/50 dark:border-dark-border/50">
-                    {contactText}
-                </div>
-                </div>
-            ) : (
-                <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📞 ติดต่อ:</strong> {contactText}</p>
-            )
-          )}
+          {/* Contact information direct display removed as per request */}
 
            <div className="mt-2">
             <strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📝 เกี่ยวกับฉัน:</strong>
