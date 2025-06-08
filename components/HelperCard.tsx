@@ -266,7 +266,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
                 disabled={profile.isUnavailable || profileIsTrulyExpired}
                 aria-label={`ดูโปรไฟล์เต็มของ ${profile.authorDisplayName}`}
             >
-                👤 ดูโปรไฟล์
+                👤 โปรไฟล์
             </Button>
              <Button
                 onClick={currentUser ? handleContact : () => requestLoginForAction(View.FindHelpers, { intent: 'contactHelper', postId: profile.id })}
