@@ -153,7 +153,7 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, help
 
         <div className="mt-8 text-center">
           <Button onClick={onBack} variant="outline" colorScheme="secondary" size="md">
-            กลับไปหน้ารายการ
+            กลับไปหน้าเดิม
           </Button>
         </div>
       </div>

@@ -179,6 +179,7 @@ type RegistrationDataType = Omit<User, 'id' | 'photo' | 'address' | 'userLevel' 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>(View.Home);
   const [viewingProfileId, setViewingProfileId] = useState<string | null>(null);
+  const [sourceViewForPublicProfile, setSourceViewForPublicProfile] = useState<View>(View.FindHelpers);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [confirmModalMessage, setConfirmModalMessage] = useState('');
   const [confirmModalTitle, setConfirmModalTitle] = useState('');
@@ -329,16 +330,29 @@ const App: React.FC = () => {
   };
 
   const navigateTo = (view: View, payload?: any) => {
+    const fromView = currentView;
     setIsMobileMenuOpen(false); window.scrollTo(0, 0);
     const protectedViews: View[] = [View.PostJob, View.OfferHelp, View.UserProfile, View.MyPosts, View.AdminDashboard];
+    
     if (view === View.PublicProfile && typeof payload === 'string') {
       const targetUser = users.find(u => u.id === payload);
-      if (targetUser && targetUser.role === UserRole.Admin && currentUser?.id !== targetUser.id) { alert("โปรไฟล์ของแอดมินไม่สามารถดูในหน้านี้ได้"); return; }
+      if (targetUser && targetUser.role === UserRole.Admin && currentUser?.id !== targetUser.id) { 
+        alert("โปรไฟล์ของแอดมินไม่สามารถดูในหน้านี้ได้"); 
+        return; 
+      }
       setViewingProfileId(payload);
+      if (fromView !== View.PublicProfile) { // Avoid setting PublicProfile as its own source
+        setSourceViewForPublicProfile(fromView);
+      }
     } else if (view !== View.PublicProfile) {
       if (viewingProfileId !== null) setViewingProfileId(null);
     }
-    if (!currentUser && protectedViews.includes(view)) { requestLoginForAction(view, payload); return; }
+
+    if (!currentUser && protectedViews.includes(view)) { 
+      requestLoginForAction(view, payload); 
+      return; 
+    }
+    
     if (view === View.Webboard) {
       if (typeof payload === 'string') setSelectedPostId(payload === 'create' ? 'create' : payload);
       else if (payload && typeof payload === 'object' && payload.postId) setSelectedPostId(payload.postId);
@@ -433,6 +447,7 @@ const App: React.FC = () => {
       await signOutUserService();
       setLoginRedirectInfo(null); setItemToEdit(null); setEditingItemType(null);
       setSourceViewForForm(null); setViewingProfileId(null); setSelectedPostId(null);
+      setSourceViewForPublicProfile(View.FindHelpers); // Reset source view on logout
       setIsMobileMenuOpen(false);
       alert('ออกจากระบบเรียบร้อยแล้ว'); navigateTo(View.Home);
     } catch (error: any) {
@@ -1062,7 +1077,7 @@ const App: React.FC = () => {
           <h3 className="text-lg font-sans font-semibold text-secondary-hover mb-4">คนอยากหางาน</h3>
           <div className="space-y-4">
             <Button onClick={() => { setSourceViewForForm(View.Home); navigateTo(View.OfferHelp); }} variant="secondary" size="md" className="w-full">
-              <span className="flex items-center justify-center gap-2"><span>🙋</span><span>ว่างอยู่! พร้อมรับงาน</span></span>
+              <span className="flex items-center justify-center gap-2"><span>🙋</span><span>เสนองาน? ฝากโปรไฟล์</span></span>
             </Button>
             <Button onClick={() => navigateTo(View.FindJobs)} variant="outline" colorScheme="secondary" size="md" className="w-full">
               <span className="flex items-center justify-center gap-2"><span>👀</span><span>อยากหางาน? ดูประกาศเลย</span></span>
@@ -1178,7 +1193,7 @@ const App: React.FC = () => {
             <div className="sticky top-24 space-y-6 p-4 bg-white dark:bg-dark-cardBg rounded-xl shadow-lg border dark:border-dark-border">
                 <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedHelperCategoryFilter} onSelectCategory={setSelectedHelperCategoryFilter} />
                 <SearchInputWithRecent searchTerm={helperSearchTerm} onSearchTermChange={handleHelperSearch} placeholder="ค้นหาผู้ช่วย, ทักษะ, พื้นที่..." recentSearches={recentHelperSearches} onRecentSearchSelect={(term) => { setHelperSearchTerm(term); addRecentSearch('recentHelperSearches', term); setRecentHelperSearches(getRecentSearches('recentHelperSearches')); }} ariaLabel="ค้นหาผู้ช่วย" />
-                {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateTo(View.OfferHelp); }} variant="secondary" size="md" className="w-full"> <span className="flex items-center justify-center gap-2"><span>🙋</span><span>เสนองานกดตรงนี้</span></span> </Button> )}
+                {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateTo(View.OfferHelp); }} variant="secondary" size="md" className="w-full"> <span className="flex items-center justify-center gap-2"><span>🙋</span><span>เสนอช่วยงาน</span></span> </Button> )}
             </div>
         </aside>
         <section className="lg:col-span-9">
@@ -1200,6 +1215,12 @@ const App: React.FC = () => {
   const renderMyPostsPage = () => { if (!currentUser || currentUser.role === UserRole.Admin) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทาง...</p>; return (<MyPostsPage currentUser={currentUser} jobs={jobs} helperProfiles={helperProfiles} webboardPosts={webboardPosts} webboardComments={webboardComments} onEditItem={handleStartEditMyItem} onDeleteItem={handleDeleteItemFromMyPosts} onToggleHiredStatus={handleToggleItemStatusFromMyPosts} navigateTo={navigateTo} getUserDisplayBadge={(user) => getUserDisplayBadge(user, webboardPosts, webboardComments)} />); };
   const renderAboutUsPage = () => <AboutUsPage />;
   const renderSafetyPage = () => <SafetyPage />;
+
+  const handleBackFromPublicProfile = () => {
+    navigateTo(sourceViewForPublicProfile || View.FindHelpers);
+    setSourceViewForPublicProfile(View.FindHelpers); // Reset to default after use
+  };
+
   const renderPublicProfile = () => { 
     if (!viewingProfileId) { navigateTo(View.Home); return <p className="text-center p-8 font-serif">ไม่พบ ID โปรไฟล์...</p>; } 
     const profileUser = users.find(u => u.id === viewingProfileId); 
@@ -1207,7 +1228,7 @@ const App: React.FC = () => {
     if (profileUser.role === UserRole.Admin && currentUser?.id !== viewingProfileId) return <div className="text-center p-8 font-serif text-red-500">โปรไฟล์ของแอดมินไม่สามารถดูในหน้านี้ได้</div>; 
     const helperProfileForBio = helperProfiles.find(hp => hp.userId === viewingProfileId && !isDateInPast(hp.expiresAt) && !hp.isExpired); 
     const displayBadge = getUserDisplayBadge(profileUser, webboardPosts, webboardComments); 
-    return <PublicProfilePage currentUser={currentUser} user={{...profileUser, userLevel: displayBadge}} helperProfile={helperProfileForBio} onBack={() => navigateTo(View.FindHelpers)} />; 
+    return <PublicProfilePage currentUser={currentUser} user={{...profileUser, userLevel: displayBadge}} helperProfile={helperProfileForBio} onBack={handleBackFromPublicProfile} />; 
   };
   const renderWebboardPage = () => {
     return (<WebboardPage
