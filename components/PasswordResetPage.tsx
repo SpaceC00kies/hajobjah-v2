@@ -118,7 +118,7 @@ export const PasswordResetPage: React.FC<PasswordResetPageProps> = ({ navigateTo
   };
 
   const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border border-[#CCCCCC] dark:border-dark-border rounded-[10px] text-neutral-dark dark:text-dark-text font-serif font-normal focus:outline-none";
-  const inputFocusStyle = "focus:border-primary dark:focus:border-dark-primary-DEFAULT focus:ring-1 focus:ring-primary focus:ring-opacity-50 dark:focus:ring-dark-primary-DEFAULT dark:focus:ring-opacity-50";
+  const inputFocusStyle = "focus:border-brandGreen dark:focus:border-dark-brandGreen-DEFAULT focus:ring-1 focus:ring-brandGreen focus:ring-opacity-50 dark:focus:ring-dark-brandGreen-DEFAULT dark:focus:ring-opacity-50";
   const inputErrorStyle = "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-1 focus:ring-red-500 focus:ring-opacity-50 dark:focus:ring-red-400 dark:focus:ring-opacity-50";
 
   const renderContent = () => {
@@ -131,7 +131,7 @@ export const PasswordResetPage: React.FC<PasswordResetPageProps> = ({ navigateTo
         <div className="bg-white dark:bg-dark-cardBg p-8 rounded-xl shadow-2xl w-full max-w-md text-center border border-neutral-DEFAULT dark:border-dark-border">
           <h2 className="text-2xl font-sans font-semibold text-red-600 dark:text-red-400 mb-4">เกิดข้อผิดพลาด</h2>
           <p className="text-neutral-dark dark:text-dark-textMuted mb-6 font-normal">{verificationError}</p>
-          <Button onClick={() => navigateTo(View.Login)} variant="primary" size="md">
+          <Button onClick={() => navigateTo(View.Login)} variant="login" size="md">
             กลับไปหน้าเข้าสู่ระบบ
           </Button>
         </div>
@@ -145,7 +145,7 @@ export const PasswordResetPage: React.FC<PasswordResetPageProps> = ({ navigateTo
                 <p className="text-neutral-dark dark:text-dark-textMuted mb-6 font-normal">
                     ลิงก์สำหรับรีเซ็ตรหัสผ่านนี้ไม่ถูกต้อง อาจเกิดจากการพิมพ์ผิด, ถูกใช้ไปแล้ว, หรือหมดอายุ
                 </p>
-                <Button onClick={() => navigateTo(View.Login)} variant="primary" size="md">
+                <Button onClick={() => navigateTo(View.Login)} variant="login" size="md">
                     ขอลืมรหัสผ่านอีกครั้ง
                 </Button>
             </div>
@@ -155,7 +155,7 @@ export const PasswordResetPage: React.FC<PasswordResetPageProps> = ({ navigateTo
 
     return (
       <div className="bg-white dark:bg-dark-cardBg p-8 rounded-xl shadow-2xl w-full max-w-md border border-neutral-DEFAULT dark:border-dark-border">
-        <h2 className="text-2xl font-sans font-semibold text-primary dark:text-dark-primary-DEFAULT mb-2 text-center">
+        <h2 className="text-2xl font-sans font-semibold text-brandGreen dark:text-dark-brandGreen-DEFAULT mb-2 text-center">
           🔑 ตั้งรหัสผ่านใหม่
         </h2>
         {emailForReset && (
@@ -219,7 +219,7 @@ export const PasswordResetPage: React.FC<PasswordResetPageProps> = ({ navigateTo
               <p className="text-red-500 font-sans dark:text-red-400 text-xs text-center">{passwordResetError}</p>
             )}
 
-            <Button type="submit" variant="primary" size="lg" className="w-full" disabled={isResettingPassword}>
+            <Button type="submit" variant="login" size="lg" className="w-full" disabled={isResettingPassword}>
               {isResettingPassword ? 'กำลังรีเซ็ต...' : 'ยืนยันรหัสผ่านใหม่'}
             </Button>
           </form>
@@ -229,7 +229,7 @@ export const PasswordResetPage: React.FC<PasswordResetPageProps> = ({ navigateTo
             <button
             type="button"
             onClick={() => navigateTo(View.Login)}
-            className="font-sans font-medium text-primary dark:text-dark-primary-DEFAULT hover:underline"
+            className="font-sans font-medium text-brandGreen dark:text-dark-brandGreen-DEFAULT hover:underline"
             >
             เข้าสู่ระบบที่นี่
             </button>
