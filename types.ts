@@ -1,6 +1,5 @@
 
 
-
 export interface Job {
   id: string;
   title: string;
@@ -134,6 +133,7 @@ export enum View {
   PublicProfile = 'PUBLIC_PROFILE',
   Safety = 'SAFETY',
   Webboard = 'WEBBOARD',
+  PasswordReset = 'PASSWORD_RESET', // Added PasswordReset view
 }
 
 export interface EnrichedHelperProfile extends HelperProfile {

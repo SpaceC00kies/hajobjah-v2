@@ -57,6 +57,7 @@ import { UserLevelBadge } from './components/UserLevelBadge';
 import { SiteLockOverlay } from './components/SiteLockOverlay';
 import { CategoryFilterBar } from './components/CategoryFilterBar';
 import { SearchInputWithRecent } from './components/SearchInputWithRecent';
+import { PasswordResetPage } from './components/PasswordResetPage'; // Added import
 
 import { logFirebaseError } from './firebase/logging';
 
@@ -180,6 +181,22 @@ const App: React.FC = () => {
       setCurrentUser(user);
       setIsLoadingAuth(false);
     });
+
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get('mode');
+    const oobCode = params.get('oobCode');
+    const pathname = window.location.pathname;
+    // Normalize pathname by removing trailing slash if present
+    const normalizedPathname = pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+
+
+    // Check for password reset link specifically on the /reset-password path
+    // and if mode=resetPassword and oobCode are present in query params.
+    if (normalizedPathname === '/reset-password' && mode === 'resetPassword' && oobCode) {
+        setCurrentView(View.PasswordReset);
+    }
+
+
     const unsubscribeJobs = subscribeToJobsService(setJobs);
     const unsubscribeHelperProfiles = subscribeToHelperProfilesService(setHelperProfiles);
     const unsubscribeUsers = subscribeToUsersService(setUsers);
@@ -198,7 +215,7 @@ const App: React.FC = () => {
       unsubscribeInteractions();
       unsubscribeSiteConfig();
     };
-  }, []);
+  }, []); // Run once on initial app load
   
    useEffect(() => {
     if (!isLoadingAuth && users.length > 0 && (webboardPosts.length > 0 || webboardComments.length > 0)) {
@@ -247,7 +264,7 @@ const App: React.FC = () => {
       if (typeof payload === 'string') setSelectedPostId(payload === 'create' ? 'create' : payload);
       else if (payload && typeof payload === 'object' && payload.postId) setSelectedPostId(payload.postId);
       else if (payload === null || payload === undefined) setSelectedPostId(null);
-    } else if (selectedPostId !== null && view !== View.AdminDashboard) {
+    } else if (selectedPostId !== null && view !== View.AdminDashboard && view !== View.PasswordReset) { // Keep selectedPostId if navigating to password reset
       setSelectedPostId(null);
     }
     setCurrentView(view);
@@ -742,7 +759,11 @@ const App: React.FC = () => {
             </Button>
           </>
         );
-    } else {
+    } else { // Not logged in
+        // If currentView is PasswordReset, don't show login/register buttons, page has its own flow.
+        if (currentView === View.PasswordReset) {
+            return null; 
+        }
         return (
             <>
               {currentView !== View.Home && (
@@ -767,6 +788,11 @@ const App: React.FC = () => {
     }
   };
   const renderHeader = () => { 
+      // Do not render header if on PasswordReset page and not logged in (to avoid double nav)
+      // or if isLoadingAuth to prevent flashing nav states.
+      if ((currentView === View.PasswordReset && !currentUser) || isLoadingAuth) {
+        return null;
+      }
       return (
       <header
         className="sticky top-0 z-30 w-full bg-headerBlue-DEFAULT text-neutral-dark p-4 sm:p-5 lg:p-6 shadow-md"
@@ -992,48 +1018,61 @@ const App: React.FC = () => {
       getUserDisplayBadge={(user) => getUserDisplayBadge(user, webboardPosts, webboardComments)} 
       requestLoginForAction={requestLoginForAction} 
     />);};
+  const renderPasswordResetPage = () => <PasswordResetPage navigateTo={navigateTo} />; // Added render function
 
   let currentViewContent;
   if (isLoadingAuth) { 
     currentViewContent = (<div className="flex justify-center items-center h-screen"><p className="text-xl font-sans text-neutral-dark dark:text-dark-text">กำลังโหลด...</p></div>); 
   } else {
-    switch (currentView) {
-        case View.Home: currentViewContent = renderHome(); break;
-        case View.PostJob: currentViewContent = renderPostJob(); break;
-        case View.FindJobs: currentViewContent = renderFindJobs(); break;
-        case View.OfferHelp: currentViewContent = renderOfferHelpForm(); break;
-        case View.FindHelpers: currentViewContent = renderFindHelpers(); break;
-        case View.Register: currentViewContent = renderRegister(); break;
-        case View.Login: currentViewContent = renderLogin(); break;
-        case View.AdminDashboard: currentViewContent = renderAdminDashboard(); break;
-        case View.MyPosts: currentViewContent = renderMyPostsPage(); break;
-        case View.UserProfile: currentViewContent = renderUserProfile(); break;
-        case View.AboutUs: currentViewContent = renderAboutUsPage(); break;
-        case View.PublicProfile: currentViewContent = renderPublicProfile(); break;
-        case View.Safety: currentViewContent = renderSafetyPage(); break;
-        case View.Webboard: currentViewContent = renderWebboardPage(); break;
-        default: currentViewContent = renderHome();
+    // If currentView is PasswordReset, it should take precedence, especially on initial load from URL
+    if (currentView === View.PasswordReset) {
+      currentViewContent = renderPasswordResetPage();
+    } else if (isSiteLocked && currentUser?.role !== UserRole.Admin) {
+      // SiteLockOverlay takes precedence over other views if site is locked and user is not admin
+      return <SiteLockOverlay />; // Return early for SiteLockOverlay
+    } else {
+      switch (currentView) {
+          case View.Home: currentViewContent = renderHome(); break;
+          case View.PostJob: currentViewContent = renderPostJob(); break;
+          case View.FindJobs: currentViewContent = renderFindJobs(); break;
+          case View.OfferHelp: currentViewContent = renderOfferHelpForm(); break;
+          case View.FindHelpers: currentViewContent = renderFindHelpers(); break;
+          case View.Register: currentViewContent = renderRegister(); break;
+          case View.Login: currentViewContent = renderLogin(); break;
+          case View.AdminDashboard: currentViewContent = renderAdminDashboard(); break;
+          case View.MyPosts: currentViewContent = renderMyPostsPage(); break;
+          case View.UserProfile: currentViewContent = renderUserProfile(); break;
+          case View.AboutUs: currentViewContent = renderAboutUsPage(); break;
+          case View.PublicProfile: currentViewContent = renderPublicProfile(); break;
+          case View.Safety: currentViewContent = renderSafetyPage(); break;
+          case View.Webboard: currentViewContent = renderWebboardPage(); break;
+          // View.PasswordReset is handled above to ensure it's prioritized from URL params.
+          // If it was not handled and reached here, it would default.
+          default: currentViewContent = renderHome();
+      }
     }
   }
-  if (isSiteLocked && currentUser?.role !== UserRole.Admin) {
-    return <SiteLockOverlay />;
-  }
+
 
   return (
     <div className="flex flex-col min-h-screen bg-neutral-light dark:bg-dark-pageBg font-serif text-neutral-dark dark:text-dark-text">
-      {renderHeader()}
+      {/* Conditionally render header to avoid showing it on PasswordReset page if not logged in */}
+      {!(currentView === View.PasswordReset && !currentUser) && renderHeader()}
       {renderMobileMenu()}
-      <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 py-6 sm:py-8 lg:py-10 xl:py-12">
+      <main className={`flex-grow container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 ${ (currentView !== View.PasswordReset) ? 'py-6 sm:py-8 lg:py-10 xl:py-12' : ''}`}>
         {currentViewContent}
       </main>
-      <footer className="bg-neutral-light dark:bg-dark-headerBg/70 text-neutral-dark dark:text-dark-textMuted p-4 text-center text-xs font-sans">
-        <p>&copy; {new Date().getFullYear()} HAJOBJA.COM - All rights reserved.</p>
-        <div className="mt-2 space-x-3">
-          <button onClick={() => navigateTo(View.AboutUs)} className="hover:underline">เกี่ยวกับเรา</button>
-          <button onClick={() => navigateTo(View.Safety)} className="hover:underline">ความปลอดภัย</button>
-           <button onClick={() => setIsFeedbackModalOpen(true)} className="hover:underline">ส่ง Feedback</button>
-        </div>
-      </footer>
+      {/* Conditionally render footer to avoid showing it on PasswordReset page if not logged in */}
+      {!(currentView === View.PasswordReset && !currentUser) && (
+        <footer className="bg-neutral-light dark:bg-dark-headerBg/70 text-neutral-dark dark:text-dark-textMuted p-4 text-center text-xs font-sans">
+          <p>&copy; {new Date().getFullYear()} HAJOBJA.COM - All rights reserved.</p>
+          <div className="mt-2 space-x-3">
+            <button onClick={() => navigateTo(View.AboutUs)} className="hover:underline">เกี่ยวกับเรา</button>
+            <button onClick={() => navigateTo(View.Safety)} className="hover:underline">ความปลอดภัย</button>
+            <button onClick={() => setIsFeedbackModalOpen(true)} className="hover:underline">ส่ง Feedback</button>
+          </div>
+        </footer>
+      )}
       <ConfirmModal isOpen={isConfirmModalOpen} onClose={closeConfirmModal} onConfirm={handleConfirmDeletion} title={confirmModalTitle} message={confirmModalMessage} />
       <FeedbackForm 
         isOpen={isFeedbackModalOpen}
