@@ -606,14 +606,16 @@ const App: React.FC = () => {
       const updatedUser = await getUserDocument(currentUser.id); // Refetch user to update limits state
       if (updatedUser) setCurrentUser(updatedUser);
 
-      navigateTo(sourceViewForForm === View.MyPosts ? View.MyPosts : View.FindHelpers); 
-      setSourceViewForForm(null);
-      alert('โปรไฟล์ของคุณถูกเพิ่มแล้ว!');
+      setTimeout(() => {
+        navigateTo(sourceViewForForm === View.MyPosts ? View.MyPosts : View.FindHelpers);
+        setSourceViewForForm(null);
+        alert('โปรไฟล์ของคุณถูกเพิ่มแล้ว!');
+      }, 2000);
     } catch (error: any) {
       logFirebaseError("handleAddHelperProfile", error);
       alert(`เกิดข้อผิดพลาดในการเพิ่มโปรไฟล์: ${error.message}`);
     }
-  }, [currentUser, sourceViewForForm, navigateTo, helperProfiles]); // Removed 'users' as it's not directly used for this logic flow. helperProfiles is used by checkHelperProfilePostingLimits.
+  }, [currentUser, sourceViewForForm, navigateTo, helperProfiles]);
 
   const handleUpdateHelperProfile = async (updatedProfileDataFromForm: HelperProfileFormData & { id: string }) => {
     if (!currentUser) { requestLoginForAction(View.OfferHelp); return; }

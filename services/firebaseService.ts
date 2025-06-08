@@ -394,7 +394,7 @@ interface HelperProfileAuthorInfo { userId: string; authorDisplayName: string; c
 export const addHelperProfileService = async (profileData: HelperProfileFormData, author: HelperProfileAuthorInfo): Promise<string> => {
   try {
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
+    expiresAt.setDate(expiresAt.getDate() + 60); // Changed from 30 to 60
     const nowServerTimestamp = serverTimestamp();
 
     const newProfileDoc: Omit<HelperProfile, 'id'> = {
