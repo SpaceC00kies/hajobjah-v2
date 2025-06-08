@@ -6,6 +6,7 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail, // Import sendPasswordResetEmail
   User as FirebaseUser,
+  AuthError, // Import AuthError for more specific typing
 } from 'firebase/auth';
 import {
   collection,
@@ -119,29 +120,61 @@ export const signUpWithEmailPasswordService = async (
 export const signInWithEmailPasswordService = async (loginIdentifier: string, passwordAttempt: string): Promise<User | null> => {
   try {
     let emailToSignIn = loginIdentifier;
-    if (!loginIdentifier.includes('@')) {
+
+    if (!loginIdentifier.includes('@')) { // Treat as username
       const usersRef = collection(db, USERS_COLLECTION);
-      const q = query(usersRef, where("username", "==", loginIdentifier), limit(1));
+      // Usernames are stored in lowercase during registration
+      const q = query(usersRef, where("username", "==", loginIdentifier.toLowerCase()), limit(1));
       const querySnapshot = await getDocs(q);
+
       if (!querySnapshot.empty) {
-        emailToSignIn = querySnapshot.docs[0].data().email;
+        const userData = querySnapshot.docs[0].data();
+        if (userData && userData.email) {
+          emailToSignIn = userData.email;
+        } else {
+          logFirebaseError("signInWithEmailPasswordService", new Error(`User with username ${loginIdentifier} lacks an email.`));
+          throw new Error("Invalid username or password.");
+        }
       } else {
-        throw new Error("User not found with this username.");
+        logFirebaseError("signInWithEmailPasswordService", new Error(`Username ${loginIdentifier} not found.`));
+        throw new Error("Invalid username or password.");
       }
     }
+    // If loginIdentifier contains '@', emailToSignIn is already set to loginIdentifier.
 
     const userCredential = await signInWithEmailAndPassword(auth, emailToSignIn, passwordAttempt);
     const firebaseUser = userCredential.user;
+
     const userDoc = await getDoc(doc(db, USERS_COLLECTION, firebaseUser.uid));
     if (userDoc.exists()) {
       return { id: firebaseUser.uid, ...convertTimestamps(userDoc.data()) } as User;
+    } else {
+      logFirebaseError("signInWithEmailPasswordService", new Error(`User ${firebaseUser.uid} authenticated but no Firestore data.`));
+      await signOut(auth); // Sign out to prevent partial login state
+      throw new Error("Login failed due to a system issue. Please try again later.");
     }
-    throw new Error("User data not found in Firestore.");
+
   } catch (error: any) {
     logFirebaseError("signInWithEmailPasswordService", error);
-    throw error;
+    // Re-throw specific user-friendly errors or map Firebase auth errors to a generic one.
+    if (error.message === "Invalid username or password." || error.message === "Login failed due to a system issue. Please try again later.") {
+      throw error;
+    }
+    
+    const authError = error as AuthError;
+    if (authError.code && (
+        authError.code === 'auth/wrong-password' ||
+        authError.code === 'auth/user-not-found' || // Covers email not found if used directly
+        authError.code === 'auth/invalid-credential' || // General invalid credential error
+        authError.code === 'auth/invalid-email' // Covers if the resolved email is somehow invalid
+    )) {
+      throw new Error("Invalid username or password.");
+    }
+    // Fallback for other unexpected errors
+    throw new Error("Login failed. Please try again.");
   }
 };
+
 
 export const signOutUserService = async (): Promise<void> => {
   try {
@@ -180,9 +213,6 @@ export const sendPasswordResetEmailService = async (email: string): Promise<void
     await sendPasswordResetEmail(auth, email);
   } catch (error: any) {
     logFirebaseError("sendPasswordResetEmailService", error);
-    // Firebase errors like 'auth/user-not-found' or 'auth/invalid-email' could be caught here.
-    // For better UX, we might not want to expose 'user-not-found' directly.
-    // The modal itself will handle displaying a generic success or a specific error message based on the promise.
     throw error; 
   }
 };
