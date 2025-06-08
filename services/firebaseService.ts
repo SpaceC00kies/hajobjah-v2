@@ -182,14 +182,17 @@ export const signInWithEmailPasswordService = async (loginIdentifier: string, pa
     if (error.message === "Invalid username or password." || error.message === "Login failed due to a system issue. Please try again later.") {
       throw error;
     }
-    const authError = error as AuthError;
-    if (authError.code && (
-        authError.code === 'auth/wrong-password' ||
-        authError.code === 'auth/user-not-found' ||
-        authError.code === 'auth/invalid-credential' ||
-        authError.code === 'auth/invalid-email'
-    )) {
-      throw new Error("Invalid username or password.");
+    // Check if error is an object and has a code property before casting
+    if (typeof error === 'object' && error !== null && 'code' in error) {
+      const authErrorCode = (error as AuthError).code; 
+      if (
+          authErrorCode === 'auth/wrong-password' ||
+          authErrorCode === 'auth/user-not-found' ||
+          authErrorCode === 'auth/invalid-credential' ||
+          authErrorCode === 'auth/invalid-email'
+      ) {
+        throw new Error("Invalid username or password.");
+      }
     }
     throw new Error("Login failed. Please try again.");
   }
@@ -272,10 +275,14 @@ export const deleteImageService = async (imageUrl?: string | null): Promise<void
     const storageRef = ref(storage, imageUrl);
     await deleteObject(storageRef);
   } catch (error: any) {
-    if (error.code !== 'storage/object-not-found') {
+    if (typeof error === 'object' && error !== null && 'code' in error && (error as AuthError).code !== 'storage/object-not-found') {
+      logFirebaseError("deleteImageService", error);
+      throw error;
+    } else if (typeof error === 'object' && error !== null && !('code' in error)) { // Non-Firebase error
       logFirebaseError("deleteImageService", error);
       throw error;
     }
+    // If it is 'storage/object-not-found', we can ignore it.
   }
 };
 
