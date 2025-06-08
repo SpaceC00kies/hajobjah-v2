@@ -133,7 +133,7 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, help
         
         {helperProfile?.details && (
           <div className="mb-6 pt-4 border-t border-neutral-DEFAULT/30 dark:border-dark-border/30">
-            <h3 className="text-xl font-sans font-semibold text-neutral-dark dark:text-dark-text mb-2">ทักษะ / ประสบการณ์ (จากโปรไฟล์ผู้ช่วย):</h3>
+            <h3 className="text-xl font-sans font-semibold text-neutral-dark dark:text-dark-text mb-2">ทักษะ / ประสบการณ์:</h3>
             <p className="font-serif text-neutral-medium dark:text-dark-textMuted whitespace-pre-wrap p-3 bg-neutral-light dark:bg-dark-inputBg/50 rounded-md">
               {helperProfile.details}
             </p>
