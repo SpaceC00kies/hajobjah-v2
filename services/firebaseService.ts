@@ -125,23 +125,26 @@ export const signInWithEmailPasswordService = async (loginIdentifier: string, pa
       const usersRef = collection(db, USERS_COLLECTION);
       // Usernames are stored in lowercase during registration
       const q = query(usersRef, where("username", "==", loginIdentifier.toLowerCase()), limit(1));
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await getDocs(q); // Ensure this is awaited
 
       if (!querySnapshot.empty) {
         const userData = querySnapshot.docs[0].data();
         if (userData && userData.email) {
           emailToSignIn = userData.email;
         } else {
-          logFirebaseError("signInWithEmailPasswordService", new Error(`User with username ${loginIdentifier} lacks an email.`));
-          throw new Error("Invalid username or password.");
+          // Username found, but no email associated
+          logFirebaseError("signInWithEmailPasswordService", new Error(`User document for username ${loginIdentifier} lacks an email.`));
+          throw new Error("Invalid username or password."); // Generic error
         }
       } else {
+        // Username not found
         logFirebaseError("signInWithEmailPasswordService", new Error(`Username ${loginIdentifier} not found.`));
-        throw new Error("Invalid username or password.");
+        throw new Error("Invalid username or password."); // Generic error
       }
     }
     // If loginIdentifier contains '@', emailToSignIn is already set to loginIdentifier.
 
+    // Proceed to sign in with the determined email
     const userCredential = await signInWithEmailAndPassword(auth, emailToSignIn, passwordAttempt);
     const firebaseUser = userCredential.user;
 
@@ -149,6 +152,7 @@ export const signInWithEmailPasswordService = async (loginIdentifier: string, pa
     if (userDoc.exists()) {
       return { id: firebaseUser.uid, ...convertTimestamps(userDoc.data()) } as User;
     } else {
+      // This case means Firebase auth succeeded but there's no corresponding user document in Firestore.
       logFirebaseError("signInWithEmailPasswordService", new Error(`User ${firebaseUser.uid} authenticated but no Firestore data.`));
       await signOut(auth); // Sign out to prevent partial login state
       throw new Error("Login failed due to a system issue. Please try again later.");
@@ -156,6 +160,7 @@ export const signInWithEmailPasswordService = async (loginIdentifier: string, pa
 
   } catch (error: any) {
     logFirebaseError("signInWithEmailPasswordService", error);
+
     // Re-throw specific user-friendly errors or map Firebase auth errors to a generic one.
     if (error.message === "Invalid username or password." || error.message === "Login failed due to a system issue. Please try again later.") {
       throw error;
@@ -164,9 +169,9 @@ export const signInWithEmailPasswordService = async (loginIdentifier: string, pa
     const authError = error as AuthError;
     if (authError.code && (
         authError.code === 'auth/wrong-password' ||
-        authError.code === 'auth/user-not-found' || // Covers email not found if used directly
-        authError.code === 'auth/invalid-credential' || // General invalid credential error
-        authError.code === 'auth/invalid-email' // Covers if the resolved email is somehow invalid
+        authError.code === 'auth/user-not-found' || 
+        authError.code === 'auth/invalid-credential' || 
+        authError.code === 'auth/invalid-email'
     )) {
       throw new Error("Invalid username or password.");
     }
