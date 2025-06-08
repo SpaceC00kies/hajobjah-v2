@@ -184,7 +184,7 @@ export const signInWithEmailPasswordService = async (loginIdentifier: string, pa
     }
     // Check if error is an object and has a code property before casting
     if (typeof error === 'object' && error !== null && 'code' in error) {
-      const authErrorCode = (error as AuthError).code; 
+      const authErrorCode = (error as any).code; 
       if (
           authErrorCode === 'auth/wrong-password' ||
           authErrorCode === 'auth/user-not-found' ||
@@ -275,7 +275,7 @@ export const deleteImageService = async (imageUrl?: string | null): Promise<void
     const storageRef = ref(storage, imageUrl);
     await deleteObject(storageRef);
   } catch (error: any) {
-    if (typeof error === 'object' && error !== null && 'code' in error && (error as AuthError).code !== 'storage/object-not-found') {
+    if (typeof error === 'object' && error !== null && 'code' in error && (error as any).code !== 'storage/object-not-found') {
       logFirebaseError("deleteImageService", error);
       throw error;
     } else if (typeof error === 'object' && error !== null && !('code' in error)) { // Non-Firebase error
