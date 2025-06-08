@@ -228,7 +228,6 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
             <p className="font-serif flex items-center"><span className="mr-2 text-lg">🕒</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">วันเวลาที่ว่าง (หมายเหตุ):</strong> {profile.availability}</p>
           )}
 
-
            <div className="mt-2 pt-2 border-t border-neutral-DEFAULT/20 dark:border-dark-border/20">
             <strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📝 เกี่ยวกับฉัน:</strong>
             <div className="mt-1 text-sm font-serif bg-neutral-light dark:bg-dark-inputBg dark:text-dark-text p-3 rounded-md whitespace-pre-wrap h-32 overflow-y-auto font-normal border border-neutral-DEFAULT/50 dark:border-dark-border/50">
@@ -248,15 +247,15 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
                 )}
             </div>
           </div>
-
-          {formattedPostedAt && (
-            <p className="text-xs font-sans sm:text-sm text-neutral-medium dark:text-dark-textMuted mt-1 pt-2 border-t border-neutral-DEFAULT/30 dark:border-dark-border/20">
-              🕒 โพสต์เมื่อ: {formattedPostedAt}
-            </p>
-          )}
         </div>
         
-        <div className="mt-auto flex flex-col sm:flex-row gap-3">
+        {formattedPostedAt && (
+          <p className="text-xs font-sans sm:text-sm text-neutral-medium dark:text-dark-textMuted mt-1 pt-2 border-t border-neutral-DEFAULT/30 dark:border-dark-border/20">
+            🕒 โพสต์เมื่อ: {formattedPostedAt}
+          </p>
+        )}
+        
+        <div className="mt-auto mt-3 flex flex-col sm:flex-row gap-3"> {/* Added mt-3 for spacing */}
             <Button
                 onClick={() => onNavigateToPublicProfile(profile.userId)}
                 variant="outline"

@@ -199,7 +199,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
           </p>
         )}
 
-        <div className="mt-auto">
+        <div className="mt-auto mt-3"> {/* Added mt-3 for spacing */}
           <Button
             onClick={currentUser ? handleInterest : () => requestLoginForAction(View.FindJobs, { intent: 'contactJob', postId: job.id })}
             variant="primary"
@@ -208,7 +208,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
             disabled={job.isHired || jobIsTrulyExpired}
             aria-label={job.isHired ? "งานนี้มีคนทำแล้ว" : jobIsTrulyExpired ? "งานหมดอายุแล้ว" : (currentUser ? "ติดต่องานนี้" : "เข้าสู่ระบบเพื่อติดต่อ")}
           >
-            {job.isHired ? '✅ งานนี้มีคนทำแล้ว' : jobIsTrulyExpired ? '⛔ งานหมดอายุแล้ว' : (currentUser ? '📨 ติดต่องาน' : 'เข้าสู่ระบบเพื่อติดต่อ')}
+            {job.isHired ? '✅ งานนี้มีคนทำแล้ว' : jobIsTrulyExpired ? '⛔ งานหมดอายุแล้ว' : (currentUser ? '📨 แสดงความสนใจ/ติดต่อ' : 'เข้าสู่ระบบเพื่อติดต่อ')}
           </Button>
         </div>
       </div>
