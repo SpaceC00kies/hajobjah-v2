@@ -932,7 +932,7 @@ const App: React.FC = () => {
 
             {currentView === View.FindHelpers ? (
               <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateAndCloseMenu(View.OfferHelp);}} variant="outline" colorScheme="secondary" {...commonButtonPropsBase}>
-                + เสนอตัวช่วยงาน
+                + เสนอช่วยงาน
               </Button>
             ) : (currentView !== View.OfferHelp || (currentView === View.OfferHelp && itemToEdit )) && (
               <Button onClick={() => navigateAndCloseMenu(View.FindHelpers)} variant="secondary" {...commonButtonPropsBase}>
