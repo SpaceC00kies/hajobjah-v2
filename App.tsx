@@ -1068,7 +1068,13 @@ const App: React.FC = () => {
             <Button onClick={() => { setSourceViewForForm(View.Home); navigateTo(View.PostJob); }} variant="primary" size="md" className="w-full">
               <span className="flex items-center justify-center gap-2"><span>📢</span><span>มีงาน? ฝากตรงนี้</span></span>
             </Button>
-            <Button onClick={() => navigateTo(View.FindHelpers)} variant="outline" colorScheme="primary" size="md" className="w-full">
+            <Button 
+              onClick={() => currentUser ? navigateTo(View.FindHelpers) : requestLoginForAction(View.FindHelpers)} 
+              variant="outline" 
+              colorScheme="primary" 
+              size="md" 
+              className="w-full"
+            >
               <span className="flex items-center justify-center gap-2"><span>🔍</span><span>หาคนช่วย? ดูโปรไฟล์เลย</span></span>
             </Button>
           </div>
@@ -1079,7 +1085,13 @@ const App: React.FC = () => {
             <Button onClick={() => { setSourceViewForForm(View.Home); navigateTo(View.OfferHelp); }} variant="secondary" size="md" className="w-full">
               <span className="flex items-center justify-center gap-2"><span>🙋</span><span>เสนองาน? ฝากโปรไฟล์</span></span>
             </Button>
-            <Button onClick={() => navigateTo(View.FindJobs)} variant="outline" colorScheme="secondary" size="md" className="w-full">
+            <Button 
+              onClick={() => currentUser ? navigateTo(View.FindJobs) : requestLoginForAction(View.FindJobs)} 
+              variant="outline" 
+              colorScheme="secondary" 
+              size="md" 
+              className="w-full"
+            >
               <span className="flex items-center justify-center gap-2"><span>👀</span><span>อยากหางาน? ดูประกาศเลย</span></span>
             </Button>
           </div>
@@ -1133,7 +1145,7 @@ const App: React.FC = () => {
             <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedJobCategoryFilter} onSelectCategory={setSelectedJobCategoryFilter} />
             <SearchInputWithRecent searchTerm={jobSearchTerm} onSearchTermChange={handleJobSearch} placeholder="ค้นหางาน, รายละเอียด..." recentSearches={recentJobSearches} onRecentSearchSelect={(term) => { setJobSearchTerm(term); addRecentSearch('recentJobSearches', term); setRecentJobSearches(getRecentSearches('recentJobSearches')); }} ariaLabel="ค้นหางาน" />
             {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="w-full sm:px-4 sm:text-sm">
-              <span className="flex items-center justify-center gap-2"><span>📣</span><span>ลงประกาศงาน</span></span>
+              <span className="flex items-center justify-center gap-2"><span>📣</span><span>ฝากงานกดตรงนี้</span></span>
             </Button> )}
           </div>
         </aside>
