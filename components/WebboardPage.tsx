@@ -5,7 +5,7 @@ import { View, USER_LEVELS, WebboardCategory } from '../types';
 import { Button } from './Button';
 import { WebboardPostCard } from './WebboardPostCard';
 import { WebboardPostDetail } from './WebboardPostDetail';
-// WebboardPostCreateForm is removed
+import { WebboardPostCreateForm } from './WebboardPostCreateForm';
 
 interface WebboardPageProps {
   currentUser: User | null;
@@ -15,8 +15,8 @@ interface WebboardPageProps {
   onAddOrUpdatePost: (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => void; 
   onAddComment: (postId: string, text: string) => void;
   onToggleLike: (postId: string) => void;
-  onSavePost: (postId: string) => void; 
-  onSharePost: (postId: string, postTitle: string) => void; 
+  onSavePost: (postId: string) => void; // New prop
+  onSharePost: (postId: string, postTitle: string) => void; // New prop
   onDeletePost: (postId: string) => void;
   onPinPost: (postId: string) => void;
   onEditPost: (post: EnrichedWebboardPost) => void; 
@@ -25,8 +25,9 @@ interface WebboardPageProps {
   selectedPostId: string | null; 
   setSelectedPostId: (postId: string | null) => void;
   navigateTo: (view: View, payload?: any) => void;
-  // editingPost and onCancelEdit are removed as the modal is gone
-  getUserDisplayBadge: (user: User | null | undefined) => UserLevel; 
+  editingPost?: WebboardPost | null; 
+  onCancelEdit: () => void; 
+  getUserDisplayBadge: (user: User | null | undefined) => UserLevel; // Removed posts, comments from signature as badges are not on webboard items
   requestLoginForAction: (view: View, payload?: any) => void; 
   onNavigateToPublicProfile: (userId: string) => void;
   checkWebboardPostLimits: (user: User) => { canPost: boolean; message?: string | null };
@@ -38,37 +39,60 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
   users,
   posts,
   comments,
-  onAddOrUpdatePost, // This will be passed to the new screen via App.tsx
+  onAddOrUpdatePost,
   onAddComment,
   onToggleLike,
   onSavePost,
   onSharePost,
   onDeletePost,
   onPinPost,
-  onEditPost, // This will set up edit state and navigate to CreateWebboardPostScreen
+  onEditPost,
   onDeleteComment,
   onUpdateComment,
   selectedPostId,
   setSelectedPostId,
   navigateTo,
+  editingPost,
+  onCancelEdit,
   getUserDisplayBadge,
   requestLoginForAction, 
   onNavigateToPublicProfile,
-  checkWebboardPostLimits, // This will be passed to the new screen via App.tsx
+  checkWebboardPostLimits,
   checkWebboardCommentLimits,
 }) => {
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<WebboardCategory | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const handleOpenCreateScreen = () => {
-    if (!currentUser) {
-      requestLoginForAction(View.CreateWebboardPost); // Or View.Webboard, payload: 'create'
+  useEffect(() => {
+    if (selectedPostId === 'create' || editingPost) {
+      setIsCreateModalOpen(true);
     } else {
-      // App.tsx's navigateTo will set sourceViewForForm
-      navigateTo(View.CreateWebboardPost);
+      setIsCreateModalOpen(false);
+    }
+  }, [selectedPostId, editingPost]);
+
+  const handleOpenCreateModal = () => {
+    if (!currentUser) {
+      requestLoginForAction(View.Webboard, { action: 'createPost' });
+    } else {
+      setSelectedPostId('create'); 
+    }
+  };
+
+  const handleCloseCreateModal = () => {
+    setIsCreateModalOpen(false);
+    if (selectedPostId === 'create' || editingPost) { 
+      setSelectedPostId(null); 
+      onCancelEdit(); 
     }
   };
   
+  const handleSubmitPostForm = (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => {
+    onAddOrUpdatePost(postData, postIdToUpdate);
+    handleCloseCreateModal(); 
+  };
+
   let filteredPosts = posts;
   if (selectedCategoryFilter !== 'all') {
     filteredPosts = filteredPosts.filter(post => post.category === selectedCategoryFilter);
@@ -88,13 +112,14 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
       return {
         ...post,
         commentCount: comments.filter(c => c.postId === post.id).length,
+        // authorLevel: getUserDisplayBadge(author), // Badge removed from card/detail
         authorPhoto: author?.photo || post.authorPhoto,
         isAuthorAdmin: author?.role === 'Admin' as UserRole.Admin, 
       };
     })
     .sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  const currentDetailedPost = selectedPostId && selectedPostId !== 'create' // 'create' case removed from here
+  const currentDetailedPost = selectedPostId && selectedPostId !== 'create'
     ? enrichedPosts.find(p => p.id === selectedPostId) 
     : null;
 
@@ -105,6 +130,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
           const commenter = users.find(u => u.id === comment.userId);
           return {
             ...comment,
+            // authorLevel: getUserDisplayBadge(commenter), // Badge removed from comment
             authorPhoto: commenter?.photo || comment.authorPhoto,
             isAuthorAdmin: commenter?.role === 'Admin' as UserRole.Admin,
           };
@@ -113,7 +139,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
 
   if (currentDetailedPost) {
     return (
-      <div className="p-2 sm:p-4 md:max-w-3xl md:mx-auto">
+      <div className="p-2 sm:p-4 md:max-w-3xl md:mx-auto"> {/* Centered single column for detail */}
         <Button 
           onClick={() => setSelectedPostId(null)} 
           variant="outline" 
@@ -134,7 +160,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
           onAddComment={onAddComment}
           onDeletePost={onDeletePost}
           onPinPost={onPinPost}
-          onEditPost={onEditPost} // onEditPost in App.tsx will handle navigation to CreateWebboardPostScreen
+          onEditPost={onEditPost}
           onDeleteComment={onDeleteComment}
           onUpdateComment={onUpdateComment}
           requestLoginForAction={requestLoginForAction} 
@@ -149,14 +175,14 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
   const selectBaseStyle = `${inputBaseStyle} appearance-none`;
 
   return (
-    <div className="p-2 sm:p-4 md:max-w-3xl md:mx-auto">
+    <div className="p-2 sm:p-4 md:max-w-3xl md:mx-auto"> {/* Centered single column for list */}
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <h2 className="text-2xl sm:text-3xl font-sans font-semibold text-neutral-700 dark:text-neutral-300 text-center sm:text-left">
           💬 กระทู้พูดคุย
         </h2>
         
         <Button 
-          onClick={handleOpenCreateScreen} 
+          onClick={handleOpenCreateModal} 
           variant="login" 
           size="sm" 
           className="rounded-full font-semibold flex-shrink-0"
@@ -211,7 +237,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
           )}
           {currentUser && !(searchTerm || selectedCategoryFilter !== 'all') && (
             <Button 
-              onClick={handleOpenCreateScreen}
+              onClick={handleOpenCreateModal}
               variant="login" 
               size="sm" 
               className="rounded-full font-semibold"
@@ -221,7 +247,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
           )}
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-4"> {/* Changed from grid to space-y for single column */}
           {enrichedPosts.map(post => (
             <WebboardPostCard
               key={post.id}
@@ -233,14 +259,21 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
               onSharePost={onSharePost}
               onDeletePost={onDeletePost}
               onPinPost={onPinPost}
-              onEditPost={onEditPost} // This will trigger navigation via App.tsx
+              onEditPost={onEditPost}
               requestLoginForAction={requestLoginForAction} 
               onNavigateToPublicProfile={onNavigateToPublicProfile}
             />
           ))}
         </div>
       )}
-      {/* WebboardPostCreateForm modal is removed */}
+      <WebboardPostCreateForm
+        isOpen={isCreateModalOpen}
+        onClose={handleCloseCreateModal}
+        onSubmit={handleSubmitPostForm}
+        editingPost={editingPost || null}
+        currentUser={currentUser}
+        checkWebboardPostLimits={checkWebboardPostLimits}
+      />
     </div>
   );
 };

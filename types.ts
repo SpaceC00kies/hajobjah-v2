@@ -173,7 +173,6 @@ export enum View {
   Safety = 'SAFETY',
   Webboard = 'WEBBOARD',
   PasswordReset = 'PASSWORD_RESET',
-  CreateWebboardPost = 'CREATE_WEBBOARD_POST', // New view for seamless post creation
 }
 
 export interface EnrichedHelperProfile extends HelperProfile {
@@ -366,7 +365,7 @@ export const JOB_SUBCATEGORIES_MAP: Record<JobCategory, JobSubCategory[]> = {
 export interface WebboardPost {
   id: string;
   title: string;
-  body: string; // Body is plain text, Markdown is deferred
+  body: string;
   category: WebboardCategory;
   image?: string; // URL of the image
   userId: string;
