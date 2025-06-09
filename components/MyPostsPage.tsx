@@ -234,6 +234,7 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
       jobCooldownHoursRemaining = Math.ceil(jobCooldownTotalHours - hoursSinceLastJobPost);
     }
   }
+  const jobCanCreate = jobCooldownHoursRemaining <= 0;
 
   const userActiveHelperProfilesCount = userHelperProfiles.filter(
     profile => !profile.isExpired && (profile.expiresAt ? !isDateInPast(profile.expiresAt) : true)
@@ -253,6 +254,7 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
       helperProfileCooldownHoursRemaining = Math.ceil(helperCooldownTotalHours - hoursSinceLastHelperProfilePost);
     }
   }
+  const profileCanCreate = helperProfileCooldownHoursRemaining <= 0;
 
 
   return (
@@ -272,19 +274,19 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
         </h3>
         <div className="space-y-2 text-sm font-sans text-neutral-dark dark:text-dark-textMuted">
           <div className="flex justify-between items-center p-2 bg-neutral-light/50 dark:bg-dark-inputBg/30 rounded">
-            <span>ประกาศงาน: {userActiveJobsCount}/{maxJobsAllowed} ที่ใช้งานอยู่</span>
-            {jobCooldownHoursRemaining > 0 ? (
-              <span className="text-orange-600 dark:text-orange-400"> (โพสต์ใหม่ได้ในอีก {jobCooldownHoursRemaining} ชั่วโมง)</span>
+            <span>ประกาศงาน: {userActiveJobsCount}/{maxJobsAllowed}</span>
+            {jobCanCreate ? (
+              <span className="text-green-600 dark:text-green-400"> (พร้อมสร้าง)</span>
             ) : (
-              <span className="text-green-600 dark:text-green-400"> (พร้อมโพสต์ใหม่)</span>
+              <span className="text-orange-600 dark:text-orange-400"> (พร้อมสร้าง)</span>
             )}
           </div>
           <div className="flex justify-between items-center p-2 bg-neutral-light/50 dark:bg-dark-inputBg/30 rounded">
-            <span>โปรไฟล์ผู้ช่วย: {userActiveHelperProfilesCount}/{maxHelperProfilesAllowed} ที่ใช้งานอยู่</span>
-            {helperProfileCooldownHoursRemaining > 0 ? (
-              <span className="text-orange-600 dark:text-orange-400"> (สร้างโปรไฟล์ใหม่ได้ในอีก {helperProfileCooldownHoursRemaining} ชั่วโมง)</span>
+            <span>โปรไฟล์ผู้ช่วย: {userActiveHelperProfilesCount}/{maxHelperProfilesAllowed}</span>
+            {profileCanCreate ? (
+              <span className="text-green-600 dark:text-green-400"> (พร้อมสร้าง)</span>
             ) : (
-              <span className="text-green-600 dark:text-green-400"> (พร้อมสร้างโปรไฟล์ใหม่)</span>
+              <span className="text-orange-600 dark:text-orange-400"> (พร้อมสร้าง)</span>
             )}
           </div>
         </div>
