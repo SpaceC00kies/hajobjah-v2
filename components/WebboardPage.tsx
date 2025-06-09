@@ -83,6 +83,14 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
     if (isLoadingWebboardPosts || (!isInitialLoad && !hasMoreWebboardPosts)) return;
     setIsLoadingWebboardPosts(true);
 
+    // If it's an initial load (e.g. due to filter change), clear existing posts
+    if (isInitialLoad) {
+      setWebboardPostsList([]);
+      setLastVisibleWebboardPost(null);
+      setHasMoreWebboardPosts(true); // Assume there might be more until fetch result
+      setInitialWebboardPostsLoaded(false); // Reset initial loaded flag
+    }
+
     try {
       const result = await getWebboardPostsPaginatedService(
         pageSize,
@@ -90,23 +98,24 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
         selectedCategoryFilter === 'all' ? null : selectedCategoryFilter,
         searchTerm
       );
+      // Append new posts if not an initial load, otherwise set as new list
       setWebboardPostsList(prevPosts => isInitialLoad ? result.items : [...prevPosts, ...result.items]);
       setLastVisibleWebboardPost(result.lastVisibleDoc);
       setHasMoreWebboardPosts(result.items.length === pageSize && result.lastVisibleDoc !== null);
-      if (isInitialLoad) setInitialWebboardPostsLoaded(true);
+      setInitialWebboardPostsLoaded(true); // Mark as loaded after first successful fetch or subsequent fetches
     } catch (error) {
       console.error("Error loading webboard posts:", error);
       logFirebaseError("loadWebboardPosts", error);
-      setHasMoreWebboardPosts(false);
+      setHasMoreWebboardPosts(false); // Stop trying if error
+      setInitialWebboardPostsLoaded(true); // Still mark as loaded to prevent infinite loading on error
     } finally {
       setIsLoadingWebboardPosts(false);
     }
-  }, [isLoadingWebboardPosts, hasMoreWebboardPosts, lastVisibleWebboardPost, pageSize, selectedCategoryFilter, searchTerm]);
+  }, [isLoadingWebboardPosts, hasMoreWebboardPosts, lastVisibleWebboardPost, pageSize, selectedCategoryFilter, searchTerm]); // Removed webboardPostsList from deps to avoid re-triggering on list update
 
   useEffect(() => { // Initial load and filter/search changes
-    setInitialWebboardPostsLoaded(false); // Reset for new filter/search
-    loadWebboardPosts(true);
-  }, [selectedCategoryFilter, searchTerm, loadWebboardPosts]); // `loadWebboardPosts` is a dependency
+    loadWebboardPosts(true); // Always treat filter/search changes as an initial load for this list
+  }, [selectedCategoryFilter, searchTerm]); // Removed loadWebboardPosts from deps, it's stable due to useCallback
 
  useEffect(() => { // IntersectionObserver for webboard posts
     if (selectedPostId !== null) return; // Don't observe if viewing detail
@@ -114,7 +123,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMoreWebboardPosts && !isLoadingWebboardPosts && initialWebboardPostsLoaded) {
-          loadWebboardPosts();
+          loadWebboardPosts(); // Load next page
         }
       },
       { threshold: 0.8 } 
@@ -153,7 +162,6 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
   
   const handleSubmitPostForm = (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => {
     onAddOrUpdatePost(postData, postIdToUpdate);
-    // After submit, refresh the list from the beginning to show the new/updated post correctly
     loadWebboardPosts(true); 
     handleCloseCreateModal(); 
   };
@@ -168,9 +176,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
         authorPhoto: author?.photo || post.authorPhoto,
         isAuthorAdmin: author?.role === 'Admin' as UserRole.Admin, 
       };
-    })
-    // Sorting by isPinned is handled by Firestore query. Client-side sort if needed:
-    // .sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    });
 
 
   const currentDetailedPost = selectedPostId && selectedPostId !== 'create'
@@ -190,6 +196,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
         })
     : [];
 
+  // Render post detail view if a post is selected
   if (currentDetailedPost) {
     return (
       <div className="p-2 sm:p-4 md:max-w-3xl md:mx-auto"> 
@@ -211,8 +218,8 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
           onSavePost={onSavePost}
           onSharePost={onSharePost}
           onAddComment={onAddComment}
-          onDeletePost={(id) => { onDeletePost(id); loadWebboardPosts(true); }} // Refresh list on delete
-          onPinPost={(id) => { onPinPost(id); loadWebboardPosts(true); }} // Refresh list on pin
+          onDeletePost={(id) => { onDeletePost(id); loadWebboardPosts(true); setSelectedPostId(null); }}
+          onPinPost={(id) => { onPinPost(id); loadWebboardPosts(true); }}
           onEditPost={onEditPost}
           onDeleteComment={onDeleteComment}
           onUpdateComment={onUpdateComment}
@@ -227,6 +234,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
   const inputBaseStyle = "p-2 sm:p-2.5 bg-white dark:bg-dark-inputBg border border-neutral-DEFAULT dark:border-dark-border rounded-lg text-neutral-dark dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-neutral-DEFAULT dark:focus:ring-dark-border text-sm sm:text-base";
   const selectBaseStyle = `${inputBaseStyle} appearance-none`;
 
+  // Main list view rendering
   return (
     <div className="p-2 sm:p-4 md:max-w-3xl md:mx-auto"> 
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
@@ -272,10 +280,12 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
         </div>
       </div>
 
-      {!initialWebboardPostsLoaded && isLoadingWebboardPosts && (
-        <div className="text-center py-10"><p className="text-lg font-sans">✨ กำลังโหลดกระทู้...</p></div>
+      {/* 1. Initial loading indicator (centered, only when no posts are available yet) */}
+      {!initialWebboardPostsLoaded && isLoadingWebboardPosts && webboardPostsList.length === 0 && (
+        <div className="text-center py-20"><p className="text-xl font-sans text-neutral-dark dark:text-dark-text">✨ กำลังโหลดกระทู้…</p></div>
       )}
 
+      {/* 2. Empty state (after initial load, if no posts match) */}
       {initialWebboardPostsLoaded && enrichedPosts.length === 0 && !hasMoreWebboardPosts && (
         <div className="text-center py-10 bg-white dark:bg-dark-cardBg p-6 rounded-lg shadow">
           <svg className="mx-auto h-16 w-16 text-neutral-DEFAULT dark:text-dark-border mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -304,6 +314,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
         </div>
       )}
       
+      {/* 3. Display posts if available */}
       {enrichedPosts.length > 0 && (
         <div className="space-y-4"> 
           {enrichedPosts.map(post => (
@@ -315,8 +326,8 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
               onToggleLike={onToggleLike}
               onSavePost={onSavePost}
               onSharePost={onSharePost}
-              onDeletePost={(id) => { onDeletePost(id); loadWebboardPosts(true); }} // Refresh list on delete
-              onPinPost={(id) => { onPinPost(id); loadWebboardPosts(true); }} // Refresh list on pin
+              onDeletePost={(id) => { onDeletePost(id); loadWebboardPosts(true); }}
+              onPinPost={(id) => { onPinPost(id); loadWebboardPosts(true); }}
               onEditPost={onEditPost}
               requestLoginForAction={requestLoginForAction} 
               onNavigateToPublicProfile={onNavigateToPublicProfile}
@@ -325,10 +336,15 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
         </div>
       )}
 
+      {/* 4. "Load more" indicator at the bottom (for infinite scroll) */}
       <div ref={webboardLoaderRef} className="h-10 flex justify-center items-center">
-        {isLoadingWebboardPosts && initialWebboardPostsLoaded && enrichedPosts.length > 0 && <p className="text-sm font-sans text-neutral-medium">✨ กำลังโหลดเพิ่มเติม...</p>}
+        {isLoadingWebboardPosts && initialWebboardPostsLoaded && webboardPostsList.length > 0 && (
+           <p className="text-sm font-sans text-neutral-medium dark:text-dark-textMuted">กำลังโหลดเพิ่มเติม…</p>
+        )}
       </div>
-       {initialWebboardPostsLoaded && !hasMoreWebboardPosts && enrichedPosts.length > 0 && (
+
+      {/* 5. "No more posts" message */}
+      {initialWebboardPostsLoaded && !hasMoreWebboardPosts && webboardPostsList.length > 0 && (
         <p className="text-center text-sm font-sans text-neutral-medium dark:text-dark-textMuted py-4">🎉 คุณดูครบทุกกระทู้แล้ว</p>
       )}
 
