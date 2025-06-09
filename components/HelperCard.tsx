@@ -144,7 +144,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
     availabilityDateDisplay = `ถึง ${availabilityDateToText}`;
   }
 
-  const shortAddress = profile.userAddress ? profile.userAddress.split(',')[0] : null;
+  // const shortAddress = profile.userAddress ? profile.userAddress.split(',')[0] : null; // Calculation can remain if used elsewhere or for future features
   const detailsPreview = profile.details.substring(0, 150);
   const categoryStyle = profile.category ? JOB_CATEGORY_STYLES[profile.category] : JOB_CATEGORY_STYLES[JobCategory.ShortTermMisc];
 
@@ -216,7 +216,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
           {profile.educationLevel && profile.educationLevel !== HelperEducationLevelOption.NotStated && (
             <p className="font-serif flex items-center"><span className="mr-2 text-lg">🎓</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">ระดับการศึกษา:</strong> {profile.educationLevel}</p>
           )}
-          <p className="font-serif flex items-center"><span className="mr-2 text-lg">📍</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">พื้นที่สะดวก:</strong> {profile.area}{shortAddress && `, ${shortAddress}`}</p>
+          <p className="font-serif flex items-center"><span className="mr-2 text-lg">📍</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">พื้นที่สะดวก:</strong> {profile.area}</p>
 
           {availabilityDateDisplay && (
              <p className="font-serif flex items-center"><span className="mr-2 text-lg">🗓️</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">ช่วงวันที่สะดวก:</strong> {availabilityDateDisplay}</p>
