@@ -173,6 +173,7 @@ export enum View {
   Safety = 'SAFETY',
   Webboard = 'WEBBOARD',
   PasswordReset = 'PASSWORD_RESET',
+  CREATE_WEBBOARD_POST = 'CREATE_WEBBOARD_POST', // Added this line
 }
 
 export interface EnrichedHelperProfile extends HelperProfile {
