@@ -4,9 +4,9 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  sendPasswordResetEmail,
+  sendPasswordResetEmail, 
   User as FirebaseUser,
-  AuthError,
+  AuthError, 
 } from 'firebase/auth';
 import {
   collection,
@@ -28,9 +28,7 @@ import {
   WriteBatch,
   QueryConstraint,
   collectionGroup,
-  deleteField,
-  startAfter, // Import startAfter
-  DocumentSnapshot, // Import DocumentSnapshot
+  deleteField, 
 } from 'firebase/firestore';
 import {
   ref,
@@ -40,9 +38,9 @@ import {
   uploadString,
 } from 'firebase/storage';
 
-import { auth, db, storage } from '../firebase';
+import { auth, db, storage } from '../firebase'; 
 import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier, UserSavedWebboardPostEntry } from '../types';
-import { UserRole, WebboardCategory, USER_LEVELS, GenderOption, HelperEducationLevelOption } from '../types';
+import { UserRole, WebboardCategory, USER_LEVELS, GenderOption, HelperEducationLevelOption } from '../types'; 
 import { logFirebaseError } from '../firebase/logging';
 
 // Collection Names
@@ -102,21 +100,21 @@ export const signUpWithEmailPasswordService = async (
     const { password, ...userProfileData } = userData;
 
     const now = new Date();
-    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000); 
 
     const newUser: Omit<User, 'id'> = {
       ...userProfileData,
-      tier: 'free' as UserTier,
-      photo: undefined,
+      tier: 'free' as UserTier, 
+      photo: undefined, 
       address: '',
       nickname: '',
       firstName: '',
       lastName: '',
-      role: UserRole.Member,
-      userLevel: USER_LEVELS[0],
+      role: UserRole.Member, 
+      userLevel: USER_LEVELS[0], 
       profileComplete: false,
       isMuted: false,
-      favoriteMusic: '',
+      favoriteMusic: '', 
       favoriteBook: '',
       favoriteMovie: '',
       hobbies: '',
@@ -124,9 +122,9 @@ export const signUpWithEmailPasswordService = async (
       dislikedThing: '',
       introSentence: '',
       postingLimits: {
-        lastJobPostDate: threeDaysAgo.toISOString(),
+        lastJobPostDate: threeDaysAgo.toISOString(), 
         lastHelperProfileDate: threeDaysAgo.toISOString(),
-        dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() },
+        dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() }, 
         hourlyComments: { count: 0, resetTime: new Date(0).toISOString() },
         lastBumpDates: {},
       },
@@ -151,10 +149,10 @@ export const signInWithEmailPasswordService = async (loginIdentifier: string, pa
   try {
     let emailToSignIn = loginIdentifier;
 
-    if (!loginIdentifier.includes('@')) {
+    if (!loginIdentifier.includes('@')) { 
       const usersRef = collection(db, USERS_COLLECTION);
       const q = query(usersRef, where("username", "==", loginIdentifier.toLowerCase()), limit(1));
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await getDocs(q); 
 
       if (!querySnapshot.empty) {
         const userData = querySnapshot.docs[0].data();
@@ -162,11 +160,11 @@ export const signInWithEmailPasswordService = async (loginIdentifier: string, pa
           emailToSignIn = userData.email;
         } else {
           logFirebaseError("signInWithEmailPasswordService", new Error(`User document for username ${loginIdentifier} lacks an email.`));
-          throw new Error("Invalid username or password.");
+          throw new Error("Invalid username or password."); 
         }
       } else {
         logFirebaseError("signInWithEmailPasswordService", new Error(`Username ${loginIdentifier} not found.`));
-        throw new Error("Invalid username or password.");
+        throw new Error("Invalid username or password."); 
       }
     }
 
@@ -188,13 +186,13 @@ export const signInWithEmailPasswordService = async (loginIdentifier: string, pa
         isActive: false,
         last30DaysActivity: 0,
       };
-      const tier = userData.tier || ('free' as UserTier);
+      const tier = userData.tier || ('free' as UserTier); 
       const savedWebboardPosts = userData.savedWebboardPosts || []; // Initialize if missing
 
       return { id: firebaseUser.uid, ...convertTimestamps(userData), tier, postingLimits: convertTimestamps(postingLimits), activityBadge: convertTimestamps(activityBadge), savedWebboardPosts } as User;
     } else {
       logFirebaseError("signInWithEmailPasswordService", new Error(`User ${firebaseUser.uid} authenticated but no Firestore data.`));
-      await signOut(auth);
+      await signOut(auth); 
       throw new Error("Login failed due to a system issue. Please try again later.");
     }
 
@@ -204,7 +202,7 @@ export const signInWithEmailPasswordService = async (loginIdentifier: string, pa
       throw error;
     }
     if (typeof error === 'object' && error !== null && 'code' in error) {
-      const authErrorCode = (error as any).code;
+      const authErrorCode = (error as any).code; 
       if (
           authErrorCode === 'auth/wrong-password' ||
           authErrorCode === 'auth/user-not-found' ||
@@ -240,7 +238,7 @@ export const onAuthChangeService = (callback: (user: User | null) => void): (() 
             lastJobPostDate: threeDaysAgo.toISOString(),
             lastHelperProfileDate: threeDaysAgo.toISOString(),
             dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() },
-            hourlyComments: { count: 0, resetTime: new Date(0).toISOString() },
+            hourlyComments: { count: 0, resetTime: new Date(0).toISOString() }, 
             lastBumpDates: {},
           };
           const activityBadge = userData.activityBadge || {
@@ -299,7 +297,7 @@ export const deleteImageService = async (imageUrl?: string | null): Promise<void
     if (typeof error === 'object' && error !== null && 'code' in error && (error as any).code !== 'storage/object-not-found') {
       logFirebaseError("deleteImageService", error);
       throw error;
-    } else if (typeof error === 'object' && error !== null && !('code' in error)) {
+    } else if (typeof error === 'object' && error !== null && !('code' in error)) { 
       logFirebaseError("deleteImageService", error);
       throw error;
     }
@@ -309,7 +307,7 @@ export const deleteImageService = async (imageUrl?: string | null): Promise<void
 // --- User Profile Service ---
 export const updateUserProfileService = async (
   userId: string,
-  profileData: Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username' | 'postingLimits' | 'activityBadge' | 'userLevel' | 'tier' | 'savedWebboardPosts'>>
+  profileData: Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username' | 'postingLimits' | 'activityBadge' | 'userLevel' | 'tier' | 'savedWebboardPosts'>> 
 ): Promise<boolean> => {
   try {
     const userDocRef = doc(db, USERS_COLLECTION, userId);
@@ -321,12 +319,12 @@ export const updateUserProfileService = async (
           await deleteImageService(oldUserSnap.data().photo);
       }
       dataToUpdate.photo = await uploadImageService(`profileImages/${userId}/${Date.now()}`, profileData.photo);
-    } else if (profileData.hasOwnProperty('photo') && profileData.photo === undefined) {
+    } else if (profileData.hasOwnProperty('photo') && profileData.photo === undefined) { 
        const oldUserSnap = await getDoc(userDocRef);
        if(oldUserSnap.exists() && oldUserSnap.data().photo) {
            await deleteImageService(oldUserSnap.data().photo);
        }
-      dataToUpdate.photo = null;
+      dataToUpdate.photo = null; 
     }
     await updateDoc(userDocRef, cleanDataForFirestore(dataToUpdate as Record<string, any>));
     return true;
@@ -361,7 +359,7 @@ type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' 
 export const addJobService = async (jobData: JobFormData, author: { userId: string; authorDisplayName: string; contact: string }): Promise<string> => {
   try {
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
+    expiresAt.setDate(expiresAt.getDate() + 30); 
 
     const newJobDoc: Omit<Job, 'id'> = {
       ...jobData,
@@ -379,7 +377,7 @@ export const addJobService = async (jobData: JobFormData, author: { userId: stri
       isExpired: false,
     };
     const docRef = await addDoc(collection(db, JOBS_COLLECTION), cleanDataForFirestore(newJobDoc as Record<string, any>));
-
+    
     await updateDoc(doc(db, USERS_COLLECTION, author.userId), {
       'postingLimits.lastJobPostDate': serverTimestamp()
     });
@@ -417,7 +415,7 @@ interface HelperProfileAuthorInfo { userId: string; authorDisplayName: string; c
 export const addHelperProfileService = async (profileData: HelperProfileFormData, author: HelperProfileAuthorInfo): Promise<string> => {
   try {
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
+    expiresAt.setDate(expiresAt.getDate() + 30); 
     const nowServerTimestamp = serverTimestamp();
 
     const newProfileDoc: Omit<HelperProfile, 'id'> = {
@@ -435,7 +433,7 @@ export const addHelperProfileService = async (profileData: HelperProfileFormData
       updatedAt: nowServerTimestamp as any,
       expiresAt: expiresAt.toISOString(),
       isExpired: false,
-      lastBumpedAt: null,
+      lastBumpedAt: null, 
     };
     const docRef = await addDoc(collection(db, HELPER_PROFILES_COLLECTION), cleanDataForFirestore(newProfileDoc as Record<string, any>));
 
@@ -497,8 +495,8 @@ export const addWebboardPostService = async (postData: { title: string; body: st
     if (postData.body.length > 5000) { // Check length before processing
       throw new Error("Post body exceeds 5000 characters.");
     }
-    let imageUrl: string | undefined = undefined;
-    if (postData.image && postData.image.startsWith('data:image')) {
+    let imageUrl: string | undefined = undefined; 
+    if (postData.image && postData.image.startsWith('data:image')) { 
       imageUrl = await uploadImageService(`webboardImages/${author.userId}/${Date.now()}`, postData.image);
     }
 
@@ -506,10 +504,10 @@ export const addWebboardPostService = async (postData: { title: string; body: st
       title: postData.title,
       body: postData.body,
       category: postData.category,
-      image: imageUrl,
+      image: imageUrl, 
       userId: author.userId,
-      authorDisplayName: author.authorDisplayName,
-      authorPhoto: author.photo || undefined,
+      authorDisplayName: author.authorDisplayName, 
+      authorPhoto: author.photo || undefined, 
       ownerId: author.userId,
       likes: [],
       isPinned: false,
@@ -517,7 +515,7 @@ export const addWebboardPostService = async (postData: { title: string; body: st
       updatedAt: serverTimestamp() as any,
     };
     const docRef = await addDoc(collection(db, WEBBOARD_POSTS_COLLECTION), cleanDataForFirestore(newPostDoc as Record<string, any>));
-
+    
     const userRef = doc(db, USERS_COLLECTION, author.userId);
     const userSnap = await getDoc(userRef);
     if (userSnap.exists()) {
@@ -546,12 +544,12 @@ export const updateWebboardPostService = async (postId: string, postData: { titl
 
     basePayload.updatedAt = serverTimestamp() as any;
     if (currentUserPhoto !== undefined) {
-      basePayload.authorPhoto = currentUserPhoto || null;
+      basePayload.authorPhoto = currentUserPhoto || null; 
     }
 
     let finalUpdatePayload = { ...basePayload };
 
-    if (postData.hasOwnProperty('image')) {
+    if (postData.hasOwnProperty('image')) { 
       if (postData.image && typeof postData.image === 'string' && postData.image.startsWith('data:image')) {
         const oldPostSnap = await getDoc(postRef);
         if(oldPostSnap.exists() && oldPostSnap.data().image) {
@@ -563,7 +561,7 @@ export const updateWebboardPostService = async (postId: string, postData: { titl
         if(oldPostSnap.exists() && oldPostSnap.data().image) {
           await deleteImageService(oldPostSnap.data().image);
         }
-        finalUpdatePayload.image = null;
+        finalUpdatePayload.image = null; 
       }
     }
     await updateDoc(postRef, cleanDataForFirestore(finalUpdatePayload as Record<string, any>));
@@ -587,7 +585,7 @@ export const deleteWebboardPostService = async (postId: string): Promise<boolean
     const commentsSnapshot = await getDocs(commentsQuery);
     const batch: WriteBatch = writeBatch(db);
     commentsSnapshot.forEach(commentDoc => batch.delete(commentDoc.ref));
-
+    
     // Also delete user saved post entries
     const savedPostsQuery = query(collectionGroup(db, USER_SAVED_POSTS_SUBCOLLECTION), where('postId', '==', postId));
     const savedPostsSnapshot = await getDocs(savedPostsQuery);
@@ -613,58 +611,8 @@ export const deleteWebboardPostService = async (postId: string): Promise<boolean
     throw error;
   }
 };
-
-export const subscribeToInitialWebboardPostsService = (
-  pageLimit: number,
-  callback: (posts: WebboardPost[], lastVisibleDoc: DocumentSnapshot | null, hasMore: boolean) => void
-): (() => void) => {
-  const q = query(
-    collection(db, WEBBOARD_POSTS_COLLECTION),
-    orderBy("isPinned", "desc"),
-    orderBy("createdAt", "desc"),
-    limit(pageLimit)
-  );
-  return onSnapshot(q, (querySnapshot) => {
-    const posts = querySnapshot.docs.map(docSnap => ({
-      id: docSnap.id,
-      ...convertTimestamps(docSnap.data()),
-    } as WebboardPost));
-    const lastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1] || null;
-    const hasMore = posts.length === pageLimit;
-    callback(posts, lastVisibleDoc, hasMore);
-  }, (error) => {
-    logFirebaseError(`subscribeToInitialWebboardPostsService`, error);
-  });
-};
-
-export const fetchMoreWebboardPostsService = async (
-  pageLimit: number,
-  startAfterDoc: DocumentSnapshot | null
-): Promise<{ posts: WebboardPost[], newLastVisibleDoc: DocumentSnapshot | null, hasMore: boolean }> => {
-  if (!startAfterDoc) { // Should not happen if hasMore was true, but as a safeguard
-    return { posts: [], newLastVisibleDoc: null, hasMore: false };
-  }
-  try {
-    const q = query(
-      collection(db, WEBBOARD_POSTS_COLLECTION),
-      orderBy("isPinned", "desc"),
-      orderBy("createdAt", "desc"),
-      startAfter(startAfterDoc),
-      limit(pageLimit)
-    );
-    const querySnapshot = await getDocs(q);
-    const posts = querySnapshot.docs.map(docSnap => ({
-      id: docSnap.id,
-      ...convertTimestamps(docSnap.data()),
-    } as WebboardPost));
-    const newLastVisibleDoc = querySnapshot.docs[querySnapshot.docs.length - 1] || null;
-    const hasMore = posts.length === pageLimit;
-    return { posts, newLastVisibleDoc, hasMore };
-  } catch (error) {
-    logFirebaseError("fetchMoreWebboardPostsService", error);
-    throw error; // Or return an error state
-  }
-};
+export const subscribeToWebboardPostsService = (callback: (data: WebboardPost[]) => void) =>
+  subscribeToCollectionService<WebboardPost>(WEBBOARD_POSTS_COLLECTION, callback, [orderBy("isPinned", "desc"), orderBy("createdAt", "desc")]);
 
 
 // Webboard Comments
@@ -675,7 +623,7 @@ export const addWebboardCommentService = async (postId: string, text: string, au
       postId,
       text,
       userId: author.userId,
-      authorDisplayName: author.authorDisplayName,
+      authorDisplayName: author.authorDisplayName, 
       authorPhoto: author.photo || undefined,
       ownerId: author.userId,
       createdAt: serverTimestamp() as any,
@@ -934,7 +882,7 @@ export const submitFeedbackService = async (feedbackText: string, page: string, 
     const dataToAdd = {
       text: feedbackText,
       page,
-      userId: userId || null,
+      userId: userId || null, 
       submittedAt: serverTimestamp(),
     };
     await addDoc(collection(db, FEEDBACK_COLLECTION), cleanDataForFirestore(dataToAdd as Record<string, any>));
