@@ -1,7 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
-// Corrected import path for types
-import type { WebboardPost, WebboardComment, User, EnrichedWebboardPost, EnrichedWebboardComment, UserLevel, UserRole } from '../../types';
-import { View, USER_LEVELS, WebboardCategory } from '../types/types'; 
+import type { WebboardPost, WebboardComment, User, EnrichedWebboardPost, EnrichedWebboardComment, UserLevel, UserRole } from '../types';
+import { View, USER_LEVELS, WebboardCategory } from '../types'; 
 import { Button } from './Button';
 import { WebboardPostCard } from './WebboardPostCard';
 import { WebboardPostDetail } from './WebboardPostDetail';
