@@ -532,10 +532,10 @@ const App: React.FC = () => {
     return { canPost: true };
   };
   
-  const checkWebboardPostLimits = (user: User): { canPost: boolean; message?: string } => {
+  const checkWebboardPostLimits = (user: User): { canPost: boolean; message?: string | null } => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _user = user; // User parameter kept for signature consistency if needed later
-    return { canPost: true, message: "คุณสามารถโพสต์กระทู้ได้ไม่จำกัด" };
+    return { canPost: true, message: null }; // Return null message for unlimited posting
   };
 
   const checkWebboardCommentLimits = (user: User): { canPost: boolean; message?: string } => {

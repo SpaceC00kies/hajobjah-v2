@@ -13,7 +13,7 @@ interface WebboardPostCreateFormProps {
   editingPost?: WebboardPost | null; 
   currentUser: User | null; // Added currentUser
   // Utility function to check limits, passed from App.tsx
-  checkWebboardPostLimits: (user: User) => { canPost: boolean; message?: string }; 
+  checkWebboardPostLimits: (user: User) => { canPost: boolean; message?: string | null }; 
 }
 
 type FormDataType = {
@@ -57,7 +57,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
   onSubmit,
   editingPost,
   currentUser,
-  checkWebboardPostLimits, // Kept for signature, but logic within it in App.tsx is simplified
+  checkWebboardPostLimits, 
 }) => {
   const [formData, setFormData] = useState<FormDataType>({ title: '', body: '', category: '', image: undefined, imagePreviewUrl: undefined });
   const [errors, setErrors] = useState<FormErrorsType>({});
@@ -81,9 +81,9 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
         } else {
             setFormData({ title: '', body: '', category: '', image: undefined, imagePreviewUrl: undefined });
             if (currentUser) {
-                const limits = checkWebboardPostLimits(currentUser); // This will now return canPost: true
-                setLimitMessage(limits.message || "คุณสามารถโพสต์กระทู้ได้ไม่จำกัด"); // Show positive message or default
-                setCanSubmitForm(limits.canPost); // Will be true
+                const limits = checkWebboardPostLimits(currentUser); 
+                setLimitMessage(limits.message); // Directly use message from check; will be null if unlimited & no message
+                setCanSubmitForm(limits.canPost); 
             } else {
                 setLimitMessage("กรุณาเข้าสู่ระบบเพื่อสร้างกระทู้");
                 setCanSubmitForm(false);
@@ -159,7 +159,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmitForm && !editingPost) { // This check is now mainly for !currentUser
+    if (!canSubmitForm && !editingPost) { 
         alert(limitMessage || "ไม่สามารถโพสต์ได้ในขณะนี้");
         return;
     }
