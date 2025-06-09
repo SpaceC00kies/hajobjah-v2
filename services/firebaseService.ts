@@ -872,7 +872,6 @@ const App: React.FC = () => {
 
     if (currentUser) {
         return (
-          <>
             {isMobile && (
               <div className={`font-sans font-medium mb-3 py-2 px-4 border-b border-neutral-DEFAULT/50 dark:border-dark-border/50 w-full text-center`}>
                 สวัสดี, {currentUser.publicDisplayName}!
