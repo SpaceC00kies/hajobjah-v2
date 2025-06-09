@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import type { HelperProfile, User } from '../types'; // Added User
 import { JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP } from '../types';
 import { Button } from './Button';
-import { containsBlacklistedWords, calculateDaysRemaining } from '../App'; // Added calculateDaysRemaining
+import { containsBlacklistedWords, calculateHoursRemaining } from '../App'; // Changed to calculateHoursRemaining
 
 type FormDataType = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt'>;
 
@@ -39,9 +39,9 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
   const [canSubmit, setCanSubmit] = useState(true);
 
-  const HELPER_PROFILE_COOLDOWN_DAYS_FORM = 7;
-  const MAX_ACTIVE_HELPER_PROFILES_NORMAL_FORM = 1;
-  const MAX_ACTIVE_HELPER_PROFILES_BADGE_FORM = 2;
+  const HELPER_PROFILE_COOLDOWN_DAYS_FORM = 3; // Updated to 3 days
+  const MAX_ACTIVE_HELPER_PROFILES_FREE_TIER_FORM = 1; // Updated for free tier
+  const MAX_ACTIVE_HELPER_PROFILES_BADGE_FORM = 2; // Badge enhancement
 
   useEffect(() => {
     if (!currentUser) {
@@ -54,19 +54,25 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
       setLimitMessage(null);
     } else {
       // Cooldown check
+      const cooldownHoursTotal = HELPER_PROFILE_COOLDOWN_DAYS_FORM * 24;
       const lastProfileDate = currentUser.postingLimits?.lastHelperProfileDate;
       if (lastProfileDate) {
-        const daysSinceLastPost = (new Date().getTime() - new Date(lastProfileDate as string).getTime()) / (1000 * 60 * 60 * 24);
-        if (daysSinceLastPost < HELPER_PROFILE_COOLDOWN_DAYS_FORM) {
-          const daysRemaining = HELPER_PROFILE_COOLDOWN_DAYS_FORM - Math.floor(daysSinceLastPost);
-          setLimitMessage(`คุณสามารถสร้างโปรไฟล์ใหม่ได้ในอีก ${daysRemaining} วัน`);
+        const hoursSinceLastPost = (new Date().getTime() - new Date(lastProfileDate as string).getTime()) / (1000 * 60 * 60);
+        if (hoursSinceLastPost < cooldownHoursTotal) {
+          const hoursRemaining = Math.ceil(cooldownHoursTotal - hoursSinceLastPost);
+          setLimitMessage(`คุณสามารถสร้างโปรไฟล์ใหม่ได้ในอีก ${hoursRemaining} ชั่วโมง`);
           setCanSubmit(false);
           return;
         }
       }
       // Active limit check
       const userActiveProfiles = helperProfiles.filter(p => p.userId === currentUser.id && !p.isExpired && new Date(p.expiresAt as string) > new Date()).length;
-      const maxProfiles = currentUser.activityBadge?.isActive ? MAX_ACTIVE_HELPER_PROFILES_BADGE_FORM : MAX_ACTIVE_HELPER_PROFILES_NORMAL_FORM;
+      
+      let maxProfiles = (currentUser.tier === 'free') ? MAX_ACTIVE_HELPER_PROFILES_FREE_TIER_FORM : 999; // Default for free, high for others
+      if (currentUser.activityBadge?.isActive) {
+        maxProfiles = MAX_ACTIVE_HELPER_PROFILES_BADGE_FORM; // Badge overrides
+      }
+
       if (userActiveProfiles >= maxProfiles) {
         setLimitMessage(`คุณมีโปรไฟล์ผู้ช่วยที่ยังไม่หมดอายุ ${userActiveProfiles}/${maxProfiles} โปรไฟล์แล้ว`);
         setCanSubmit(false);

@@ -99,24 +99,26 @@ export enum UserRole {
 export interface UserPostingLimits {
   lastJobPostDate?: string | Date; // Cooldown for jobs
   lastHelperProfileDate?: string | Date; // Cooldown for helper profiles
-  dailyWebboardPosts: {
+  dailyWebboardPosts: { // Retained for structure, not active limiting
     count: number;
-    resetDate: string | Date; // Timestamp for when the daily post count resets
+    resetDate: string | Date; 
   };
-  hourlyComments: {
+  hourlyComments: { // Retained for structure, not active limiting
     count: number;
-    resetTime: string | Date; // Timestamp for when the hourly comment count resets
+    resetTime: string | Date; 
   };
-  lastBumpDates: { // For Helper Profile Bump Cooldown, maps profileId to last bump date
+  lastBumpDates: { 
     [profileId: string]: string | Date;
   };
 }
 
 export interface UserActivityBadge {
-  isActive: boolean; // Whether the "🔥 ขยันใช้เว็บ" badge is active
-  lastActivityCheck?: string | Date; // Timestamp of the last activity check (optional, might derive from userLevel update)
-  last30DaysActivity: number; // Count of webboard posts + comments in the last 30 days
+  isActive: boolean; 
+  lastActivityCheck?: string | Date; 
+  last30DaysActivity: number; 
 }
+
+export type UserTier = 'free' | 'premium';
 
 
 export interface User {
@@ -125,6 +127,7 @@ export interface User {
   username: string;
   email: string;
   role: UserRole;
+  tier: UserTier; // Added tier
   mobile: string;
   lineId?: string;
   facebook?: string;
@@ -149,7 +152,6 @@ export interface User {
   createdAt?: string | Date;
   updatedAt?: string | Date;
 
-  // New fields for posting limits and activity badge
   postingLimits: UserPostingLimits;
   activityBadge: UserActivityBadge;
 }

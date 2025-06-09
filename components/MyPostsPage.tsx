@@ -3,7 +3,7 @@ import React from 'react';
 import type { Job, HelperProfile, User, WebboardPost, WebboardComment, UserLevel } from '../types';
 import { View } from '../types';
 import { Button } from './Button';
-import { calculateDaysRemaining, isDateInPast } from '../App';
+import { calculateHoursRemaining, isDateInPast } from '../App'; // Changed to calculateHoursRemaining
 
 interface MyPostsPageProps {
   currentUser: User;
@@ -28,6 +28,7 @@ interface UserPostItem {
   originalItem: Job | HelperProfile | WebboardPost;
   likesCount?: number;
   commentsCount?: number;
+  expiresAt?: string | Date; // Added for calculating days remaining for job/profile
 }
 
 const formatDateDisplay = (dateInput?: string | Date | null): string => {
@@ -95,6 +96,7 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
       isHiredOrUnavailable: job.isHired,
       isSuspicious: job.isSuspicious,
       originalItem: job,
+      expiresAt: job.expiresAt,
     })),
     ...userHelperProfiles.map(profile => ({
       id: profile.id,
@@ -104,14 +106,15 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
       isHiredOrUnavailable: profile.isUnavailable,
       isSuspicious: profile.isSuspicious,
       originalItem: profile,
+      expiresAt: profile.expiresAt,
     })),
     ...userWebboardPosts.map(post => ({
       id: post.id,
       title: post.title,
       type: 'webboardPost' as const,
       postedAt: ensureStringDate(post.createdAt),
-      isHiredOrUnavailable: false, // Webboard posts don't have this status in the same way
-      isSuspicious: false, // Webboard posts handled differently for suspicion in Admin
+      isHiredOrUnavailable: false, 
+      isSuspicious: false, 
       originalItem: post,
       likesCount: post.likes.length,
       commentsCount: webboardComments.filter(c => c.postId === post.id).length,
@@ -180,9 +183,6 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
         badgeTextColorClass = 'text-blue-700 dark:text-blue-300';
       }
     } else if (item.type === 'webboardPost') {
-      // Webboard posts don't have this complex status. They are either active or deleted.
-      // If needed, a simpler "Active" or "Pinned" badge could be shown here.
-      // For now, returning null as MyPostsPage focuses on user-manageable states.
       return null;
     }
 
@@ -205,44 +205,52 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
     } else if (item.type === 'profile') {
         return item.isHiredOrUnavailable ? '🟢 แจ้งว่ากลับมาว่าง' : '🔴 แจ้งว่าไม่ว่างแล้ว';
     }
-    return null; // Webboard posts don't have this toggle
+    return null; 
   };
 
-  // --- Constants for limits (mirroring App.tsx logic for display purposes) ---
-  const JOB_COOLDOWN_DAYS_DISPLAY = 7;
-  const HELPER_PROFILE_COOLDOWN_DAYS_DISPLAY = 7;
-  const MAX_ACTIVE_JOBS_NORMAL_DISPLAY = 2;
-  const MAX_ACTIVE_HELPER_PROFILES_NORMAL_DISPLAY = 1;
+  const JOB_COOLDOWN_DAYS_DISPLAY = 3;
+  const HELPER_PROFILE_COOLDOWN_DAYS_DISPLAY = 3;
+  const MAX_ACTIVE_JOBS_FREE_TIER_DISPLAY = 3;
+  const MAX_ACTIVE_HELPER_PROFILES_FREE_TIER_DISPLAY = 1;
   const MAX_ACTIVE_JOBS_BADGE_DISPLAY = 4;
   const MAX_ACTIVE_HELPER_PROFILES_BADGE_DISPLAY = 2;
 
-  // Calculate active jobs and limits
+
   const userActiveJobsCount = userJobs.filter(
     job => !job.isExpired && (job.expiresAt ? !isDateInPast(job.expiresAt) : true)
   ).length;
-  const maxJobsAllowed = currentUser.activityBadge?.isActive ? MAX_ACTIVE_JOBS_BADGE_DISPLAY : MAX_ACTIVE_JOBS_NORMAL_DISPLAY;
+  
+  let maxJobsAllowed = (currentUser.tier === 'free') ? MAX_ACTIVE_JOBS_FREE_TIER_DISPLAY : 999;
+  if (currentUser.activityBadge?.isActive) {
+    maxJobsAllowed = MAX_ACTIVE_JOBS_BADGE_DISPLAY;
+  }
 
-  let jobCooldownDaysRemaining = 0;
+  let jobCooldownHoursRemaining = 0;
   const lastJobPostDate = currentUser.postingLimits?.lastJobPostDate;
   if (lastJobPostDate) {
-    const daysSinceLastJobPost = (new Date().getTime() - new Date(lastJobPostDate as string).getTime()) / (1000 * 60 * 60 * 24);
-    if (daysSinceLastJobPost < JOB_COOLDOWN_DAYS_DISPLAY) {
-      jobCooldownDaysRemaining = JOB_COOLDOWN_DAYS_DISPLAY - Math.floor(daysSinceLastJobPost);
+    const jobCooldownTotalHours = JOB_COOLDOWN_DAYS_DISPLAY * 24;
+    const hoursSinceLastJobPost = (new Date().getTime() - new Date(lastJobPostDate as string).getTime()) / (1000 * 60 * 60);
+    if (hoursSinceLastJobPost < jobCooldownTotalHours) {
+      jobCooldownHoursRemaining = Math.ceil(jobCooldownTotalHours - hoursSinceLastJobPost);
     }
   }
 
-  // Calculate active helper profiles and limits
   const userActiveHelperProfilesCount = userHelperProfiles.filter(
     profile => !profile.isExpired && (profile.expiresAt ? !isDateInPast(profile.expiresAt) : true)
   ).length;
-  const maxHelperProfilesAllowed = currentUser.activityBadge?.isActive ? MAX_ACTIVE_HELPER_PROFILES_BADGE_DISPLAY : MAX_ACTIVE_HELPER_PROFILES_NORMAL_DISPLAY;
 
-  let helperProfileCooldownDaysRemaining = 0;
+  let maxHelperProfilesAllowed = (currentUser.tier === 'free') ? MAX_ACTIVE_HELPER_PROFILES_FREE_TIER_DISPLAY : 999;
+  if (currentUser.activityBadge?.isActive) {
+    maxHelperProfilesAllowed = MAX_ACTIVE_HELPER_PROFILES_BADGE_DISPLAY;
+  }
+
+  let helperProfileCooldownHoursRemaining = 0;
   const lastHelperProfileDate = currentUser.postingLimits?.lastHelperProfileDate;
   if (lastHelperProfileDate) {
-    const daysSinceLastHelperProfilePost = (new Date().getTime() - new Date(lastHelperProfileDate as string).getTime()) / (1000 * 60 * 60 * 24);
-    if (daysSinceLastHelperProfilePost < HELPER_PROFILE_COOLDOWN_DAYS_DISPLAY) {
-      helperProfileCooldownDaysRemaining = HELPER_PROFILE_COOLDOWN_DAYS_DISPLAY - Math.floor(daysSinceLastHelperProfilePost);
+    const helperCooldownTotalHours = HELPER_PROFILE_COOLDOWN_DAYS_DISPLAY * 24;
+    const hoursSinceLastHelperProfilePost = (new Date().getTime() - new Date(lastHelperProfileDate as string).getTime()) / (1000 * 60 * 60);
+    if (hoursSinceLastHelperProfilePost < helperCooldownTotalHours) {
+      helperProfileCooldownHoursRemaining = Math.ceil(helperCooldownTotalHours - hoursSinceLastHelperProfilePost);
     }
   }
 
@@ -258,7 +266,6 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
         </p>
       </div>
 
-      {/* Posting Limits Summary Card */}
       <div className="mb-8 p-4 bg-white dark:bg-dark-cardBg shadow-md rounded-lg border dark:border-dark-border">
         <h3 className="text-xl font-sans font-semibold text-neutral-700 dark:text-dark-text mb-3 text-center">
          📊 สถานะโพสต์
@@ -266,16 +273,16 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
         <div className="space-y-2 text-sm font-sans text-neutral-dark dark:text-dark-textMuted">
           <div className="flex justify-between items-center p-2 bg-neutral-light/50 dark:bg-dark-inputBg/30 rounded">
             <span>ประกาศงาน: {userActiveJobsCount}/{maxJobsAllowed} ที่ใช้งานอยู่</span>
-            {jobCooldownDaysRemaining > 0 ? (
-              <span className="text-orange-600 dark:text-orange-400"> (โพสต์ใหม่ได้ในอีก {jobCooldownDaysRemaining} วัน)</span>
+            {jobCooldownHoursRemaining > 0 ? (
+              <span className="text-orange-600 dark:text-orange-400"> (โพสต์ใหม่ได้ในอีก {jobCooldownHoursRemaining} ชั่วโมง)</span>
             ) : (
               <span className="text-green-600 dark:text-green-400"> (พร้อมโพสต์ใหม่)</span>
             )}
           </div>
           <div className="flex justify-between items-center p-2 bg-neutral-light/50 dark:bg-dark-inputBg/30 rounded">
             <span>โปรไฟล์ผู้ช่วย: {userActiveHelperProfilesCount}/{maxHelperProfilesAllowed} ที่ใช้งานอยู่</span>
-            {helperProfileCooldownDaysRemaining > 0 ? (
-              <span className="text-orange-600 dark:text-orange-400"> (สร้างโปรไฟล์ใหม่ได้ในอีก {helperProfileCooldownDaysRemaining} วัน)</span>
+            {helperProfileCooldownHoursRemaining > 0 ? (
+              <span className="text-orange-600 dark:text-orange-400"> (สร้างโปรไฟล์ใหม่ได้ในอีก {helperProfileCooldownHoursRemaining} ชั่วโมง)</span>
             ) : (
               <span className="text-green-600 dark:text-green-400"> (พร้อมสร้างโปรไฟล์ใหม่)</span>
             )}
@@ -307,17 +314,16 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
           {userItems.map(item => {
             let daysRemainingElement = null;
             if (item.type === 'job' || item.type === 'profile') {
-              const originalPost = item.originalItem as Job | HelperProfile;
-              const expiresAt = originalPost.expiresAt;
-              // Only show days remaining if the item is active (not hired/unavailable, not suspicious, and has a future expiry)
+              const expiresAt = item.expiresAt;
               const isTrulyActive = !item.isHiredOrUnavailable && !item.isSuspicious && expiresAt && !isDateInPast(expiresAt);
 
               if (isTrulyActive) {
-                const daysLeft = calculateDaysRemaining(expiresAt);
-                if (daysLeft > 0) {
+                const hoursLeft = calculateHoursRemaining(expiresAt); // Use hours for precision
+                if (hoursLeft > 0) {
+                  const daysLeftDisplay = Math.ceil(hoursLeft / 24); // Display in days
                   daysRemainingElement = (
                     <span className="text-xs font-sans text-blue-600 dark:text-blue-400">
-                      (⏳ เหลือเวลา {daysLeft} วัน)
+                      (⏳ เหลือเวลา {daysLeftDisplay} วัน)
                     </span>
                   );
                 }
@@ -334,7 +340,6 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
                       <span className="text-xs font-sans text-neutral-medium dark:text-dark-textMuted">
                         ประเภท: {item.type === 'job' ? 'ประกาศงาน' : item.type === 'profile' ? 'โปรไฟล์ผู้ช่วย' : 'กระทู้พูดคุย'}
                       </span>
-                       {/* Display likes and comments count for webboard posts */}
                        {item.type === 'webboardPost' && (
                           <span className="text-xs font-sans text-neutral-medium dark:text-dark-textMuted ml-2">
                              ❤️ {item.likesCount || 0} ไลค์ | 💬 {item.commentsCount || 0} คอมเมนต์
@@ -346,7 +351,6 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
                   </span>
                 </div>
 
-                {/* Status and Days Remaining (for Jobs and Profiles) */}
                 {(item.type === 'job' || item.type === 'profile') && (
                   <div className="my-3 font-sans flex items-center gap-2 flex-wrap">
                       {getStatusBadge(item)}
@@ -354,9 +358,7 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
                   </div>
                 )}
 
-                {/* Action Buttons */}
                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 font-sans">
-                  {/* Edit Button - applicable to all types */}
                   {(item.type === 'job' || item.type === 'profile' || item.type === 'webboardPost') &&
                       <Button
                         onClick={() => onEditItem(item.id, item.type)}
@@ -364,14 +366,13 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
                         colorScheme="neutral"
                         size="sm"
                         className="w-full"
-                        disabled={item.isSuspicious} // Disable if suspicious (Job/Profile)
+                        disabled={item.isSuspicious} 
                         title={item.isSuspicious ? "ไม่สามารถแก้ไขโพสต์ที่ถูกระงับ" : "แก้ไขโพสต์"}
                       >
                         ✏️ แก้ไขโพสต์
                       </Button>
                   }
 
-                  {/* Toggle Status Button - for Jobs and Profiles only */}
                   {getToggleStatusButtonText(item) && (
                       <Button
                         onClick={() => onToggleHiredStatus(item.id, item.type)}
@@ -379,13 +380,12 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
                         colorScheme="neutral"
                         size="sm"
                         className="w-full"
-                        disabled={item.isSuspicious} // Disable if suspicious
+                        disabled={item.isSuspicious} 
                         title={item.isSuspicious ? "ไม่สามารถเปลี่ยนสถานะโพสต์ที่ถูกระงับ" : getToggleStatusButtonText(item) || ""}
                       >
                         {getToggleStatusButtonText(item)}
                       </Button>
                   )}
-                   {/* View Post Button - for Webboard Posts only */}
                   {item.type === 'webboardPost' && (
                        <Button
                           onClick={() => navigateTo(View.Webboard, { postId: item.id })}
@@ -393,18 +393,16 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
                           colorScheme="neutral"
                           size="sm"
                           className="w-full"
-                          // No specific disabled state for "View" for suspicious, user can still view their own post
                       >
                           👁️ ดูกระทู้
                       </Button>
                   )}
-                  {/* Delete Button - applicable to all types */}
                   <Button
                     onClick={() => onDeleteItem(item.id, item.type)}
                     variant="outline" 
                     size="sm"
                     className="w-full text-red-600 dark:text-red-400 border-red-300 dark:border-red-500/50 bg-red-50 dark:bg-red-900/20 hover:bg-red-600 hover:text-white dark:hover:bg-red-500 dark:hover:text-white hover:border-transparent focus:ring-red-500"
-                    disabled={item.isSuspicious} // Disable if suspicious (Job/Profile)
+                    disabled={item.isSuspicious} 
                     title={item.isSuspicious ? "ไม่สามารถลบโพสต์ที่ถูกระงับ" : "ลบโพสต์"}
                   >
                     🗑️ ลบโพสต์

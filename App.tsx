@@ -34,7 +34,7 @@ import {
   logHelperContactInteractionService,
   getUserDocument, 
 } from './services/firebaseService'; 
-import type { Job, HelperProfile, User, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge } from './types';
+import type { Job, HelperProfile, User, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier } from './types';
 import type { AdminItem as AdminItemType } from './components/AdminDashboard';
 import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP, ACTIVITY_BADGE_DETAILS } from './types'; 
 import { PostJobForm } from './components/PostJobForm';
@@ -77,14 +77,23 @@ export const isValidThaiMobileNumberUtil = (mobile: string): boolean => {
 };
 
 // --- Date & Limit Utility Functions ---
-export const calculateDaysRemaining = (targetDateString?: string | Date): number => {
+export const calculateHoursRemaining = (targetDateString?: string | Date): number => {
     if (!targetDateString) return 0;
     const targetDate = new Date(targetDateString);
     const now = new Date();
     const diffTime = targetDate.getTime() - now.getTime();
     if (diffTime <= 0) return 0;
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.ceil(diffTime / (1000 * 60 * 60)); // Calculate hours
 };
+
+export const calculateDaysRemaining = (targetDateString?: string | Date): number => {
+    if (!targetDateString) return 0;
+    // Uses calculateHoursRemaining and converts to days for consistency with hour-based cooldown display logic
+    const hoursRemaining = calculateHoursRemaining(targetDateString);
+    if (hoursRemaining <=0) return 0;
+    return Math.ceil(hoursRemaining / 24);
+};
+
 
 export const isDateInPast = (dateString?: string | Date): boolean => {
     if (!dateString) return false; 
@@ -96,18 +105,18 @@ export const isDateInPast = (dateString?: string | Date): boolean => {
 };
 
 
-const JOB_COOLDOWN_DAYS = 7;
-const HELPER_PROFILE_COOLDOWN_DAYS = 7;
+const JOB_COOLDOWN_DAYS = 3; 
+const HELPER_PROFILE_COOLDOWN_DAYS = 3; 
 const BUMP_COOLDOWN_DAYS = 30;
-const MAX_ACTIVE_JOBS_NORMAL = 2;
-const MAX_ACTIVE_HELPER_PROFILES_NORMAL = 1;
-// const MAX_WEBBOARD_POSTS_DAILY_NORMAL = 3; // No longer enforced
-// const MAX_WEBBOARD_COMMENTS_HOURLY = 10; // Removed - No longer enforced
 
-// For users with "🔥 ขยันใช้เว็บ" badge
-const MAX_ACTIVE_JOBS_BADGE = 4;
+// Free Tier Limits
+const MAX_ACTIVE_JOBS_FREE_TIER = 3;
+const MAX_ACTIVE_HELPER_PROFILES_FREE_TIER = 1;
+
+// For users with "🔥 ขยันใช้เว็บ" badge (enhancement over free tier)
+const MAX_ACTIVE_JOBS_BADGE = 4; 
 const MAX_ACTIVE_HELPER_PROFILES_BADGE = 2;
-// const MAX_WEBBOARD_POSTS_DAILY_BADGE = 4; // No longer enforced
+
 
 export const checkProfileCompleteness = (user: User): boolean => {
   if (!user) return false;
@@ -173,7 +182,7 @@ const searchMappings: Record<string, string[]> = {
   'clean': ['ทำความสะอาด', 'แม่บ้าน'], 'cook': ['ทำอาหาร', 'ครัว', 'เชฟ']
 };
 
-type RegistrationDataType = Omit<User, 'id' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt'> & { password: string };
+type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt'> & { password: string };
 
 
 const App: React.FC = () => {
@@ -268,9 +277,10 @@ const App: React.FC = () => {
             const accountAgeInDays = u.createdAt ? (new Date().getTime() - new Date(u.createdAt as string).getTime()) / (1000 * 60 * 60 * 24) : 0;
             const isActivityBadgeActive = accountAgeInDays >= 30 && last30DaysActivity >= 15;
 
+            const threeDaysAgoForCooldown = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
             const defaultPostingLimits: UserPostingLimits = {
-              lastJobPostDate: new Date(0).toISOString(),
-              lastHelperProfileDate: new Date(0).toISOString(),
+              lastJobPostDate: threeDaysAgoForCooldown.toISOString(),
+              lastHelperProfileDate: threeDaysAgoForCooldown.toISOString(),
               dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() },
               hourlyComments: { count: 0, resetTime: new Date(0).toISOString() }, 
               lastBumpDates: {},
@@ -284,16 +294,17 @@ const App: React.FC = () => {
             
             return {
                 ...u,
+                tier: u.tier || 'free' as UserTier, // Default to 'free' if tier is missing
                 userLevel: calculateUserLevel(u.id, webboardPosts, webboardComments),
                 profileComplete: checkProfileCompleteness(u),
                 postingLimits: { 
                     ...defaultPostingLimits,
                     ...(u.postingLimits || {}),
-                    dailyWebboardPosts: { // Kept for structure, not for enforcement
+                    dailyWebboardPosts: { 
                       ...defaultPostingLimits.dailyWebboardPosts,
                       ...(u.postingLimits?.dailyWebboardPosts || {})
                     },
-                    hourlyComments: { // Kept for structure, not for enforcement
+                    hourlyComments: { 
                       ...defaultPostingLimits.hourlyComments,
                       ...(u.postingLimits?.hourlyComments || {})
                     }
@@ -341,7 +352,7 @@ const App: React.FC = () => {
         return; 
       }
       setViewingProfileId(payload);
-      if (fromView !== View.PublicProfile) { // Avoid setting PublicProfile as its own source
+      if (fromView !== View.PublicProfile) { 
         setSourceViewForPublicProfile(fromView);
       }
     } else if (view !== View.PublicProfile) {
@@ -447,7 +458,7 @@ const App: React.FC = () => {
       await signOutUserService();
       setLoginRedirectInfo(null); setItemToEdit(null); setEditingItemType(null);
       setSourceViewForForm(null); setViewingProfileId(null); setSelectedPostId(null);
-      setSourceViewForPublicProfile(View.FindHelpers); // Reset source view on logout
+      setSourceViewForPublicProfile(View.FindHelpers); 
       setIsMobileMenuOpen(false);
       alert('ออกจากระบบเรียบร้อยแล้ว'); navigateTo(View.Home);
     } catch (error: any) {
@@ -501,15 +512,22 @@ const App: React.FC = () => {
   };
   
   const checkJobPostingLimits = async (user: User): Promise<{ canPost: boolean; message?: string }> => {
+    const cooldownHoursTotal = JOB_COOLDOWN_DAYS * 24;
     if (user.postingLimits.lastJobPostDate) {
-        const daysSinceLastPost = (new Date().getTime() - new Date(user.postingLimits.lastJobPostDate as string).getTime()) / (1000 * 60 * 60 * 24);
-        if (daysSinceLastPost < JOB_COOLDOWN_DAYS) {
-            const daysRemaining = JOB_COOLDOWN_DAYS - Math.floor(daysSinceLastPost);
-            return { canPost: false, message: `คุณสามารถโพสต์งานใหม่ได้ในอีก ${daysRemaining} วัน` };
+        const hoursSinceLastPost = (new Date().getTime() - new Date(user.postingLimits.lastJobPostDate as string).getTime()) / (1000 * 60 * 60);
+        if (hoursSinceLastPost < cooldownHoursTotal) {
+            const hoursRemaining = Math.ceil(cooldownHoursTotal - hoursSinceLastPost);
+            return { canPost: false, message: `คุณสามารถโพสต์งานใหม่ได้ในอีก ${hoursRemaining} ชั่วโมง` };
         }
     }
     const userActiveJobs = jobs.filter(job => job.userId === user.id && !isDateInPast(job.expiresAt) && !job.isExpired).length;
-    const maxJobs = user.activityBadge?.isActive ? MAX_ACTIVE_JOBS_BADGE : MAX_ACTIVE_JOBS_NORMAL;
+    
+    // Determine max jobs based on tier and activity badge
+    let maxJobs = (user.tier === 'free') ? MAX_ACTIVE_JOBS_FREE_TIER : 999; // Assume premium has high limit
+    if (user.activityBadge?.isActive) {
+        maxJobs = MAX_ACTIVE_JOBS_BADGE; // Badge overrides tier limit
+    }
+
     if (userActiveJobs >= maxJobs) {
         return { canPost: false, message: `คุณมีงานที่ยังไม่หมดอายุ ${userActiveJobs}/${maxJobs} งานแล้ว` };
     }
@@ -517,15 +535,21 @@ const App: React.FC = () => {
   };
 
   const checkHelperProfilePostingLimits = async (user: User): Promise<{ canPost: boolean; message?: string }> => {
+    const cooldownHoursTotal = HELPER_PROFILE_COOLDOWN_DAYS * 24;
     if (user.postingLimits.lastHelperProfileDate) {
-        const daysSinceLastPost = (new Date().getTime() - new Date(user.postingLimits.lastHelperProfileDate as string).getTime()) / (1000 * 60 * 60 * 24);
-        if (daysSinceLastPost < HELPER_PROFILE_COOLDOWN_DAYS) {
-            const daysRemaining = HELPER_PROFILE_COOLDOWN_DAYS - Math.floor(daysSinceLastPost);
-            return { canPost: false, message: `คุณสามารถสร้างโปรไฟล์ผู้ช่วยใหม่ได้ในอีก ${daysRemaining} วัน` };
+        const hoursSinceLastPost = (new Date().getTime() - new Date(user.postingLimits.lastHelperProfileDate as string).getTime()) / (1000 * 60 * 60);
+        if (hoursSinceLastPost < cooldownHoursTotal) {
+            const hoursRemaining = Math.ceil(cooldownHoursTotal - hoursSinceLastPost);
+            return { canPost: false, message: `คุณสามารถสร้างโปรไฟล์ผู้ช่วยใหม่ได้ในอีก ${hoursRemaining} ชั่วโมง` };
         }
     }
     const userActiveProfiles = helperProfiles.filter(p => p.userId === user.id && !isDateInPast(p.expiresAt) && !p.isExpired).length;
-    const maxProfiles = user.activityBadge?.isActive ? MAX_ACTIVE_HELPER_PROFILES_BADGE : MAX_ACTIVE_HELPER_PROFILES_NORMAL;
+
+    let maxProfiles = (user.tier === 'free') ? MAX_ACTIVE_HELPER_PROFILES_FREE_TIER : 999; // Assume premium has high limit
+    if (user.activityBadge?.isActive) {
+        maxProfiles = MAX_ACTIVE_HELPER_PROFILES_BADGE; // Badge overrides tier limit
+    }
+
     if (userActiveProfiles >= maxProfiles) {
         return { canPost: false, message: `คุณมีโปรไฟล์ผู้ช่วยที่ยังไม่หมดอายุ ${userActiveProfiles}/${maxProfiles} โปรไฟล์แล้ว` };
     }
@@ -534,13 +558,11 @@ const App: React.FC = () => {
   
   const checkWebboardPostLimits = (user: User): { canPost: boolean; message?: string | null } => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const _user = user; // User parameter kept for signature consistency if needed later
-    return { canPost: true, message: null }; // Return null message for unlimited posting
+    const _user = user; 
+    return { canPost: true, message: null }; 
   };
 
   const checkWebboardCommentLimits = (user: User): { canPost: boolean; message?: string } => {
-    // Hourly limit removed, always allow posting if other conditions met.
-    // The user parameter is kept for structural consistency if needed in the future.
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _user = user; 
     return { canPost: true };
@@ -605,7 +627,7 @@ const App: React.FC = () => {
         userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, contact: generateContactString(currentUser),
         gender: currentUser.gender, birthdate: currentUser.birthdate, educationLevel: currentUser.educationLevel
       });
-      const updatedUser = await getUserDocument(currentUser.id); // Refetch user to update limits state
+      const updatedUser = await getUserDocument(currentUser.id); 
       if (updatedUser) setCurrentUser(updatedUser);
 
       setTimeout(() => {
@@ -753,7 +775,7 @@ const App: React.FC = () => {
     if (!currentUser) { requestLoginForAction(View.Webboard, { action: postIdToUpdate ? 'editPost' : 'createPost', postId: postIdToUpdate }); return; }
     if (!postIdToUpdate) { 
       const limitCheck = checkWebboardPostLimits(currentUser);
-      if (!limitCheck.canPost) { // This will always be true now
+      if (!limitCheck.canPost) { 
         alert(limitCheck.message);
         return;
       }
@@ -782,11 +804,6 @@ const App: React.FC = () => {
 
   const handleAddWebboardComment = async (postId: string, text: string) => {
     if (!currentUser) { requestLoginForAction(View.Webboard, { action: 'comment', postId: postId }); return; }
-    // const limitCheck = checkWebboardCommentLimits(currentUser); // Still call for consistency, but it always returns true
-    // if (!limitCheck.canPost) { // This condition will likely not be met anymore
-    //   alert(limitCheck.message);
-    //   return;
-    // }
     if (containsBlacklistedWords(text)) { alert('เนื้อหาคอมเมนต์มีคำที่ไม่เหมาะสม'); return; }
     try {
         await addWebboardCommentService(postId, text, {userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, photo: currentUser.photo});
@@ -1132,7 +1149,7 @@ const App: React.FC = () => {
             <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedJobCategoryFilter} onSelectCategory={setSelectedJobCategoryFilter} />
             <SearchInputWithRecent searchTerm={jobSearchTerm} onSearchTermChange={handleJobSearch} placeholder="ค้นหางาน, รายละเอียด..." recentSearches={recentJobSearches} onRecentSearchSelect={(term) => { setJobSearchTerm(term); addRecentSearch('recentJobSearches', term); setRecentJobSearches(getRecentSearches('recentJobSearches')); }} ariaLabel="ค้นหางาน" />
             {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="w-full sm:px-4 sm:text-sm">
-              <span className="flex items-center justify-center gap-2"><span>📣</span><span>ประกาศงาน</span></span>
+              <span className="flex items-center justify-center gap-2"><span>📣</span><span>ฝากงานกดตรงนี้</span></span>
             </Button> )}
           </div>
         </aside>
@@ -1217,7 +1234,7 @@ const App: React.FC = () => {
 
   const handleBackFromPublicProfile = () => {
     navigateTo(sourceViewForPublicProfile || View.FindHelpers);
-    setSourceViewForPublicProfile(View.FindHelpers); // Reset to default after use
+    setSourceViewForPublicProfile(View.FindHelpers); 
   };
 
   const renderPublicProfile = () => { 

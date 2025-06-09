@@ -39,7 +39,7 @@ import {
 } from 'firebase/storage';
 
 import { auth, db, storage } from '../firebase'; 
-import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge } from '../types';
+import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier } from '../types';
 import { UserRole, WebboardCategory, USER_LEVELS, GenderOption, HelperEducationLevelOption } from '../types'; 
 import { logFirebaseError } from '../firebase/logging';
 
@@ -86,7 +86,7 @@ const cleanDataForFirestore = <T extends Record<string, any>>(data: T): Partial<
   return cleanedData;
 };
 
-type RegistrationDataType = Omit<User, 'id' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt'> & { password: string };
+type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt'> & { password: string };
 
 
 // --- Authentication Services ---
@@ -99,10 +99,12 @@ export const signUpWithEmailPasswordService = async (
     const { password, ...userProfileData } = userData;
 
     const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    // Set initial cooldown to be expired (3 days ago)
+    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000); 
 
     const newUser: Omit<User, 'id'> = {
       ...userProfileData,
+      tier: 'free' as UserTier, // Set tier to 'free'
       photo: undefined, 
       address: '',
       nickname: '',
@@ -120,10 +122,10 @@ export const signUpWithEmailPasswordService = async (
       dislikedThing: '',
       introSentence: '',
       postingLimits: {
-        lastJobPostDate: sevenDaysAgo.toISOString(),
-        lastHelperProfileDate: sevenDaysAgo.toISOString(),
+        lastJobPostDate: threeDaysAgo.toISOString(), // Cooldown is 3 days
+        lastHelperProfileDate: threeDaysAgo.toISOString(), // Cooldown is 3 days
         dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() }, 
-        hourlyComments: { count: 0, resetTime: new Date(0).toISOString() }, // Retained for structure, not active limiting
+        hourlyComments: { count: 0, resetTime: new Date(0).toISOString() },
         lastBumpDates: {},
       },
       activityBadge: {
@@ -170,7 +172,22 @@ export const signInWithEmailPasswordService = async (loginIdentifier: string, pa
 
     const userDoc = await getDoc(doc(db, USERS_COLLECTION, firebaseUser.uid));
     if (userDoc.exists()) {
-      return { id: firebaseUser.uid, ...convertTimestamps(userDoc.data()) } as User;
+      const userData = userDoc.data();
+      const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+      const postingLimits = userData.postingLimits || {
+        lastJobPostDate: threeDaysAgo.toISOString(),
+        lastHelperProfileDate: threeDaysAgo.toISOString(),
+        dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() },
+        hourlyComments: { count: 0, resetTime: new Date(0).toISOString() },
+        lastBumpDates: {},
+      };
+      const activityBadge = userData.activityBadge || {
+        isActive: false,
+        last30DaysActivity: 0,
+      };
+      const tier = userData.tier || ('free' as UserTier); // Default to 'free' if tier is missing
+
+      return { id: firebaseUser.uid, ...convertTimestamps(userData), tier, postingLimits: convertTimestamps(postingLimits), activityBadge: convertTimestamps(activityBadge) } as User;
     } else {
       logFirebaseError("signInWithEmailPasswordService", new Error(`User ${firebaseUser.uid} authenticated but no Firestore data.`));
       await signOut(auth); 
@@ -214,19 +231,20 @@ export const onAuthChangeService = (callback: (user: User | null) => void): (() 
         const userDocSnap = await getDoc(userDocRef);
         if (userDocSnap.exists()) {
           const userData = userDocSnap.data();
-          const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+          const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
           const postingLimits = userData.postingLimits || {
-            lastJobPostDate: sevenDaysAgo.toISOString(),
-            lastHelperProfileDate: sevenDaysAgo.toISOString(),
+            lastJobPostDate: threeDaysAgo.toISOString(),
+            lastHelperProfileDate: threeDaysAgo.toISOString(),
             dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() },
-            hourlyComments: { count: 0, resetTime: new Date(0).toISOString() }, // Retained for structure
+            hourlyComments: { count: 0, resetTime: new Date(0).toISOString() }, 
             lastBumpDates: {},
           };
           const activityBadge = userData.activityBadge || {
             isActive: false,
             last30DaysActivity: 0,
           };
-          callback({ id: firebaseUser.uid, ...convertTimestamps(userData), postingLimits: convertTimestamps(postingLimits), activityBadge: convertTimestamps(activityBadge) } as User);
+          const tier = userData.tier || ('free' as UserTier); // Default to 'free' if tier is missing
+          callback({ id: firebaseUser.uid, ...convertTimestamps(userData), tier, postingLimits: convertTimestamps(postingLimits), activityBadge: convertTimestamps(activityBadge) } as User);
         } else {
           logFirebaseError("onAuthChangeService", new Error(`User ${firebaseUser.uid} not found in Firestore.`));
           callback(null);
@@ -286,7 +304,7 @@ export const deleteImageService = async (imageUrl?: string | null): Promise<void
 // --- User Profile Service ---
 export const updateUserProfileService = async (
   userId: string,
-  profileData: Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username' | 'postingLimits' | 'activityBadge' | 'userLevel'>>
+  profileData: Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username' | 'postingLimits' | 'activityBadge' | 'userLevel' | 'tier'>> // Exclude tier from direct update here
 ): Promise<boolean> => {
   try {
     const userDocRef = doc(db, USERS_COLLECTION, userId);
@@ -338,7 +356,7 @@ type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' 
 export const addJobService = async (jobData: JobFormData, author: { userId: string; authorDisplayName: string; contact: string }): Promise<string> => {
   try {
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30);
+    expiresAt.setDate(expiresAt.getDate() + 30); // Expires in 30 days
 
     const newJobDoc: Omit<Job, 'id'> = {
       ...jobData,
@@ -394,7 +412,7 @@ interface HelperProfileAuthorInfo { userId: string; authorDisplayName: string; c
 export const addHelperProfileService = async (profileData: HelperProfileFormData, author: HelperProfileAuthorInfo): Promise<string> => {
   try {
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 60); // Changed from 30 to 60
+    expiresAt.setDate(expiresAt.getDate() + 30); // Expires in 30 days
     const nowServerTimestamp = serverTimestamp();
 
     const newProfileDoc: Omit<HelperProfile, 'id'> = {
@@ -496,8 +514,6 @@ export const addWebboardPostService = async (postData: { title: string; body: st
     const userSnap = await getDoc(userRef);
     if (userSnap.exists()) {
       const userData = userSnap.data() as User;
-      // Daily webboard post count and reset date updates are removed.
-      // Only update activity badge.
       await updateDoc(userRef, {
         'activityBadge.last30DaysActivity': (userData.activityBadge.last30DaysActivity || 0) + 1
       });
@@ -604,8 +620,6 @@ export const addWebboardCommentService = async (postId: string, text: string, au
     const userSnap = await getDoc(userRef);
     if (userSnap.exists()) {
       const userData = userSnap.data() as User;
-      // Hourly comment limit logic removed from here.
-      // User's postingLimits.hourlyComments is no longer updated for count/resetTime.
       await updateDoc(userRef, {
         'activityBadge.last30DaysActivity': (userData.activityBadge.last30DaysActivity || 0) + 1
       });
@@ -744,7 +758,9 @@ export const getUserDocument = async (userId: string): Promise<User | null> => {
     const userDocRef = doc(db, USERS_COLLECTION, userId);
     const userDocSnap = await getDoc(userDocRef);
     if (userDocSnap.exists()) {
-      return { id: userId, ...convertTimestamps(userDocSnap.data()) } as User;
+      const userData = userDocSnap.data();
+      const tier = userData.tier || ('free' as UserTier); // Default tier
+      return { id: userId, ...convertTimestamps(userData), tier } as User;
     }
     return null;
   } catch (error) {

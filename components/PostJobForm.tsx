@@ -3,7 +3,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import type { Job, User } from '../types'; // Added User
 import { JobDesiredEducationLevelOption, JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP } from '../types';
 import { Button } from './Button';
-import { containsBlacklistedWords, calculateDaysRemaining } from '../App'; // Added calculateDaysRemaining
+import { containsBlacklistedWords, calculateHoursRemaining } from '../App'; // Changed to calculateHoursRemaining
 
 type FormDataType = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired'>;
 
@@ -45,9 +45,9 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
   const [canSubmit, setCanSubmit] = useState(true);
 
-  const JOB_COOLDOWN_DAYS_FORM = 7;
-  const MAX_ACTIVE_JOBS_NORMAL_FORM = 2;
-  const MAX_ACTIVE_JOBS_BADGE_FORM = 4;
+  const JOB_COOLDOWN_DAYS_FORM = 3; // Updated to 3 days
+  const MAX_ACTIVE_JOBS_FREE_TIER_FORM = 3; // Updated for free tier
+  const MAX_ACTIVE_JOBS_BADGE_FORM = 4; // Badge enhancement
 
   useEffect(() => {
     if (!currentUser) {
@@ -55,24 +55,30 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
       setLimitMessage("กรุณาเข้าสู่ระบบเพื่อโพสต์งาน");
       return;
     }
-    if (isEditing) { // No limit checks for editing
+    if (isEditing) { 
       setCanSubmit(true);
       setLimitMessage(null);
     } else {
       // Cooldown check
+      const cooldownHoursTotal = JOB_COOLDOWN_DAYS_FORM * 24;
       const lastJobPostDate = currentUser.postingLimits?.lastJobPostDate;
       if (lastJobPostDate) {
-        const daysSinceLastPost = (new Date().getTime() - new Date(lastJobPostDate as string).getTime()) / (1000 * 60 * 60 * 24);
-        if (daysSinceLastPost < JOB_COOLDOWN_DAYS_FORM) {
-          const daysRemaining = JOB_COOLDOWN_DAYS_FORM - Math.floor(daysSinceLastPost);
-          setLimitMessage(`คุณสามารถโพสต์งานใหม่ได้ในอีก ${daysRemaining} วัน`);
+        const hoursSinceLastPost = (new Date().getTime() - new Date(lastJobPostDate as string).getTime()) / (1000 * 60 * 60);
+        if (hoursSinceLastPost < cooldownHoursTotal) {
+          const hoursRemaining = Math.ceil(cooldownHoursTotal - hoursSinceLastPost);
+          setLimitMessage(`คุณสามารถโพสต์งานใหม่ได้ในอีก ${hoursRemaining} ชั่วโมง`);
           setCanSubmit(false);
           return;
         }
       }
       // Active limit check
       const userActiveJobs = jobs.filter(job => job.userId === currentUser.id && !job.isExpired && new Date(job.expiresAt as string) > new Date()).length;
-      const maxJobs = currentUser.activityBadge?.isActive ? MAX_ACTIVE_JOBS_BADGE_FORM : MAX_ACTIVE_JOBS_NORMAL_FORM;
+      
+      let maxJobs = (currentUser.tier === 'free') ? MAX_ACTIVE_JOBS_FREE_TIER_FORM : 999; // Default for free, high for others
+      if (currentUser.activityBadge?.isActive) {
+          maxJobs = MAX_ACTIVE_JOBS_BADGE_FORM; // Badge overrides
+      }
+
       if (userActiveJobs >= maxJobs) {
         setLimitMessage(`คุณมีงานที่ยังไม่หมดอายุ ${userActiveJobs}/${maxJobs} งานแล้ว`);
         setCanSubmit(false);
