@@ -123,7 +123,7 @@ export const signUpWithEmailPasswordService = async (
         lastJobPostDate: sevenDaysAgo.toISOString(),
         lastHelperProfileDate: sevenDaysAgo.toISOString(),
         dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() }, 
-        hourlyComments: { count: 0, resetTime: new Date(0).toISOString() }, 
+        hourlyComments: { count: 0, resetTime: new Date(0).toISOString() }, // Retained for structure, not active limiting
         lastBumpDates: {},
       },
       activityBadge: {
@@ -219,7 +219,7 @@ export const onAuthChangeService = (callback: (user: User | null) => void): (() 
             lastJobPostDate: sevenDaysAgo.toISOString(),
             lastHelperProfileDate: sevenDaysAgo.toISOString(),
             dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() },
-            hourlyComments: { count: 0, resetTime: new Date(0).toISOString() }, 
+            hourlyComments: { count: 0, resetTime: new Date(0).toISOString() }, // Retained for structure
             lastBumpDates: {},
           };
           const activityBadge = userData.activityBadge || {
@@ -496,8 +496,17 @@ export const addWebboardPostService = async (postData: { title: string; body: st
     const userSnap = await getDoc(userRef);
     if (userSnap.exists()) {
       const userData = userSnap.data() as User;
-      // Removed update to postingLimits.dailyWebboardPosts.count and resetDate
+      const today = new Date().toISOString().split('T')[0];
+      const currentResetDate = userData.postingLimits.dailyWebboardPosts.resetDate ? new Date(userData.postingLimits.dailyWebboardPosts.resetDate as string).toISOString().split('T')[0] : null;
+      
+      let newDailyCount = 1;
+      if (currentResetDate === today) {
+        newDailyCount = (userData.postingLimits.dailyWebboardPosts.count || 0) + 1;
+      }
+
       await updateDoc(userRef, {
+        'postingLimits.dailyWebboardPosts.count': newDailyCount,
+        'postingLimits.dailyWebboardPosts.resetDate': new Date(today + 'T00:00:00Z').toISOString(), 
         'activityBadge.last30DaysActivity': (userData.activityBadge.last30DaysActivity || 0) + 1
       });
     }
@@ -603,7 +612,8 @@ export const addWebboardCommentService = async (postId: string, text: string, au
     const userSnap = await getDoc(userRef);
     if (userSnap.exists()) {
       const userData = userSnap.data() as User;
-      // Removed update to postingLimits.hourlyComments.count and resetTime
+      // Hourly comment limit logic removed from here.
+      // User's postingLimits.hourlyComments is no longer updated for count/resetTime.
       await updateDoc(userRef, {
         'activityBadge.last30DaysActivity': (userData.activityBadge.last30DaysActivity || 0) + 1
       });
