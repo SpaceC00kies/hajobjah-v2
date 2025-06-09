@@ -1,279 +1,944 @@
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  sendPasswordResetEmail, 
+  User as FirebaseUser,
+  AuthError, 
+} from 'firebase/auth';
+import {
+  collection,
+  doc,
+  addDoc,
+  setDoc,
+  getDoc,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+  onSnapshot,
+  serverTimestamp,
+  Timestamp,
+  writeBatch,
+  WriteBatch,
+  QueryConstraint,
+  collectionGroup,
+  deleteField,
+  startAfter,
+  QueryDocumentSnapshot,
+  DocumentData,
+} from 'firebase/firestore';
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
+  uploadString,
+} from 'firebase/storage';
 
-import React, { useState, useEffect } from 'react';
-import type { WebboardPost, WebboardComment, User, EnrichedWebboardPost, EnrichedWebboardComment, UserLevel, UserRole } from '../types';
-import { View, USER_LEVELS, WebboardCategory } from '../types'; 
-import { Button } from './Button';
-import { WebboardPostCard } from './WebboardPostCard';
-import { WebboardPostDetail } from './WebboardPostDetail';
-import { WebboardPostCreateForm } from './WebboardPostCreateForm';
+import { auth, db, storage } from '../firebase'; 
+import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier, UserSavedWebboardPostEntry } from '../types';
+import { UserRole, WebboardCategory, USER_LEVELS, GenderOption, HelperEducationLevelOption } from '../types'; 
+import { logFirebaseError } from '../firebase/logging';
 
-interface WebboardPageProps {
-  currentUser: User | null;
-  users: User[]; 
-  posts: WebboardPost[];
-  comments: WebboardComment[];
-  onAddOrUpdatePost: (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => void; 
-  onAddComment: (postId: string, text: string) => void;
-  onToggleLike: (postId: string) => void;
-  onSavePost: (postId: string) => void; // New prop
-  onSharePost: (postId: string, postTitle: string) => void; // New prop
-  onDeletePost: (postId: string) => void;
-  onPinPost: (postId: string) => void;
-  onEditPost: (post: EnrichedWebboardPost) => void; 
-  onDeleteComment?: (commentId: string) => void;
-  onUpdateComment?: (commentId: string, newText: string) => void;
-  selectedPostId: string | null; 
-  setSelectedPostId: (postId: string | null) => void;
-  navigateTo: (view: View, payload?: any) => void;
-  editingPost?: WebboardPost | null; 
-  onCancelEdit: () => void; 
-  getUserDisplayBadge: (user: User | null | undefined) => UserLevel; // Removed posts, comments from signature as badges are not on webboard items
-  requestLoginForAction: (view: View, payload?: any) => void; 
-  onNavigateToPublicProfile: (userId: string) => void;
-  checkWebboardPostLimits: (user: User) => { canPost: boolean; message?: string | null };
-  checkWebboardCommentLimits: (user: User) => { canPost: boolean; message?: string };
+// Collection Names
+const USERS_COLLECTION = 'users';
+const JOBS_COLLECTION = 'jobs';
+const HELPER_PROFILES_COLLECTION = 'helperProfiles';
+const WEBBOARD_POSTS_COLLECTION = 'webboardPosts';
+const WEBBOARD_COMMENTS_COLLECTION = 'webboardComments';
+const INTERACTIONS_COLLECTION = 'interactions';
+const SITE_CONFIG_COLLECTION = 'siteConfig';
+const SITE_CONFIG_DOC_ID = 'main';
+const FEEDBACK_COLLECTION = 'feedback';
+const USER_SAVED_POSTS_SUBCOLLECTION = 'savedWebboardPosts';
+
+export const POSTS_PER_PAGE = 10; // Number of posts to fetch per page
+
+
+// --- Helper to convert Firestore Timestamps to ISO strings for consistency ---
+const convertTimestamps = (data: any): any => {
+  if (data === null || typeof data !== 'object') {
+    return data;
+  }
+  if (data instanceof Timestamp) {
+    return data.toDate().toISOString();
+  }
+  if (Array.isArray(data)) {
+    return data.map(convertTimestamps);
+  }
+  const result: { [key: string]: any } = {};
+  for (const key in data) {
+    result[key] = convertTimestamps(data[key]);
+  }
+  return result;
+};
+
+const cleanDataForFirestore = <T extends Record<string, any>>(data: T): Partial<T> => {
+  const cleanedData: Partial<T> = {};
+  for (const key in data) {
+    if (Object.prototype.hasOwnProperty.call(data, key)) {
+      const value = data[key];
+      if (value !== undefined) {
+        cleanedData[key] = value;
+      }
+    }
+  }
+  return cleanedData;
+};
+
+type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts'> & { password: string };
+
+
+// --- Authentication Services ---
+export const signUpWithEmailPasswordService = async (
+  userData: RegistrationDataType
+): Promise<User | null> => {
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
+    const firebaseUser = userCredential.user;
+    const { password, ...userProfileData } = userData;
+
+    const now = new Date();
+    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000); 
+
+    const newUser: Omit<User, 'id'> = {
+      ...userProfileData,
+      tier: 'free' as UserTier, 
+      photo: undefined, 
+      address: '',
+      nickname: '',
+      firstName: '',
+      lastName: '',
+      role: UserRole.Member, 
+      userLevel: USER_LEVELS[0], 
+      profileComplete: false,
+      isMuted: false,
+      favoriteMusic: '', 
+      favoriteBook: '',
+      favoriteMovie: '',
+      hobbies: '',
+      favoriteFood: '',
+      dislikedThing: '',
+      introSentence: '',
+      postingLimits: {
+        lastJobPostDate: threeDaysAgo.toISOString(), 
+        lastHelperProfileDate: threeDaysAgo.toISOString(),
+        dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() }, 
+        hourlyComments: { count: 0, resetTime: new Date(0).toISOString() },
+        lastBumpDates: {},
+      },
+      activityBadge: {
+        isActive: false,
+        last30DaysActivity: 0,
+      },
+      savedWebboardPosts: [], // Initialize saved posts
+      createdAt: serverTimestamp() as any,
+      updatedAt: serverTimestamp() as any,
+    };
+
+    await setDoc(doc(db, USERS_COLLECTION, firebaseUser.uid), cleanDataForFirestore(newUser as Record<string, any>));
+    return { id: firebaseUser.uid, ...convertTimestamps(newUser) };
+  } catch (error: any) {
+    logFirebaseError("signUpWithEmailPasswordService", error);
+    throw error;
+  }
+};
+
+export const signInWithEmailPasswordService = async (loginIdentifier: string, passwordAttempt: string): Promise<User | null> => {
+  try {
+    let emailToSignIn = loginIdentifier;
+
+    if (!loginIdentifier.includes('@')) { 
+      const usersRef = collection(db, USERS_COLLECTION);
+      const q = query(usersRef, where("username", "==", loginIdentifier.toLowerCase()), limit(1));
+      const querySnapshot = await getDocs(q); 
+
+      if (!querySnapshot.empty) {
+        const userData = querySnapshot.docs[0].data();
+        if (userData && userData.email) {
+          emailToSignIn = userData.email;
+        } else {
+          logFirebaseError("signInWithEmailPasswordService", new Error(`User document for username ${loginIdentifier} lacks an email.`));
+          throw new Error("Invalid username or password."); 
+        }
+      } else {
+        logFirebaseError("signInWithEmailPasswordService", new Error(`Username ${loginIdentifier} not found.`));
+        throw new Error("Invalid username or password."); 
+      }
+    }
+
+    const userCredential = await signInWithEmailAndPassword(auth, emailToSignIn, passwordAttempt);
+    const firebaseUser = userCredential.user;
+
+    const userDoc = await getDoc(doc(db, USERS_COLLECTION, firebaseUser.uid));
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+      const postingLimits = userData.postingLimits || {
+        lastJobPostDate: threeDaysAgo.toISOString(),
+        lastHelperProfileDate: threeDaysAgo.toISOString(),
+        dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() },
+        hourlyComments: { count: 0, resetTime: new Date(0).toISOString() },
+        lastBumpDates: {},
+      };
+      const activityBadge = userData.activityBadge || {
+        isActive: false,
+        last30DaysActivity: 0,
+      };
+      const tier = userData.tier || ('free' as UserTier); 
+      const savedWebboardPosts = userData.savedWebboardPosts || []; // Initialize if missing
+
+      return { id: firebaseUser.uid, ...convertTimestamps(userData), tier, postingLimits: convertTimestamps(postingLimits), activityBadge: convertTimestamps(activityBadge), savedWebboardPosts } as User;
+    } else {
+      logFirebaseError("signInWithEmailPasswordService", new Error(`User ${firebaseUser.uid} authenticated but no Firestore data.`));
+      await signOut(auth); 
+      throw new Error("Login failed due to a system issue. Please try again later.");
+    }
+
+  } catch (error: any) {
+    logFirebaseError("signInWithEmailPasswordService", error);
+    if (error.message === "Invalid username or password." || error.message === "Login failed due to a system issue. Please try again later.") {
+      throw error;
+    }
+    if (typeof error === 'object' && error !== null && 'code' in error) {
+      const authErrorCode = (error as any).code; 
+      if (
+          authErrorCode === 'auth/wrong-password' ||
+          authErrorCode === 'auth/user-not-found' ||
+          authErrorCode === 'auth/invalid-credential' ||
+          authErrorCode === 'auth/invalid-email'
+      ) {
+        throw new Error("Invalid username or password.");
+      }
+    }
+    throw new Error("Login failed. Please try again.");
+  }
+};
+
+export const signOutUserService = async (): Promise<void> => {
+  try {
+    await signOut(auth);
+  } catch (error: any) {
+    logFirebaseError("signOutUserService", error);
+    throw error;
+  }
+};
+
+export const onAuthChangeService = (callback: (user: User | null) => void): (() => void) => {
+  return onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+    if (firebaseUser) {
+      const userDocRef = doc(db, USERS_COLLECTION, firebaseUser.uid);
+      try {
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+          const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+          const postingLimits = userData.postingLimits || {
+            lastJobPostDate: threeDaysAgo.toISOString(),
+            lastHelperProfileDate: threeDaysAgo.toISOString(),
+            dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() },
+            hourlyComments: { count: 0, resetTime: new Date(0).toISOString() }, 
+            lastBumpDates: {},
+          };
+          const activityBadge = userData.activityBadge || {
+            isActive: false,
+            last30DaysActivity: 0,
+          };
+          const tier = userData.tier || ('free' as UserTier);
+          const savedWebboardPosts = userData.savedWebboardPosts || []; // Initialize if missing
+          callback({ id: firebaseUser.uid, ...convertTimestamps(userData), tier, postingLimits: convertTimestamps(postingLimits), activityBadge: convertTimestamps(activityBadge), savedWebboardPosts } as User);
+        } else {
+          logFirebaseError("onAuthChangeService", new Error(`User ${firebaseUser.uid} not found in Firestore.`));
+          callback(null);
+          await signOut(auth);
+        }
+      } catch (error) {
+        logFirebaseError("onAuthChangeService - getDoc", error);
+        callback(null);
+      }
+    } else {
+      callback(null);
+    }
+  });
+};
+
+export const sendPasswordResetEmailService = async (email: string): Promise<void> => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+  } catch (error: any) {
+    logFirebaseError("sendPasswordResetEmailService", error);
+    throw error;
+  }
+};
+
+// --- Storage Service ---
+export const uploadImageService = async (path: string, fileOrBase64: File | string): Promise<string> => {
+  try {
+    const storageRef = ref(storage, path);
+    if (typeof fileOrBase64 === 'string') {
+      await uploadString(storageRef, fileOrBase64, 'data_url');
+    } else {
+      await uploadBytes(storageRef, fileOrBase64);
+    }
+    return await getDownloadURL(storageRef);
+  } catch (error: any) {
+    logFirebaseError("uploadImageService", error);
+    throw error;
+  }
+};
+
+export const deleteImageService = async (imageUrl?: string | null): Promise<void> => {
+  if (!imageUrl) return;
+  try {
+    const storageRef = ref(storage, imageUrl);
+    await deleteObject(storageRef);
+  } catch (error: any) {
+    if (typeof error === 'object' && error !== null && 'code' in error && (error as any).code !== 'storage/object-not-found') {
+      logFirebaseError("deleteImageService", error);
+      throw error;
+    } else if (typeof error === 'object' && error !== null && !('code' in error)) { 
+      logFirebaseError("deleteImageService", error);
+      throw error;
+    }
+  }
+};
+
+// --- User Profile Service ---
+export const updateUserProfileService = async (
+  userId: string,
+  profileData: Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username' | 'postingLimits' | 'activityBadge' | 'userLevel' | 'tier' | 'savedWebboardPosts'>> 
+): Promise<boolean> => {
+  try {
+    const userDocRef = doc(db, USERS_COLLECTION, userId);
+    let dataToUpdate: Partial<User> = { ...profileData, updatedAt: serverTimestamp() as any };
+
+    if (profileData.photo && typeof profileData.photo === 'string' && profileData.photo.startsWith('data:image')) {
+      const oldUserSnap = await getDoc(userDocRef);
+      if(oldUserSnap.exists() && oldUserSnap.data().photo) {
+          await deleteImageService(oldUserSnap.data().photo);
+      }
+      dataToUpdate.photo = await uploadImageService(`profileImages/${userId}/${Date.now()}`, profileData.photo);
+    } else if (profileData.hasOwnProperty('photo') && profileData.photo === undefined) { 
+       const oldUserSnap = await getDoc(userDocRef);
+       if(oldUserSnap.exists() && oldUserSnap.data().photo) {
+           await deleteImageService(oldUserSnap.data().photo);
+       }
+      dataToUpdate.photo = null; 
+    }
+    await updateDoc(userDocRef, cleanDataForFirestore(dataToUpdate as Record<string, any>));
+    return true;
+  } catch (error: any) {
+    logFirebaseError("updateUserProfileService", error);
+    throw error;
+  }
+};
+
+// --- Generic Firestore Subscription Service ---
+const subscribeToCollectionService = <T>(
+  collectionName: string,
+  callback: (data: T[]) => void,
+  constraints: QueryConstraint[] = []
+): (() => void) => {
+  const q = query(collection(db, collectionName), ...constraints);
+  return onSnapshot(q, (querySnapshot) => {
+    const items = querySnapshot.docs.map(docSnap => ({
+      id: docSnap.id,
+      ...convertTimestamps(docSnap.data()),
+    } as T));
+    callback(items);
+  }, (error) => {
+    logFirebaseError(`subscribeToCollectionService (${collectionName})`, error);
+  });
+};
+
+// --- Specific Data Services ---
+
+// Jobs
+type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired'>;
+export const addJobService = async (jobData: JobFormData, author: { userId: string; authorDisplayName: string; contact: string }): Promise<string> => {
+  try {
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30); 
+
+    const newJobDoc: Omit<Job, 'id'> = {
+      ...jobData,
+      userId: author.userId,
+      authorDisplayName: author.authorDisplayName,
+      contact: author.contact,
+      ownerId: author.userId,
+      isPinned: false,
+      isHired: false,
+      isSuspicious: false,
+      postedAt: serverTimestamp() as any,
+      createdAt: serverTimestamp() as any,
+      updatedAt: serverTimestamp() as any,
+      expiresAt: expiresAt.toISOString(),
+      isExpired: false,
+    };
+    const docRef = await addDoc(collection(db, JOBS_COLLECTION), cleanDataForFirestore(newJobDoc as Record<string, any>));
+    
+    await updateDoc(doc(db, USERS_COLLECTION, author.userId), {
+      'postingLimits.lastJobPostDate': serverTimestamp()
+    });
+    return docRef.id;
+  } catch (error: any) {
+    logFirebaseError("addJobService", error);
+    throw error;
+  }
+};
+export const updateJobService = async (jobId: string, jobData: Partial<JobFormData>, contact: string): Promise<boolean> => {
+  try {
+    const dataToUpdate = { ...jobData, contact, updatedAt: serverTimestamp() as any };
+    await updateDoc(doc(db, JOBS_COLLECTION, jobId), cleanDataForFirestore(dataToUpdate as Record<string, any>));
+    return true;
+  } catch (error: any) {
+    logFirebaseError("updateJobService", error);
+    throw error;
+  }
+};
+export const deleteJobService = async (jobId: string): Promise<boolean> => {
+  try {
+    await deleteDoc(doc(db, JOBS_COLLECTION, jobId));
+    return true;
+  } catch (error: any) {
+    logFirebaseError("deleteJobService", error);
+    throw error;
+  }
+};
+export const subscribeToJobsService = (callback: (data: Job[]) => void) =>
+  subscribeToCollectionService<Job>(JOBS_COLLECTION, callback, [orderBy("isPinned", "desc"), orderBy("postedAt", "desc")]);
+
+// Helper Profiles
+type HelperProfileFormData = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt'>;
+interface HelperProfileAuthorInfo { userId: string; authorDisplayName: string; contact: string; gender: User['gender']; birthdate: User['birthdate']; educationLevel: User['educationLevel']; }
+export const addHelperProfileService = async (profileData: HelperProfileFormData, author: HelperProfileAuthorInfo): Promise<string> => {
+  try {
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30); 
+    const nowServerTimestamp = serverTimestamp();
+
+    const newProfileDoc: Omit<HelperProfile, 'id'> = {
+      ...profileData,
+      userId: author.userId,
+      authorDisplayName: author.authorDisplayName,
+      contact: author.contact,
+      gender: author.gender,
+      birthdate: author.birthdate,
+      educationLevel: author.educationLevel,
+      ownerId: author.userId,
+      isPinned: false, isUnavailable: false, isSuspicious: false, adminVerifiedExperience: false, interestedCount: 0,
+      postedAt: nowServerTimestamp as any,
+      createdAt: nowServerTimestamp as any,
+      updatedAt: nowServerTimestamp as any,
+      expiresAt: expiresAt.toISOString(),
+      isExpired: false,
+      lastBumpedAt: null, 
+    };
+    const docRef = await addDoc(collection(db, HELPER_PROFILES_COLLECTION), cleanDataForFirestore(newProfileDoc as Record<string, any>));
+
+    await updateDoc(doc(db, USERS_COLLECTION, author.userId), {
+      'postingLimits.lastHelperProfileDate': serverTimestamp()
+    });
+    return docRef.id;
+  } catch (error: any) {
+    logFirebaseError("addHelperProfileService", error);
+    throw error;
+  }
+};
+
+export const updateHelperProfileService = async (profileId: string, profileData: Partial<HelperProfileFormData>, contact: string): Promise<boolean> => {
+  try {
+    const dataToUpdate = { ...profileData, contact, updatedAt: serverTimestamp() as any };
+    await updateDoc(doc(db, HELPER_PROFILES_COLLECTION, profileId), cleanDataForFirestore(dataToUpdate as Record<string, any>));
+    return true;
+  } catch (error: any) {
+    logFirebaseError("updateHelperProfileService", error);
+    throw error;
+  }
+};
+
+export const bumpHelperProfileService = async (profileId: string, userId: string): Promise<boolean> => {
+  try {
+    const now = serverTimestamp();
+    await updateDoc(doc(db, HELPER_PROFILES_COLLECTION, profileId), {
+      updatedAt: now,
+      lastBumpedAt: now
+    });
+    await updateDoc(doc(db, USERS_COLLECTION, userId), {
+      [`postingLimits.lastBumpDates.${profileId}`]: now
+    });
+    return true;
+  } catch (error: any) {
+    logFirebaseError("bumpHelperProfileService", error);
+    throw error;
+  }
+};
+
+export const deleteHelperProfileService = async (profileId: string): Promise<boolean> => {
+  try {
+    await deleteDoc(doc(db, HELPER_PROFILES_COLLECTION, profileId));
+    return true;
+  } catch (error: any) {
+    logFirebaseError("deleteHelperProfileService", error);
+    throw error;
+  }
+};
+export const subscribeToHelperProfilesService = (callback: (data: HelperProfile[]) => void) =>
+  subscribeToCollectionService<HelperProfile>(HELPER_PROFILES_COLLECTION, callback, [orderBy("isPinned", "desc"), orderBy("updatedAt", "desc")]);
+
+
+// Webboard Posts
+interface WebboardPostAuthorInfo { userId: string; authorDisplayName: string; photo?: string | null; }
+export const addWebboardPostService = async (postData: { title: string; body: string; category: WebboardCategory; image?: string }, author: WebboardPostAuthorInfo): Promise<string> => {
+  try {
+    if (postData.body.length > 5000) { // Check length before processing
+      throw new Error("Post body exceeds 5000 characters.");
+    }
+    let imageUrl: string | undefined = undefined; 
+    if (postData.image && postData.image.startsWith('data:image')) { 
+      imageUrl = await uploadImageService(`webboardImages/${author.userId}/${Date.now()}`, postData.image);
+    }
+
+    const newPostDoc: Omit<WebboardPost, 'id'> = {
+      title: postData.title,
+      body: postData.body,
+      category: postData.category,
+      image: imageUrl, 
+      userId: author.userId,
+      authorDisplayName: author.authorDisplayName, 
+      authorPhoto: author.photo || undefined, 
+      ownerId: author.userId,
+      likes: [],
+      isPinned: false,
+      createdAt: serverTimestamp() as any,
+      updatedAt: serverTimestamp() as any,
+    };
+    const docRef = await addDoc(collection(db, WEBBOARD_POSTS_COLLECTION), cleanDataForFirestore(newPostDoc as Record<string, any>));
+    
+    const userRef = doc(db, USERS_COLLECTION, author.userId);
+    const userSnap = await getDoc(userRef);
+    if (userSnap.exists()) {
+      const userData = userSnap.data() as User;
+      await updateDoc(userRef, {
+        'activityBadge.last30DaysActivity': (userData.activityBadge.last30DaysActivity || 0) + 1
+      });
+    }
+    return docRef.id;
+  } catch (error: any) {
+    logFirebaseError("addWebboardPostService", error);
+    throw error;
+  }
+};
+
+export const updateWebboardPostService = async (postId: string, postData: { title?: string; body?: string; category?: WebboardCategory; image?: string | null }, currentUserPhoto?: string | null): Promise<boolean> => {
+  try {
+    if (postData.body && postData.body.length > 5000) { // Check length
+      throw new Error("Post body exceeds 5000 characters.");
+    }
+    const postRef = doc(db, WEBBOARD_POSTS_COLLECTION, postId);
+    const basePayload: Partial<WebboardPost> = {};
+    if (postData.title !== undefined) basePayload.title = postData.title;
+    if (postData.body !== undefined) basePayload.body = postData.body;
+    if (postData.category !== undefined) basePayload.category = postData.category;
+
+    basePayload.updatedAt = serverTimestamp() as any;
+    if (currentUserPhoto !== undefined) {
+      basePayload.authorPhoto = currentUserPhoto || null; 
+    }
+
+    let finalUpdatePayload = { ...basePayload };
+
+    if (postData.hasOwnProperty('image')) { 
+      if (postData.image && typeof postData.image === 'string' && postData.image.startsWith('data:image')) {
+        const oldPostSnap = await getDoc(postRef);
+        if(oldPostSnap.exists() && oldPostSnap.data().image) {
+          await deleteImageService(oldPostSnap.data().image);
+        }
+        finalUpdatePayload.image = await uploadImageService(`webboardImages/${auth.currentUser?.uid}/${Date.now()}_edit`, postData.image);
+      } else if (postData.image === null) {
+        const oldPostSnap = await getDoc(postRef);
+        if(oldPostSnap.exists() && oldPostSnap.data().image) {
+          await deleteImageService(oldPostSnap.data().image);
+        }
+        finalUpdatePayload.image = null; 
+      }
+    }
+    await updateDoc(postRef, cleanDataForFirestore(finalUpdatePayload as Record<string, any>));
+    return true;
+  } catch (error: any) {
+    logFirebaseError("updateWebboardPostService", error);
+    throw error;
+  }
+};
+
+export const deleteWebboardPostService = async (postId: string): Promise<boolean> => {
+  try {
+    const postRef = doc(db, WEBBOARD_POSTS_COLLECTION, postId);
+    const postSnap = await getDoc(postRef);
+    const postData = postSnap.data() as WebboardPost;
+
+    if (postSnap.exists() && postData.image) {
+      await deleteImageService(postData.image);
+    }
+    const commentsQuery = query(collection(db, WEBBOARD_COMMENTS_COLLECTION), where("postId", "==", postId));
+    const commentsSnapshot = await getDocs(commentsQuery);
+    const batch: WriteBatch = writeBatch(db);
+    commentsSnapshot.forEach(commentDoc => batch.delete(commentDoc.ref));
+    
+    // Also delete user saved post entries
+    const savedPostsQuery = query(collectionGroup(db, USER_SAVED_POSTS_SUBCOLLECTION), where('postId', '==', postId));
+    const savedPostsSnapshot = await getDocs(savedPostsQuery);
+    savedPostsSnapshot.forEach(doc => batch.delete(doc.ref));
+
+    await batch.commit();
+
+    await deleteDoc(postRef);
+
+    if (postData && postData.userId) {
+        const userRef = doc(db, USERS_COLLECTION, postData.userId);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+            const userData = userSnap.data() as User;
+            await updateDoc(userRef, {
+                'activityBadge.last30DaysActivity': Math.max(0, (userData.activityBadge.last30DaysActivity || 0) - 1)
+            });
+        }
+    }
+    return true;
+  } catch (error: any) {
+    logFirebaseError("deleteWebboardPostService", error);
+    throw error;
+  }
+};
+
+export const subscribeToWebboardPostsService = (
+  callback: (data: { posts: WebboardPost[], lastVisibleDoc: QueryDocumentSnapshot<DocumentData> | null }) => void
+): (() => void) => {
+  const q = query(
+    collection(db, WEBBOARD_POSTS_COLLECTION),
+    orderBy("isPinned", "desc"),
+    orderBy("createdAt", "desc"),
+    limit(POSTS_PER_PAGE)
+  );
+  return onSnapshot(q, (querySnapshot) => {
+    const posts = querySnapshot.docs.map(docSnap => ({
+      id: docSnap.id,
+      ...convertTimestamps(docSnap.data()),
+    } as WebboardPost));
+    const lastVisibleDoc = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
+    callback({ posts, lastVisibleDoc });
+  }, (error) => {
+    logFirebaseError(`subscribeToWebboardPostsService`, error);
+  });
+};
+
+export const fetchMoreWebboardPostsService = async (
+  lastVisibleDoc: QueryDocumentSnapshot<DocumentData> | null
+): Promise<{ posts: WebboardPost[], newLastVisibleDoc: QueryDocumentSnapshot<DocumentData> | null }> => {
+  if (!lastVisibleDoc) { // Should not happen if hasMorePosts was true
+    return { posts: [], newLastVisibleDoc: null };
+  }
+  try {
+    const q = query(
+      collection(db, WEBBOARD_POSTS_COLLECTION),
+      orderBy("isPinned", "desc"), // Pinned items might complicate simple startAfter if not handled carefully
+      orderBy("createdAt", "desc"),
+      startAfter(lastVisibleDoc),
+      limit(POSTS_PER_PAGE)
+    );
+    const querySnapshot = await getDocs(q);
+    const posts = querySnapshot.docs.map(docSnap => ({
+      id: docSnap.id,
+      ...convertTimestamps(docSnap.data()),
+    } as WebboardPost));
+    const newLastVisibleDoc = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
+    return { posts, newLastVisibleDoc };
+  } catch (error) {
+    logFirebaseError("fetchMoreWebboardPostsService", error);
+    throw error;
+  }
+};
+
+
+// Webboard Comments
+interface WebboardCommentAuthorInfo { userId: string; authorDisplayName: string; photo?: string | null; }
+export const addWebboardCommentService = async (postId: string, text: string, author: WebboardCommentAuthorInfo): Promise<string> => {
+  try {
+    const newCommentDoc: Omit<WebboardComment, 'id'> = {
+      postId,
+      text,
+      userId: author.userId,
+      authorDisplayName: author.authorDisplayName, 
+      authorPhoto: author.photo || undefined,
+      ownerId: author.userId,
+      createdAt: serverTimestamp() as any,
+      updatedAt: serverTimestamp() as any,
+    };
+    const docRef = await addDoc(collection(db, WEBBOARD_COMMENTS_COLLECTION), cleanDataForFirestore(newCommentDoc as Record<string, any>));
+
+    const userRef = doc(db, USERS_COLLECTION, author.userId);
+    const userSnap = await getDoc(userRef);
+    if (userSnap.exists()) {
+      const userData = userSnap.data() as User;
+      await updateDoc(userRef, {
+        'activityBadge.last30DaysActivity': (userData.activityBadge.last30DaysActivity || 0) + 1
+      });
+    }
+    return docRef.id;
+  } catch (error: any) {
+    logFirebaseError("addWebboardCommentService", error);
+    throw error;
+  }
+};
+export const updateWebboardCommentService = async (commentId: string, newText: string): Promise<boolean> => {
+  try {
+    const dataToUpdate = { text: newText, updatedAt: serverTimestamp() as any };
+    await updateDoc(doc(db, WEBBOARD_COMMENTS_COLLECTION, commentId), cleanDataForFirestore(dataToUpdate));
+    return true;
+  } catch (error: any) {
+    logFirebaseError("updateWebboardCommentService", error);
+    throw error;
+  }
+};
+export const deleteWebboardCommentService = async (commentId: string): Promise<boolean> => {
+  try {
+    const commentRef = doc(db, WEBBOARD_COMMENTS_COLLECTION, commentId);
+    const commentSnap = await getDoc(commentRef);
+    const commentData = commentSnap.data() as WebboardComment;
+
+    await deleteDoc(commentRef);
+
+    if (commentData && commentData.userId) {
+        const userRef = doc(db, USERS_COLLECTION, commentData.userId);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+            const userData = userSnap.data() as User;
+            await updateDoc(userRef, {
+                'activityBadge.last30DaysActivity': Math.max(0, (userData.activityBadge.last30DaysActivity || 0) - 1)
+            });
+        }
+    }
+    return true;
+  } catch (error: any) {
+    logFirebaseError("deleteWebboardCommentService", error);
+    throw error;
+  }
+};
+export const subscribeToWebboardCommentsService = (callback: (data: WebboardComment[]) => void, postId?: string) => {
+  const constraints = postId ? [where("postId", "==", postId), orderBy("createdAt", "asc")] : [orderBy("createdAt", "asc")];
+  return subscribeToCollectionService<WebboardComment>(WEBBOARD_COMMENTS_COLLECTION, callback, constraints);
 }
 
-export const WebboardPage: React.FC<WebboardPageProps> = ({
-  currentUser,
-  users,
-  posts,
-  comments,
-  onAddOrUpdatePost,
-  onAddComment,
-  onToggleLike,
-  onSavePost,
-  onSharePost,
-  onDeletePost,
-  onPinPost,
-  onEditPost,
-  onDeleteComment,
-  onUpdateComment,
-  selectedPostId,
-  setSelectedPostId,
-  navigateTo,
-  editingPost,
-  onCancelEdit,
-  getUserDisplayBadge,
-  requestLoginForAction, 
-  onNavigateToPublicProfile,
-  checkWebboardPostLimits,
-  checkWebboardCommentLimits,
-}) => {
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<WebboardCategory | 'all'>('all');
-  const [searchTerm, setSearchTerm] = useState('');
-
-  useEffect(() => {
-    if (selectedPostId === 'create' || editingPost) {
-      setIsCreateModalOpen(true);
-    } else {
-      setIsCreateModalOpen(false);
-    }
-  }, [selectedPostId, editingPost]);
-
-  const handleOpenCreateModal = () => {
-    if (!currentUser) {
-      requestLoginForAction(View.Webboard, { action: 'createPost' });
-    } else {
-      setSelectedPostId('create'); 
-    }
-  };
-
-  const handleCloseCreateModal = () => {
-    setIsCreateModalOpen(false);
-    if (selectedPostId === 'create' || editingPost) { 
-      setSelectedPostId(null); 
-      onCancelEdit(); 
-    }
-  };
-  
-  const handleSubmitPostForm = (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => {
-    onAddOrUpdatePost(postData, postIdToUpdate);
-    handleCloseCreateModal(); 
-  };
-
-  let filteredPosts = posts;
-  if (selectedCategoryFilter !== 'all') {
-    filteredPosts = filteredPosts.filter(post => post.category === selectedCategoryFilter);
+// User Saved Webboard Posts
+export const saveUserWebboardPostService = async (userId: string, postId: string): Promise<void> => {
+  try {
+    const savedPostRef = doc(db, USERS_COLLECTION, userId, USER_SAVED_POSTS_SUBCOLLECTION, postId);
+    const data: UserSavedWebboardPostEntry = { postId, savedAt: serverTimestamp() as any };
+    await setDoc(savedPostRef, data);
+  } catch (error) {
+    logFirebaseError("saveUserWebboardPostService", error);
+    throw error;
   }
-  if (searchTerm.trim() !== '') {
-    const lowerSearchTerm = searchTerm.toLowerCase();
-    filteredPosts = filteredPosts.filter(post =>
-      post.title.toLowerCase().includes(lowerSearchTerm) ||
-      post.body.toLowerCase().includes(lowerSearchTerm) ||
-      post.authorDisplayName.toLowerCase().includes(lowerSearchTerm)
+};
+
+export const unsaveUserWebboardPostService = async (userId: string, postId: string): Promise<void> => {
+  try {
+    const savedPostRef = doc(db, USERS_COLLECTION, userId, USER_SAVED_POSTS_SUBCOLLECTION, postId);
+    await deleteDoc(savedPostRef);
+  } catch (error) {
+    logFirebaseError("unsaveUserWebboardPostService", error);
+    throw error;
+  }
+};
+
+export const subscribeToUserSavedPostsService = (userId: string, callback: (postIds: string[]) => void): (() => void) => {
+  const q = collection(db, USERS_COLLECTION, userId, USER_SAVED_POSTS_SUBCOLLECTION);
+  return onSnapshot(q, (querySnapshot) => {
+    const postIds = querySnapshot.docs.map(docSnap => docSnap.id);
+    callback(postIds);
+  }, (error) => {
+    logFirebaseError("subscribeToUserSavedPostsService", error);
+  });
+};
+
+
+// Interactions
+export const logHelperContactInteractionService = async (helperProfileId: string, employerUserId: string, helperUserId: string): Promise<string> => {
+  try {
+    const interactionsRef = collection(db, INTERACTIONS_COLLECTION);
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    const q = query(interactionsRef,
+      where("helperProfileId", "==", helperProfileId),
+      where("employerUserId", "==", employerUserId),
+      where("timestamp", ">", tenMinutesAgo)
     );
+    const recentInteractionsSnap = await getDocs(q);
+
+    if (!recentInteractionsSnap.empty) {
+        return recentInteractionsSnap.docs[0].id;
+    }
+
+    const newInteractionDoc: Omit<Interaction, 'id'> = {
+      helperUserId: helperUserId,
+      helperProfileId,
+      employerUserId,
+      timestamp: serverTimestamp() as any,
+      type: 'contact_helper',
+      createdAt: serverTimestamp() as any,
+    };
+    const docRef = await addDoc(collection(db, INTERACTIONS_COLLECTION), cleanDataForFirestore(newInteractionDoc as Record<string, any>));
+
+    const helperProfileRef = doc(db, HELPER_PROFILES_COLLECTION, helperProfileId);
+    const helperProfileSnap = await getDoc(helperProfileRef);
+    if (helperProfileSnap.exists()) {
+      const currentCount = helperProfileSnap.data().interestedCount || 0;
+      await updateDoc(helperProfileRef, { interestedCount: currentCount + 1 });
+    }
+    return docRef.id;
+  } catch (error: any) {
+    logFirebaseError("logHelperContactInteractionService", error);
+    throw error;
   }
+};
+export const subscribeToInteractionsService = (callback: (data: Interaction[]) => void) =>
+  subscribeToCollectionService<Interaction>(INTERACTIONS_COLLECTION, callback, [orderBy("timestamp", "desc")]);
 
-  const enrichedPosts: EnrichedWebboardPost[] = filteredPosts
-    .map(post => {
-      const author = users.find(u => u.id === post.userId);
-      return {
-        ...post,
-        commentCount: comments.filter(c => c.postId === post.id).length,
-        // authorLevel: getUserDisplayBadge(author), // Badge removed from card/detail
-        authorPhoto: author?.photo || post.authorPhoto,
-        isAuthorAdmin: author?.role === 'Admin' as UserRole.Admin, 
-      };
-    })
-    .sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  const currentDetailedPost = selectedPostId && selectedPostId !== 'create'
-    ? enrichedPosts.find(p => p.id === selectedPostId) 
-    : null;
-
-  const commentsForDetailView: EnrichedWebboardComment[] = currentDetailedPost
-    ? comments
-        .filter(comment => comment.postId === currentDetailedPost.id)
-        .map(comment => {
-          const commenter = users.find(u => u.id === comment.userId);
-          return {
-            ...comment,
-            // authorLevel: getUserDisplayBadge(commenter), // Badge removed from comment
-            authorPhoto: commenter?.photo || comment.authorPhoto,
-            isAuthorAdmin: commenter?.role === 'Admin' as UserRole.Admin,
-          };
-        })
-    : [];
-
-  if (currentDetailedPost) {
-    return (
-      <div className="p-2 sm:p-4 md:max-w-3xl md:mx-auto"> {/* Centered single column for detail */}
-        <Button 
-          onClick={() => setSelectedPostId(null)} 
-          variant="outline" 
-          colorScheme="neutral" 
-          size="sm" 
-          className="mb-4 rounded-full"
-        >
-          &larr; กลับไปหน้ารวมกระทู้
-        </Button>
-        <WebboardPostDetail
-          post={currentDetailedPost}
-          comments={commentsForDetailView}
-          currentUser={currentUser}
-          users={users}
-          onToggleLike={onToggleLike}
-          onSavePost={onSavePost}
-          onSharePost={onSharePost}
-          onAddComment={onAddComment}
-          onDeletePost={onDeletePost}
-          onPinPost={onPinPost}
-          onEditPost={onEditPost}
-          onDeleteComment={onDeleteComment}
-          onUpdateComment={onUpdateComment}
-          requestLoginForAction={requestLoginForAction} 
-          onNavigateToPublicProfile={onNavigateToPublicProfile}
-          checkWebboardCommentLimits={checkWebboardCommentLimits}
-        />
-      </div>
-    );
+// Site Config
+export const subscribeToSiteConfigService = (callback: (config: SiteConfig) => void): (() => void) => {
+  const docRef = doc(db, SITE_CONFIG_COLLECTION, SITE_CONFIG_DOC_ID);
+  return onSnapshot(docRef, (docSnap) => {
+    if (docSnap.exists()) {
+      callback(convertTimestamps(docSnap.data()) as SiteConfig);
+    } else {
+      callback({ isSiteLocked: false });
+    }
+  }, (error) => {
+    logFirebaseError("subscribeToSiteConfigService", error);
+    callback({ isSiteLocked: false });
+  });
+};
+export const setSiteLockService = async (isLocked: boolean, adminUserId: string): Promise<boolean> => {
+  try {
+    const dataToSet = {
+      isSiteLocked: isLocked,
+      updatedAt: serverTimestamp() as any,
+      updatedBy: adminUserId,
+    };
+    await setDoc(doc(db, SITE_CONFIG_COLLECTION, SITE_CONFIG_DOC_ID), cleanDataForFirestore(dataToSet), { merge: true });
+    return true;
+  } catch (error: any) {
+    logFirebaseError("setSiteLockService", error);
+    throw error;
   }
+};
 
-  const inputBaseStyle = "p-2 sm:p-2.5 bg-white dark:bg-dark-inputBg border border-neutral-DEFAULT dark:border-dark-border rounded-lg text-neutral-dark dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-neutral-DEFAULT dark:focus:ring-dark-border text-sm sm:text-base";
-  const selectBaseStyle = `${inputBaseStyle} appearance-none`;
+// User Management (Admin)
+export const setUserRoleService = async (userIdToUpdate: string, newRole: UserRole): Promise<boolean> => {
+  try {
+    const dataToUpdate = { role: newRole, updatedAt: serverTimestamp() as any };
+    await updateDoc(doc(db, USERS_COLLECTION, userIdToUpdate), cleanDataForFirestore(dataToUpdate));
+    return true;
+  } catch (error: any) {
+    logFirebaseError("setUserRoleService", error);
+    throw error;
+  }
+};
 
-  return (
-    <div className="p-2 sm:p-4 md:max-w-3xl md:mx-auto"> {/* Centered single column for list */}
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-        <h2 className="text-2xl sm:text-3xl font-sans font-semibold text-neutral-700 dark:text-neutral-300 text-center sm:text-left">
-          💬 กระทู้พูดคุย
-        </h2>
-        
-        <Button 
-          onClick={handleOpenCreateModal} 
-          variant="login" 
-          size="sm" 
-          className="rounded-full font-semibold flex-shrink-0"
-        >
-          + สร้างกระทู้ใหม่
-        </Button>
-      </div>
-
-      <div className="mb-6 p-3 sm:p-4 bg-white dark:bg-dark-cardBg rounded-lg shadow-sm border border-neutral-DEFAULT/30 dark:border-dark-border/30 flex flex-col sm:flex-row gap-3 sm:gap-4 items-center">
-        <div className="w-full sm:w-auto sm:flex-1">
-          <label htmlFor="categoryFilter" className="sr-only">กรองตามหมวดหมู่</label>
-          <select
-            id="categoryFilter"
-            value={selectedCategoryFilter}
-            onChange={(e) => setSelectedCategoryFilter(e.target.value as WebboardCategory | 'all')}
-            className={`${selectBaseStyle} w-full font-sans`}
-          >
-            <option value="all">หมวดหมู่ทั้งหมด</option>
-            {Object.values(WebboardCategory).map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
-        </div>
-        <div className="w-full sm:w-auto sm:flex-1">
-          <label htmlFor="searchWebboard" className="sr-only">ค้นหากระทู้</label>
-          <input
-            type="search"
-            id="searchWebboard"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="ค้นหาหัวข้อ, เนื้อหา, ผู้เขียน..."
-            className={`${inputBaseStyle} w-full font-serif`}
-          />
-        </div>
-      </div>
+// Helper to fetch user document - used internally for limit checks
+export const getUserDocument = async (userId: string): Promise<User | null> => {
+  try {
+    const userDocRef = doc(db, USERS_COLLECTION, userId);
+    const userDocSnap = await getDoc(userDocRef);
+    if (userDocSnap.exists()) {
+      const userData = userDocSnap.data();
+      const tier = userData.tier || ('free' as UserTier); // Default tier
+      const savedWebboardPosts = userData.savedWebboardPosts || []; // Initialize if missing
+      return { id: userId, ...convertTimestamps(userData), tier, savedWebboardPosts } as User;
+    }
+    return null;
+  } catch (error) {
+    logFirebaseError("getUserDocument", error);
+    return null;
+  }
+};
 
 
-      {enrichedPosts.length === 0 ? (
-        <div className="text-center py-10 bg-white dark:bg-dark-cardBg p-6 rounded-lg shadow">
-          <svg className="mx-auto h-16 w-16 text-neutral-DEFAULT dark:text-dark-border mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-          </svg>
-          <p className="text-xl font-serif text-neutral-dark dark:text-dark-textMuted mb-4 font-normal">
-             {(searchTerm || selectedCategoryFilter !== 'all')
-                ? 'ไม่พบกระทู้ที่ตรงกับการค้นหาหรือตัวกรองของคุณ'
-                : 'ยังไม่มีกระทู้ในขณะนี้'}
-          </p>
-          {!currentUser && !(searchTerm || selectedCategoryFilter !== 'all') && (
-             <p className="text-md font-serif text-neutral-dark dark:text-dark-textMuted mb-4 font-normal">
-                <button onClick={() => navigateTo(View.Login)} className="font-sans text-primary dark:text-dark-primary-DEFAULT hover:underline">เข้าสู่ระบบ</button> หรือ <button onClick={() => navigateTo(View.Register)} className="font-sans text-primary dark:text-dark-primary-DEFAULT hover:underline">ลงทะเบียน</button> เพื่อเริ่มสร้างกระทู้
-            </p>
-          )}
-          {currentUser && !(searchTerm || selectedCategoryFilter !== 'all') && (
-            <Button 
-              onClick={handleOpenCreateModal}
-              variant="login" 
-              size="sm" 
-              className="rounded-full font-semibold"
-            >
-              เป็นคนแรกที่สร้างกระทู้!
-            </Button>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-4"> {/* Changed from grid to space-y for single column */}
-          {enrichedPosts.map(post => (
-            <WebboardPostCard
-              key={post.id}
-              post={post}
-              currentUser={currentUser}
-              onViewPost={setSelectedPostId}
-              onToggleLike={onToggleLike}
-              onSavePost={onSavePost}
-              onSharePost={onSharePost}
-              onDeletePost={onDeletePost}
-              onPinPost={onPinPost}
-              onEditPost={onEditPost}
-              requestLoginForAction={requestLoginForAction} 
-              onNavigateToPublicProfile={onNavigateToPublicProfile}
-            />
-          ))}
-        </div>
-      )}
-      <WebboardPostCreateForm
-        isOpen={isCreateModalOpen}
-        onClose={handleCloseCreateModal}
-        onSubmit={handleSubmitPostForm}
-        editingPost={editingPost || null}
-        currentUser={currentUser}
-        checkWebboardPostLimits={checkWebboardPostLimits}
-      />
-    </div>
-  );
+export const subscribeToUsersService = (callback: (data: User[]) => void) =>
+  subscribeToCollectionService<User>(USERS_COLLECTION, callback, [orderBy("createdAt", "desc")]);
+
+// Generic Item Flag Toggler
+type ItemWithFlags = Job | HelperProfile | WebboardPost;
+type ItemFlagKeys = 'isPinned' | 'isHired' | 'isSuspicious' | 'isUnavailable' | 'adminVerifiedExperience' | 'isExpired';
+
+export const toggleItemFlagService = async (
+  collectionName: 'jobs' | 'helperProfiles' | 'webboardPosts',
+  itemId: string,
+  flagName: ItemFlagKeys,
+  currentValue?: boolean
+): Promise<boolean> => {
+  try {
+    const itemRef = doc(db, collectionName, itemId);
+    let finalValueToSet: boolean;
+
+    if (typeof currentValue === 'boolean') {
+        finalValueToSet = !currentValue;
+    } else {
+        const itemSnap = await getDoc(itemRef);
+        if (!itemSnap.exists()) throw new Error("Item not found.");
+        finalValueToSet = !(itemSnap.data() as any)[flagName];
+    }
+    const dataToUpdate = { [flagName]: finalValueToSet, updatedAt: serverTimestamp() as any };
+    await updateDoc(itemRef, cleanDataForFirestore(dataToUpdate));
+    return true;
+  } catch (error: any) {
+    logFirebaseError(`toggleItemFlagService for ${flagName} on ${collectionName}`, error);
+    throw error;
+  }
+};
+
+export const toggleWebboardPostLikeService = async (postId: string, userId: string): Promise<boolean> => {
+  try {
+    const postRef = doc(db, WEBBOARD_POSTS_COLLECTION, postId);
+    const postSnap = await getDoc(postRef);
+    if (!postSnap.exists()) throw new Error("Post not found.");
+
+    const postData = postSnap.data() as WebboardPost;
+    const likes = postData.likes || [];
+    const userLikedIndex = likes.indexOf(userId);
+
+    let newLikes: string[];
+    if (userLikedIndex > -1) {
+      newLikes = likes.filter(id => id !== userId);
+    } else {
+      newLikes = [...likes, userId];
+    }
+    const dataToUpdate = { likes: newLikes, updatedAt: serverTimestamp() as any };
+    await updateDoc(postRef, cleanDataForFirestore(dataToUpdate));
+    return true;
+  } catch (error: any) {
+    logFirebaseError("toggleWebboardPostLikeService", error);
+    throw error;
+  }
+};
+
+export const submitFeedbackService = async (feedbackText: string, page: string, userId?: string): Promise<boolean> => {
+  try {
+    const dataToAdd = {
+      text: feedbackText,
+      page,
+      userId: userId || null, 
+      submittedAt: serverTimestamp(),
+    };
+    await addDoc(collection(db, FEEDBACK_COLLECTION), cleanDataForFirestore(dataToAdd as Record<string, any>));
+    return true;
+  } catch (error) {
+    logFirebaseError("submitFeedbackService", error);
+    throw error;
+  }
 };

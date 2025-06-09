@@ -1,4 +1,3 @@
-
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -28,7 +27,10 @@ import {
   WriteBatch,
   QueryConstraint,
   collectionGroup,
-  deleteField, 
+  deleteField,
+  startAfter,
+  QueryDocumentSnapshot,
+  DocumentData,
 } from 'firebase/firestore';
 import {
   ref,
@@ -54,6 +56,8 @@ const SITE_CONFIG_COLLECTION = 'siteConfig';
 const SITE_CONFIG_DOC_ID = 'main';
 const FEEDBACK_COLLECTION = 'feedback';
 const USER_SAVED_POSTS_SUBCOLLECTION = 'savedWebboardPosts';
+
+export const POSTS_PER_PAGE = 10; // Number of posts to fetch per page
 
 
 // --- Helper to convert Firestore Timestamps to ISO strings for consistency ---
@@ -611,8 +615,54 @@ export const deleteWebboardPostService = async (postId: string): Promise<boolean
     throw error;
   }
 };
-export const subscribeToWebboardPostsService = (callback: (data: WebboardPost[]) => void) =>
-  subscribeToCollectionService<WebboardPost>(WEBBOARD_POSTS_COLLECTION, callback, [orderBy("isPinned", "desc"), orderBy("createdAt", "desc")]);
+
+export const subscribeToWebboardPostsService = (
+  callback: (data: { posts: WebboardPost[], lastVisibleDoc: QueryDocumentSnapshot<DocumentData> | null }) => void
+): (() => void) => {
+  const q = query(
+    collection(db, WEBBOARD_POSTS_COLLECTION),
+    orderBy("isPinned", "desc"),
+    orderBy("createdAt", "desc"),
+    limit(POSTS_PER_PAGE)
+  );
+  return onSnapshot(q, (querySnapshot) => {
+    const posts = querySnapshot.docs.map(docSnap => ({
+      id: docSnap.id,
+      ...convertTimestamps(docSnap.data()),
+    } as WebboardPost));
+    const lastVisibleDoc = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
+    callback({ posts, lastVisibleDoc });
+  }, (error) => {
+    logFirebaseError(`subscribeToWebboardPostsService`, error);
+  });
+};
+
+export const fetchMoreWebboardPostsService = async (
+  lastVisibleDoc: QueryDocumentSnapshot<DocumentData> | null
+): Promise<{ posts: WebboardPost[], newLastVisibleDoc: QueryDocumentSnapshot<DocumentData> | null }> => {
+  if (!lastVisibleDoc) { // Should not happen if hasMorePosts was true
+    return { posts: [], newLastVisibleDoc: null };
+  }
+  try {
+    const q = query(
+      collection(db, WEBBOARD_POSTS_COLLECTION),
+      orderBy("isPinned", "desc"), // Pinned items might complicate simple startAfter if not handled carefully
+      orderBy("createdAt", "desc"),
+      startAfter(lastVisibleDoc),
+      limit(POSTS_PER_PAGE)
+    );
+    const querySnapshot = await getDocs(q);
+    const posts = querySnapshot.docs.map(docSnap => ({
+      id: docSnap.id,
+      ...convertTimestamps(docSnap.data()),
+    } as WebboardPost));
+    const newLastVisibleDoc = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
+    return { posts, newLastVisibleDoc };
+  } catch (error) {
+    logFirebaseError("fetchMoreWebboardPostsService", error);
+    throw error;
+  }
+};
 
 
 // Webboard Comments
