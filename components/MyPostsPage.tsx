@@ -248,16 +248,16 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
     <div className="container mx-auto p-4 sm:p-8">
       <div className="text-center mb-6">
         <h2 className="text-3xl font-sans font-semibold text-neutral-800 dark:text-dark-text mb-2">
-          📁 รวมโพสต์ทั้งหมดของคุณ
+          📁 โพสต์ของฉัน
         </h2>
         <p className="text-md font-sans text-neutral-dark dark:text-dark-textMuted">
-          จัดการประกาศงาน, โปรไฟล์ผู้ช่วย, และกระทู้ที่คุณสร้างไว้ที่นี่
+          รวมโพสต์ทั้งหมดของคุณที่นี่
         </p>
       </div>
 
       <div className="mb-8 p-4 bg-white dark:bg-dark-cardBg shadow-md rounded-lg border dark:border-dark-border">
         <h3 className="text-xl font-sans font-semibold text-neutral-700 dark:text-dark-text mb-3 text-center">
-         📊 สถานะการโพสต์ของคุณ
+         📊 สถานะโพสต์
         </h3>
         <div className="space-y-2 text-sm font-sans text-neutral-dark dark:text-dark-textMuted">
           <div className="flex justify-between items-center p-2 bg-neutral-light/50 dark:bg-dark-inputBg/30 rounded">
