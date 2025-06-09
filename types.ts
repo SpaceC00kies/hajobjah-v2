@@ -127,7 +127,7 @@ export interface User {
   username: string;
   email: string;
   role: UserRole;
-  tier: UserTier; // Added tier
+  tier: UserTier; 
   mobile: string;
   lineId?: string;
   facebook?: string;
@@ -147,13 +147,14 @@ export interface User {
   dislikedThing?: string;
   introSentence?: string;
   profileComplete?: boolean;
-  userLevel: UserLevel;
+  userLevel: UserLevel; // This general user level badge remains for profiles etc.
   isMuted?: boolean;
   createdAt?: string | Date;
   updatedAt?: string | Date;
 
   postingLimits: UserPostingLimits;
   activityBadge: UserActivityBadge;
+  savedWebboardPosts?: string[]; // Array of saved post IDs
 }
 
 export enum View {
@@ -366,16 +367,17 @@ export interface WebboardPost {
   title: string;
   body: string;
   category: WebboardCategory;
-  image?: string;
+  image?: string; // URL of the image
   userId: string;
   authorDisplayName: string;
-  ownerId?: string;
-  authorPhoto?: string;
+  ownerId?: string; // Retained for consistency, usually same as userId
+  authorPhoto?: string; // URL of author's profile photo
   createdAt: string | Date;
   updatedAt: string | Date;
-  likes: string[];
+  likes: string[]; // Array of user IDs who liked the post
   isPinned?: boolean;
-  isEditing?: boolean;
+  isEditing?: boolean; // UI state, not stored in DB
+  savedAt?: string | Date; // Timestamp for when it was saved by current user (not directly on post doc)
 }
 
 export interface WebboardComment {
@@ -383,8 +385,8 @@ export interface WebboardComment {
   postId: string;
   userId: string;
   authorDisplayName: string;
-  ownerId?: string;
-  authorPhoto?: string;
+  ownerId?: string; // Retained for consistency, usually same as userId
+  authorPhoto?: string; // URL of author's profile photo
   text: string;
   createdAt: string | Date;
   updatedAt: string | Date;
@@ -435,18 +437,26 @@ export const ACTIVITY_BADGE_DETAILS: UserLevel = { // For "🔥 ขยันใ�
     textColorClass: 'text-orange-800 dark:text-orange-200',
 };
 
+// Enriched types for Webboard - authorLevel is removed as badges are not shown on webboard items
 export interface EnrichedWebboardPost extends WebboardPost {
   commentCount: number;
-  authorLevel: UserLevel;
+  // authorLevel: UserLevel; // Removed for webboard card/detail
   isAuthorAdmin?: boolean;
 }
 
 export interface EnrichedWebboardComment extends WebboardComment {
-  authorLevel: UserLevel;
+  // authorLevel: UserLevel; // Removed for webboard comments
+  isAuthorAdmin?: boolean;
 }
 
 export interface SiteConfig {
     isSiteLocked: boolean;
     updatedAt?: string | Date;
     updatedBy?: string;
+}
+
+// For storing user's saved posts in Firestore
+export interface UserSavedWebboardPostEntry {
+  postId: string;
+  savedAt: string | Date;
 }

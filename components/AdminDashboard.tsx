@@ -186,7 +186,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             originalItem: post,
             likesCount: post.likes.length,
             commentsCount: webboardComments.filter(c => c.postId === post.id).length,
-            authorLevel: author ? getUserDisplayBadge(author, webboardPosts, webboardComments) : USER_LEVELS[0],
+            authorLevel: author ? getUserDisplayBadge(author) : USER_LEVELS[0],
         };
     }),
   ];
@@ -405,7 +405,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className="bg-white dark:bg-dark-cardBg p-4 sm:p-6 rounded-lg shadow-lg border dark:border-dark-border">
             <ul className="space-y-3">
               {filteredUsers.map(user => {
-                const displayBadge = getUserDisplayBadge(user, webboardPosts, webboardComments);
+                const displayBadge = getUserDisplayBadge(user);
                 return (
                   <li key={user.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 border-b dark:border-dark-border/50 last:border-b-0">
                     <div>

@@ -26,7 +26,7 @@ type FormDataType = {
 
 type FormErrorsType = Partial<Record<keyof Omit<FormDataType, 'imagePreviewUrl'>, string>>;
 
-const MAX_POST_CHARS = 2000;
+const MAX_POST_CHARS = 5000; // Increased to 5000
 
 const WebboardRules: React.FC = () => {
   return (
@@ -227,7 +227,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
             className={`${inputBaseStyle} ${errors.body ? inputErrorStyle : inputFocusStyle}`}
             placeholder="เล่าเรื่องราว ถามคำถาม หรือแบ่งปันประสบการณ์ของคุณที่นี่..."
             disabled={!canSubmitForm && !editingPost}
-            maxLength={MAX_POST_CHARS + 50} // Allow slight overtyping for UX, validate on submit
+            maxLength={MAX_POST_CHARS + 100} // Allow slight overtyping for UX, validate on submit
           />
           {errors.body && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.body}</p>}
         </div>

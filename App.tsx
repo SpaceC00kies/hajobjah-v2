@@ -33,8 +33,11 @@ import {
   toggleItemFlagService,
   logHelperContactInteractionService,
   getUserDocument, 
+  saveUserWebboardPostService,
+  unsaveUserWebboardPostService,
+  subscribeToUserSavedPostsService,
 } from './services/firebaseService'; 
-import type { Job, HelperProfile, User, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier } from './types';
+import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier } from './types';
 import type { AdminItem as AdminItemType } from './components/AdminDashboard';
 import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP, ACTIVITY_BADGE_DETAILS } from './types'; 
 import { PostJobForm } from './components/PostJobForm';
@@ -146,11 +149,14 @@ export const calculateUserLevel = (userId: string, posts: WebboardPost[], commen
   return USER_LEVELS[0];
 };
 
-export const getUserDisplayBadge = (user: User | null | undefined, posts: WebboardPost[], comments: WebboardComment[]): UserLevel => {
-  if (!user) return USER_LEVELS[0];
+// This function is for general display badges (e.g., on user profiles).
+// Webboard items will NOT show badges.
+export const getUserDisplayBadge = (user: User | null | undefined): UserLevel => {
+  if (!user) return USER_LEVELS[0]; // Should ideally not happen if user is fetched
   if (user.role === UserRole.Admin) return ADMIN_BADGE_DETAILS;
   if (user.role === UserRole.Moderator) return MODERATOR_BADGE_DETAILS;
-  return user.userLevel || calculateUserLevel(user.id, posts, comments); 
+  // User's 'userLevel' is pre-calculated based on posts/comments in App.tsx useEffect
+  return user.userLevel || USER_LEVELS[0]; 
 };
 
 const MAX_RECENT_SEARCHES = 5;
@@ -182,7 +188,7 @@ const searchMappings: Record<string, string[]> = {
   'clean': ['ทำความสะอาด', 'แม่บ้าน'], 'cook': ['ทำอาหาร', 'ครัว', 'เชฟ']
 };
 
-type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt'> & { password: string };
+type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts'> & { password: string };
 
 
 const App: React.FC = () => {
@@ -199,9 +205,12 @@ const App: React.FC = () => {
   const [isSiteLocked, setIsSiteLocked] = useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loginRedirectInfo, setLoginRedirectInfo] = useState<{ view: View; payload?: any } | null>(null);
+  const [copiedLinkNotification, setCopiedLinkNotification] = useState<string | null>(null);
+
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [userSavedPosts, setUserSavedPosts] = useState<string[]>([]);
 
   const [users, setUsers] = useState<User[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -229,6 +238,22 @@ const App: React.FC = () => {
     const unsubscribeAuth = onAuthChangeService((user) => {
       setCurrentUser(user);
       setIsLoadingAuth(false);
+      if (user) {
+        // When user logs in, fetch their saved posts
+        const unsubscribeSaved = subscribeToUserSavedPostsService(user.id, (savedIds) => {
+          setUserSavedPosts(savedIds);
+          // Update currentUser state if it doesn't have savedWebboardPosts yet or if it changed
+           setCurrentUser(prevUser => ({
+            ...prevUser!, // user must exist here
+            savedWebboardPosts: savedIds,
+          }));
+        });
+        // Store this unsubscribe function to call it on logout or component unmount
+        // For now, we assume it gets cleaned up with auth changes, but for robustness:
+        // return () => unsubscribeSaved(); // This would be if auth was a child component
+      } else {
+        setUserSavedPosts([]); // Clear saved posts on logout
+      }
     });
 
     const params = new URLSearchParams(window.location.search);
@@ -258,6 +283,7 @@ const App: React.FC = () => {
       unsubscribeWebboardComments();
       unsubscribeInteractions();
       unsubscribeSiteConfig();
+      // Also need to unsubscribe from saved posts if an unsubscribe function was returned and stored from onAuthChangeService
     };
   }, []); 
 
@@ -294,7 +320,7 @@ const App: React.FC = () => {
             
             return {
                 ...u,
-                tier: u.tier || 'free' as UserTier, // Default to 'free' if tier is missing
+                tier: u.tier || 'free' as UserTier, 
                 userLevel: calculateUserLevel(u.id, webboardPosts, webboardComments),
                 profileComplete: checkProfileCompleteness(u),
                 postingLimits: { 
@@ -316,6 +342,7 @@ const App: React.FC = () => {
                     last30DaysActivity: last30DaysActivity,
                     lastActivityCheck: new Date().toISOString(),
                 },
+                savedWebboardPosts: u.id === currentUser?.id ? userSavedPosts : (u.savedWebboardPosts || []) // Ensure current user's saved posts are up-to-date
             };
         });
         setUsers(updatedUsers);
@@ -330,7 +357,7 @@ const App: React.FC = () => {
             }
         }
     }
-  }, [webboardPosts, webboardComments, isLoadingAuth, currentUser?.id]); 
+  }, [webboardPosts, webboardComments, isLoadingAuth, currentUser?.id, userSavedPosts]); // Added userSavedPosts to dependency array
 
   const requestLoginForAction = (originalView: View, originalPayload?: any) => {
     if (!currentUser) {
@@ -472,6 +499,7 @@ const App: React.FC = () => {
     if (currentUser.role === UserRole.Admin) return true;
     const itemAuthor = users.find(u => u.id === itemUserId);
     if (currentUser.role === UserRole.Moderator) {
+        // Moderator can't edit/delete admin's posts/comments
         return itemAuthor?.role !== UserRole.Admin;
     }
     return currentUser.id === itemUserId || currentUser.id === itemOwnerId;
@@ -522,10 +550,9 @@ const App: React.FC = () => {
     }
     const userActiveJobs = jobs.filter(job => job.userId === user.id && !isDateInPast(job.expiresAt) && !job.isExpired).length;
     
-    // Determine max jobs based on tier and activity badge
-    let maxJobs = (user.tier === 'free') ? MAX_ACTIVE_JOBS_FREE_TIER : 999; // Assume premium has high limit
+    let maxJobs = (user.tier === 'free') ? MAX_ACTIVE_JOBS_FREE_TIER : 999; 
     if (user.activityBadge?.isActive) {
-        maxJobs = MAX_ACTIVE_JOBS_BADGE; // Badge overrides tier limit
+        maxJobs = MAX_ACTIVE_JOBS_BADGE; 
     }
 
     if (userActiveJobs >= maxJobs) {
@@ -545,9 +572,9 @@ const App: React.FC = () => {
     }
     const userActiveProfiles = helperProfiles.filter(p => p.userId === user.id && !isDateInPast(p.expiresAt) && !p.isExpired).length;
 
-    let maxProfiles = (user.tier === 'free') ? MAX_ACTIVE_HELPER_PROFILES_FREE_TIER : 999; // Assume premium has high limit
+    let maxProfiles = (user.tier === 'free') ? MAX_ACTIVE_HELPER_PROFILES_FREE_TIER : 999; 
     if (user.activityBadge?.isActive) {
-        maxProfiles = MAX_ACTIVE_HELPER_PROFILES_BADGE; // Badge overrides tier limit
+        maxProfiles = MAX_ACTIVE_HELPER_PROFILES_BADGE; 
     }
 
     if (userActiveProfiles >= maxProfiles) {
@@ -776,12 +803,12 @@ const App: React.FC = () => {
     if (!postIdToUpdate) { 
       const limitCheck = checkWebboardPostLimits(currentUser);
       if (!limitCheck.canPost) { 
-        alert(limitCheck.message);
+        alert(limitCheck.message || "Cannot post");
         return;
       }
     }
     if (containsBlacklistedWords(postData.title) || containsBlacklistedWords(postData.body)) { alert('เนื้อหาหรือหัวข้อมีคำที่ไม่เหมาะสม'); return; }
-    if (postData.body.length > 2000) { alert('เนื้อหากระทู้ต้องไม่เกิน 2,000 ตัวอักษร'); return;}
+    if (postData.body.length > 5000) { alert('เนื้อหากระทู้ต้องไม่เกิน 5,000 ตัวอักษร'); return;} // Updated limit
     try {
         let finalPostId = postIdToUpdate;
         if (postIdToUpdate) {
@@ -844,6 +871,40 @@ const App: React.FC = () => {
         alert(`เกิดข้อผิดพลาดในการกดไลค์: ${error.message}`);
     }
   };
+  
+  const handleSaveWebboardPost = async (postId: string) => {
+    if (!currentUser) {
+      requestLoginForAction(View.Webboard, { action: 'save', postId: postId });
+      return;
+    }
+    try {
+      const isCurrentlySaved = userSavedPosts.includes(postId);
+      if (isCurrentlySaved) {
+        await unsaveUserWebboardPostService(currentUser.id, postId);
+        setUserSavedPosts(prev => prev.filter(id => id !== postId));
+      } else {
+        await saveUserWebboardPostService(currentUser.id, postId);
+        setUserSavedPosts(prev => [...prev, postId]);
+      }
+    } catch (error) {
+      logFirebaseError("handleSaveWebboardPost", error);
+      alert("เกิดข้อผิดพลาดในการบันทึกโพสต์");
+    }
+  };
+
+  const handleShareWebboardPost = async (postId: string, postTitle: string) => {
+    const postUrl = `${window.location.origin}${window.location.pathname}?view=${View.Webboard}&postId=${postId}`;
+    try {
+      await navigator.clipboard.writeText(postUrl);
+      setCopiedLinkNotification(`คัดลอกลิงก์แล้ว: ${postTitle}`);
+      setTimeout(() => setCopiedLinkNotification(null), 2500);
+    } catch (err) {
+      console.error('Failed to copy: ', err);
+      setCopiedLinkNotification('ไม่สามารถคัดลอกลิงก์ได้');
+      setTimeout(() => setCopiedLinkNotification(null), 2500);
+    }
+  };
+
 
   const handlePinWebboardPost = (postId: string) => {
     const post = webboardPosts.find(p => p.id === postId);
@@ -876,7 +937,7 @@ const App: React.FC = () => {
   };
 
   const renderNavLinks = (isMobile: boolean) => {
-    const displayBadge = getUserDisplayBadge(currentUser, webboardPosts, webboardComments);
+    const displayBadgeForProfile = getUserDisplayBadge(currentUser); // Use this for profile display
     const commonButtonPropsBase = isMobile
       ? { size: 'md' as const, className: 'font-medium w-full text-left justify-start py-3 px-4 text-base' }
       : { size: 'sm' as const, className: 'font-medium flex-shrink-0' };
@@ -893,7 +954,7 @@ const App: React.FC = () => {
             {isMobile && (
               <div className={`font-sans font-medium mb-3 py-2 px-4 border-b border-neutral-DEFAULT/50 dark:border-dark-border/50 w-full text-center`}>
                 สวัสดี, {currentUser.publicDisplayName}!
-                <UserLevelBadge level={displayBadge} size="sm" />
+                <UserLevelBadge level={displayBadgeForProfile} size="sm" />
                 {currentUser.activityBadge?.isActive && <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm" />}
               </div>
             )}
@@ -1228,7 +1289,7 @@ const App: React.FC = () => {
   const renderLogin = () => <LoginForm onLogin={handleLogin} onSwitchToRegister={() => navigateTo(View.Register)} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />;
   const renderUserProfile = () => { if (!currentUser) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทางไปยังหน้าเข้าสู่ระบบ...</p>; return (<UserProfilePage currentUser={currentUser} onUpdateProfile={handleUpdateUserProfile} onCancel={() => navigateTo(View.Home)} />); };
   const renderAdminDashboard = () => { if (currentUser?.role !== UserRole.Admin) return <p className="text-center p-8 font-serif">คุณไม่มีสิทธิ์เข้าถึงหน้านี้...</p>; return (<AdminDashboard jobs={jobs} helperProfiles={helperProfiles} users={users} interactions={interactions} webboardPosts={webboardPosts} webboardComments={webboardComments} onDeleteJob={handleDeleteJob} onDeleteHelperProfile={handleDeleteHelperProfile} onToggleSuspiciousJob={handleToggleSuspiciousJob} onToggleSuspiciousHelperProfile={handleToggleSuspiciousHelperProfile} onTogglePinnedJob={handleTogglePinnedJob} onTogglePinnedHelperProfile={handleTogglePinnedHelperProfile} onToggleHiredJob={handleToggleHiredJobForUserOrAdmin} onToggleUnavailableHelperProfile={handleToggleUnavailableHelperProfileForUserOrAdmin} onToggleVerifiedExperience={handleToggleVerifiedExperience} onDeleteWebboardPost={handleDeleteWebboardPost} onPinWebboardPost={handlePinWebboardPost} onStartEditItem={handleStartEditItemFromAdmin} onSetUserRole={handleSetUserRole} currentUser={currentUser} isSiteLocked={isSiteLocked} onToggleSiteLock={handleToggleSiteLock} />); };
-  const renderMyPostsPage = () => { if (!currentUser || currentUser.role === UserRole.Admin) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทาง...</p>; return (<MyPostsPage currentUser={currentUser} jobs={jobs} helperProfiles={helperProfiles} webboardPosts={webboardPosts} webboardComments={webboardComments} onEditItem={handleStartEditMyItem} onDeleteItem={handleDeleteItemFromMyPosts} onToggleHiredStatus={handleToggleItemStatusFromMyPosts} navigateTo={navigateTo} getUserDisplayBadge={(user) => getUserDisplayBadge(user, webboardPosts, webboardComments)} />); };
+  const renderMyPostsPage = () => { if (!currentUser || currentUser.role === UserRole.Admin) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทาง...</p>; return (<MyPostsPage currentUser={currentUser} jobs={jobs} helperProfiles={helperProfiles} webboardPosts={webboardPosts} webboardComments={webboardComments} onEditItem={handleStartEditMyItem} onDeleteItem={handleDeleteItemFromMyPosts} onToggleHiredStatus={handleToggleItemStatusFromMyPosts} navigateTo={navigateTo} getUserDisplayBadge={getUserDisplayBadge} />); };
   const renderAboutUsPage = () => <AboutUsPage />;
   const renderSafetyPage = () => <SafetyPage />;
 
@@ -1243,20 +1304,23 @@ const App: React.FC = () => {
     if (!profileUser) return <p className="text-center p-8 font-serif text-red-500">ไม่พบโปรไฟล์ผู้ใช้</p>; 
     if (profileUser.role === UserRole.Admin && currentUser?.id !== viewingProfileId) return <div className="text-center p-8 font-serif text-red-500">โปรไฟล์ของแอดมินไม่สามารถดูในหน้านี้ได้</div>; 
     const helperProfileForBio = helperProfiles.find(hp => hp.userId === viewingProfileId && !isDateInPast(hp.expiresAt) && !hp.isExpired); 
-    const displayBadge = getUserDisplayBadge(profileUser, webboardPosts, webboardComments); 
-    return <PublicProfilePage currentUser={currentUser} user={{...profileUser, userLevel: displayBadge}} helperProfile={helperProfileForBio} onBack={handleBackFromPublicProfile} />; 
+    const displayBadgeForProfile = getUserDisplayBadge(profileUser); 
+    return <PublicProfilePage currentUser={currentUser} user={{...profileUser, userLevel: displayBadgeForProfile}} helperProfile={helperProfileForBio} onBack={handleBackFromPublicProfile} />; 
   };
   const renderWebboardPage = () => {
     return (<WebboardPage
       currentUser={currentUser} users={users} posts={webboardPosts} comments={webboardComments}
       onAddOrUpdatePost={handleAddOrUpdateWebboardPost} onAddComment={handleAddWebboardComment}
-      onToggleLike={handleToggleWebboardPostLike} onDeletePost={handleDeleteWebboardPost}
+      onToggleLike={handleToggleWebboardPostLike} 
+      onSavePost={handleSaveWebboardPost} // Pass new prop
+      onSharePost={handleShareWebboardPost} // Pass new prop
+      onDeletePost={handleDeleteWebboardPost}
       onPinPost={handlePinWebboardPost} onEditPost={(post) => { setItemToEdit({...post, isEditing: true}); setEditingItemType('webboardPost'); setSelectedPostId('create'); setCurrentView(View.Webboard); }}
       onDeleteComment={handleDeleteWebboardComment} onUpdateComment={handleUpdateWebboardComment}
       selectedPostId={selectedPostId} setSelectedPostId={setSelectedPostId}
       navigateTo={navigateTo} editingPost={editingItemType === 'webboardPost' ? itemToEdit as WebboardPost : null}
       onCancelEdit={() => { setItemToEdit(null); setEditingItemType(null); setSelectedPostId(null); }}
-      getUserDisplayBadge={(user) => getUserDisplayBadge(user, webboardPosts, webboardComments)}
+      getUserDisplayBadge={getUserDisplayBadge} // Badge logic adjusted
       requestLoginForAction={requestLoginForAction} 
       onNavigateToPublicProfile={handleNavigateToPublicProfile}
       checkWebboardPostLimits={checkWebboardPostLimits}
@@ -1309,6 +1373,11 @@ const App: React.FC = () => {
             <button onClick={() => setIsFeedbackModalOpen(true)} className="hover:underline">ส่ง Feedback</button>
           </div>
         </footer>
+      )}
+       {copiedLinkNotification && (
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 bg-neutral-dark text-white px-4 py-2 rounded-md shadow-lg text-sm z-50 transition-opacity duration-300 ease-in-out">
+          {copiedLinkNotification}
+        </div>
       )}
       <ConfirmModal isOpen={isConfirmModalOpen} onClose={closeConfirmModal} onConfirm={handleConfirmDeletion} title={confirmModalTitle} message={confirmModalMessage} />
       <FeedbackForm

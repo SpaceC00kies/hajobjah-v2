@@ -39,7 +39,7 @@ import {
 } from 'firebase/storage';
 
 import { auth, db, storage } from '../firebase'; 
-import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier } from '../types';
+import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier, UserSavedWebboardPostEntry } from '../types';
 import { UserRole, WebboardCategory, USER_LEVELS, GenderOption, HelperEducationLevelOption } from '../types'; 
 import { logFirebaseError } from '../firebase/logging';
 
@@ -53,6 +53,7 @@ const INTERACTIONS_COLLECTION = 'interactions';
 const SITE_CONFIG_COLLECTION = 'siteConfig';
 const SITE_CONFIG_DOC_ID = 'main';
 const FEEDBACK_COLLECTION = 'feedback';
+const USER_SAVED_POSTS_SUBCOLLECTION = 'savedWebboardPosts';
 
 
 // --- Helper to convert Firestore Timestamps to ISO strings for consistency ---
@@ -86,7 +87,7 @@ const cleanDataForFirestore = <T extends Record<string, any>>(data: T): Partial<
   return cleanedData;
 };
 
-type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt'> & { password: string };
+type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts'> & { password: string };
 
 
 // --- Authentication Services ---
@@ -99,12 +100,11 @@ export const signUpWithEmailPasswordService = async (
     const { password, ...userProfileData } = userData;
 
     const now = new Date();
-    // Set initial cooldown to be expired (3 days ago)
     const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000); 
 
     const newUser: Omit<User, 'id'> = {
       ...userProfileData,
-      tier: 'free' as UserTier, // Set tier to 'free'
+      tier: 'free' as UserTier, 
       photo: undefined, 
       address: '',
       nickname: '',
@@ -122,8 +122,8 @@ export const signUpWithEmailPasswordService = async (
       dislikedThing: '',
       introSentence: '',
       postingLimits: {
-        lastJobPostDate: threeDaysAgo.toISOString(), // Cooldown is 3 days
-        lastHelperProfileDate: threeDaysAgo.toISOString(), // Cooldown is 3 days
+        lastJobPostDate: threeDaysAgo.toISOString(), 
+        lastHelperProfileDate: threeDaysAgo.toISOString(),
         dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() }, 
         hourlyComments: { count: 0, resetTime: new Date(0).toISOString() },
         lastBumpDates: {},
@@ -132,6 +132,7 @@ export const signUpWithEmailPasswordService = async (
         isActive: false,
         last30DaysActivity: 0,
       },
+      savedWebboardPosts: [], // Initialize saved posts
       createdAt: serverTimestamp() as any,
       updatedAt: serverTimestamp() as any,
     };
@@ -185,9 +186,10 @@ export const signInWithEmailPasswordService = async (loginIdentifier: string, pa
         isActive: false,
         last30DaysActivity: 0,
       };
-      const tier = userData.tier || ('free' as UserTier); // Default to 'free' if tier is missing
+      const tier = userData.tier || ('free' as UserTier); 
+      const savedWebboardPosts = userData.savedWebboardPosts || []; // Initialize if missing
 
-      return { id: firebaseUser.uid, ...convertTimestamps(userData), tier, postingLimits: convertTimestamps(postingLimits), activityBadge: convertTimestamps(activityBadge) } as User;
+      return { id: firebaseUser.uid, ...convertTimestamps(userData), tier, postingLimits: convertTimestamps(postingLimits), activityBadge: convertTimestamps(activityBadge), savedWebboardPosts } as User;
     } else {
       logFirebaseError("signInWithEmailPasswordService", new Error(`User ${firebaseUser.uid} authenticated but no Firestore data.`));
       await signOut(auth); 
@@ -243,8 +245,9 @@ export const onAuthChangeService = (callback: (user: User | null) => void): (() 
             isActive: false,
             last30DaysActivity: 0,
           };
-          const tier = userData.tier || ('free' as UserTier); // Default to 'free' if tier is missing
-          callback({ id: firebaseUser.uid, ...convertTimestamps(userData), tier, postingLimits: convertTimestamps(postingLimits), activityBadge: convertTimestamps(activityBadge) } as User);
+          const tier = userData.tier || ('free' as UserTier);
+          const savedWebboardPosts = userData.savedWebboardPosts || []; // Initialize if missing
+          callback({ id: firebaseUser.uid, ...convertTimestamps(userData), tier, postingLimits: convertTimestamps(postingLimits), activityBadge: convertTimestamps(activityBadge), savedWebboardPosts } as User);
         } else {
           logFirebaseError("onAuthChangeService", new Error(`User ${firebaseUser.uid} not found in Firestore.`));
           callback(null);
@@ -304,7 +307,7 @@ export const deleteImageService = async (imageUrl?: string | null): Promise<void
 // --- User Profile Service ---
 export const updateUserProfileService = async (
   userId: string,
-  profileData: Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username' | 'postingLimits' | 'activityBadge' | 'userLevel' | 'tier'>> // Exclude tier from direct update here
+  profileData: Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username' | 'postingLimits' | 'activityBadge' | 'userLevel' | 'tier' | 'savedWebboardPosts'>> 
 ): Promise<boolean> => {
   try {
     const userDocRef = doc(db, USERS_COLLECTION, userId);
@@ -356,7 +359,7 @@ type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' 
 export const addJobService = async (jobData: JobFormData, author: { userId: string; authorDisplayName: string; contact: string }): Promise<string> => {
   try {
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30); // Expires in 30 days
+    expiresAt.setDate(expiresAt.getDate() + 30); 
 
     const newJobDoc: Omit<Job, 'id'> = {
       ...jobData,
@@ -412,7 +415,7 @@ interface HelperProfileAuthorInfo { userId: string; authorDisplayName: string; c
 export const addHelperProfileService = async (profileData: HelperProfileFormData, author: HelperProfileAuthorInfo): Promise<string> => {
   try {
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30); // Expires in 30 days
+    expiresAt.setDate(expiresAt.getDate() + 30); 
     const nowServerTimestamp = serverTimestamp();
 
     const newProfileDoc: Omit<HelperProfile, 'id'> = {
@@ -489,6 +492,9 @@ export const subscribeToHelperProfilesService = (callback: (data: HelperProfile[
 interface WebboardPostAuthorInfo { userId: string; authorDisplayName: string; photo?: string | null; }
 export const addWebboardPostService = async (postData: { title: string; body: string; category: WebboardCategory; image?: string }, author: WebboardPostAuthorInfo): Promise<string> => {
   try {
+    if (postData.body.length > 5000) { // Check length before processing
+      throw new Error("Post body exceeds 5000 characters.");
+    }
     let imageUrl: string | undefined = undefined; 
     if (postData.image && postData.image.startsWith('data:image')) { 
       imageUrl = await uploadImageService(`webboardImages/${author.userId}/${Date.now()}`, postData.image);
@@ -527,6 +533,9 @@ export const addWebboardPostService = async (postData: { title: string; body: st
 
 export const updateWebboardPostService = async (postId: string, postData: { title?: string; body?: string; category?: WebboardCategory; image?: string | null }, currentUserPhoto?: string | null): Promise<boolean> => {
   try {
+    if (postData.body && postData.body.length > 5000) { // Check length
+      throw new Error("Post body exceeds 5000 characters.");
+    }
     const postRef = doc(db, WEBBOARD_POSTS_COLLECTION, postId);
     const basePayload: Partial<WebboardPost> = {};
     if (postData.title !== undefined) basePayload.title = postData.title;
@@ -576,6 +585,12 @@ export const deleteWebboardPostService = async (postId: string): Promise<boolean
     const commentsSnapshot = await getDocs(commentsQuery);
     const batch: WriteBatch = writeBatch(db);
     commentsSnapshot.forEach(commentDoc => batch.delete(commentDoc.ref));
+    
+    // Also delete user saved post entries
+    const savedPostsQuery = query(collectionGroup(db, USER_SAVED_POSTS_SUBCOLLECTION), where('postId', '==', postId));
+    const savedPostsSnapshot = await getDocs(savedPostsQuery);
+    savedPostsSnapshot.forEach(doc => batch.delete(doc.ref));
+
     await batch.commit();
 
     await deleteDoc(postRef);
@@ -669,6 +684,39 @@ export const subscribeToWebboardCommentsService = (callback: (data: WebboardComm
   return subscribeToCollectionService<WebboardComment>(WEBBOARD_COMMENTS_COLLECTION, callback, constraints);
 }
 
+// User Saved Webboard Posts
+export const saveUserWebboardPostService = async (userId: string, postId: string): Promise<void> => {
+  try {
+    const savedPostRef = doc(db, USERS_COLLECTION, userId, USER_SAVED_POSTS_SUBCOLLECTION, postId);
+    const data: UserSavedWebboardPostEntry = { postId, savedAt: serverTimestamp() as any };
+    await setDoc(savedPostRef, data);
+  } catch (error) {
+    logFirebaseError("saveUserWebboardPostService", error);
+    throw error;
+  }
+};
+
+export const unsaveUserWebboardPostService = async (userId: string, postId: string): Promise<void> => {
+  try {
+    const savedPostRef = doc(db, USERS_COLLECTION, userId, USER_SAVED_POSTS_SUBCOLLECTION, postId);
+    await deleteDoc(savedPostRef);
+  } catch (error) {
+    logFirebaseError("unsaveUserWebboardPostService", error);
+    throw error;
+  }
+};
+
+export const subscribeToUserSavedPostsService = (userId: string, callback: (postIds: string[]) => void): (() => void) => {
+  const q = collection(db, USERS_COLLECTION, userId, USER_SAVED_POSTS_SUBCOLLECTION);
+  return onSnapshot(q, (querySnapshot) => {
+    const postIds = querySnapshot.docs.map(docSnap => docSnap.id);
+    callback(postIds);
+  }, (error) => {
+    logFirebaseError("subscribeToUserSavedPostsService", error);
+  });
+};
+
+
 // Interactions
 export const logHelperContactInteractionService = async (helperProfileId: string, employerUserId: string, helperUserId: string): Promise<string> => {
   try {
@@ -760,7 +808,8 @@ export const getUserDocument = async (userId: string): Promise<User | null> => {
     if (userDocSnap.exists()) {
       const userData = userDocSnap.data();
       const tier = userData.tier || ('free' as UserTier); // Default tier
-      return { id: userId, ...convertTimestamps(userData), tier } as User;
+      const savedWebboardPosts = userData.savedWebboardPosts || []; // Initialize if missing
+      return { id: userId, ...convertTimestamps(userData), tier, savedWebboardPosts } as User;
     }
     return null;
   } catch (error) {

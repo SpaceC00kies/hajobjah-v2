@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import type { EnrichedWebboardComment, User, View } from '../types'; // Added View
 import { UserRole } from '../types';
-import { UserLevelBadge } from './UserLevelBadge';
+// UserLevelBadge removed as it's no longer displayed here
 import { Button } from './Button';
 import { containsBlacklistedWords } from '../App';
 
@@ -11,7 +11,7 @@ interface WebboardCommentItemProps {
   currentUser: User | null;
   onDeleteComment?: (commentId: string) => void;
   onUpdateComment?: (commentId: string, newText: string) => void;
-  onNavigateToPublicProfile: (userId: string) => void; // New prop
+  onNavigateToPublicProfile: (userId: string) => void; 
 }
 
 const FallbackAvatarComment: React.FC<{ name?: string, photo?: string, size?: string, className?: string }> = ({ name, photo, size = "w-10 h-10", className = "" }) => {
@@ -35,50 +35,29 @@ export const WebboardCommentItem: React.FC<WebboardCommentItemProps> = ({ commen
   const isAdmin = currentUser?.role === UserRole.Admin;
   const isModerator = currentUser?.role === UserRole.Moderator;
   
-  const showDeleteButton = onDeleteComment && (isAuthor || isAdmin || isModerator);
+  // Moderator can delete any comment not by an admin
+  const canModeratorDelete = isModerator && !comment.isAuthorAdmin;
+  const showDeleteButton = onDeleteComment && (isAuthor || isAdmin || canModeratorDelete);
   const showEditButton = onUpdateComment && isAuthor;
 
 
   const timeSince = (dateInput: string | Date | null | undefined): string => {
-    if (dateInput === null || dateInput === undefined) {
-      return "just now";
-    }
-  
+    if (dateInput === null || dateInput === undefined) return "just now";
     let dateObject: Date;
-    if (dateInput instanceof Date) {
-      dateObject = dateInput;
-    } else if (typeof dateInput === 'string') {
-      dateObject = new Date(dateInput);
-    } else {
-      if (typeof dateInput === 'object' && dateInput && 'toDate' in dateInput && typeof (dateInput as any).toDate === 'function') {
-        dateObject = (dateInput as any).toDate();
-      } else {
-        console.warn("timeSince received unexpected dateInput type:", dateInput);
-        return "Invalid date input";
-      }
-    }
-  
-    if (isNaN(dateObject.getTime())) {
-      return "Processing date...";
-    }
-  
+    if (dateInput instanceof Date) dateObject = dateInput;
+    else if (typeof dateInput === 'string') dateObject = new Date(dateInput);
+    else if (typeof dateInput === 'object' && 'toDate' in dateInput && typeof (dateInput as any).toDate === 'function') dateObject = (dateInput as any).toDate();
+    else { console.warn("timeSince unexpected:", dateInput); return "Invalid date"; }
+    if (isNaN(dateObject.getTime())) return "Processing...";
     const seconds = Math.floor((new Date().getTime() - dateObject.getTime()) / 1000);
-  
-    if (seconds < 0) {
-      return "just now";
-    }
+    if (seconds < 0) return "just now";
     if (seconds < 5) return "just now";
-    let interval = seconds / 31536000;
-    if (interval > 1) return Math.floor(interval) + " ปีก่อน";
-    interval = seconds / 2592000;
-    if (interval > 1) return Math.floor(interval) + " เดือนก่อน";
-    interval = seconds / 86400;
-    if (interval > 1) return Math.floor(interval) + " วันก่อน";
-    interval = seconds / 3600;
-    if (interval > 1) return Math.floor(interval) + " ชม.ก่อน";
-    interval = seconds / 60;
-    if (interval > 1) return Math.floor(interval) + " นาทีที่แล้ว";
-    return Math.floor(seconds) + " วินาทีที่แล้ว";
+    let interval = seconds / 31536000; if (interval > 1) return Math.floor(interval) + "y";
+    interval = seconds / 2592000; if (interval > 1) return Math.floor(interval) + "mo";
+    interval = seconds / 86400; if (interval > 1) return Math.floor(interval) + "d";
+    interval = seconds / 3600; if (interval > 1) return Math.floor(interval) + "h";
+    interval = seconds / 60; if (interval > 1) return Math.floor(interval) + "m";
+    return Math.floor(seconds) + "s";
   };
 
   const handleEdit = () => {
@@ -122,7 +101,7 @@ export const WebboardCommentItem: React.FC<WebboardCommentItemProps> = ({ commen
       <FallbackAvatarComment name={comment.authorDisplayName} photo={comment.authorPhoto} className="mt-1" />
       <div className="flex-1">
         <div className="flex items-center justify-between">
-            <div className="flex items-center">
+            <div className="flex items-baseline"> {/* Use baseline for better alignment if font sizes differ */}
                 <span 
                     className="text-sm font-semibold text-neutral-dark dark:text-dark-text cursor-pointer hover:underline"
                     onClick={() => onNavigateToPublicProfile(comment.userId)}
@@ -132,13 +111,19 @@ export const WebboardCommentItem: React.FC<WebboardCommentItemProps> = ({ commen
                 >
                     @{comment.authorDisplayName}
                 </span>
-                <UserLevelBadge level={comment.authorLevel} size="sm" />
+                {/* UserLevelBadge removed */}
+                <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                    · {timeSince(comment.createdAt)}
+                    {wasEdited && !isEditing && (
+                        <span className="italic"> (แก้ไข {timeSince(comment.updatedAt as Date)})</span>
+                    )}
+                </span>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1">
                 {showEditButton && !isEditing && (
                     <button
                         onClick={handleEdit}
-                        className="text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-1"
+                        className="text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-0.5 rounded hover:bg-blue-100 dark:hover:bg-blue-700/30"
                         aria-label="แก้ไขคอมเมนต์"
                     >
                         ✏️
@@ -147,7 +132,7 @@ export const WebboardCommentItem: React.FC<WebboardCommentItemProps> = ({ commen
                 {showDeleteButton && !isEditing && (
                     <button
                         onClick={handleDelete}
-                        className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1"
+                        className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-0.5 rounded hover:bg-red-100 dark:hover:bg-red-700/30"
                         aria-label="ลบคอมเมนต์"
                     >
                         🗑️
@@ -180,12 +165,6 @@ export const WebboardCommentItem: React.FC<WebboardCommentItemProps> = ({ commen
         ) : (
           <p className="text-sm text-neutral-dark dark:text-dark-textMuted whitespace-pre-wrap font-normal py-1">{comment.text}</p>
         )}
-        <div className="flex items-center mt-0.5">
-            <p className="text-xs font-mono text-neutral-medium dark:text-dark-textMuted">{timeSince(comment.createdAt)}</p>
-            {wasEdited && !isEditing && (
-                <p className="ml-2 text-xs font-mono text-neutral-medium dark:text-dark-textMuted italic">(แก้ไขล่าสุด {timeSince(comment.updatedAt as Date)})</p>
-            )}
-        </div>
       </div>
     </div>
   );

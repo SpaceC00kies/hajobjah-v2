@@ -15,6 +15,8 @@ interface WebboardPageProps {
   onAddOrUpdatePost: (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => void; 
   onAddComment: (postId: string, text: string) => void;
   onToggleLike: (postId: string) => void;
+  onSavePost: (postId: string) => void; // New prop
+  onSharePost: (postId: string, postTitle: string) => void; // New prop
   onDeletePost: (postId: string) => void;
   onPinPost: (postId: string) => void;
   onEditPost: (post: EnrichedWebboardPost) => void; 
@@ -25,10 +27,10 @@ interface WebboardPageProps {
   navigateTo: (view: View, payload?: any) => void;
   editingPost?: WebboardPost | null; 
   onCancelEdit: () => void; 
-  getUserDisplayBadge: (user: User | null | undefined, posts: WebboardPost[], comments: WebboardComment[]) => UserLevel;
+  getUserDisplayBadge: (user: User | null | undefined) => UserLevel; // Removed posts, comments from signature as badges are not on webboard items
   requestLoginForAction: (view: View, payload?: any) => void; 
   onNavigateToPublicProfile: (userId: string) => void;
-  checkWebboardPostLimits: (user: User) => { canPost: boolean; message?: string };
+  checkWebboardPostLimits: (user: User) => { canPost: boolean; message?: string | null };
   checkWebboardCommentLimits: (user: User) => { canPost: boolean; message?: string };
 }
 
@@ -40,6 +42,8 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
   onAddOrUpdatePost,
   onAddComment,
   onToggleLike,
+  onSavePost,
+  onSharePost,
   onDeletePost,
   onPinPost,
   onEditPost,
@@ -97,7 +101,8 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
     const lowerSearchTerm = searchTerm.toLowerCase();
     filteredPosts = filteredPosts.filter(post =>
       post.title.toLowerCase().includes(lowerSearchTerm) ||
-      post.body.toLowerCase().includes(lowerSearchTerm)
+      post.body.toLowerCase().includes(lowerSearchTerm) ||
+      post.authorDisplayName.toLowerCase().includes(lowerSearchTerm)
     );
   }
 
@@ -107,7 +112,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
       return {
         ...post,
         commentCount: comments.filter(c => c.postId === post.id).length,
-        authorLevel: getUserDisplayBadge(author, posts, comments),
+        // authorLevel: getUserDisplayBadge(author), // Badge removed from card/detail
         authorPhoto: author?.photo || post.authorPhoto,
         isAuthorAdmin: author?.role === 'Admin' as UserRole.Admin, 
       };
@@ -125,15 +130,16 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
           const commenter = users.find(u => u.id === comment.userId);
           return {
             ...comment,
-            authorLevel: getUserDisplayBadge(commenter, posts, comments),
+            // authorLevel: getUserDisplayBadge(commenter), // Badge removed from comment
             authorPhoto: commenter?.photo || comment.authorPhoto,
+            isAuthorAdmin: commenter?.role === 'Admin' as UserRole.Admin,
           };
         })
     : [];
 
   if (currentDetailedPost) {
     return (
-      <div className="p-4 sm:p-6"> {/* Removed container mx-auto */}
+      <div className="p-2 sm:p-4 md:max-w-3xl md:mx-auto"> {/* Centered single column for detail */}
         <Button 
           onClick={() => setSelectedPostId(null)} 
           variant="outline" 
@@ -149,6 +155,8 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
           currentUser={currentUser}
           users={users}
           onToggleLike={onToggleLike}
+          onSavePost={onSavePost}
+          onSharePost={onSharePost}
           onAddComment={onAddComment}
           onDeletePost={onDeletePost}
           onPinPost={onPinPost}
@@ -167,10 +175,10 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
   const selectBaseStyle = `${inputBaseStyle} appearance-none`;
 
   return (
-    <div className="p-4 sm:p-6"> {/* Removed container mx-auto */}
+    <div className="p-2 sm:p-4 md:max-w-3xl md:mx-auto"> {/* Centered single column for list */}
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <h2 className="text-2xl sm:text-3xl font-sans font-semibold text-neutral-700 dark:text-neutral-300 text-center sm:text-left">
-          💬 กระทู้พูดคุย ชุมชนหาจ๊อบจ้า
+          💬 กระทู้พูดคุย
         </h2>
         
         <Button 
@@ -205,7 +213,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
             id="searchWebboard"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="ค้นหาหัวข้อ, เนื้อหา..."
+            placeholder="ค้นหาหัวข้อ, เนื้อหา, ผู้เขียน..."
             className={`${inputBaseStyle} w-full font-serif`}
           />
         </div>
@@ -239,7 +247,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+        <div className="space-y-4"> {/* Changed from grid to space-y for single column */}
           {enrichedPosts.map(post => (
             <WebboardPostCard
               key={post.id}
@@ -247,6 +255,8 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
               currentUser={currentUser}
               onViewPost={setSelectedPostId}
               onToggleLike={onToggleLike}
+              onSavePost={onSavePost}
+              onSharePost={onSharePost}
               onDeletePost={onDeletePost}
               onPinPost={onPinPost}
               onEditPost={onEditPost}

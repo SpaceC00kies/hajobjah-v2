@@ -1,10 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react'; // Added useState
 import type { EnrichedWebboardPost, EnrichedWebboardComment, User } from '../types';
-import { USER_LEVELS, UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES } // Import UserRole, View, WebboardCategory, and WEBBOARD_CATEGORY_STYLES
+import { USER_LEVELS, UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES } 
 from '../types';
 import { Button } from './Button';
-import { UserLevelBadge } from './UserLevelBadge';
+// UserLevelBadge is removed from direct import here as it's no longer used in this component
 import { WebboardCommentItem } from './WebboardCommentItem';
 import { WebboardCommentForm } from './WebboardCommentForm';
 
@@ -14,6 +14,8 @@ interface WebboardPostDetailProps {
   currentUser: User | null;
   users: User[]; 
   onToggleLike: (postId: string) => void;
+  onSavePost: (postId: string) => void; // New prop
+  onSharePost: (postId: string, postTitle: string) => void; // New prop
   onAddComment: (postId:string, text: string) => void;
   onDeletePost: (postId: string) => void;
   onPinPost: (postId: string) => void;
@@ -37,12 +39,27 @@ const FallbackAvatarLarge: React.FC<{ name?: string, photo?: string, size?: stri
   );
 };
 
+// Helper function to define SVG icons (example)
+const Icon = ({ path, className = "w-5 h-5" }: { path: string; className?: string }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 20 20">
+    <path fillRule="evenodd" d={path} clipRule="evenodd" />
+  </svg>
+);
+const LikeIcon = () => <Icon path="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" />;
+const LikedIcon = () => <Icon path="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" className="w-5 h-5 text-red-500 dark:text-red-400" />;
+const SaveIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" />;
+const SavedIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" className="w-5 h-5 text-blue-500 dark:text-blue-400"/>;
+const ShareIcon = () => <Icon path="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />;
+
+
 export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
   post,
   comments,
   currentUser,
   users,
   onToggleLike,
+  onSavePost,
+  onSharePost,
   onAddComment,
   onDeletePost,
   onPinPost,
@@ -53,10 +70,13 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
   onNavigateToPublicProfile,
   checkWebboardCommentLimits,
 }) => {
+  const [copiedLink, setCopiedLink] = useState(false); // For share feedback
+
   const isAuthor = currentUser?.id === post.userId;
   const isAdmin = currentUser?.role === UserRole.Admin;
   const isModerator = currentUser?.role === UserRole.Moderator;
   const hasLiked = currentUser && post.likes.includes(currentUser.id);
+  const isSaved = currentUser?.savedWebboardPosts?.includes(post.id) || false;
 
   const canModeratorDeletePost = isModerator && !post.isAuthorAdmin;
   const canEditPost = isAuthor || isAdmin || (isModerator && !post.isAuthorAdmin);
@@ -64,61 +84,48 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
 
 
   const timeSince = (dateInput: string | Date | null | undefined): string => {
-    if (dateInput === null || dateInput === undefined) {
-      return "just now";
-    }
-
+    if (dateInput === null || dateInput === undefined) return "just now";
     let dateObject: Date;
-    if (dateInput instanceof Date) {
-      dateObject = dateInput;
-    } else if (typeof dateInput === 'string') {
-      dateObject = new Date(dateInput);
-    } else {
-      if (typeof dateInput === 'object' && dateInput && 'toDate' in dateInput && typeof (dateInput as any).toDate === 'function') {
-        dateObject = (dateInput as any).toDate();
-      } else {
-        console.warn("timeSince received unexpected dateInput type:", dateInput);
-        return "Invalid date input";
-      }
-    }
-
-    if (isNaN(dateObject.getTime())) {
-      return "Processing date...";
-    }
-
+    if (dateInput instanceof Date) dateObject = dateInput;
+    else if (typeof dateInput === 'string') dateObject = new Date(dateInput);
+    else if (typeof dateInput === 'object' && 'toDate' in dateInput && typeof (dateInput as any).toDate === 'function') dateObject = (dateInput as any).toDate();
+    else { console.warn("timeSince unexpected:", dateInput); return "Invalid date"; }
+    if (isNaN(dateObject.getTime())) return "Processing...";
     const seconds = Math.floor((new Date().getTime() - dateObject.getTime()) / 1000);
-
-    if (seconds < 0) {
-      return "just now";
-    }
+    if (seconds < 0) return "just now";
     if (seconds < 5) return "just now";
-    let interval = seconds / 31536000;
-    if (interval > 1) return Math.floor(interval) + " ปีก่อน";
-    interval = seconds / 2592000;
-    if (interval > 1) return Math.floor(interval) + " เดือนก่อน";
-    interval = seconds / 86400;
-    if (interval > 1) return Math.floor(interval) + " วันก่อน";
-    interval = seconds / 3600;
-    if (interval > 1) return Math.floor(interval) + " ชม.ก่อน";
-    interval = seconds / 60;
-    if (interval > 1) return Math.floor(interval) + " นาทีที่แล้ว";
+    let interval = seconds / 31536000; if (interval > 1) return Math.floor(interval) + " ปีก่อน";
+    interval = seconds / 2592000; if (interval > 1) return Math.floor(interval) + " เดือนก่อน";
+    interval = seconds / 86400; if (interval > 1) return Math.floor(interval) + " วันก่อน";
+    interval = seconds / 3600; if (interval > 1) return Math.floor(interval) + " ชม.ก่อน";
+    interval = seconds / 60; if (interval > 1) return Math.floor(interval) + " นาทีที่แล้ว";
     return Math.floor(seconds) + " วินาทีที่แล้ว";
   };
 
   const postAuthor = users.find(u => u.id === post.userId);
 
   const handleLikeClick = () => {
-    if (!currentUser) {
-      requestLoginForAction(View.Webboard, { action: 'like', postId: post.id });
-    } else {
-      onToggleLike(post.id);
-    }
+    if (!currentUser) requestLoginForAction(View.Webboard, { action: 'like', postId: post.id });
+    else onToggleLike(post.id);
+  };
+
+  const handleSaveClick = () => {
+    if (!currentUser) requestLoginForAction(View.Webboard, { action: 'save', postId: post.id });
+    else onSavePost(post.id);
+  };
+  
+  const handleShareClick = () => {
+    onSharePost(post.id, post.title);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
   };
 
   const categoryStyle = WEBBOARD_CATEGORY_STYLES[post.category] || WEBBOARD_CATEGORY_STYLES[WebboardCategory.General];
+  const actionButtonClass = "flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-neutral-light dark:hover:bg-dark-inputBg focus:outline-none focus:ring-1 focus:ring-neutral-DEFAULT dark:focus:ring-dark-border text-xs sm:text-sm";
+
 
   return (
-    <div className="bg-white dark:bg-dark-cardBg shadow-xl rounded-xl p-6 md:p-8 my-6 border border-neutral-DEFAULT/70 dark:border-dark-border/70">
+    <div className="bg-white dark:bg-dark-cardBg shadow-xl rounded-xl p-4 sm:p-6 md:p-8 my-6 border border-neutral-DEFAULT/70 dark:border-dark-border/70">
       {post.isPinned && (
         <div className="mb-4 px-3 py-1 bg-yellow-100 dark:bg-yellow-500/20 rounded-full text-center">
           <p className="text-sm font-normal text-yellow-800 dark:text-yellow-300">📌 ปักหมุดโดยแอดมิน</p>
@@ -133,27 +140,33 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
         </span>
       </div>
 
-      <h1 className="text-2xl md:text-3xl font-sans font-semibold text-neutral-800 dark:text-dark-text mb-4">{post.title}</h1>
+      <h1 className="text-xl sm:text-2xl md:text-3xl font-sans font-semibold text-neutral-800 dark:text-dark-text mb-4">{post.title}</h1>
 
       <div className="flex items-center mb-4 pb-3 border-b border-neutral-DEFAULT/30 dark:border-dark-border/30">
         <FallbackAvatarLarge name={post.authorDisplayName} photo={postAuthor?.photo || post.authorPhoto} className="mr-3 flex-shrink-0" />
         <div className="font-sans">
-          {/* Line 1: Username and Badge */}
-          <div className="flex items-center">
-            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">@{post.authorDisplayName}</span>
-            <UserLevelBadge level={post.authorLevel} size="sm" /> {/* Use sm for text-xs */}
+          <div className="flex items-baseline"> {/* Use baseline for better alignment if font sizes differ */}
+            <span 
+              className="text-sm font-semibold text-gray-800 dark:text-gray-200 hover:underline cursor-pointer"
+              onClick={() => onNavigateToPublicProfile(post.userId)}
+              role="link" tabIndex={0} onKeyPress={(e) => e.key === 'Enter' && onNavigateToPublicProfile(post.userId)}
+            >
+              @{post.authorDisplayName}
+            </span>
+            {/* UserLevelBadge removed from here */}
+            <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+              · {timeSince(post.createdAt)}
+              {post.updatedAt && new Date(post.updatedAt).getTime() !== new Date(post.createdAt).getTime() && 
+                <span className="italic"> (แก้ไข {timeSince(post.updatedAt)})</span>
+              }
+            </span>
           </div>
-          {/* Line 2: Timestamp */}
-          <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-            🕒 โพสต์เมื่อ: {timeSince(post.createdAt)}
-            {post.updatedAt && post.updatedAt !== post.createdAt && ` (แก้ไขเมื่อ: ${timeSince(post.updatedAt)})`}
-          </p>
         </div>
       </div>
 
       {post.image && (
-        <div className="my-4 max-h-96 overflow-hidden rounded-lg flex justify-center items-center bg-neutral-light dark:bg-dark-inputBg">
-          <img src={post.image} alt="Post image" className="max-h-96 w-auto object-contain" />
+        <div className="my-4 flex justify-center items-center bg-neutral-light dark:bg-dark-inputBg rounded-lg overflow-hidden">
+          <img src={post.image} alt={post.title} className="max-w-full max-h-[70vh] object-contain" />
         </div>
       )}
 
@@ -161,22 +174,38 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
         {post.body}
       </div>
 
-      <div className="flex items-center justify-between mt-6 pt-4 border-t border-neutral-DEFAULT/30 dark:border-dark-border/30">
-        <button
-          onClick={handleLikeClick}
-          className={`px-2 py-1 text-xs rounded-lg border hover:scale-110 transform transition-transform duration-150 ease-in-out focus:outline-none focus:ring-1 focus:ring-opacity-50
-            ${hasLiked 
-              ? 'text-red-500 dark:text-red-400 border-red-500 dark:border-red-400 focus:ring-red-300' 
-              : 'text-neutral-500 dark:text-neutral-400 border-neutral-400 dark:border-neutral-500 hover:border-neutral-500 dark:hover:border-neutral-400 focus:ring-neutral-300'
-            }`}
-          aria-pressed={hasLiked}
-          aria-label={hasLiked ? "Unlike post" : "Like post"}
-        >
-          {hasLiked ? '❤️' : '🤍'} {post.likes.length}
-        </button>
-        <div>
+      <div className="flex flex-wrap items-center justify-between gap-2 mt-6 pt-4 border-t border-neutral-DEFAULT/30 dark:border-dark-border/30">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            onClick={handleLikeClick}
+            className={`${actionButtonClass} ${hasLiked ? 'text-red-500 dark:text-red-400' : 'text-neutral-500 dark:text-neutral-400'}`}
+            aria-pressed={hasLiked}
+            aria-label={hasLiked ? "Unlike post" : "Like post"}
+          >
+            {hasLiked ? <LikedIcon /> : <LikeIcon />} <span className="font-medium">{post.likes.length}</span>
+          </button>
+          {currentUser && (
+            <>
+            <button onClick={handleSaveClick} className={`${actionButtonClass} ${isSaved ? 'text-blue-500 dark:text-blue-400' : 'text-neutral-500 dark:text-neutral-400'}`} aria-pressed={isSaved} aria-label={isSaved ? "Unsave post" : "Save post"}>
+              {isSaved ? <SavedIcon/> : <SaveIcon />} <span className="hidden sm:inline">{isSaved ? 'Saved' : 'Save'}</span>
+            </button>
+            <div className="relative">
+                <button onClick={handleShareClick} className={`${actionButtonClass} text-neutral-500 dark:text-neutral-400`} aria-label="Share post">
+                <ShareIcon /> <span className="hidden sm:inline">Share</span>
+                </button>
+                {copiedLink && (
+                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-0.5 bg-neutral-dark text-white text-xs rounded-md shadow-lg whitespace-nowrap">
+                    Link Copied!
+                </span>
+                )}
+            </div>
+            </>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
           {canEditPost && (
-             <Button onClick={() => onEditPost(post)} variant="outline" colorScheme="neutral" size="sm" className="mr-2 text-xs">✏️ แก้ไข</Button>
+             <Button onClick={() => onEditPost(post)} variant="outline" colorScheme="neutral" size="sm" className="text-xs">✏️ แก้ไข</Button>
           )}
           {isAdmin && (
             <Button 
@@ -184,7 +213,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
               variant={post.isPinned ? "secondary" : "outline"}
               colorScheme="secondary"
               size="sm" 
-              className="mr-2 text-xs"
+              className="text-xs"
             >
               {post.isPinned ? 'เลิกปักหมุด' : 'ปักหมุด'}
             </Button>
@@ -209,8 +238,9 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
                     const commenter = users.find(u => u.id === comment.userId);
                     const enrichedComment: EnrichedWebboardComment = {
                         ...comment,
-                        authorLevel: comment.authorLevel,
+                        // authorLevel: comment.authorLevel, // Badge removed
                         authorPhoto: commenter?.photo || comment.authorPhoto,
+                        isAuthorAdmin: commenter?.role === UserRole.Admin,
                     };
                     return (
                         <WebboardCommentItem 
