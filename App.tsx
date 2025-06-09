@@ -62,6 +62,7 @@ import { SiteLockOverlay } from './components/SiteLockOverlay';
 import { CategoryFilterBar } from './components/CategoryFilterBar';
 import { SearchInputWithRecent } from './components/SearchInputWithRecent';
 import { PasswordResetPage } from './components/PasswordResetPage'; 
+import { CreateWebboardPostScreen } from './components/CreateWebboardPostScreen'; // New import
 
 import { logFirebaseError } from './firebase/logging';
 
@@ -201,7 +202,7 @@ const App: React.FC = () => {
   const [onConfirmAction, setOnConfirmAction] = useState<(() => void) | null>(null);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false); 
-  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null); // For webboard detail view
   const [isSiteLocked, setIsSiteLocked] = useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loginRedirectInfo, setLoginRedirectInfo] = useState<{ view: View; payload?: any } | null>(null);
@@ -239,20 +240,15 @@ const App: React.FC = () => {
       setCurrentUser(user);
       setIsLoadingAuth(false);
       if (user) {
-        // When user logs in, fetch their saved posts
         const unsubscribeSaved = subscribeToUserSavedPostsService(user.id, (savedIds) => {
           setUserSavedPosts(savedIds);
-          // Update currentUser state if it doesn't have savedWebboardPosts yet or if it changed
            setCurrentUser(prevUser => ({
-            ...prevUser!, // user must exist here
+            ...prevUser!, 
             savedWebboardPosts: savedIds,
           }));
         });
-        // Store this unsubscribe function to call it on logout or component unmount
-        // For now, we assume it gets cleaned up with auth changes, but for robustness:
-        // return () => unsubscribeSaved(); // This would be if auth was a child component
       } else {
-        setUserSavedPosts([]); // Clear saved posts on logout
+        setUserSavedPosts([]); 
       }
     });
 
@@ -283,7 +279,6 @@ const App: React.FC = () => {
       unsubscribeWebboardComments();
       unsubscribeInteractions();
       unsubscribeSiteConfig();
-      // Also need to unsubscribe from saved posts if an unsubscribe function was returned and stored from onAuthChangeService
     };
   }, []); 
 
@@ -342,7 +337,7 @@ const App: React.FC = () => {
                     last30DaysActivity: last30DaysActivity,
                     lastActivityCheck: new Date().toISOString(),
                 },
-                savedWebboardPosts: u.id === currentUser?.id ? userSavedPosts : (u.savedWebboardPosts || []) // Ensure current user's saved posts are up-to-date
+                savedWebboardPosts: u.id === currentUser?.id ? userSavedPosts : (u.savedWebboardPosts || []) 
             };
         });
         setUsers(updatedUsers);
@@ -357,7 +352,7 @@ const App: React.FC = () => {
             }
         }
     }
-  }, [webboardPosts, webboardComments, isLoadingAuth, currentUser?.id, userSavedPosts]); // Added userSavedPosts to dependency array
+  }, [webboardPosts, webboardComments, isLoadingAuth, currentUser?.id, userSavedPosts]); 
 
   const requestLoginForAction = (originalView: View, originalPayload?: any) => {
     if (!currentUser) {
@@ -370,7 +365,7 @@ const App: React.FC = () => {
   const navigateTo = (view: View, payload?: any) => {
     const fromView = currentView;
     setIsMobileMenuOpen(false); window.scrollTo(0, 0);
-    const protectedViews: View[] = [View.PostJob, View.OfferHelp, View.UserProfile, View.MyPosts, View.AdminDashboard];
+    const protectedViews: View[] = [View.PostJob, View.OfferHelp, View.UserProfile, View.MyPosts, View.AdminDashboard, View.CreateWebboardPost];
     
     if (view === View.PublicProfile && typeof payload === 'string') {
       const targetUser = users.find(u => u.id === payload);
@@ -392,10 +387,10 @@ const App: React.FC = () => {
     }
     
     if (view === View.Webboard) {
-      if (typeof payload === 'string') setSelectedPostId(payload === 'create' ? 'create' : payload);
+      if (typeof payload === 'string') setSelectedPostId(payload === 'create' ? null : payload); // 'create' will now navigate to CreateWebboardPost view
       else if (payload && typeof payload === 'object' && payload.postId) setSelectedPostId(payload.postId);
       else if (payload === null || payload === undefined) setSelectedPostId(null);
-    } else if (selectedPostId !== null && view !== View.AdminDashboard && view !== View.PasswordReset) { 
+    } else if (selectedPostId !== null && view !== View.AdminDashboard && view !== View.PasswordReset && view !== View.CreateWebboardPost) { 
       setSelectedPostId(null);
     }
     setCurrentView(view);
@@ -499,7 +494,6 @@ const App: React.FC = () => {
     if (currentUser.role === UserRole.Admin) return true;
     const itemAuthor = users.find(u => u.id === itemUserId);
     if (currentUser.role === UserRole.Moderator) {
-        // Moderator can't edit/delete admin's posts/comments
         return itemAuthor?.role !== UserRole.Admin;
     }
     return currentUser.id === itemUserId || currentUser.id === itemOwnerId;
@@ -511,7 +505,7 @@ const App: React.FC = () => {
     } else if (item.itemType === 'profile') {
         setItemToEdit(item.originalItem as HelperProfile); setEditingItemType('profile'); setSourceViewForForm(View.AdminDashboard); navigateTo(View.OfferHelp);
     } else if (item.itemType === 'webboardPost') {
-        setItemToEdit({ ...(item.originalItem as WebboardPost), isEditing: true }); setEditingItemType('webboardPost'); setSourceViewForForm(View.AdminDashboard); navigateTo(View.Webboard, 'create');
+        setItemToEdit({ ...(item.originalItem as WebboardPost), isEditing: true }); setEditingItemType('webboardPost'); setSourceViewForForm(View.AdminDashboard); navigateTo(View.CreateWebboardPost);
     }
  };
   const handleStartEditMyItem = (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => {
@@ -524,7 +518,7 @@ const App: React.FC = () => {
         setItemToEdit(itemType === 'webboardPost' ? { ...(originalItem as WebboardPost), isEditing: true } : originalItem);
         setEditingItemType(itemType);
         setSourceViewForForm(View.MyPosts);
-        navigateTo(itemType === 'job' ? View.PostJob : itemType === 'profile' ? View.OfferHelp : View.Webboard, itemType === 'webboardPost' ? 'create' : undefined);
+        navigateTo(itemType === 'job' ? View.PostJob : itemType === 'profile' ? View.OfferHelp : View.CreateWebboardPost);
     } else { alert("ไม่พบรายการ หรือไม่มีสิทธิ์แก้ไข"); }
   };
 
@@ -719,7 +713,7 @@ const App: React.FC = () => {
   };
 
   const handleCancelEditOrPost = () => {
-    const targetView = sourceViewForForm || View.Home;
+    const targetView = sourceViewForForm || (editingItemType === 'webboardPost' ? View.Webboard : View.Home);
     setItemToEdit(null); setEditingItemType(null); setSourceViewForForm(null); setSelectedPostId(null);
     navigateTo(targetView);
   };
@@ -799,7 +793,7 @@ const App: React.FC = () => {
   };
 
   const handleAddOrUpdateWebboardPost = async (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => {
-    if (!currentUser) { requestLoginForAction(View.Webboard, { action: postIdToUpdate ? 'editPost' : 'createPost', postId: postIdToUpdate }); return; }
+    if (!currentUser) { requestLoginForAction(View.CreateWebboardPost, { editingPostId: postIdToUpdate }); return; }
     if (!postIdToUpdate) { 
       const limitCheck = checkWebboardPostLimits(currentUser);
       if (!limitCheck.canPost) { 
@@ -808,7 +802,7 @@ const App: React.FC = () => {
       }
     }
     if (containsBlacklistedWords(postData.title) || containsBlacklistedWords(postData.body)) { alert('เนื้อหาหรือหัวข้อมีคำที่ไม่เหมาะสม'); return; }
-    if (postData.body.length > 5000) { alert('เนื้อหากระทู้ต้องไม่เกิน 5,000 ตัวอักษร'); return;} // Updated limit
+    if (postData.body.length > 5000) { alert('เนื้อหากระทู้ต้องไม่เกิน 5,000 ตัวอักษร'); return;} 
     try {
         let finalPostId = postIdToUpdate;
         if (postIdToUpdate) {
@@ -822,7 +816,9 @@ const App: React.FC = () => {
             if (updatedUser) setCurrentUser(updatedUser);
             alert('สร้างโพสต์ใหม่เรียบร้อยแล้ว!');
         }
-        setItemToEdit(null); setEditingItemType(null); setSelectedPostId(finalPostId || null); navigateTo(View.Webboard, finalPostId);
+        setItemToEdit(null); setEditingItemType(null);
+        setSelectedPostId(finalPostId || null); 
+        navigateTo(View.Webboard, finalPostId); // Navigate to the post detail after creation/update
     } catch (error: any) {
         logFirebaseError("handleAddOrUpdateWebboardPost", error);
         alert(`เกิดข้อผิดพลาดในการจัดการโพสต์: ${error.message}`);
@@ -937,7 +933,7 @@ const App: React.FC = () => {
   };
 
   const renderNavLinks = (isMobile: boolean) => {
-    const displayBadgeForProfile = getUserDisplayBadge(currentUser); // Use this for profile display
+    const displayBadgeForProfile = getUserDisplayBadge(currentUser); 
     const commonButtonPropsBase = isMobile
       ? { size: 'md' as const, className: 'font-medium w-full text-left justify-start py-3 px-4 text-base' }
       : { size: 'sm' as const, className: 'font-medium flex-shrink-0' };
@@ -989,7 +985,7 @@ const App: React.FC = () => {
               </Button>
             )}
 
-            {currentView !== View.Webboard && (
+            {currentView !== View.Webboard && currentView !== View.CreateWebboardPost && (
                <Button onClick={() => navigateAndCloseMenu(View.Webboard)} variant="outline" colorScheme="neutral" {...commonButtonPropsBase}>
                  <span className={navItemSpanClass}><span>💬</span><span>กระทู้พูดคุย</span></span>
                </Button>
@@ -1064,8 +1060,8 @@ const App: React.FC = () => {
     }
   };
   const renderHeader = () => {
-      if ((currentView === View.PasswordReset && !currentUser) || isLoadingAuth) {
-        return null;
+      if ((currentView === View.PasswordReset && !currentUser) || isLoadingAuth || currentView === View.CreateWebboardPost) {
+        return null; 
       }
       return (
       <header
@@ -1105,7 +1101,7 @@ const App: React.FC = () => {
     );
   };
   const renderMobileMenu = () => {
-    if (!isMobileMenuOpen) return null;
+    if (!isMobileMenuOpen || currentView === View.CreateWebboardPost) return null;
     return (
       <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true">
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} aria-hidden="true"></div>
@@ -1312,21 +1308,39 @@ const App: React.FC = () => {
       currentUser={currentUser} users={users} posts={webboardPosts} comments={webboardComments}
       onAddOrUpdatePost={handleAddOrUpdateWebboardPost} onAddComment={handleAddWebboardComment}
       onToggleLike={handleToggleWebboardPostLike} 
-      onSavePost={handleSaveWebboardPost} // Pass new prop
-      onSharePost={handleShareWebboardPost} // Pass new prop
+      onSavePost={handleSaveWebboardPost} 
+      onSharePost={handleShareWebboardPost} 
       onDeletePost={handleDeleteWebboardPost}
-      onPinPost={handlePinWebboardPost} onEditPost={(post) => { setItemToEdit({...post, isEditing: true}); setEditingItemType('webboardPost'); setSelectedPostId('create'); setCurrentView(View.Webboard); }}
+      onPinPost={handlePinWebboardPost} 
+      onEditPost={(post) => { 
+        setItemToEdit({...post, isEditing: true}); 
+        setEditingItemType('webboardPost'); 
+        setSourceViewForForm(View.Webboard);
+        navigateTo(View.CreateWebboardPost); 
+      }}
       onDeleteComment={handleDeleteWebboardComment} onUpdateComment={handleUpdateWebboardComment}
       selectedPostId={selectedPostId} setSelectedPostId={setSelectedPostId}
-      navigateTo={navigateTo} editingPost={editingItemType === 'webboardPost' ? itemToEdit as WebboardPost : null}
-      onCancelEdit={() => { setItemToEdit(null); setEditingItemType(null); setSelectedPostId(null); }}
-      getUserDisplayBadge={getUserDisplayBadge} // Badge logic adjusted
+      navigateTo={navigateTo}
+      getUserDisplayBadge={getUserDisplayBadge} 
       requestLoginForAction={requestLoginForAction} 
       onNavigateToPublicProfile={handleNavigateToPublicProfile}
       checkWebboardPostLimits={checkWebboardPostLimits}
       checkWebboardCommentLimits={checkWebboardCommentLimits} 
     />);};
   const renderPasswordResetPage = () => <PasswordResetPage navigateTo={navigateTo} />; 
+  const renderCreateWebboardPostScreen = () => {
+    if (!currentUser) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทางไปยังหน้าเข้าสู่ระบบ...</p>;
+    return (
+      <CreateWebboardPostScreen
+        currentUser={currentUser}
+        editingPost={editingItemType === 'webboardPost' ? itemToEdit as WebboardPost : undefined}
+        onSubmit={handleAddOrUpdateWebboardPost}
+        onCancel={handleCancelEditOrPost}
+        checkWebboardPostLimits={checkWebboardPostLimits}
+      />
+    );
+  };
+
 
   let currentViewContent;
   if (isLoadingAuth) {
@@ -1334,7 +1348,7 @@ const App: React.FC = () => {
   } else {
     if (currentView === View.PasswordReset) {
       currentViewContent = renderPasswordResetPage();
-    } else if (isSiteLocked && currentUser?.role !== UserRole.Admin) {
+    } else if (isSiteLocked && currentUser?.role !== UserRole.Admin && currentView !== View.CreateWebboardPost) { // Allow admin to access create post even if site is locked
       return <SiteLockOverlay />; 
     } else {
       switch (currentView) {
@@ -1352,19 +1366,25 @@ const App: React.FC = () => {
           case View.PublicProfile: currentViewContent = renderPublicProfile(); break;
           case View.Safety: currentViewContent = renderSafetyPage(); break;
           case View.Webboard: currentViewContent = renderWebboardPage(); break;
+          case View.CreateWebboardPost: currentViewContent = renderCreateWebboardPostScreen(); break; // New case
           default: currentViewContent = renderHome();
       }
     }
   }
+  const mainContentPadding = (currentView !== View.PasswordReset && currentView !== View.CreateWebboardPost) 
+    ? 'py-6 sm:py-8 lg:py-10 xl:py-12' 
+    : (currentView === View.CreateWebboardPost ? 'p-0' : ''); // No padding for create screen, existing for password reset
 
   return (
-    <div className="flex flex-col min-h-screen bg-neutral-light dark:bg-dark-pageBg font-serif text-neutral-dark dark:text-dark-text">
+    <div className={`flex flex-col min-h-screen bg-neutral-light dark:bg-dark-pageBg font-serif text-neutral-dark dark:text-dark-text ${currentView === View.CreateWebboardPost ? 'overflow-hidden' : ''}`}>
       {!(currentView === View.PasswordReset && !currentUser) && renderHeader()}
       {renderMobileMenu()}
-      <main className={`flex-grow container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 ${ (currentView !== View.PasswordReset) ? 'py-6 sm:py-8 lg:py-10 xl:py-12' : ''}`}>
+      <main className={`flex-grow container mx-auto 
+        ${currentView === View.CreateWebboardPost ? 'px-0 sm:px-0 lg:px-0 xl:px-0 max-w-full' : 'px-4 sm:px-6 lg:px-8 xl:px-10'} 
+        ${mainContentPadding}`}>
         {currentViewContent}
       </main>
-      {!(currentView === View.PasswordReset && !currentUser) && (
+      {!(currentView === View.PasswordReset && !currentUser) && currentView !== View.CreateWebboardPost && (
         <footer className="bg-neutral-light dark:bg-dark-headerBg/70 text-neutral-dark dark:text-dark-textMuted p-4 text-center text-xs font-sans">
           <p>&copy; {new Date().getFullYear()} HAJOBJA.COM - All rights reserved.</p>
           <div className="mt-2 space-x-3">
