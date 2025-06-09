@@ -417,25 +417,20 @@ export const deleteJobService = async (jobId: string): Promise<boolean> => {
 export const getJobsPaginated = async (
   pageSize: number,
   startAfterDoc: DocumentSnapshot<DocumentData> | null = null,
-  categoryFilter: string | null = null, // Add category filter
-  searchTerm: string | null = null // Add search term
+  categoryFilter: string | null = null, 
+  searchTerm: string | null = null 
 ): Promise<PaginatedDocsResponse<Job>> => {
   try {
     const constraints: QueryConstraint[] = [
       orderBy("isPinned", "desc"),
-      orderBy("postedAt", "desc"), // Ensure this field exists and is a Timestamp for reliable ordering
+      orderBy("postedAt", "desc"), 
       limit(pageSize)
     ];
 
     if (categoryFilter && categoryFilter !== 'all') {
-      constraints.unshift(where("category", "==", categoryFilter)); // Add category filter
+      constraints.unshift(where("category", "==", categoryFilter)); 
     }
-    // Note: Firestore does not support text search directly on multiple fields like SQL LIKE.
-    // For more complex search, consider a third-party search service (e.g., Algolia, Elasticsearch)
-    // or implement a simpler client-side filter after fetching if dataset is small enough (not ideal for infinite scroll from scratch).
-    // For this implementation, we will rely on client-side filtering after fetching batches if searchTerm is present.
-    // If searchTerm is to be used in query, it would typically be a 'where' clause on a specific indexed field.
-
+    
     if (startAfterDoc) {
       constraints.push(startAfter(startAfterDoc));
     }
@@ -448,15 +443,10 @@ export const getJobsPaginated = async (
       ...convertTimestamps(docSnap.data()),
     } as Job));
     
-    // Client-side search filtering (if searchTerm is provided)
-    // This is applied *after* the Firestore query. For true backend search, specific fields would need to be queried.
     let searchedJobsData = jobsData;
     if (searchTerm && searchTerm.trim() !== '') {
         const termLower = searchTerm.toLowerCase();
-        // Assuming searchMappings is defined elsewhere or not used for now.
-        // const searchMappings: Record<string, string[]> = { /* ... */ };
-        // const termsToSearch = [termLower, ...(searchMappings[termLower] || []).map(t => t.toLowerCase())];
-        const termsToSearch = [termLower]; // Simplified for now
+        const termsToSearch = [termLower]; 
         
         searchedJobsData = jobsData.filter(job => 
             termsToSearch.some(st =>
@@ -532,7 +522,7 @@ export const bumpHelperProfileService = async (profileId: string, userId: string
   try {
     const now = serverTimestamp();
     await updateDoc(doc(db, HELPER_PROFILES_COLLECTION, profileId), {
-      updatedAt: now, // Bumping updates the 'updatedAt' timestamp for sorting
+      updatedAt: now, 
       lastBumpedAt: now
     });
     await updateDoc(doc(db, USERS_COLLECTION, userId), {
@@ -564,7 +554,7 @@ export const getHelperProfilesPaginated = async (
   try {
     const constraints: QueryConstraint[] = [
       orderBy("isPinned", "desc"),
-      orderBy("updatedAt", "desc"), // Use updatedAt for recency, including bumps
+      orderBy("updatedAt", "desc"), 
       limit(pageSize)
     ];
     
@@ -584,12 +574,9 @@ export const getHelperProfilesPaginated = async (
       ...convertTimestamps(docSnap.data()),
     } as HelperProfile));
 
-    // Client-side search filtering
     let searchedProfilesData = profilesData;
     if (searchTerm && searchTerm.trim() !== '') {
         const termLower = searchTerm.toLowerCase();
-        // const searchMappings: Record<string, string[]> = { /* ... */ }; // If needed
-        // const termsToSearch = [termLower, ...(searchMappings[termLower] || []).map(t => t.toLowerCase())];
         const termsToSearch = [termLower];
 
         searchedProfilesData = profilesData.filter(profile => 
@@ -617,7 +604,7 @@ export const getHelperProfilesPaginated = async (
 interface WebboardPostAuthorInfo { userId: string; authorDisplayName: string; photo?: string | null; }
 export const addWebboardPostService = async (postData: { title: string; body: string; category: WebboardCategory; image?: string }, author: WebboardPostAuthorInfo): Promise<string> => {
   try {
-    if (postData.body.length > 5000) { // Check length before processing
+    if (postData.body.length > 5000) { 
       throw new Error("Post body exceeds 5000 characters.");
     }
     let imageUrl: string | undefined = undefined;
@@ -658,7 +645,7 @@ export const addWebboardPostService = async (postData: { title: string; body: st
 
 export const updateWebboardPostService = async (postId: string, postData: { title?: string; body?: string; category?: WebboardCategory; image?: string | null }, currentUserPhoto?: string | null): Promise<boolean> => {
   try {
-    if (postData.body && postData.body.length > 5000) { // Check length
+    if (postData.body && postData.body.length > 5000) { 
       throw new Error("Post body exceeds 5000 characters.");
     }
     const postRef = doc(db, WEBBOARD_POSTS_COLLECTION, postId);
@@ -711,10 +698,9 @@ export const deleteWebboardPostService = async (postId: string): Promise<boolean
     const batch: WriteBatch = writeBatch(db);
     commentsSnapshot.forEach(commentDoc => batch.delete(commentDoc.ref));
 
-    // Also delete user saved post entries
     const savedPostsQuery = query(collectionGroup(db, USER_SAVED_POSTS_SUBCOLLECTION), where('postId', '==', postId));
     const savedPostsSnapshot = await getDocs(savedPostsQuery);
-    savedPostsSnapshot.forEach(docSnap => batch.delete(docSnap.ref)); // Corrected variable name
+    savedPostsSnapshot.forEach(docSnap => batch.delete(docSnap.ref)); 
 
     await batch.commit();
 
@@ -737,11 +723,10 @@ export const deleteWebboardPostService = async (postId: string): Promise<boolean
   }
 };
 
-// Modified to accept category and search term filters for initial query
 export const getWebboardPostsPaginated = async (
   pageSize: number = 10,
   startAfterDoc: DocumentSnapshot<DocumentData> | null = null,
-  categoryFilter: string | null = null,
+  categoryFilter: string | null = null, // Changed from selectedCategory
   searchTerm: string | null = null
 ): Promise<PaginatedDocsResponse<WebboardPost>> => {
   try {
@@ -751,12 +736,10 @@ export const getWebboardPostsPaginated = async (
       limit(pageSize)
     ];
 
-    if (categoryFilter && categoryFilter !== 'all') {
+    if (categoryFilter && categoryFilter !== 'all') { // Apply category filter
       constraints.unshift(where("category", "==", categoryFilter));
     }
-    // As with jobs/profiles, full-text search across multiple fields is complex with Firestore alone.
-    // Client-side filtering will be applied if searchTerm is provided.
-
+    
     if (startAfterDoc) {
       constraints.push(startAfter(startAfterDoc));
     }
@@ -769,7 +752,6 @@ export const getWebboardPostsPaginated = async (
       ...convertTimestamps(docSnap.data()),
     } as WebboardPost));
 
-    // Client-side search filtering
     let searchedPostsData = postsData;
     if (searchTerm && searchTerm.trim() !== '') {
         const termLower = searchTerm.toLowerCase();

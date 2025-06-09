@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 // Corrected import path for types
 import type { WebboardPost, WebboardComment, User, EnrichedWebboardPost, EnrichedWebboardComment, UserLevel, UserRole } from '../types';
@@ -83,47 +82,46 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
     if (isLoadingWebboardPosts || (!isInitialLoad && !hasMoreWebboardPosts)) return;
     setIsLoadingWebboardPosts(true);
 
-    // If it's an initial load (e.g. due to filter change), clear existing posts
     if (isInitialLoad) {
       setWebboardPostsList([]);
       setLastVisibleWebboardPost(null);
-      setHasMoreWebboardPosts(true); // Assume there might be more until fetch result
-      setInitialWebboardPostsLoaded(false); // Reset initial loaded flag
+      setHasMoreWebboardPosts(true); 
+      setInitialWebboardPostsLoaded(false); 
     }
 
     try {
+      // Pass selectedCategoryFilter and searchTerm to the service function
       const result = await getWebboardPostsPaginatedService(
         pageSize,
         isInitialLoad ? null : lastVisibleWebboardPost,
-        selectedCategoryFilter === 'all' ? null : selectedCategoryFilter,
-        searchTerm
+        selectedCategoryFilter === 'all' ? null : selectedCategoryFilter, // Pass category
+        searchTerm // Pass search term
       );
-      // Append new posts if not an initial load, otherwise set as new list
       setWebboardPostsList(prevPosts => isInitialLoad ? result.items : [...prevPosts, ...result.items]);
       setLastVisibleWebboardPost(result.lastVisibleDoc);
       setHasMoreWebboardPosts(result.items.length === pageSize && result.lastVisibleDoc !== null);
-      setInitialWebboardPostsLoaded(true); // Mark as loaded after first successful fetch or subsequent fetches
+      setInitialWebboardPostsLoaded(true); 
     } catch (error) {
       console.error("Error loading webboard posts:", error);
       logFirebaseError("loadWebboardPosts", error);
-      setHasMoreWebboardPosts(false); // Stop trying if error
-      setInitialWebboardPostsLoaded(true); // Still mark as loaded to prevent infinite loading on error
+      setHasMoreWebboardPosts(false); 
+      setInitialWebboardPostsLoaded(true); 
     } finally {
       setIsLoadingWebboardPosts(false);
     }
-  }, [isLoadingWebboardPosts, hasMoreWebboardPosts, lastVisibleWebboardPost, pageSize, selectedCategoryFilter, searchTerm]); // Removed webboardPostsList from deps to avoid re-triggering on list update
+  }, [isLoadingWebboardPosts, hasMoreWebboardPosts, lastVisibleWebboardPost, pageSize, selectedCategoryFilter, searchTerm]);
 
-  useEffect(() => { // Initial load and filter/search changes
-    loadWebboardPosts(true); // Always treat filter/search changes as an initial load for this list
-  }, [selectedCategoryFilter, searchTerm]); // Removed loadWebboardPosts from deps, it's stable due to useCallback
+  useEffect(() => { 
+    loadWebboardPosts(true); 
+  }, [selectedCategoryFilter, searchTerm]); 
 
- useEffect(() => { // IntersectionObserver for webboard posts
-    if (selectedPostId !== null) return; // Don't observe if viewing detail
+ useEffect(() => { 
+    if (selectedPostId !== null) return; 
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMoreWebboardPosts && !isLoadingWebboardPosts && initialWebboardPostsLoaded) {
-          loadWebboardPosts(); // Load next page
+          loadWebboardPosts(); 
         }
       },
       { threshold: 0.8 } 
