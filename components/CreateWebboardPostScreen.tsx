@@ -27,8 +27,8 @@ const MAX_POST_CHARS = 5000;
 
 const WebboardRulesInfo: React.FC = () => {
   return (
-    <div className="my-4 p-3 bg-amber-50 dark:bg-amber-800/20 border border-amber-300 dark:border-amber-600/40 rounded-lg shadow-sm text-xs">
-      <h4 className="text-sm font-sans font-semibold text-amber-700 dark:text-amber-300 mb-1 text-center">
+    <div className="my-2 p-2 bg-neutral-light/70 dark:bg-dark-inputBg/50 border border-neutral-DEFAULT/50 dark:border-dark-border/50 rounded-lg shadow-sm text-xs">
+      <h4 className="text-sm font-sans font-semibold text-neutral-700 dark:text-dark-text mb-1 text-center">
         📝 กฎพื้นฐาน
       </h4>
       <ul className="space-y-0.5 text-neutral-dark dark:text-dark-textMuted list-none pl-0">
@@ -66,7 +66,7 @@ export const CreateWebboardPostScreen: React.FC<CreateWebboardPostScreenProps> =
         title: editingPost.title,
         body: editingPost.body,
         category: editingPost.category,
-        image: editingPost.image, // Store original image URL if editing
+        image: editingPost.image, 
         imagePreviewUrl: editingPost.image,
       });
       setLimitMessage(null);
@@ -82,7 +82,6 @@ export const CreateWebboardPostScreen: React.FC<CreateWebboardPostScreenProps> =
         setCanSubmitForm(false);
       }
     }
-    // Focus title input when component mounts or editingPost changes
     titleInputRef.current?.focus();
   }, [editingPost, currentUser, checkWebboardPostLimits]);
 
@@ -105,13 +104,10 @@ export const CreateWebboardPostScreen: React.FC<CreateWebboardPostScreenProps> =
       if (file.size > 2 * 1024 * 1024) {
         setErrors(prev => ({ ...prev, image: 'ขนาดรูปภาพต้องไม่เกิน 2MB' }));
         if (fileInputRef.current) fileInputRef.current.value = '';
-        // Don't clear existing image preview if a large file is selected then cancelled
         return;
       }
       const reader = new FileReader();
       reader.onloadend = () => {
-        // For submission, 'image' will hold the base64 string of the new/updated image
-        // 'imagePreviewUrl' is just for display
         setFormData(prev => ({ ...prev, image: reader.result as string, imagePreviewUrl: reader.result as string }));
         setErrors(prev => ({ ...prev, image: undefined }));
       };
@@ -159,8 +155,6 @@ export const CreateWebboardPostScreen: React.FC<CreateWebboardPostScreenProps> =
         setErrors(prev => ({ ...prev, category: 'กรุณาเลือกหมวดหมู่ของโพสต์' }));
         return;
     }
-    // 'formData.image' will be the base64 string if a new image was selected,
-    // or the original URL if editing and image wasn't changed, or undefined if removed/never set.
     const finalDataToSubmit = { ...dataToSubmitRest, category: category as WebboardCategory, image: formData.image };
     onSubmit(finalDataToSubmit, editingPost?.id);
   };
@@ -169,15 +163,15 @@ export const CreateWebboardPostScreen: React.FC<CreateWebboardPostScreenProps> =
   const charCountColor = charsLeft < 0 ? 'text-red-500 dark:text-red-400' : charsLeft < MAX_POST_CHARS * 0.1 ? 'text-amber-600 dark:text-amber-400' : 'text-neutral-medium dark:text-dark-textMuted';
 
   const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border border-neutral-DEFAULT/70 dark:border-dark-border/70 rounded-lg text-neutral-dark dark:text-dark-text focus:outline-none";
-  const inputFocusStyle = "focus:ring-2 focus:ring-primary dark:focus:ring-dark-primary";
+  const inputFocusStyle = "focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500"; // Neutral focus
   const inputErrorStyle = "border-red-500 dark:border-red-400 focus:ring-red-500/50";
   const selectBaseStyle = `${inputBaseStyle} appearance-none`;
 
   return (
     <div className="fixed inset-0 bg-neutral-light dark:bg-dark-pageBg z-40 flex flex-col h-full font-sans">
       {/* Header */}
-      <div className="flex-shrink-0 flex items-center justify-between p-3 border-b border-neutral-DEFAULT/50 dark:border-dark-border/50 bg-white dark:bg-dark-cardBg">
-        <Button onClick={onCancel} variant="outline" colorScheme="neutral" size="sm" className="rounded-full !p-2 aspect-square">
+      <div className="flex-shrink-0 flex items-center justify-between p-3 gap-2 border-b border-neutral-DEFAULT/50 dark:border-dark-border/50 bg-white dark:bg-dark-cardBg">
+        <Button onClick={onCancel} variant="outline" colorScheme="neutral" size="sm" className="rounded-full !p-2 aspect-square focus:ring-gray-400 dark:focus:ring-gray-500">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -186,7 +180,7 @@ export const CreateWebboardPostScreen: React.FC<CreateWebboardPostScreenProps> =
           name="category"
           value={formData.category}
           onChange={handleChange}
-          className={`${selectBaseStyle} ${errors.category ? inputErrorStyle : inputFocusStyle} !py-1.5 !px-3 !text-sm !rounded-full !max-w-xs !mx-auto`}
+          className={`${selectBaseStyle} ${errors.category ? inputErrorStyle : inputFocusStyle} !py-1.5 !px-3 !text-sm !rounded-full flex-grow min-w-0 max-w-[200px] sm:max-w-xs`}
           disabled={!canSubmitForm && !editingPost}
           aria-label="เลือกหมวดหมู่"
         >
@@ -195,7 +189,13 @@ export const CreateWebboardPostScreen: React.FC<CreateWebboardPostScreenProps> =
             <option key={cat} value={cat}>{cat}</option>
           ))}
         </select>
-        <Button onClick={handleSubmit} variant="login" size="sm" className="rounded-full font-semibold" disabled={(!canSubmitForm && !editingPost) || !formData.title.trim() || !formData.category}>
+        <Button 
+          onClick={handleSubmit} 
+          variant="login" 
+          size="sm" 
+          className="rounded-full font-semibold focus:ring-gray-400 dark:focus:ring-gray-500" // Neutral focus for Post button
+          disabled={(!canSubmitForm && !editingPost) || !formData.title.trim() || !formData.category}
+        >
           {editingPost ? 'บันทึก' : 'โพสต์'}
         </Button>
       </div>
@@ -240,7 +240,7 @@ export const CreateWebboardPostScreen: React.FC<CreateWebboardPostScreenProps> =
             className={`${inputBaseStyle} ${errors.body ? inputErrorStyle : inputFocusStyle} min-h-[200px] text-base !p-2 placeholder-neutral-medium/70 dark:placeholder-dark-textMuted/70`}
             placeholder="เล่าเรื่องราวของคุณที่นี่..."
             disabled={!canSubmitForm && !editingPost}
-            maxLength={MAX_POST_CHARS + 200} // Allow slight overtyping, validate on submit
+            maxLength={MAX_POST_CHARS + 200} 
             aria-invalid={!!errors.body}
             aria-describedby={errors.body ? "body-error" : undefined}
           />
@@ -265,13 +265,16 @@ export const CreateWebboardPostScreen: React.FC<CreateWebboardPostScreenProps> =
           </div>
         )}
          {errors.image && <p className="text-red-500 dark:text-red-400 text-xs mt-1 text-center">{errors.image}</p>}
-
-
       </div>
 
       {/* Footer / Action Bar */}
       <div className="flex-shrink-0 flex items-center justify-between p-3 border-t border-neutral-DEFAULT/50 dark:border-dark-border/50 bg-white dark:bg-dark-cardBg">
-        <label htmlFor="postImageUploadScreen" className={`p-2 rounded-full hover:bg-neutral-light dark:hover:bg-dark-inputBg cursor-pointer ${(!canSubmitForm && !editingPost) ? 'opacity-50 cursor-not-allowed' : ''}`}
+        <label 
+          htmlFor="postImageUploadScreen" 
+          className={`p-2 rounded-full hover:bg-neutral-light/70 dark:hover:bg-dark-inputBg/70 cursor-pointer 
+                      border border-neutral-DEFAULT dark:border-dark-border 
+                      bg-neutral-light/30 dark:bg-dark-inputBg/30
+                      ${(!canSubmitForm && !editingPost) ? 'opacity-50 cursor-not-allowed' : ''}`}
           aria-disabled={!canSubmitForm && !editingPost}
           tabIndex={(!canSubmitForm && !editingPost) ? -1 : 0}
           onKeyPress={(e) => { if (e.key === 'Enter' && (canSubmitForm || editingPost) && fileInputRef.current) fileInputRef.current.click(); }}
@@ -290,7 +293,11 @@ export const CreateWebboardPostScreen: React.FC<CreateWebboardPostScreenProps> =
             disabled={!canSubmitForm && !editingPost}
           />
         </label>
-        <WebboardRulesInfo />
+        <div className="flex-grow flex justify-center px-2">
+          <WebboardRulesInfo />
+        </div>
+        {/* Placeholder for potential other icons on the right */}
+        <div className="w-10 h-10"></div> 
       </div>
     </div>
   );

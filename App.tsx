@@ -386,8 +386,14 @@ const App: React.FC = () => {
       return; 
     }
     
+    // Set sourceViewForForm if navigating to a creation/editing screen for a new item
+    if ((view === View.PostJob || view === View.OfferHelp || view === View.CreateWebboardPost) && !itemToEdit) {
+      setSourceViewForForm(fromView);
+    }
+
+
     if (view === View.Webboard) {
-      if (typeof payload === 'string') setSelectedPostId(payload === 'create' ? null : payload); // 'create' will now navigate to CreateWebboardPost view
+      if (typeof payload === 'string') setSelectedPostId(payload === 'create' ? null : payload); 
       else if (payload && typeof payload === 'object' && payload.postId) setSelectedPostId(payload.postId);
       else if (payload === null || payload === undefined) setSelectedPostId(null);
     } else if (selectedPostId !== null && view !== View.AdminDashboard && view !== View.PasswordReset && view !== View.CreateWebboardPost) { 
@@ -713,9 +719,17 @@ const App: React.FC = () => {
   };
 
   const handleCancelEditOrPost = () => {
-    const targetView = sourceViewForForm || (editingItemType === 'webboardPost' ? View.Webboard : View.Home);
-    setItemToEdit(null); setEditingItemType(null); setSourceViewForForm(null); setSelectedPostId(null);
-    navigateTo(targetView);
+    const fromWebboardRelatedView = editingItemType === 'webboardPost' || sourceViewForForm === View.Webboard;
+    setItemToEdit(null);
+    setEditingItemType(null);
+    setSourceViewForForm(null);
+    setSelectedPostId(null);
+  
+    if (fromWebboardRelatedView) {
+      navigateTo(View.Webboard);
+    } else {
+      navigateTo(sourceViewForForm || View.Home);
+    }
   };
 
   const openConfirmModal = (title: string, message: string, onConfirm: () => void) => {
@@ -818,7 +832,7 @@ const App: React.FC = () => {
         }
         setItemToEdit(null); setEditingItemType(null);
         setSelectedPostId(finalPostId || null); 
-        navigateTo(View.Webboard, finalPostId); // Navigate to the post detail after creation/update
+        navigateTo(View.Webboard, finalPostId); 
     } catch (error: any) {
         logFirebaseError("handleAddOrUpdateWebboardPost", error);
         alert(`เกิดข้อผิดพลาดในการจัดการโพสต์: ${error.message}`);
@@ -1307,7 +1321,7 @@ const App: React.FC = () => {
     return (<WebboardPage
       currentUser={currentUser} users={users} posts={webboardPosts} comments={webboardComments}
       onAddOrUpdatePost={handleAddOrUpdateWebboardPost} onAddComment={handleAddWebboardComment}
-      onToggleLike={handleToggleWebboardPostLike} 
+      onToggleLike={onToggleLike} 
       onSavePost={handleSaveWebboardPost} 
       onSharePost={handleShareWebboardPost} 
       onDeletePost={handleDeleteWebboardPost}
@@ -1348,7 +1362,7 @@ const App: React.FC = () => {
   } else {
     if (currentView === View.PasswordReset) {
       currentViewContent = renderPasswordResetPage();
-    } else if (isSiteLocked && currentUser?.role !== UserRole.Admin && currentView !== View.CreateWebboardPost) { // Allow admin to access create post even if site is locked
+    } else if (isSiteLocked && currentUser?.role !== UserRole.Admin && currentView !== View.CreateWebboardPost) { 
       return <SiteLockOverlay />; 
     } else {
       switch (currentView) {
@@ -1366,14 +1380,14 @@ const App: React.FC = () => {
           case View.PublicProfile: currentViewContent = renderPublicProfile(); break;
           case View.Safety: currentViewContent = renderSafetyPage(); break;
           case View.Webboard: currentViewContent = renderWebboardPage(); break;
-          case View.CreateWebboardPost: currentViewContent = renderCreateWebboardPostScreen(); break; // New case
+          case View.CreateWebboardPost: currentViewContent = renderCreateWebboardPostScreen(); break;
           default: currentViewContent = renderHome();
       }
     }
   }
   const mainContentPadding = (currentView !== View.PasswordReset && currentView !== View.CreateWebboardPost) 
     ? 'py-6 sm:py-8 lg:py-10 xl:py-12' 
-    : (currentView === View.CreateWebboardPost ? 'p-0' : ''); // No padding for create screen, existing for password reset
+    : (currentView === View.CreateWebboardPost ? 'p-0' : ''); 
 
   return (
     <div className={`flex flex-col min-h-screen bg-neutral-light dark:bg-dark-pageBg font-serif text-neutral-dark dark:text-dark-text ${currentView === View.CreateWebboardPost ? 'overflow-hidden' : ''}`}>
