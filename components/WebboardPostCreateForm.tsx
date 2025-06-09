@@ -57,7 +57,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
   onSubmit,
   editingPost,
   currentUser,
-  checkWebboardPostLimits,
+  checkWebboardPostLimits, // Kept for signature, but logic within it in App.tsx is simplified
 }) => {
   const [formData, setFormData] = useState<FormDataType>({ title: '', body: '', category: '', image: undefined, imagePreviewUrl: undefined });
   const [errors, setErrors] = useState<FormErrorsType>({});
@@ -81,9 +81,9 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
         } else {
             setFormData({ title: '', body: '', category: '', image: undefined, imagePreviewUrl: undefined });
             if (currentUser) {
-                const limits = checkWebboardPostLimits(currentUser);
-                setLimitMessage(limits.message || null);
-                setCanSubmitForm(limits.canPost);
+                const limits = checkWebboardPostLimits(currentUser); // This will now return canPost: true
+                setLimitMessage(limits.message || "คุณสามารถโพสต์กระทู้ได้ไม่จำกัด"); // Show positive message or default
+                setCanSubmitForm(limits.canPost); // Will be true
             } else {
                 setLimitMessage("กรุณาเข้าสู่ระบบเพื่อสร้างกระทู้");
                 setCanSubmitForm(false);
@@ -159,7 +159,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmitForm && !editingPost) {
+    if (!canSubmitForm && !editingPost) { // This check is now mainly for !currentUser
         alert(limitMessage || "ไม่สามารถโพสต์ได้ในขณะนี้");
         return;
     }

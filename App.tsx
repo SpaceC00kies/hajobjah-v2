@@ -101,13 +101,13 @@ const HELPER_PROFILE_COOLDOWN_DAYS = 7;
 const BUMP_COOLDOWN_DAYS = 30;
 const MAX_ACTIVE_JOBS_NORMAL = 2;
 const MAX_ACTIVE_HELPER_PROFILES_NORMAL = 1;
-const MAX_WEBBOARD_POSTS_DAILY_NORMAL = 3;
+// const MAX_WEBBOARD_POSTS_DAILY_NORMAL = 3; // No longer enforced
 // const MAX_WEBBOARD_COMMENTS_HOURLY = 10; // Removed - No longer enforced
 
 // For users with "🔥 ขยันใช้เว็บ" badge
 const MAX_ACTIVE_JOBS_BADGE = 4;
 const MAX_ACTIVE_HELPER_PROFILES_BADGE = 2;
-const MAX_WEBBOARD_POSTS_DAILY_BADGE = 4; 
+// const MAX_WEBBOARD_POSTS_DAILY_BADGE = 4; // No longer enforced
 
 export const checkProfileCompleteness = (user: User): boolean => {
   if (!user) return false;
@@ -272,7 +272,7 @@ const App: React.FC = () => {
               lastJobPostDate: new Date(0).toISOString(),
               lastHelperProfileDate: new Date(0).toISOString(),
               dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() },
-              hourlyComments: { count: 0, resetTime: new Date(0).toISOString() }, // Retained for structure but not used for limit
+              hourlyComments: { count: 0, resetTime: new Date(0).toISOString() }, 
               lastBumpDates: {},
             };
 
@@ -289,7 +289,7 @@ const App: React.FC = () => {
                 postingLimits: { 
                     ...defaultPostingLimits,
                     ...(u.postingLimits || {}),
-                    dailyWebboardPosts: {
+                    dailyWebboardPosts: { // Kept for structure, not for enforcement
                       ...defaultPostingLimits.dailyWebboardPosts,
                       ...(u.postingLimits?.dailyWebboardPosts || {})
                     },
@@ -533,22 +533,9 @@ const App: React.FC = () => {
   };
   
   const checkWebboardPostLimits = (user: User): { canPost: boolean; message?: string } => {
-    const today = new Date().toISOString().split('T')[0];
-    const userPostingLimits = user.postingLimits;
-    const resetDate = userPostingLimits.dailyWebboardPosts.resetDate ? new Date(userPostingLimits.dailyWebboardPosts.resetDate as string).toISOString().split('T')[0] : null;
-    
-    let currentDailyCount = userPostingLimits.dailyWebboardPosts.count || 0;
-    if (resetDate !== today) {
-        currentDailyCount = 0; 
-    }
-
-    const maxPosts = user.activityBadge?.isActive ? MAX_WEBBOARD_POSTS_DAILY_BADGE : MAX_WEBBOARD_POSTS_DAILY_NORMAL;
-    const postsRemaining = maxPosts - currentDailyCount;
-
-    if (currentDailyCount >= maxPosts) {
-        return { canPost: false, message: "คุณโพสต์ครบจำนวนครั้งสำหรับวันนี้แล้ว" };
-    }
-    return { canPost: true, message: `เหลือโพสต์ได้อีก ${postsRemaining} ครั้งวันนี้` };
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _user = user; // User parameter kept for signature consistency if needed later
+    return { canPost: true, message: "คุณสามารถโพสต์กระทู้ได้ไม่จำกัด" };
   };
 
   const checkWebboardCommentLimits = (user: User): { canPost: boolean; message?: string } => {
@@ -766,7 +753,7 @@ const App: React.FC = () => {
     if (!currentUser) { requestLoginForAction(View.Webboard, { action: postIdToUpdate ? 'editPost' : 'createPost', postId: postIdToUpdate }); return; }
     if (!postIdToUpdate) { 
       const limitCheck = checkWebboardPostLimits(currentUser);
-      if (!limitCheck.canPost) {
+      if (!limitCheck.canPost) { // This will always be true now
         alert(limitCheck.message);
         return;
       }
@@ -795,11 +782,11 @@ const App: React.FC = () => {
 
   const handleAddWebboardComment = async (postId: string, text: string) => {
     if (!currentUser) { requestLoginForAction(View.Webboard, { action: 'comment', postId: postId }); return; }
-    const limitCheck = checkWebboardCommentLimits(currentUser); // Still call for consistency, but it always returns true
-    if (!limitCheck.canPost) { // This condition will likely not be met anymore
-      alert(limitCheck.message);
-      return;
-    }
+    // const limitCheck = checkWebboardCommentLimits(currentUser); // Still call for consistency, but it always returns true
+    // if (!limitCheck.canPost) { // This condition will likely not be met anymore
+    //   alert(limitCheck.message);
+    //   return;
+    // }
     if (containsBlacklistedWords(text)) { alert('เนื้อหาคอมเมนต์มีคำที่ไม่เหมาะสม'); return; }
     try {
         await addWebboardCommentService(postId, text, {userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, photo: currentUser.photo});
@@ -1060,7 +1047,7 @@ const App: React.FC = () => {
     return (
     <div className="flex flex-col items-center justify-center pt-6 sm:pt-8 lg:pt-10 pb-6 px-6 sm:pb-8 sm:px-8 text-center">
       <h2 className="text-3xl sm:text-4xl lg:text-5xl font-sans font-medium text-neutral-dark mb-2 tracking-tight leading-snug"> ✨ หาจ๊อบจ้า ✨ </h2>
-      <p className="text-base sm:text-lg lg:text-xl text-neutral-dark max-w-xl leading-relaxed mb-8 font-normal font-serif">เชื่อมคนมีสกิลกับงานที่ใช่ มีใจก็ลองดู</p>
+      <p className="text-base sm:text-lg lg:text-xl text-neutral-dark max-w-xl leading-relaxed mb-8 font-normal font-serif"> เชื่อมคนมีสกิลกับงานที่ใช่ มีใจก็ลองดู ❤︎ </p>
       <div className="w-full max-w-3xl lg:max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 lg:gap-14">
         <div className="bg-white p-6 rounded-xl shadow-lg border border-primary/30">
           <h3 className="text-lg font-sans font-semibold text-primary mb-4">หาคนทำงาน</h3>
@@ -1145,7 +1132,7 @@ const App: React.FC = () => {
             <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedJobCategoryFilter} onSelectCategory={setSelectedJobCategoryFilter} />
             <SearchInputWithRecent searchTerm={jobSearchTerm} onSearchTermChange={handleJobSearch} placeholder="ค้นหางาน, รายละเอียด..." recentSearches={recentJobSearches} onRecentSearchSelect={(term) => { setJobSearchTerm(term); addRecentSearch('recentJobSearches', term); setRecentJobSearches(getRecentSearches('recentJobSearches')); }} ariaLabel="ค้นหางาน" />
             {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="w-full sm:px-4 sm:text-sm">
-              <span className="flex items-center justify-center gap-2"><span>📣</span><span>ประกาศงาน</span></span>
+              <span className="flex items-center justify-center gap-2"><span>📣</span><span>ฝากงานกดตรงนี้</span></span>
             </Button> )}
           </div>
         </aside>

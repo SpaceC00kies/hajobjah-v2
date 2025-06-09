@@ -496,17 +496,9 @@ export const addWebboardPostService = async (postData: { title: string; body: st
     const userSnap = await getDoc(userRef);
     if (userSnap.exists()) {
       const userData = userSnap.data() as User;
-      const today = new Date().toISOString().split('T')[0];
-      const currentResetDate = userData.postingLimits.dailyWebboardPosts.resetDate ? new Date(userData.postingLimits.dailyWebboardPosts.resetDate as string).toISOString().split('T')[0] : null;
-      
-      let newDailyCount = 1;
-      if (currentResetDate === today) {
-        newDailyCount = (userData.postingLimits.dailyWebboardPosts.count || 0) + 1;
-      }
-
+      // Daily webboard post count and reset date updates are removed.
+      // Only update activity badge.
       await updateDoc(userRef, {
-        'postingLimits.dailyWebboardPosts.count': newDailyCount,
-        'postingLimits.dailyWebboardPosts.resetDate': new Date(today + 'T00:00:00Z').toISOString(), 
         'activityBadge.last30DaysActivity': (userData.activityBadge.last30DaysActivity || 0) + 1
       });
     }

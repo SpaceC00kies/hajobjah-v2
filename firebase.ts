@@ -1,6 +1,5 @@
 
-import { initializeApp } from 'firebase/app';
-import type { FirebaseApp } from 'firebase/app';
+import * as firebaseAppNs from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
@@ -16,7 +15,7 @@ const firebaseConfig = {
   appId: "1:441394350866:web:7b83583818449c0f3901cb" // REPLACE THIS
 };
 
-const app: FirebaseApp = initializeApp(firebaseConfig);
+const app: firebaseAppNs.FirebaseApp = firebaseAppNs.initializeApp(firebaseConfig);
 const authInstance: Auth = getAuth(app);
 const firestoreInstance: Firestore = getFirestore(app);
 const storageInstance: FirebaseStorage = getStorage(app);
