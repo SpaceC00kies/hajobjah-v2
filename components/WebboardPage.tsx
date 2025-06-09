@@ -1,22 +1,27 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+// Corrected import path for types
 import type { WebboardPost, WebboardComment, User, EnrichedWebboardPost, EnrichedWebboardComment, UserLevel, UserRole } from '../types';
 import { View, USER_LEVELS, WebboardCategory } from '../types'; 
 import { Button } from './Button';
 import { WebboardPostCard } from './WebboardPostCard';
 import { WebboardPostDetail } from './WebboardPostDetail';
 import { WebboardPostCreateForm } from './WebboardPostCreateForm';
+import { getWebboardPostsPaginated as getWebboardPostsPaginatedService } from '../services/firebaseService'; // Import paginated fetch
+import type { DocumentSnapshot } from 'firebase/firestore'; // For pagination
+import { logFirebaseError } from '../firebase/logging';
+
 
 interface WebboardPageProps {
   currentUser: User | null;
   users: User[]; 
-  posts: WebboardPost[];
-  comments: WebboardComment[];
+  // posts: WebboardPost[]; // Removed: WebboardPage will fetch its own posts
+  comments: WebboardComment[]; // Global comments for enrichment
   onAddOrUpdatePost: (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => void; 
   onAddComment: (postId: string, text: string) => void;
   onToggleLike: (postId: string) => void;
-  onSavePost: (postId: string) => void; // New prop
-  onSharePost: (postId: string, postTitle: string) => void; // New prop
+  onSavePost: (postId: string) => void; 
+  onSharePost: (postId: string, postTitle: string) => void; 
   onDeletePost: (postId: string) => void;
   onPinPost: (postId: string) => void;
   onEditPost: (post: EnrichedWebboardPost) => void; 
@@ -27,17 +32,18 @@ interface WebboardPageProps {
   navigateTo: (view: View, payload?: any) => void;
   editingPost?: WebboardPost | null; 
   onCancelEdit: () => void; 
-  getUserDisplayBadge: (user: User | null | undefined) => UserLevel; // Removed posts, comments from signature as badges are not on webboard items
+  getUserDisplayBadge: (user: User | null | undefined) => UserLevel; 
   requestLoginForAction: (view: View, payload?: any) => void; 
   onNavigateToPublicProfile: (userId: string) => void;
   checkWebboardPostLimits: (user: User) => { canPost: boolean; message?: string | null };
   checkWebboardCommentLimits: (user: User) => { canPost: boolean; message?: string };
+  pageSize: number; // For infinite scroll
 }
 
 export const WebboardPage: React.FC<WebboardPageProps> = ({
   currentUser,
   users,
-  posts,
+  // posts, // Removed
   comments,
   onAddOrUpdatePost,
   onAddComment,
@@ -59,10 +65,67 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
   onNavigateToPublicProfile,
   checkWebboardPostLimits,
   checkWebboardCommentLimits,
+  pageSize,
 }) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<WebboardCategory | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // State for infinite scroll
+  const [webboardPostsList, setWebboardPostsList] = useState<WebboardPost[]>([]);
+  const [lastVisibleWebboardPost, setLastVisibleWebboardPost] = useState<DocumentSnapshot | null>(null);
+  const [isLoadingWebboardPosts, setIsLoadingWebboardPosts] = useState(false);
+  const [hasMoreWebboardPosts, setHasMoreWebboardPosts] = useState(true);
+  const [initialWebboardPostsLoaded, setInitialWebboardPostsLoaded] = useState(false);
+  const webboardLoaderRef = useRef<HTMLDivElement>(null);
+
+  const loadWebboardPosts = useCallback(async (isInitialLoad = false) => {
+    if (isLoadingWebboardPosts || (!isInitialLoad && !hasMoreWebboardPosts)) return;
+    setIsLoadingWebboardPosts(true);
+
+    try {
+      const result = await getWebboardPostsPaginatedService(
+        pageSize,
+        isInitialLoad ? null : lastVisibleWebboardPost,
+        selectedCategoryFilter === 'all' ? null : selectedCategoryFilter,
+        searchTerm
+      );
+      setWebboardPostsList(prevPosts => isInitialLoad ? result.items : [...prevPosts, ...result.items]);
+      setLastVisibleWebboardPost(result.lastVisibleDoc);
+      setHasMoreWebboardPosts(result.items.length === pageSize && result.lastVisibleDoc !== null);
+      if (isInitialLoad) setInitialWebboardPostsLoaded(true);
+    } catch (error) {
+      console.error("Error loading webboard posts:", error);
+      logFirebaseError("loadWebboardPosts", error);
+      setHasMoreWebboardPosts(false);
+    } finally {
+      setIsLoadingWebboardPosts(false);
+    }
+  }, [isLoadingWebboardPosts, hasMoreWebboardPosts, lastVisibleWebboardPost, pageSize, selectedCategoryFilter, searchTerm]);
+
+  useEffect(() => { // Initial load and filter/search changes
+    setInitialWebboardPostsLoaded(false); // Reset for new filter/search
+    loadWebboardPosts(true);
+  }, [selectedCategoryFilter, searchTerm, loadWebboardPosts]); // `loadWebboardPosts` is a dependency
+
+ useEffect(() => { // IntersectionObserver for webboard posts
+    if (selectedPostId !== null) return; // Don't observe if viewing detail
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMoreWebboardPosts && !isLoadingWebboardPosts && initialWebboardPostsLoaded) {
+          loadWebboardPosts();
+        }
+      },
+      { threshold: 0.8 } 
+    );
+    const currentLoaderRef = webboardLoaderRef.current;
+    if (currentLoaderRef) observer.observe(currentLoaderRef);
+    return () => {
+      if (currentLoaderRef) observer.unobserve(currentLoaderRef);
+    };
+  }, [selectedPostId, hasMoreWebboardPosts, isLoadingWebboardPosts, initialWebboardPostsLoaded, loadWebboardPosts]);
+
 
   useEffect(() => {
     if (selectedPostId === 'create' || editingPost) {
@@ -90,34 +153,25 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
   
   const handleSubmitPostForm = (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => {
     onAddOrUpdatePost(postData, postIdToUpdate);
+    // After submit, refresh the list from the beginning to show the new/updated post correctly
+    loadWebboardPosts(true); 
     handleCloseCreateModal(); 
   };
 
-  let filteredPosts = posts;
-  if (selectedCategoryFilter !== 'all') {
-    filteredPosts = filteredPosts.filter(post => post.category === selectedCategoryFilter);
-  }
-  if (searchTerm.trim() !== '') {
-    const lowerSearchTerm = searchTerm.toLowerCase();
-    filteredPosts = filteredPosts.filter(post =>
-      post.title.toLowerCase().includes(lowerSearchTerm) ||
-      post.body.toLowerCase().includes(lowerSearchTerm) ||
-      post.authorDisplayName.toLowerCase().includes(lowerSearchTerm)
-    );
-  }
 
-  const enrichedPosts: EnrichedWebboardPost[] = filteredPosts
+  const enrichedPosts: EnrichedWebboardPost[] = webboardPostsList
     .map(post => {
       const author = users.find(u => u.id === post.userId);
       return {
         ...post,
         commentCount: comments.filter(c => c.postId === post.id).length,
-        // authorLevel: getUserDisplayBadge(author), // Badge removed from card/detail
         authorPhoto: author?.photo || post.authorPhoto,
         isAuthorAdmin: author?.role === 'Admin' as UserRole.Admin, 
       };
     })
-    .sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    // Sorting by isPinned is handled by Firestore query. Client-side sort if needed:
+    // .sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
 
   const currentDetailedPost = selectedPostId && selectedPostId !== 'create'
     ? enrichedPosts.find(p => p.id === selectedPostId) 
@@ -130,7 +184,6 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
           const commenter = users.find(u => u.id === comment.userId);
           return {
             ...comment,
-            // authorLevel: getUserDisplayBadge(commenter), // Badge removed from comment
             authorPhoto: commenter?.photo || comment.authorPhoto,
             isAuthorAdmin: commenter?.role === 'Admin' as UserRole.Admin,
           };
@@ -139,7 +192,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
 
   if (currentDetailedPost) {
     return (
-      <div className="p-2 sm:p-4 md:max-w-3xl md:mx-auto"> {/* Centered single column for detail */}
+      <div className="p-2 sm:p-4 md:max-w-3xl md:mx-auto"> 
         <Button 
           onClick={() => setSelectedPostId(null)} 
           variant="outline" 
@@ -158,8 +211,8 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
           onSavePost={onSavePost}
           onSharePost={onSharePost}
           onAddComment={onAddComment}
-          onDeletePost={onDeletePost}
-          onPinPost={onPinPost}
+          onDeletePost={(id) => { onDeletePost(id); loadWebboardPosts(true); }} // Refresh list on delete
+          onPinPost={(id) => { onPinPost(id); loadWebboardPosts(true); }} // Refresh list on pin
           onEditPost={onEditPost}
           onDeleteComment={onDeleteComment}
           onUpdateComment={onUpdateComment}
@@ -175,7 +228,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
   const selectBaseStyle = `${inputBaseStyle} appearance-none`;
 
   return (
-    <div className="p-2 sm:p-4 md:max-w-3xl md:mx-auto"> {/* Centered single column for list */}
+    <div className="p-2 sm:p-4 md:max-w-3xl md:mx-auto"> 
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <h2 className="text-2xl sm:text-3xl font-sans font-semibold text-neutral-700 dark:text-neutral-300 text-center sm:text-left">
           💬 กระทู้พูดคุย
@@ -201,7 +254,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
             className={`${selectBaseStyle} w-full font-sans`}
           >
             <option value="all">หมวดหมู่ทั้งหมด</option>
-            {Object.values(WebboardCategory).map(cat => (
+            {Object.values(WebboardCategory).map((cat: string) => (
               <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>
@@ -219,8 +272,11 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
         </div>
       </div>
 
+      {!initialWebboardPostsLoaded && isLoadingWebboardPosts && (
+        <div className="text-center py-10"><p className="text-lg font-sans">✨ กำลังโหลดกระทู้...</p></div>
+      )}
 
-      {enrichedPosts.length === 0 ? (
+      {initialWebboardPostsLoaded && enrichedPosts.length === 0 && !hasMoreWebboardPosts && (
         <div className="text-center py-10 bg-white dark:bg-dark-cardBg p-6 rounded-lg shadow">
           <svg className="mx-auto h-16 w-16 text-neutral-DEFAULT dark:text-dark-border mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
@@ -246,8 +302,10 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
             </Button>
           )}
         </div>
-      ) : (
-        <div className="space-y-4"> {/* Changed from grid to space-y for single column */}
+      )}
+      
+      {enrichedPosts.length > 0 && (
+        <div className="space-y-4"> 
           {enrichedPosts.map(post => (
             <WebboardPostCard
               key={post.id}
@@ -257,8 +315,8 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
               onToggleLike={onToggleLike}
               onSavePost={onSavePost}
               onSharePost={onSharePost}
-              onDeletePost={onDeletePost}
-              onPinPost={onPinPost}
+              onDeletePost={(id) => { onDeletePost(id); loadWebboardPosts(true); }} // Refresh list on delete
+              onPinPost={(id) => { onPinPost(id); loadWebboardPosts(true); }} // Refresh list on pin
               onEditPost={onEditPost}
               requestLoginForAction={requestLoginForAction} 
               onNavigateToPublicProfile={onNavigateToPublicProfile}
@@ -266,6 +324,14 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
           ))}
         </div>
       )}
+
+      <div ref={webboardLoaderRef} className="h-10 flex justify-center items-center">
+        {isLoadingWebboardPosts && initialWebboardPostsLoaded && enrichedPosts.length > 0 && <p className="text-sm font-sans text-neutral-medium">✨ กำลังโหลดเพิ่มเติม...</p>}
+      </div>
+       {initialWebboardPostsLoaded && !hasMoreWebboardPosts && enrichedPosts.length > 0 && (
+        <p className="text-center text-sm font-sans text-neutral-medium dark:text-dark-textMuted py-4">🎉 คุณดูครบทุกกระทู้แล้ว</p>
+      )}
+
       <WebboardPostCreateForm
         isOpen={isCreateModalOpen}
         onClose={handleCloseCreateModal}

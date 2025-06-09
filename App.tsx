@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   onAuthChangeService,
@@ -10,17 +9,20 @@ import {
   addJobService,
   updateJobService,
   deleteJobService,
-  subscribeToJobsService,
+  // subscribeToJobsService, // Replaced by getJobsPaginated
+  getJobsPaginated, // New for infinite scroll
   addHelperProfileService,
   updateHelperProfileService,
   deleteHelperProfileService,
-  subscribeToHelperProfilesService,
+  // subscribeToHelperProfilesService, // Replaced by getHelperProfilesPaginated
+  getHelperProfilesPaginated, // New for infinite scroll
   bumpHelperProfileService, 
   addWebboardPostService,
   updateWebboardPostService,
   deleteWebboardPostService,
   toggleWebboardPostLikeService,
-  subscribeToWebboardPostsService,
+  // subscribeToWebboardPostsService, // Replaced by getWebboardPostsPaginated
+  getWebboardPostsPaginated as getWebboardPostsPaginatedService, // Alias for clarity
   addWebboardCommentService,
   updateWebboardCommentService,
   deleteWebboardCommentService,
@@ -37,6 +39,7 @@ import {
   unsaveUserWebboardPostService,
   subscribeToUserSavedPostsService,
 } from './services/firebaseService'; 
+import type { DocumentSnapshot, DocumentData } from 'firebase/firestore'; // For pagination
 import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier } from './types';
 import type { AdminItem as AdminItemType } from './components/AdminDashboard';
 import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP, ACTIVITY_BADGE_DETAILS } from './types'; 
@@ -119,6 +122,11 @@ const MAX_ACTIVE_HELPER_PROFILES_FREE_TIER = 1;
 // For users with "🔥 ขยันใช้เว็บ" badge (enhancement over free tier)
 const MAX_ACTIVE_JOBS_BADGE = 4; 
 const MAX_ACTIVE_HELPER_PROFILES_BADGE = 2;
+
+// Page size for infinite scroll
+const JOBS_PAGE_SIZE = 9; // divisible by 3 for grid
+const HELPERS_PAGE_SIZE = 9; // divisible by 3 for grid
+const WEBBOARD_PAGE_SIZE = 10;
 
 
 export const checkProfileCompleteness = (user: User): boolean => {
@@ -213,11 +221,16 @@ const App: React.FC = () => {
   const [userSavedPosts, setUserSavedPosts] = useState<string[]>([]);
 
   const [users, setUsers] = useState<User[]>([]);
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [helperProfiles, setHelperProfiles] = useState<HelperProfile[]>([]);
+  // Removed global state for jobs, helperProfiles, webboardPosts as they will be fetched paginatedly by views
+  const [allJobsForAdmin, setAllJobsForAdmin] = useState<Job[]>([]); // For admin dashboard
+  const [allHelperProfilesForAdmin, setAllHelperProfilesForAdmin] = useState<HelperProfile[]>([]); // For admin dashboard
+  const [allWebboardPostsForAdmin, setAllWebboardPostsForAdmin] = useState<WebboardPost[]>([]); // For admin dashboard and user level calculation
+
+
   const [interactions, setInteractions] = useState<Interaction[]>([]);
-  const [webboardPosts, setWebboardPosts] = useState<WebboardPost[]>([]);
+  // Global comments are still needed for comment counts and user level calculation
   const [webboardComments, setWebboardComments] = useState<WebboardComment[]>([]);
+
 
   const [itemToEdit, setItemToEdit] = useState<Job | HelperProfile | WebboardPost | null>(null);
   const [editingItemType, setEditingItemType] = useState<'job' | 'profile' | 'webboardPost' | null>(null);
@@ -230,6 +243,23 @@ const App: React.FC = () => {
   const [recentJobSearches, setRecentJobSearches] = useState<string[]>([]);
   const [recentHelperSearches, setRecentHelperSearches] = useState<string[]>([]);
 
+  // States for FindJobs view
+  const [jobsList, setJobsList] = useState<Job[]>([]);
+  const [lastVisibleJob, setLastVisibleJob] = useState<DocumentSnapshot | null>(null);
+  const [isLoadingJobs, setIsLoadingJobs] = useState(false);
+  const [hasMoreJobs, setHasMoreJobs] = useState(true);
+  const [initialJobsLoaded, setInitialJobsLoaded] = useState(false);
+  const jobsLoaderRef = useRef<HTMLDivElement>(null);
+
+  // States for FindHelpers view
+  const [helperProfilesList, setHelperProfilesList] = useState<HelperProfile[]>([]);
+  const [lastVisibleHelper, setLastVisibleHelper] = useState<DocumentSnapshot | null>(null);
+  const [isLoadingHelpers, setIsLoadingHelpers] = useState(false);
+  const [hasMoreHelpers, setHasMoreHelpers] = useState(true);
+  const [initialHelpersLoaded, setInitialHelpersLoaded] = useState(false);
+  const helpersLoaderRef = useRef<HTMLDivElement>(null);
+
+
   useEffect(() => {
     document.documentElement.classList.remove('dark'); 
     setRecentJobSearches(getRecentSearches('recentJobSearches'));
@@ -239,20 +269,22 @@ const App: React.FC = () => {
       setCurrentUser(user);
       setIsLoadingAuth(false);
       if (user) {
-        // When user logs in, fetch their saved posts
         const unsubscribeSaved = subscribeToUserSavedPostsService(user.id, (savedIds) => {
           setUserSavedPosts(savedIds);
-          // Update currentUser state if it doesn't have savedWebboardPosts yet or if it changed
            setCurrentUser(prevUser => ({
-            ...prevUser!, // user must exist here
+            ...prevUser!, 
             savedWebboardPosts: savedIds,
           }));
         });
-        // Store this unsubscribe function to call it on logout or component unmount
-        // For now, we assume it gets cleaned up with auth changes, but for robustness:
-        // return () => unsubscribeSaved(); // This would be if auth was a child component
+        // This unsubscribe function will be called when the auth state changes (e.g., on logout)
+        // or when the App component unmounts. We'll store it on the auth subscription itself.
+        (unsubscribeAuth as any)._unsubscribeSavedPosts = unsubscribeSaved;
       } else {
-        setUserSavedPosts([]); // Clear saved posts on logout
+        setUserSavedPosts([]); 
+         if ((unsubscribeAuth as any)._unsubscribeSavedPosts) {
+            (unsubscribeAuth as any)._unsubscribeSavedPosts();
+            delete (unsubscribeAuth as any)._unsubscribeSavedPosts;
+        }
       }
     });
 
@@ -266,24 +298,67 @@ const App: React.FC = () => {
         setCurrentView(View.PasswordReset);
     }
 
-    const unsubscribeJobs = subscribeToJobsService(setJobs);
-    const unsubscribeHelperProfiles = subscribeToHelperProfilesService(setHelperProfiles);
+    // Subscriptions for data not (yet) paginated or needed globally (e.g., for admin, user level calculation)
     const unsubscribeUsers = subscribeToUsersService(setUsers);
-    const unsubscribeWebboardPosts = subscribeToWebboardPostsService(setWebboardPosts);
-    const unsubscribeWebboardComments = subscribeToWebboardCommentsService(setWebboardComments);
+    const unsubscribeWebboardCommentsGlobal = subscribeToWebboardCommentsService(setWebboardComments); // Global for counts etc.
     const unsubscribeInteractions = subscribeToInteractionsService(setInteractions);
     const unsubscribeSiteConfig = subscribeToSiteConfigService((config) => setIsSiteLocked(config.isSiteLocked));
 
+    // For admin and MyPostsPage, we might still want all data.
+    // Consider if these also need pagination or if fetching all is acceptable for these specific views.
+    // For now, let's assume AdminDashboard and MyPostsPage might need all data, so we'll fetch it non-paginated.
+    // We'll create separate state for these full lists.
+    const fetchAllJobsForAdmin = async () => {
+        let allJobs: Job[] = [];
+        let lastDoc: DocumentSnapshot | null = null;
+        let hasMore = true;
+        while(hasMore) {
+            const batch = await getJobsPaginated(50, lastDoc); // Fetch in batches of 50
+            allJobs = [...allJobs, ...batch.items];
+            lastDoc = batch.lastVisibleDoc;
+            hasMore = !!batch.lastVisibleDoc;
+        }
+        setAllJobsForAdmin(allJobs);
+    };
+    const fetchAllHelperProfilesForAdmin = async () => {
+        let allProfiles: HelperProfile[] = [];
+        let lastDoc: DocumentSnapshot | null = null;
+        let hasMore = true;
+        while(hasMore) {
+            const batch = await getHelperProfilesPaginated(50, lastDoc);
+            allProfiles = [...allProfiles, ...batch.items];
+            lastDoc = batch.lastVisibleDoc;
+            hasMore = !!batch.lastVisibleDoc;
+        }
+        setAllHelperProfilesForAdmin(allProfiles);
+    };
+     const fetchAllWebboardPostsForAdminAndLevels = async () => {
+        let allPosts: WebboardPost[] = [];
+        let lastDoc: DocumentSnapshot | null = null;
+        let hasMore = true;
+        while(hasMore) {
+            const batch = await getWebboardPostsPaginatedService(50, lastDoc);
+            allPosts = [...allPosts, ...batch.items];
+            lastDoc = batch.lastVisibleDoc;
+            hasMore = !!batch.lastVisibleDoc;
+        }
+        setAllWebboardPostsForAdmin(allPosts);
+    };
+
+    fetchAllJobsForAdmin();
+    fetchAllHelperProfilesForAdmin();
+    fetchAllWebboardPostsForAdminAndLevels();
+
+
     return () => {
+      if ((unsubscribeAuth as any)._unsubscribeSavedPosts) {
+        (unsubscribeAuth as any)._unsubscribeSavedPosts();
+      }
       unsubscribeAuth();
-      unsubscribeJobs();
-      unsubscribeHelperProfiles();
       unsubscribeUsers();
-      unsubscribeWebboardPosts();
-      unsubscribeWebboardComments();
+      unsubscribeWebboardCommentsGlobal();
       unsubscribeInteractions();
       unsubscribeSiteConfig();
-      // Also need to unsubscribe from saved posts if an unsubscribe function was returned and stored from onAuthChangeService
     };
   }, []); 
 
@@ -294,8 +369,9 @@ const App: React.FC = () => {
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-            if (webboardPosts.length > 0 || webboardComments.length > 0) {
-                const userPostsLast30Days = webboardPosts.filter(p => p.userId === u.id && p.createdAt && new Date(p.createdAt as string) >= thirtyDaysAgo).length;
+            // Use allWebboardPostsForAdmin for level calculation
+            if (allWebboardPostsForAdmin.length > 0 || webboardComments.length > 0) {
+                const userPostsLast30Days = allWebboardPostsForAdmin.filter(p => p.userId === u.id && p.createdAt && new Date(p.createdAt as string) >= thirtyDaysAgo).length;
                 const userCommentsLast30Days = webboardComments.filter(c => c.userId === u.id && c.createdAt && new Date(c.createdAt as string) >= thirtyDaysAgo).length;
                 last30DaysActivity = userPostsLast30Days + userCommentsLast30Days;
             }
@@ -321,7 +397,7 @@ const App: React.FC = () => {
             return {
                 ...u,
                 tier: u.tier || 'free' as UserTier, 
-                userLevel: calculateUserLevel(u.id, webboardPosts, webboardComments),
+                userLevel: calculateUserLevel(u.id, allWebboardPostsForAdmin, webboardComments),
                 profileComplete: checkProfileCompleteness(u),
                 postingLimits: { 
                     ...defaultPostingLimits,
@@ -342,7 +418,7 @@ const App: React.FC = () => {
                     last30DaysActivity: last30DaysActivity,
                     lastActivityCheck: new Date().toISOString(),
                 },
-                savedWebboardPosts: u.id === currentUser?.id ? userSavedPosts : (u.savedWebboardPosts || []) // Ensure current user's saved posts are up-to-date
+                savedWebboardPosts: u.id === currentUser?.id ? userSavedPosts : (u.savedWebboardPosts || []) 
             };
         });
         setUsers(updatedUsers);
@@ -357,7 +433,7 @@ const App: React.FC = () => {
             }
         }
     }
-  }, [webboardPosts, webboardComments, isLoadingAuth, currentUser?.id, userSavedPosts]); // Added userSavedPosts to dependency array
+  }, [allWebboardPostsForAdmin, webboardComments, isLoadingAuth, currentUser?.id, userSavedPosts]); 
 
   const requestLoginForAction = (originalView: View, originalPayload?: any) => {
     if (!currentUser) {
@@ -499,7 +575,6 @@ const App: React.FC = () => {
     if (currentUser.role === UserRole.Admin) return true;
     const itemAuthor = users.find(u => u.id === itemUserId);
     if (currentUser.role === UserRole.Moderator) {
-        // Moderator can't edit/delete admin's posts/comments
         return itemAuthor?.role !== UserRole.Admin;
     }
     return currentUser.id === itemUserId || currentUser.id === itemOwnerId;
@@ -515,10 +590,11 @@ const App: React.FC = () => {
     }
  };
   const handleStartEditMyItem = (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => {
+    // For MyPostsPage, items are fetched non-paginated (allJobsForAdmin etc.)
     let originalItem: Job | HelperProfile | WebboardPost | undefined;
-    if (itemType === 'job') originalItem = jobs.find(j => j.id === itemId);
-    else if (itemType === 'profile') originalItem = helperProfiles.find(p => p.id === itemId);
-    else if (itemType === 'webboardPost') originalItem = webboardPosts.find(p => p.id === itemId);
+    if (itemType === 'job') originalItem = allJobsForAdmin.find(j => j.id === itemId);
+    else if (itemType === 'profile') originalItem = allHelperProfilesForAdmin.find(p => p.id === itemId);
+    else if (itemType === 'webboardPost') originalItem = allWebboardPostsForAdmin.find(p => p.id === itemId);
 
     if (originalItem && canEditOrDelete(originalItem.userId, originalItem.ownerId)) {
         setItemToEdit(itemType === 'webboardPost' ? { ...(originalItem as WebboardPost), isEditing: true } : originalItem);
@@ -548,7 +624,10 @@ const App: React.FC = () => {
             return { canPost: false, message: `คุณสามารถโพสต์งานใหม่ได้ในอีก ${hoursRemaining} ชั่วโมง` };
         }
     }
-    const userActiveJobs = jobs.filter(job => job.userId === user.id && !isDateInPast(job.expiresAt) && !job.isExpired).length;
+    // For limit check, count from the paginated list or a quick count query if performance becomes an issue.
+    // For now, using allJobsForAdmin (which represents all user's jobs if MyPosts uses it) might be okay.
+    // If PostJobForm needs its own job list, it should be passed or fetched.
+    const userActiveJobs = allJobsForAdmin.filter(job => job.userId === user.id && !isDateInPast(job.expiresAt) && !job.isExpired).length;
     
     let maxJobs = (user.tier === 'free') ? MAX_ACTIVE_JOBS_FREE_TIER : 999; 
     if (user.activityBadge?.isActive) {
@@ -570,7 +649,7 @@ const App: React.FC = () => {
             return { canPost: false, message: `คุณสามารถสร้างโปรไฟล์ผู้ช่วยใหม่ได้ในอีก ${hoursRemaining} ชั่วโมง` };
         }
     }
-    const userActiveProfiles = helperProfiles.filter(p => p.userId === user.id && !isDateInPast(p.expiresAt) && !p.isExpired).length;
+    const userActiveProfiles = allHelperProfilesForAdmin.filter(p => p.userId === user.id && !isDateInPast(p.expiresAt) && !p.isExpired).length;
 
     let maxProfiles = (user.tier === 'free') ? MAX_ACTIVE_HELPER_PROFILES_FREE_TIER : 999; 
     if (user.activityBadge?.isActive) {
@@ -584,13 +663,11 @@ const App: React.FC = () => {
   };
   
   const checkWebboardPostLimits = (user: User): { canPost: boolean; message?: string | null } => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _user = user; 
     return { canPost: true, message: null }; 
   };
 
   const checkWebboardCommentLimits = (user: User): { canPost: boolean; message?: string } => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _user = user; 
     return { canPost: true };
   };
@@ -604,27 +681,38 @@ const App: React.FC = () => {
     }
     if (containsBlacklistedWords(newJobData.description) || containsBlacklistedWords(newJobData.title)) { alert('เนื้อหาหรือหัวข้อมีคำที่ไม่เหมาะสม'); return; }
     try {
-      await addJobService(newJobData, {userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, contact: generateContactString(currentUser)});
+      const newJobId = await addJobService(newJobData, {userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, contact: generateContactString(currentUser)});
       const updatedUser = await getUserDocument(currentUser.id);
       if (updatedUser) setCurrentUser(updatedUser);
 
+      // Refresh the job list for FindJobs view
+      if (currentView === View.FindJobs || sourceViewForForm === View.FindJobs) {
+        loadJobs(true); // Reset and load initial
+      }
+      
       navigateTo(sourceViewForForm === View.MyPosts ? View.MyPosts : View.FindJobs);
       setSourceViewForForm(null); alert('ประกาศงานของคุณถูกเพิ่มแล้ว!');
     } catch (error: any) {
       logFirebaseError("handleAddJob", error);
       alert(`เกิดข้อผิดพลาดในการเพิ่มประกาศงาน: ${error.message}`);
     }
-  }, [currentUser, sourceViewForForm, navigateTo, users, jobs]); 
+  }, [currentUser, sourceViewForForm, navigateTo, users, currentView]); // Added currentView to deps
 
   const handleUpdateJob = async (updatedJobDataFromForm: JobFormData & { id: string }) => {
     if (!currentUser) { requestLoginForAction(View.PostJob); return; }
-    const originalJob = jobs.find(j => j.id === updatedJobDataFromForm.id);
+    const originalJob = allJobsForAdmin.find(j => j.id === updatedJobDataFromForm.id); // Check against full list
     if (!originalJob) { alert('ไม่พบประกาศงานเดิม'); return; }
     if (!canEditOrDelete(originalJob.userId, originalJob.ownerId)) { alert('คุณไม่มีสิทธิ์แก้ไขประกาศงานนี้'); return; }
     if (containsBlacklistedWords(updatedJobDataFromForm.description) || containsBlacklistedWords(updatedJobDataFromForm.title)) { alert('เนื้อหาหรือหัวข้อมีคำที่ไม่เหมาะสม'); return; }
     try {
       await updateJobService(updatedJobDataFromForm.id, updatedJobDataFromForm, generateContactString(currentUser));
       setItemToEdit(null); setEditingItemType(null);
+      // Refresh relevant lists
+      loadJobs(true); // Refresh FindJobs
+      // Refresh allJobsForAdmin if it's used by MyPosts or Admin
+      const updatedAdminJobs = allJobsForAdmin.map(j => j.id === updatedJobDataFromForm.id ? {...j, ...updatedJobDataFromForm, contact: generateContactString(currentUser), updatedAt: new Date().toISOString()} : j);
+      setAllJobsForAdmin(updatedAdminJobs as Job[]);
+
       navigateTo(sourceViewForForm || View.Home); setSourceViewForForm(null);
       alert('แก้ไขประกาศงานเรียบร้อยแล้ว');
     } catch (error: any) {
@@ -650,33 +738,44 @@ const App: React.FC = () => {
         alert('กรุณาอัปเดตข้อมูลส่วนตัว (เพศ, วันเกิด, ระดับการศึกษา) ในหน้าโปรไฟล์ของคุณก่อน'); navigateTo(View.UserProfile); return;
     }
     try {
-      await addHelperProfileService(newProfileData, {
+      const newProfileId = await addHelperProfileService(newProfileData, {
         userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, contact: generateContactString(currentUser),
         gender: currentUser.gender, birthdate: currentUser.birthdate, educationLevel: currentUser.educationLevel
       });
       const updatedUser = await getUserDocument(currentUser.id); 
       if (updatedUser) setCurrentUser(updatedUser);
 
+      // Refresh helper list
+      if (currentView === View.FindHelpers || sourceViewForForm === View.FindHelpers) {
+        loadHelpers(true);
+      }
+
       setTimeout(() => {
         navigateTo(sourceViewForForm === View.MyPosts ? View.MyPosts : View.FindHelpers);
         setSourceViewForForm(null);
         alert('โปรไฟล์ของคุณถูกเพิ่มแล้ว!');
-      }, 2000);
+      }, 2000); // Original delay kept
     } catch (error: any) {
       logFirebaseError("handleAddHelperProfile", error);
       alert(`เกิดข้อผิดพลาดในการเพิ่มโปรไฟล์: ${error.message}`);
     }
-  }, [currentUser, sourceViewForForm, navigateTo, helperProfiles]);
+  }, [currentUser, sourceViewForForm, navigateTo, currentView]); // Added currentView
 
   const handleUpdateHelperProfile = async (updatedProfileDataFromForm: HelperProfileFormData & { id: string }) => {
     if (!currentUser) { requestLoginForAction(View.OfferHelp); return; }
-    const originalProfile = helperProfiles.find(p => p.id === updatedProfileDataFromForm.id);
+    const originalProfile = allHelperProfilesForAdmin.find(p => p.id === updatedProfileDataFromForm.id);
     if (!originalProfile) { alert('ไม่พบโปรไฟล์เดิม'); return; }
     if (!canEditOrDelete(originalProfile.userId, originalProfile.ownerId)) { alert('คุณไม่มีสิทธิ์แก้ไขโปรไฟล์นี้'); return; }
     if (containsBlacklistedWords(updatedProfileDataFromForm.details) || containsBlacklistedWords(updatedProfileDataFromForm.profileTitle)) { alert('เนื้อหาหรือหัวข้อมีคำที่ไม่เหมาะสม'); return; }
     try {
       await updateHelperProfileService(updatedProfileDataFromForm.id, updatedProfileDataFromForm, generateContactString(currentUser));
-      setItemToEdit(null); setEditingItemType(null); navigateTo(sourceViewForForm || View.Home);
+      setItemToEdit(null); setEditingItemType(null); 
+      // Refresh lists
+      loadHelpers(true);
+      const updatedAdminProfiles = allHelperProfilesForAdmin.map(p => p.id === updatedProfileDataFromForm.id ? {...p, ...updatedProfileDataFromForm, contact: generateContactString(currentUser), updatedAt: new Date().toISOString()} : p);
+      setAllHelperProfilesForAdmin(updatedAdminProfiles as HelperProfile[]);
+
+      navigateTo(sourceViewForForm || View.Home);
       setSourceViewForForm(null); alert('แก้ไขโปรไฟล์เรียบร้อยแล้ว');
     } catch (error: any) {
       logFirebaseError("handleUpdateHelperProfile", error);
@@ -691,7 +790,7 @@ const App: React.FC = () => {
   
   const handleBumpHelperProfile = async (profileId: string) => {
     if (!currentUser) { requestLoginForAction(View.FindHelpers, {intent: 'bump', postId: profileId}); return; }
-    const profileToBump = helperProfiles.find(p => p.id === profileId);
+    const profileToBump = helperProfilesList.find(p => p.id === profileId) || allHelperProfilesForAdmin.find(p => p.id === profileId);
     if (!profileToBump || profileToBump.userId !== currentUser.id) {
         alert("ไม่พบโปรไฟล์ หรือคุณไม่ใช่เจ้าของโปรไฟล์นี้");
         return;
@@ -711,6 +810,7 @@ const App: React.FC = () => {
         alert("Bump โปรไฟล์สำเร็จ! โปรไฟล์ของคุณจะแสดงผลเป็นลำดับต้นๆ ชั่วคราว");
         const updatedUser = await getUserDocument(currentUser.id);
         if (updatedUser) setCurrentUser(updatedUser);
+        loadHelpers(true); // Re-fetch to see the bumped profile at the top
 
     } catch (error: any) {
         logFirebaseError("handleBumpHelperProfile", error);
@@ -737,12 +837,24 @@ const App: React.FC = () => {
       `คุณแน่ใจหรือไม่ว่าต้องการลบ "${itemTitle}"? การกระทำนี้ไม่สามารถย้อนกลับได้${itemType === 'webboardPost' ? ' และจะลบคอมเมนต์ทั้งหมดที่เกี่ยวข้องด้วย' : ''}`,
       async () => {
         try {
-          if (itemType === 'job') await deleteJobService(itemId);
-          else if (itemType === 'profile') await deleteHelperProfileService(itemId);
-          else if (itemType === 'webboardPost') await deleteWebboardPostService(itemId);
-          else if (itemType === 'webboardComment') await deleteWebboardCommentService(itemId);
+          if (itemType === 'job') {
+            await deleteJobService(itemId);
+            setJobsList(prev => prev.filter(j => j.id !== itemId)); // Update local list
+            setAllJobsForAdmin(prev => prev.filter(j => j.id !== itemId));
+          } else if (itemType === 'profile') {
+            await deleteHelperProfileService(itemId);
+            setHelperProfilesList(prev => prev.filter(p => p.id !== itemId)); // Update local list
+            setAllHelperProfilesForAdmin(prev => prev.filter(p => p.id !== itemId));
+          } else if (itemType === 'webboardPost') {
+            await deleteWebboardPostService(itemId);
+            setAllWebboardPostsForAdmin(prev => prev.filter(p => p.id !== itemId));
+            // WebboardPage will handle its own list update
+            if (selectedPostId === itemId) { setSelectedPostId(null); navigateTo(View.Webboard); }
+          } else if (itemType === 'webboardComment') {
+            await deleteWebboardCommentService(itemId);
+            // Comments are re-fetched by WebboardPostDetail or WebboardPage
+          }
           alert(`ลบ "${itemTitle}" เรียบร้อยแล้ว`);
-          if (itemType === 'webboardPost' && selectedPostId === itemId) { setSelectedPostId(null); navigateTo(View.Webboard); }
         } catch (error: any) {
             logFirebaseError(`handleDeleteItem (${itemType})`, error);
             alert(`เกิดข้อผิดพลาดในการลบ: ${error.message}`);
@@ -751,14 +863,23 @@ const App: React.FC = () => {
     );
   };
 
-  const handleDeleteJob = (jobId: string) => { const job = jobs.find(j => j.id === jobId); if (job) handleDeleteItem(jobId, 'job', job.title, job.userId, job.ownerId); };
-  const handleDeleteHelperProfile = (profileId: string) => { const profile = helperProfiles.find(p => p.id === profileId); if (profile) handleDeleteItem(profileId, 'profile', profile.profileTitle, profile.userId, profile.ownerId); };
-  const handleDeleteWebboardPost = (postId: string) => { const post = webboardPosts.find(p => p.id === postId); if (post) handleDeleteItem(postId, 'webboardPost', post.title, post.userId, post.ownerId); };
+  const handleDeleteJob = (jobId: string) => { 
+    const job = allJobsForAdmin.find(j => j.id === jobId) || jobsList.find(j => j.id === jobId); 
+    if (job) handleDeleteItem(jobId, 'job', job.title, job.userId, job.ownerId); 
+  };
+  const handleDeleteHelperProfile = (profileId: string) => { 
+    const profile = allHelperProfilesForAdmin.find(p => p.id === profileId) || helperProfilesList.find(p => p.id === profileId); 
+    if (profile) handleDeleteItem(profileId, 'profile', profile.profileTitle, profile.userId, profile.ownerId); 
+  };
+  const handleDeleteWebboardPost = (postId: string) => { 
+    const post = allWebboardPostsForAdmin.find(p => p.id === postId); 
+    if (post) handleDeleteItem(postId, 'webboardPost', post.title, post.userId, post.ownerId); 
+  };
   const handleDeleteItemFromMyPosts = (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => {
     if (itemType === 'job') handleDeleteJob(itemId); else if (itemType === 'profile') handleDeleteHelperProfile(itemId); else if (itemType === 'webboardPost') handleDeleteWebboardPost(itemId);
   };
 
-  const toggleItemFlag = async (
+  const toggleItemFlagAndUpdateLists = async (
     collectionName: 'jobs' | 'helperProfiles' | 'webboardPosts',
     itemId: string,
     flagName: keyof Job | keyof HelperProfile | keyof WebboardPost | 'isExpired', 
@@ -766,32 +887,69 @@ const App: React.FC = () => {
     itemOwnerId?: string,
     currentValue?: boolean
   ) => {
-    if (!canEditOrDelete(itemUserId, itemOwnerId) && currentUser?.role !== UserRole.Admin) { alert('คุณไม่มีสิทธิ์ดำเนินการนี้'); return; }
+    if (!canEditOrDelete(itemUserId, itemOwnerId) && currentUser?.role !== UserRole.Admin) { 
+      alert('คุณไม่มีสิทธิ์ดำเนินการนี้'); return; 
+    }
     try {
       await toggleItemFlagService(collectionName, itemId, flagName as any, currentValue);
+      // Optimistically update local lists or re-fetch for simplicity if needed
+      if (collectionName === 'jobs') {
+        setJobsList(prev => prev.map(job => job.id === itemId ? { ...job, [flagName]: !currentValue, updatedAt: new Date().toISOString() } : job));
+        setAllJobsForAdmin(prev => prev.map(job => job.id === itemId ? { ...job, [flagName]: !currentValue, updatedAt: new Date().toISOString() } : job));
+      } else if (collectionName === 'helperProfiles') {
+        setHelperProfilesList(prev => prev.map(p => p.id === itemId ? { ...p, [flagName]: !currentValue, updatedAt: new Date().toISOString() } : p));
+        setAllHelperProfilesForAdmin(prev => prev.map(p => p.id === itemId ? { ...p, [flagName]: !currentValue, updatedAt: new Date().toISOString() } : p));
+      } else if (collectionName === 'webboardPosts') {
+        // WebboardPage will handle its own update if this function is called from there
+        setAllWebboardPostsForAdmin(prev => prev.map(p => p.id === itemId ? { ...p, [flagName]: !currentValue, updatedAt: new Date().toISOString() } : p));
+      }
     } catch(error: any) {
         logFirebaseError(`toggleItemFlag (${String(flagName)})`, error);
         alert(`เกิดข้อผิดพลาดในการอัปเดตสถานะ: ${error.message}`);
     }
   };
 
-  const handleToggleSuspiciousJob = (jobId: string) => { const job = jobs.find(j => j.id === jobId); if (job) toggleItemFlag('jobs', jobId, "isSuspicious", job.userId, job.ownerId, job.isSuspicious); };
-  const handleToggleSuspiciousHelperProfile = (profileId: string) => { const profile = helperProfiles.find(p => p.id === profileId); if (profile) toggleItemFlag('helperProfiles', profileId, "isSuspicious", profile.userId, profile.ownerId, profile.isSuspicious); };
-  const handleTogglePinnedJob = (jobId: string) => { const job = jobs.find(j => j.id === jobId); if (job) toggleItemFlag('jobs', jobId, "isPinned", job.userId, job.ownerId, job.isPinned); };
-  const handleTogglePinnedHelperProfile = (profileId: string) => { const profile = helperProfiles.find(p => p.id === profileId); if (profile) toggleItemFlag('helperProfiles', profileId, "isPinned", profile.userId, profile.ownerId, profile.isPinned); };
-  const handleToggleVerifiedExperience = (profileId: string) => { const profile = helperProfiles.find(p => p.id === profileId); if (profile) toggleItemFlag('helperProfiles', profileId, "adminVerifiedExperience", profile.userId, profile.ownerId, profile.adminVerifiedExperience); };
-  const handleToggleHiredJobForUserOrAdmin = (jobId: string) => { const job = jobs.find(j => j.id === jobId); if (job) toggleItemFlag('jobs', jobId, "isHired", job.userId, job.ownerId, job.isHired); };
-  const handleToggleUnavailableHelperProfileForUserOrAdmin = (profileId: string) => { const profile = helperProfiles.find(p => p.id === profileId); if (profile) toggleItemFlag('helperProfiles', profileId, "isUnavailable", profile.userId, profile.ownerId, profile.isUnavailable); };
+  const handleToggleSuspiciousJob = (jobId: string) => { 
+    const job = allJobsForAdmin.find(j => j.id === jobId) || jobsList.find(j => j.id === jobId); 
+    if (job) toggleItemFlagAndUpdateLists('jobs', jobId, "isSuspicious", job.userId, job.ownerId, job.isSuspicious); 
+  };
+  const handleToggleSuspiciousHelperProfile = (profileId: string) => { 
+    const profile = allHelperProfilesForAdmin.find(p => p.id === profileId) || helperProfilesList.find(p => p.id === profileId); 
+    if (profile) toggleItemFlagAndUpdateLists('helperProfiles', profileId, "isSuspicious", profile.userId, profile.ownerId, profile.isSuspicious); 
+  };
+  const handleTogglePinnedJob = (jobId: string) => { 
+    const job = allJobsForAdmin.find(j => j.id === jobId) || jobsList.find(j => j.id === jobId); 
+    if (job) toggleItemFlagAndUpdateLists('jobs', jobId, "isPinned", job.userId, job.ownerId, job.isPinned); 
+  };
+  const handleTogglePinnedHelperProfile = (profileId: string) => { 
+    const profile = allHelperProfilesForAdmin.find(p => p.id === profileId) || helperProfilesList.find(p => p.id === profileId); 
+    if (profile) toggleItemFlagAndUpdateLists('helperProfiles', profileId, "isPinned", profile.userId, profile.ownerId, profile.isPinned); 
+  };
+  const handleToggleVerifiedExperience = (profileId: string) => { 
+    const profile = allHelperProfilesForAdmin.find(p => p.id === profileId) || helperProfilesList.find(p => p.id === profileId); 
+    if (profile) toggleItemFlagAndUpdateLists('helperProfiles', profileId, "adminVerifiedExperience", profile.userId, profile.ownerId, profile.adminVerifiedExperience); 
+  };
+  const handleToggleHiredJobForUserOrAdmin = (jobId: string) => { 
+    const job = allJobsForAdmin.find(j => j.id === jobId) || jobsList.find(j => j.id === jobId); 
+    if (job) toggleItemFlagAndUpdateLists('jobs', jobId, "isHired", job.userId, job.ownerId, job.isHired); 
+  };
+  const handleToggleUnavailableHelperProfileForUserOrAdmin = (profileId: string) => { 
+    const profile = allHelperProfilesForAdmin.find(p => p.id === profileId) || helperProfilesList.find(p => p.id === profileId); 
+    if (profile) toggleItemFlagAndUpdateLists('helperProfiles', profileId, "isUnavailable", profile.userId, profile.ownerId, profile.isUnavailable); 
+  };
   const handleToggleItemStatusFromMyPosts = (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => {
     if (itemType === 'job') handleToggleHiredJobForUserOrAdmin(itemId); else if (itemType === 'profile') handleToggleUnavailableHelperProfileForUserOrAdmin(itemId);
   };
 
   const handleLogHelperContactInteraction = async (helperProfileId: string) => {
     if (!currentUser) { requestLoginForAction(View.FindHelpers, { intent: 'contactHelper', postId: helperProfileId }); return; }
-    const helperProfile = helperProfiles.find(hp => hp.id === helperProfileId);
+    const helperProfile = helperProfilesList.find(hp => hp.id === helperProfileId) || allHelperProfilesForAdmin.find(hp => hp.id === helperProfileId);
     if (!helperProfile || currentUser.id === helperProfile.userId) return;
     try {
         await logHelperContactInteractionService(helperProfileId, currentUser.id, helperProfile.userId);
+        // Optimistically update count or re-fetch for simplicity
+        setHelperProfilesList(prev => prev.map(p => p.id === helperProfileId ? {...p, interestedCount: (p.interestedCount || 0) + 1} : p));
+        setAllHelperProfilesForAdmin(prev => prev.map(p => p.id === helperProfileId ? {...p, interestedCount: (p.interestedCount || 0) + 1} : p));
     } catch(error: any) {
         logFirebaseError("handleLogHelperContactInteraction", error);
         alert(`เกิดข้อผิดพลาดในการบันทึกการติดต่อ: ${error.message}`);
@@ -808,11 +966,11 @@ const App: React.FC = () => {
       }
     }
     if (containsBlacklistedWords(postData.title) || containsBlacklistedWords(postData.body)) { alert('เนื้อหาหรือหัวข้อมีคำที่ไม่เหมาะสม'); return; }
-    if (postData.body.length > 5000) { alert('เนื้อหากระทู้ต้องไม่เกิน 5,000 ตัวอักษร'); return;} // Updated limit
+    if (postData.body.length > 5000) { alert('เนื้อหากระทู้ต้องไม่เกิน 5,000 ตัวอักษร'); return;} 
     try {
         let finalPostId = postIdToUpdate;
         if (postIdToUpdate) {
-            const postToEdit = webboardPosts.find(p => p.id === postIdToUpdate);
+            const postToEdit = allWebboardPostsForAdmin.find(p => p.id === postIdToUpdate);
             if (!postToEdit || !canEditOrDelete(postToEdit.userId, postToEdit.ownerId)) { alert('ไม่พบโพสต์ หรือไม่มีสิทธิ์แก้ไข'); return; }
             await updateWebboardPostService(postIdToUpdate, postData, currentUser.photo);
             alert('แก้ไขโพสต์เรียบร้อยแล้ว!');
@@ -822,6 +980,9 @@ const App: React.FC = () => {
             if (updatedUser) setCurrentUser(updatedUser);
             alert('สร้างโพสต์ใหม่เรียบร้อยแล้ว!');
         }
+        // WebboardPage will refresh its own list. Admin list needs manual update or re-fetch.
+        // For simplicity, a full re-fetch or manual update can be done for allWebboardPostsForAdmin if needed for other views.
+        // Example: await fetchAllWebboardPostsForAdminAndLevels();
         setItemToEdit(null); setEditingItemType(null); setSelectedPostId(finalPostId || null); navigateTo(View.Webboard, finalPostId);
     } catch (error: any) {
         logFirebaseError("handleAddOrUpdateWebboardPost", error);
@@ -836,6 +997,7 @@ const App: React.FC = () => {
         await addWebboardCommentService(postId, text, {userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, photo: currentUser.photo});
         const updatedUser = await getUserDocument(currentUser.id); 
         if (updatedUser) setCurrentUser(updatedUser);
+        // Comments usually re-fetch within WebboardPostDetail or WebboardPage
     } catch (error: any) {
         logFirebaseError("handleAddWebboardComment", error);
         alert(`เกิดข้อผิดพลาดในการเพิ่มคอมเมนต์: ${error.message}`);
@@ -850,6 +1012,7 @@ const App: React.FC = () => {
     try {
         await updateWebboardCommentService(commentId, newText);
         alert('แก้ไขคอมเมนต์เรียบร้อยแล้ว');
+        // Comments re-fetch within WebboardPostDetail or WebboardPage
     } catch (error: any) {
         logFirebaseError("handleUpdateWebboardComment", error);
         alert(`เกิดข้อผิดพลาดในการแก้ไขคอมเมนต์: ${error.message}`);
@@ -866,6 +1029,7 @@ const App: React.FC = () => {
     if (!currentUser) { requestLoginForAction(View.Webboard, { action: 'like', postId: postId }); return; }
     try {
         await toggleWebboardPostLikeService(postId, currentUser.id);
+        // WebboardPage or WebboardPostCard will update its local state based on this action
     } catch (error: any) {
         logFirebaseError("handleToggleWebboardPostLike", error);
         alert(`เกิดข้อผิดพลาดในการกดไลค์: ${error.message}`);
@@ -907,9 +1071,12 @@ const App: React.FC = () => {
 
 
   const handlePinWebboardPost = (postId: string) => {
-    const post = webboardPosts.find(p => p.id === postId);
-    if (post && currentUser?.role === UserRole.Admin) toggleItemFlag('webboardPosts', postId, "isPinned", post.userId, post.ownerId, post.isPinned);
-    else if (currentUser?.role !== UserRole.Admin) alert("เฉพาะแอดมินเท่านั้นที่สามารถปักหมุดโพสต์ได้");
+    const post = allWebboardPostsForAdmin.find(p => p.id === postId); // Check against full list
+    if (post && currentUser?.role === UserRole.Admin) {
+      toggleItemFlagAndUpdateLists('webboardPosts', postId, "isPinned", post.userId, post.ownerId, post.isPinned);
+    } else if (currentUser?.role !== UserRole.Admin) {
+      alert("เฉพาะแอดมินเท่านั้นที่สามารถปักหมุดโพสต์ได้");
+    }
   };
 
   const handleSetUserRole = async (userIdToUpdate: string, newRole: UserRole) => {
@@ -920,6 +1087,7 @@ const App: React.FC = () => {
     try {
         await setUserRoleService(userIdToUpdate, newRole);
         alert(`อัปเดตบทบาทของผู้ใช้ @${userToUpdate?.username} (ชื่อแสดง: ${userToUpdate?.publicDisplayName}) เป็น ${newRole} เรียบร้อยแล้ว`);
+        // User list will update via subscription
     } catch (error: any) {
         logFirebaseError("handleSetUserRole", error);
         alert(`เกิดข้อผิดพลาดในการเปลี่ยนบทบาทผู้ใช้: ${error.message}`);
@@ -930,6 +1098,7 @@ const App: React.FC = () => {
     if (!currentUser || currentUser?.role !== UserRole.Admin) { alert("คุณไม่มีสิทธิ์ดำเนินการนี้"); return; }
     try {
         await setSiteLockService(!isSiteLocked, currentUser.id);
+        // isSiteLocked state will update via subscription
     } catch (error: any) {
         logFirebaseError("handleToggleSiteLock", error);
         alert(`เกิดข้อผิดพลาดในการเปลี่ยนสถานะระบบ: ${error.message}`);
@@ -937,7 +1106,7 @@ const App: React.FC = () => {
   };
 
   const renderNavLinks = (isMobile: boolean) => {
-    const displayBadgeForProfile = getUserDisplayBadge(currentUser); // Use this for profile display
+    const displayBadgeForProfile = getUserDisplayBadge(currentUser); 
     const commonButtonPropsBase = isMobile
       ? { size: 'md' as const, className: 'font-medium w-full text-left justify-start py-3 px-4 text-base' }
       : { size: 'sm' as const, className: 'font-medium flex-shrink-0' };
@@ -1165,38 +1334,83 @@ const App: React.FC = () => {
     </div>
   );
   };
-  const renderPostJob = () => { if (!currentUser) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทางไปยังหน้าเข้าสู่ระบบ...</p>; return <PostJobForm onSubmitJob={handleSubmitJobForm} onCancel={handleCancelEditOrPost} initialData={editingItemType === 'job' ? itemToEdit as Job : undefined} isEditing={!!itemToEdit && editingItemType === 'job'} currentUser={currentUser} jobs={jobs} />; };
-  const renderOfferHelpForm = () => { if (!currentUser) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทางไปยังหน้าเข้าสู่ระบบ...</p>; return <OfferHelpForm onSubmitProfile={handleSubmitHelperProfileForm} onCancel={handleCancelEditOrPost} initialData={editingItemType === 'profile' ? itemToEdit as HelperProfile : undefined} isEditing={!!itemToEdit && editingItemType === 'profile'} currentUser={currentUser} helperProfiles={helperProfiles} />; };
+  const renderPostJob = () => { if (!currentUser) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทางไปยังหน้าเข้าสู่ระบบ...</p>; return <PostJobForm onSubmitJob={handleSubmitJobForm} onCancel={handleCancelEditOrPost} initialData={editingItemType === 'job' ? itemToEdit as Job : undefined} isEditing={!!itemToEdit && editingItemType === 'job'} currentUser={currentUser} jobs={allJobsForAdmin} />; };
+  const renderOfferHelpForm = () => { if (!currentUser) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทางไปยังหน้าเข้าสู่ระบบ...</p>; return <OfferHelpForm onSubmitProfile={handleSubmitHelperProfileForm} onCancel={handleCancelEditOrPost} initialData={editingItemType === 'profile' ? itemToEdit as HelperProfile : undefined} isEditing={!!itemToEdit && editingItemType === 'profile'} currentUser={currentUser} helperProfiles={allHelperProfilesForAdmin} />; };
+
+  // --- Infinite Scroll for Jobs ---
+  const loadJobs = useCallback(async (isInitialLoad = false) => {
+    if (isLoadingJobs || (!isInitialLoad && !hasMoreJobs)) return;
+    setIsLoadingJobs(true);
+
+    try {
+      const result = await getJobsPaginated(
+        JOBS_PAGE_SIZE,
+        isInitialLoad ? null : lastVisibleJob,
+        selectedJobCategoryFilter === 'all' ? null : selectedJobCategoryFilter,
+        jobSearchTerm // Pass search term; firebaseService might do client-side if not querying backend directly
+      );
+      setJobsList(prevJobs => isInitialLoad ? result.items : [...prevJobs, ...result.items]);
+      setLastVisibleJob(result.lastVisibleDoc);
+      setHasMoreJobs(result.items.length === JOBS_PAGE_SIZE && result.lastVisibleDoc !== null);
+      if (isInitialLoad) setInitialJobsLoaded(true);
+    } catch (error) {
+      console.error("Error loading jobs:", error);
+      logFirebaseError("loadJobs", error);
+      setHasMoreJobs(false); // Stop trying if error
+    } finally {
+      setIsLoadingJobs(false);
+    }
+  }, [isLoadingJobs, hasMoreJobs, lastVisibleJob, selectedJobCategoryFilter, jobSearchTerm]);
+
+  useEffect(() => { // Initial load and filter changes for jobs
+    if (currentView === View.FindJobs) {
+      setInitialJobsLoaded(false); // Reset for new filter/search
+      loadJobs(true);
+    }
+  }, [currentView, selectedJobCategoryFilter, jobSearchTerm, loadJobs]);
+
+  useEffect(() => { // IntersectionObserver for jobs
+    if (currentView !== View.FindJobs) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMoreJobs && !isLoadingJobs && initialJobsLoaded) {
+          loadJobs();
+        }
+      },
+      { threshold: 0.8 }
+    );
+    const currentLoaderRef = jobsLoaderRef.current;
+    if (currentLoaderRef) observer.observe(currentLoaderRef);
+    return () => {
+      if (currentLoaderRef) observer.unobserve(currentLoaderRef);
+    };
+  }, [currentView, hasMoreJobs, isLoadingJobs, initialJobsLoaded, loadJobs]);
+
 
   const handleJobSearch = (term: string) => {
-    setJobSearchTerm(term);
+    setJobSearchTerm(term); // This will trigger the useEffect for initial loadJobs
     if (term.trim()) {
       addRecentSearch('recentJobSearches', term.trim());
       setRecentJobSearches(getRecentSearches('recentJobSearches'));
     }
   };
+  
+  const handleJobCategoryFilterChange = (category: FilterableCategory) => {
+    setSelectedJobCategoryFilter(category); // This will trigger the useEffect for initial loadJobs
+  };
+
 
   const renderFindJobs = () => {
-    const activeUserJobs = jobs.filter(job => !isDateInPast(job.expiresAt) && !job.isExpired);
-    const jobsAfterCategoryFilter = selectedJobCategoryFilter === 'all'
-      ? activeUserJobs
-      : activeUserJobs.filter(job => job.category === selectedJobCategoryFilter);
-
-    const finalFilteredJobs = jobSearchTerm.trim() === ''
-      ? jobsAfterCategoryFilter
-      : jobsAfterCategoryFilter.filter(job => {
-          const termLower = jobSearchTerm.toLowerCase();
-          const termsToSearch = [termLower, ...(searchMappings[termLower] || []).map(t => t.toLowerCase())];
-          return termsToSearch.some(st =>
-            job.title.toLowerCase().includes(st) || job.description.toLowerCase().includes(st) ||
-            job.category.toLowerCase().includes(st) || (job.subCategory && job.subCategory.toLowerCase().includes(st))
-          );
-        });
-
+    // This function now primarily renders the UI. Data fetching is handled by useEffects and loadJobs.
     let emptyStateMessage = "ยังไม่มีงานประกาศในขณะนี้";
     if (jobSearchTerm.trim() && selectedJobCategoryFilter !== 'all') emptyStateMessage = `ไม่พบงานที่ตรงกับคำค้นหา "${jobSearchTerm}" ในหมวดหมู่ "${selectedJobCategoryFilter}"`;
     else if (jobSearchTerm.trim()) emptyStateMessage = `ไม่พบงานที่ตรงกับคำค้นหา "${jobSearchTerm}"`;
     else if (selectedJobCategoryFilter !== 'all') emptyStateMessage = `ไม่พบงานในหมวดหมู่ "${selectedJobCategoryFilter}"`;
+    
+    // Filter active jobs from the loaded list (jobsList)
+    const activeUserJobs = jobsList.filter(job => !isDateInPast(job.expiresAt) && !job.isExpired);
+    // Client-side filtering if firebaseService's getJobsPaginated doesn't fully handle it
+    // The firebaseService.ts `getJobsPaginated` now attempts to handle category and basic text search on fetched batch.
 
     return (
     <div className="p-4 sm:p-6">
@@ -1207,7 +1421,7 @@ const App: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-x-8">
         <aside className="lg:col-span-3 mb-8 lg:mb-0">
           <div className="sticky top-24 space-y-6 p-4 bg-white dark:bg-dark-cardBg rounded-xl shadow-lg border dark:border-dark-border">
-            <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedJobCategoryFilter} onSelectCategory={setSelectedJobCategoryFilter} />
+            <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedJobCategoryFilter} onSelectCategory={handleJobCategoryFilterChange} />
             <SearchInputWithRecent searchTerm={jobSearchTerm} onSearchTermChange={handleJobSearch} placeholder="ค้นหางาน, รายละเอียด..." recentSearches={recentJobSearches} onRecentSearchSelect={(term) => { setJobSearchTerm(term); addRecentSearch('recentJobSearches', term); setRecentJobSearches(getRecentSearches('recentJobSearches')); }} ariaLabel="ค้นหางาน" />
             {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="w-full sm:px-4 sm:text-sm">
               <span className="flex items-center justify-center gap-2"><span>📣</span><span>ฝากงานกดตรงนี้</span></span>
@@ -1215,18 +1429,80 @@ const App: React.FC = () => {
           </div>
         </aside>
         <section className="lg:col-span-9">
-          {finalFilteredJobs.length === 0 ? (
+          {!initialJobsLoaded && isLoadingJobs && (
+            <div className="text-center py-10"><p className="text-lg font-sans">✨ กำลังโหลดประกาศงาน...</p></div>
+          )}
+          {initialJobsLoaded && activeUserJobs.length === 0 && !hasMoreJobs && (
             <div className="text-center py-10 bg-white dark:bg-dark-cardBg p-6 rounded-lg shadow-md border dark:border-dark-border">
               <svg className="mx-auto h-24 w-24 text-neutral-DEFAULT" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
               <p className="mt-3 text-xl font-serif text-neutral-dark font-normal"> {emptyStateMessage} </p>
-              {currentUser && jobs.length === 0 && !jobSearchTerm.trim() && selectedJobCategoryFilter === 'all' && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="mt-6 font-medium"> เป็นคนแรกที่ลงประกาศงาน! </Button> )}
-              {!currentUser && jobs.length === 0 && !jobSearchTerm.trim() && selectedJobCategoryFilter === 'all' && (<Button onClick={() => requestLoginForAction(View.PostJob)} variant="primary" size="md" className="mt-6 font-medium"> เข้าสู่ระบบเพื่อลงประกาศงาน </Button>)}
+              {currentUser && jobsList.length === 0 && !jobSearchTerm.trim() && selectedJobCategoryFilter === 'all' && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="mt-6 font-medium"> เป็นคนแรกที่ลงประกาศงาน! </Button> )}
+              {!currentUser && jobsList.length === 0 && !jobSearchTerm.trim() && selectedJobCategoryFilter === 'all' && (<Button onClick={() => requestLoginForAction(View.PostJob)} variant="primary" size="md" className="mt-6 font-medium"> เข้าสู่ระบบเพื่อลงประกาศงาน </Button>)}
             </div>
-          ) : ( <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"> {finalFilteredJobs.map(job => (<JobCard key={job.id} job={job} navigateTo={navigateTo} currentUser={currentUser} requestLoginForAction={requestLoginForAction} />))} </div> )}
+          )}
+          {activeUserJobs.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                 {activeUserJobs.map(job => (<JobCard key={job.id} job={job} navigateTo={navigateTo} currentUser={currentUser} requestLoginForAction={requestLoginForAction} />))}
+            </div>
+          )}
+          <div ref={jobsLoaderRef} className="h-10 flex justify-center items-center">
+            {isLoadingJobs && initialJobsLoaded && activeUserJobs.length > 0 && <p className="text-sm font-sans text-neutral-medium">✨ กำลังโหลดเพิ่มเติม...</p>}
+          </div>
+          {initialJobsLoaded && !hasMoreJobs && activeUserJobs.length > 0 && (
+            <p className="text-center text-sm font-sans text-neutral-medium dark:text-dark-textMuted py-4">🎉 คุณดูครบทุกประกาศงานแล้ว</p>
+          )}
         </section>
       </div>
     </div>
   );};
+
+  // --- Infinite Scroll for Helpers ---
+  const loadHelpers = useCallback(async (isInitialLoad = false) => {
+    if (isLoadingHelpers || (!isInitialLoad && !hasMoreHelpers)) return;
+    setIsLoadingHelpers(true);
+    try {
+      const result = await getHelperProfilesPaginated(
+        HELPERS_PAGE_SIZE,
+        isInitialLoad ? null : lastVisibleHelper,
+        selectedHelperCategoryFilter === 'all' ? null : selectedHelperCategoryFilter,
+        helperSearchTerm
+      );
+      setHelperProfilesList(prev => isInitialLoad ? result.items : [...prev, ...result.items]);
+      setLastVisibleHelper(result.lastVisibleDoc);
+      setHasMoreHelpers(result.items.length === HELPERS_PAGE_SIZE && result.lastVisibleDoc !== null);
+      if (isInitialLoad) setInitialHelpersLoaded(true);
+    } catch (error) {
+      console.error("Error loading helper profiles:", error);
+      logFirebaseError("loadHelpers", error);
+      setHasMoreHelpers(false);
+    } finally {
+      setIsLoadingHelpers(false);
+    }
+  }, [isLoadingHelpers, hasMoreHelpers, lastVisibleHelper, selectedHelperCategoryFilter, helperSearchTerm]);
+
+  useEffect(() => { // Initial load and filter changes for helpers
+    if (currentView === View.FindHelpers) {
+      setInitialHelpersLoaded(false);
+      loadHelpers(true);
+    }
+  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm, loadHelpers]);
+
+  useEffect(() => { // IntersectionObserver for helpers
+    if (currentView !== View.FindHelpers) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMoreHelpers && !isLoadingHelpers && initialHelpersLoaded) {
+          loadHelpers();
+        }
+      },
+      { threshold: 0.8 }
+    );
+    const currentLoaderRef = helpersLoaderRef.current;
+    if (currentLoaderRef) observer.observe(currentLoaderRef);
+    return () => {
+      if (currentLoaderRef) observer.unobserve(currentLoaderRef);
+    };
+  }, [currentView, hasMoreHelpers, isLoadingHelpers, initialHelpersLoaded, loadHelpers]);
 
   const handleHelperSearch = (term: string) => {
     setHelperSearchTerm(term);
@@ -1235,29 +1511,23 @@ const App: React.FC = () => {
       setRecentHelperSearches(getRecentSearches('recentHelperSearches'));
     }
   };
+  const handleHelperCategoryFilterChange = (category: FilterableCategory) => {
+    setSelectedHelperCategoryFilter(category);
+  };
+
 
   const renderFindHelpers = () => {
-    const activeHelperProfiles = helperProfiles.filter(p => !isDateInPast(p.expiresAt) && !p.isExpired);
-    const profilesAfterCategoryFilter = selectedHelperCategoryFilter === 'all' ? activeHelperProfiles : activeHelperProfiles.filter(profile => profile.category === selectedHelperCategoryFilter);
-    const finalFilteredProfiles = helperSearchTerm.trim() === '' ? profilesAfterCategoryFilter : profilesAfterCategoryFilter.filter(profile => {
-      const termLower = helperSearchTerm.toLowerCase();
-      const termsToSearch = [termLower, ...(searchMappings[termLower] || []).map(t => t.toLowerCase())];
-      return termsToSearch.some(st =>
-        profile.profileTitle.toLowerCase().includes(st) || profile.details.toLowerCase().includes(st) ||
-        profile.category.toLowerCase().includes(st) || (profile.subCategory && profile.subCategory.toLowerCase().includes(st)) ||
-        profile.area.toLowerCase().includes(st)
-      );
-    });
-
-    const enrichedHelperProfilesList: EnrichedHelperProfile[] = finalFilteredProfiles.map(hp => {
-      const user = users.find(u => u.id === hp.userId);
-      return { ...hp, userPhoto: user?.photo, userAddress: user?.address, verifiedExperienceBadge: hp.adminVerifiedExperience || false, profileCompleteBadge: user?.profileComplete || false, warningBadge: hp.isSuspicious || false, interestedCount: hp.interestedCount || 0, };
-    });
-
     let emptyStateMessage = "ยังไม่มีผู้เสนอตัวช่วยงานในขณะนี้";
     if (helperSearchTerm.trim() && selectedHelperCategoryFilter !== 'all') emptyStateMessage = `ไม่พบผู้ช่วยที่ตรงกับคำค้นหา "${helperSearchTerm}" ในหมวดหมู่ "${selectedHelperCategoryFilter}"`;
     else if (helperSearchTerm.trim()) emptyStateMessage = `ไม่พบผู้ช่วยที่ตรงกับคำค้นหา "${helperSearchTerm}"`;
     else if (selectedHelperCategoryFilter !== 'all') emptyStateMessage = `ไม่พบผู้ช่วยในหมวดหมู่ "${selectedHelperCategoryFilter}"`;
+
+    const activeHelperProfiles = helperProfilesList.filter(p => !isDateInPast(p.expiresAt) && !p.isExpired);
+    
+    const enrichedHelperProfilesList: EnrichedHelperProfile[] = activeHelperProfiles.map(hp => {
+      const user = users.find(u => u.id === hp.userId);
+      return { ...hp, userPhoto: user?.photo, userAddress: user?.address, verifiedExperienceBadge: hp.adminVerifiedExperience || false, profileCompleteBadge: user?.profileComplete || false, warningBadge: hp.isSuspicious || false, interestedCount: hp.interestedCount || 0, };
+    });
 
     return (
     <div className="p-4 sm:p-6">
@@ -1268,28 +1538,42 @@ const App: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-x-8">
         <aside className="lg:col-span-3 mb-8 lg:mb-0">
             <div className="sticky top-24 space-y-6 p-4 bg-white dark:bg-dark-cardBg rounded-xl shadow-lg border dark:border-dark-border">
-                <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedHelperCategoryFilter} onSelectCategory={setSelectedHelperCategoryFilter} />
+                <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedHelperCategoryFilter} onSelectCategory={handleHelperCategoryFilterChange} />
                 <SearchInputWithRecent searchTerm={helperSearchTerm} onSearchTermChange={handleHelperSearch} placeholder="ค้นหาผู้ช่วย, ทักษะ, พื้นที่..." recentSearches={recentHelperSearches} onRecentSearchSelect={(term) => { setHelperSearchTerm(term); addRecentSearch('recentHelperSearches', term); setRecentHelperSearches(getRecentSearches('recentHelperSearches')); }} ariaLabel="ค้นหาผู้ช่วย" />
                 {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateTo(View.OfferHelp); }} variant="secondary" size="md" className="w-full"> <span className="flex items-center justify-center gap-2"><span>🙋</span><span>เสนอช่วยงาน</span></span> </Button> )}
             </div>
         </aside>
         <section className="lg:col-span-9">
-            {enrichedHelperProfilesList.length === 0 ? (
+            {!initialHelpersLoaded && isLoadingHelpers && (
+              <div className="text-center py-10"><p className="text-lg font-sans">✨ กำลังค้นหาผู้ช่วย...</p></div>
+            )}
+            {initialHelpersLoaded && enrichedHelperProfilesList.length === 0 && !hasMoreHelpers && (
             <div className="text-center py-10 bg-white dark:bg-dark-cardBg p-6 rounded-lg shadow-md border dark:border-dark-border">
                 <svg className="mx-auto h-24 w-24 text-neutral-DEFAULT" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-2.144M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
                 <p className="mt-3 text-xl font-serif text-neutral-dark font-normal"> {emptyStateMessage} </p>
-                {currentUser && helperProfiles.length === 0 && !helperSearchTerm.trim() && selectedHelperCategoryFilter === 'all' && ( <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateTo(View.OfferHelp);}} variant="secondary" size="md" className="mt-6 font-medium"> เป็นคนแรกที่เสนอตัวช่วยงาน! </Button> )}
-                {!currentUser && helperProfiles.length === 0 && !helperSearchTerm.trim() && selectedHelperCategoryFilter === 'all' && (<Button onClick={() => requestLoginForAction(View.OfferHelp)} variant="secondary" size="md" className="mt-6 font-medium"> เข้าสู่ระบบเพื่อเสนอตัวช่วยงาน </Button>)}
+                {currentUser && helperProfilesList.length === 0 && !helperSearchTerm.trim() && selectedHelperCategoryFilter === 'all' && ( <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateTo(View.OfferHelp);}} variant="secondary" size="md" className="mt-6 font-medium"> เป็นคนแรกที่เสนอตัวช่วยงาน! </Button> )}
+                {!currentUser && helperProfilesList.length === 0 && !helperSearchTerm.trim() && selectedHelperCategoryFilter === 'all' && (<Button onClick={() => requestLoginForAction(View.OfferHelp)} variant="secondary" size="md" className="mt-6 font-medium"> เข้าสู่ระบบเพื่อเสนอตัวช่วยงาน </Button>)}
             </div>
-            ) : ( <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"> {enrichedHelperProfilesList.map(profile => (<HelperCard key={profile.id} profile={profile} onNavigateToPublicProfile={handleNavigateToPublicProfile} navigateTo={navigateTo} onLogHelperContact={() => handleLogHelperContactInteraction(profile.id)} currentUser={currentUser} requestLoginForAction={requestLoginForAction} onBumpProfile={handleBumpHelperProfile} />))} </div> )}
+            )}
+            {enrichedHelperProfilesList.length > 0 && (
+                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"> 
+                    {enrichedHelperProfilesList.map(profile => (<HelperCard key={profile.id} profile={profile} onNavigateToPublicProfile={handleNavigateToPublicProfile} navigateTo={navigateTo} onLogHelperContact={() => handleLogHelperContactInteraction(profile.id)} currentUser={currentUser} requestLoginForAction={requestLoginForAction} onBumpProfile={handleBumpHelperProfile} />))}
+                 </div>
+            )}
+            <div ref={helpersLoaderRef} className="h-10 flex justify-center items-center">
+                {isLoadingHelpers && initialHelpersLoaded && enrichedHelperProfilesList.length > 0 && <p className="text-sm font-sans text-neutral-medium">✨ กำลังโหลดเพิ่มเติม...</p>}
+            </div>
+            {initialHelpersLoaded && !hasMoreHelpers && enrichedHelperProfilesList.length > 0 && (
+                <p className="text-center text-sm font-sans text-neutral-medium dark:text-dark-textMuted py-4">🎉 คุณดูครบทุกโปรไฟล์แล้ว</p>
+            )}
         </section>
       </div>
     </div>);};
   const renderRegister = () => <RegistrationForm onRegister={handleRegister} onSwitchToLogin={() => navigateTo(View.Login)} />;
   const renderLogin = () => <LoginForm onLogin={handleLogin} onSwitchToRegister={() => navigateTo(View.Register)} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />;
   const renderUserProfile = () => { if (!currentUser) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทางไปยังหน้าเข้าสู่ระบบ...</p>; return (<UserProfilePage currentUser={currentUser} onUpdateProfile={handleUpdateUserProfile} onCancel={() => navigateTo(View.Home)} />); };
-  const renderAdminDashboard = () => { if (currentUser?.role !== UserRole.Admin) return <p className="text-center p-8 font-serif">คุณไม่มีสิทธิ์เข้าถึงหน้านี้...</p>; return (<AdminDashboard jobs={jobs} helperProfiles={helperProfiles} users={users} interactions={interactions} webboardPosts={webboardPosts} webboardComments={webboardComments} onDeleteJob={handleDeleteJob} onDeleteHelperProfile={handleDeleteHelperProfile} onToggleSuspiciousJob={handleToggleSuspiciousJob} onToggleSuspiciousHelperProfile={handleToggleSuspiciousHelperProfile} onTogglePinnedJob={handleTogglePinnedJob} onTogglePinnedHelperProfile={handleTogglePinnedHelperProfile} onToggleHiredJob={handleToggleHiredJobForUserOrAdmin} onToggleUnavailableHelperProfile={handleToggleUnavailableHelperProfileForUserOrAdmin} onToggleVerifiedExperience={handleToggleVerifiedExperience} onDeleteWebboardPost={handleDeleteWebboardPost} onPinWebboardPost={handlePinWebboardPost} onStartEditItem={handleStartEditItemFromAdmin} onSetUserRole={handleSetUserRole} currentUser={currentUser} isSiteLocked={isSiteLocked} onToggleSiteLock={handleToggleSiteLock} />); };
-  const renderMyPostsPage = () => { if (!currentUser || currentUser.role === UserRole.Admin) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทาง...</p>; return (<MyPostsPage currentUser={currentUser} jobs={jobs} helperProfiles={helperProfiles} webboardPosts={webboardPosts} webboardComments={webboardComments} onEditItem={handleStartEditMyItem} onDeleteItem={handleDeleteItemFromMyPosts} onToggleHiredStatus={handleToggleItemStatusFromMyPosts} navigateTo={navigateTo} getUserDisplayBadge={getUserDisplayBadge} />); };
+  const renderAdminDashboard = () => { if (currentUser?.role !== UserRole.Admin) return <p className="text-center p-8 font-serif">คุณไม่มีสิทธิ์เข้าถึงหน้านี้...</p>; return (<AdminDashboard jobs={allJobsForAdmin} helperProfiles={allHelperProfilesForAdmin} users={users} interactions={interactions} webboardPosts={allWebboardPostsForAdmin} webboardComments={webboardComments} onDeleteJob={handleDeleteJob} onDeleteHelperProfile={handleDeleteHelperProfile} onToggleSuspiciousJob={handleToggleSuspiciousJob} onToggleSuspiciousHelperProfile={handleToggleSuspiciousHelperProfile} onTogglePinnedJob={handleTogglePinnedJob} onTogglePinnedHelperProfile={handleTogglePinnedHelperProfile} onToggleHiredJob={handleToggleHiredJobForUserOrAdmin} onToggleUnavailableHelperProfile={handleToggleUnavailableHelperProfileForUserOrAdmin} onToggleVerifiedExperience={handleToggleVerifiedExperience} onDeleteWebboardPost={handleDeleteWebboardPost} onPinWebboardPost={handlePinWebboardPost} onStartEditItem={handleStartEditItemFromAdmin} onSetUserRole={handleSetUserRole} currentUser={currentUser} isSiteLocked={isSiteLocked} onToggleSiteLock={handleToggleSiteLock} />); };
+  const renderMyPostsPage = () => { if (!currentUser || currentUser.role === UserRole.Admin) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทาง...</p>; return (<MyPostsPage currentUser={currentUser} jobs={allJobsForAdmin} helperProfiles={allHelperProfilesForAdmin} webboardPosts={allWebboardPostsForAdmin} webboardComments={webboardComments} onEditItem={handleStartEditMyItem} onDeleteItem={handleDeleteItemFromMyPosts} onToggleHiredStatus={handleToggleItemStatusFromMyPosts} navigateTo={navigateTo} getUserDisplayBadge={getUserDisplayBadge} />); };
   const renderAboutUsPage = () => <AboutUsPage />;
   const renderSafetyPage = () => <SafetyPage />;
 
@@ -1303,28 +1587,33 @@ const App: React.FC = () => {
     const profileUser = users.find(u => u.id === viewingProfileId); 
     if (!profileUser) return <p className="text-center p-8 font-serif text-red-500">ไม่พบโปรไฟล์ผู้ใช้</p>; 
     if (profileUser.role === UserRole.Admin && currentUser?.id !== viewingProfileId) return <div className="text-center p-8 font-serif text-red-500">โปรไฟล์ของแอดมินไม่สามารถดูในหน้านี้ได้</div>; 
-    const helperProfileForBio = helperProfiles.find(hp => hp.userId === viewingProfileId && !isDateInPast(hp.expiresAt) && !hp.isExpired); 
+    const helperProfileForBio = allHelperProfilesForAdmin.find(hp => hp.userId === viewingProfileId && !isDateInPast(hp.expiresAt) && !hp.isExpired); 
     const displayBadgeForProfile = getUserDisplayBadge(profileUser); 
     return <PublicProfilePage currentUser={currentUser} user={{...profileUser, userLevel: displayBadgeForProfile}} helperProfile={helperProfileForBio} onBack={handleBackFromPublicProfile} />; 
   };
   const renderWebboardPage = () => {
+    // Pass WEBBOARD_PAGE_SIZE to WebboardPage for its internal pagination logic
     return (<WebboardPage
-      currentUser={currentUser} users={users} posts={webboardPosts} comments={webboardComments}
+      currentUser={currentUser} users={users} 
+      // posts prop is removed as WebboardPage will fetch its own paginated posts
+      comments={webboardComments} // Global comments for enrichment
       onAddOrUpdatePost={handleAddOrUpdateWebboardPost} onAddComment={handleAddWebboardComment}
       onToggleLike={handleToggleWebboardPostLike} 
-      onSavePost={handleSaveWebboardPost} // Pass new prop
-      onSharePost={handleShareWebboardPost} // Pass new prop
+      onSavePost={handleSaveWebboardPost}
+      onSharePost={handleShareWebboardPost} 
       onDeletePost={handleDeleteWebboardPost}
       onPinPost={handlePinWebboardPost} onEditPost={(post) => { setItemToEdit({...post, isEditing: true}); setEditingItemType('webboardPost'); setSelectedPostId('create'); setCurrentView(View.Webboard); }}
       onDeleteComment={handleDeleteWebboardComment} onUpdateComment={handleUpdateWebboardComment}
       selectedPostId={selectedPostId} setSelectedPostId={setSelectedPostId}
       navigateTo={navigateTo} editingPost={editingItemType === 'webboardPost' ? itemToEdit as WebboardPost : null}
       onCancelEdit={() => { setItemToEdit(null); setEditingItemType(null); setSelectedPostId(null); }}
-      getUserDisplayBadge={getUserDisplayBadge} // Badge logic adjusted
+      getUserDisplayBadge={getUserDisplayBadge} 
       requestLoginForAction={requestLoginForAction} 
       onNavigateToPublicProfile={handleNavigateToPublicProfile}
       checkWebboardPostLimits={checkWebboardPostLimits}
       checkWebboardCommentLimits={checkWebboardCommentLimits} 
+      pageSize={WEBBOARD_PAGE_SIZE} // Pass page size
+      // We are removing `posts={webboardPosts}` because WebboardPage will manage its own list
     />);};
   const renderPasswordResetPage = () => <PasswordResetPage navigateTo={navigateTo} />; 
 

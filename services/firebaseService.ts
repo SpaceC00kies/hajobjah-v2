@@ -1,4 +1,3 @@
-
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -337,7 +336,7 @@ export const updateUserProfileService = async (
   }
 };
 
-// --- Generic Firestore Subscription Service ---
+// --- Generic Firestore Subscription Service (kept for specific non-paginated needs if any) ---
 const subscribeToCollectionService = <T>(
   collectionName: string,
   callback: (data: T[]) => void,
@@ -358,6 +357,11 @@ const subscribeToCollectionService = <T>(
 // --- Specific Data Services ---
 
 // Jobs
+export interface PaginatedDocsResponse<T> {
+  items: T[];
+  lastVisibleDoc: DocumentSnapshot<DocumentData> | null;
+}
+
 type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired'>;
 export const addJobService = async (jobData: JobFormData, author: { userId: string; authorDisplayName: string; contact: string }): Promise<string> => {
   try {
@@ -409,8 +413,71 @@ export const deleteJobService = async (jobId: string): Promise<boolean> => {
     throw error;
   }
 };
-export const subscribeToJobsService = (callback: (data: Job[]) => void) =>
-  subscribeToCollectionService<Job>(JOBS_COLLECTION, callback, [orderBy("isPinned", "desc"), orderBy("postedAt", "desc")]);
+
+export const getJobsPaginated = async (
+  pageSize: number,
+  startAfterDoc: DocumentSnapshot<DocumentData> | null = null,
+  categoryFilter: string | null = null, // Add category filter
+  searchTerm: string | null = null // Add search term
+): Promise<PaginatedDocsResponse<Job>> => {
+  try {
+    const constraints: QueryConstraint[] = [
+      orderBy("isPinned", "desc"),
+      orderBy("postedAt", "desc"), // Ensure this field exists and is a Timestamp for reliable ordering
+      limit(pageSize)
+    ];
+
+    if (categoryFilter && categoryFilter !== 'all') {
+      constraints.unshift(where("category", "==", categoryFilter)); // Add category filter
+    }
+    // Note: Firestore does not support text search directly on multiple fields like SQL LIKE.
+    // For more complex search, consider a third-party search service (e.g., Algolia, Elasticsearch)
+    // or implement a simpler client-side filter after fetching if dataset is small enough (not ideal for infinite scroll from scratch).
+    // For this implementation, we will rely on client-side filtering after fetching batches if searchTerm is present.
+    // If searchTerm is to be used in query, it would typically be a 'where' clause on a specific indexed field.
+
+    if (startAfterDoc) {
+      constraints.push(startAfter(startAfterDoc));
+    }
+
+    const q = query(collection(db, JOBS_COLLECTION), ...constraints);
+    const querySnapshot = await getDocs(q);
+
+    const jobsData = querySnapshot.docs.map(docSnap => ({
+      id: docSnap.id,
+      ...convertTimestamps(docSnap.data()),
+    } as Job));
+    
+    // Client-side search filtering (if searchTerm is provided)
+    // This is applied *after* the Firestore query. For true backend search, specific fields would need to be queried.
+    let searchedJobsData = jobsData;
+    if (searchTerm && searchTerm.trim() !== '') {
+        const termLower = searchTerm.toLowerCase();
+        // Assuming searchMappings is defined elsewhere or not used for now.
+        // const searchMappings: Record<string, string[]> = { /* ... */ };
+        // const termsToSearch = [termLower, ...(searchMappings[termLower] || []).map(t => t.toLowerCase())];
+        const termsToSearch = [termLower]; // Simplified for now
+        
+        searchedJobsData = jobsData.filter(job => 
+            termsToSearch.some(st =>
+                job.title.toLowerCase().includes(st) ||
+                job.description.toLowerCase().includes(st) ||
+                job.category.toLowerCase().includes(st) ||
+                (job.subCategory && job.subCategory.toLowerCase().includes(st))
+            )
+        );
+    }
+
+
+    const lastVisible = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
+    
+    return { items: searchedJobsData, lastVisibleDoc: lastVisible };
+  } catch (error: any) {
+    logFirebaseError("getJobsPaginated", error);
+    throw error;
+  }
+};
+
 
 // Helper Profiles
 type HelperProfileFormData = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt'>;
@@ -465,7 +532,7 @@ export const bumpHelperProfileService = async (profileId: string, userId: string
   try {
     const now = serverTimestamp();
     await updateDoc(doc(db, HELPER_PROFILES_COLLECTION, profileId), {
-      updatedAt: now,
+      updatedAt: now, // Bumping updates the 'updatedAt' timestamp for sorting
       lastBumpedAt: now
     });
     await updateDoc(doc(db, USERS_COLLECTION, userId), {
@@ -487,8 +554,63 @@ export const deleteHelperProfileService = async (profileId: string): Promise<boo
     throw error;
   }
 };
-export const subscribeToHelperProfilesService = (callback: (data: HelperProfile[]) => void) =>
-  subscribeToCollectionService<HelperProfile>(HELPER_PROFILES_COLLECTION, callback, [orderBy("isPinned", "desc"), orderBy("updatedAt", "desc")]);
+
+export const getHelperProfilesPaginated = async (
+  pageSize: number,
+  startAfterDoc: DocumentSnapshot<DocumentData> | null = null,
+  categoryFilter: string | null = null,
+  searchTerm: string | null = null
+): Promise<PaginatedDocsResponse<HelperProfile>> => {
+  try {
+    const constraints: QueryConstraint[] = [
+      orderBy("isPinned", "desc"),
+      orderBy("updatedAt", "desc"), // Use updatedAt for recency, including bumps
+      limit(pageSize)
+    ];
+    
+    if (categoryFilter && categoryFilter !== 'all') {
+      constraints.unshift(where("category", "==", categoryFilter));
+    }
+
+    if (startAfterDoc) {
+      constraints.push(startAfter(startAfterDoc));
+    }
+
+    const q = query(collection(db, HELPER_PROFILES_COLLECTION), ...constraints);
+    const querySnapshot = await getDocs(q);
+
+    const profilesData = querySnapshot.docs.map(docSnap => ({
+      id: docSnap.id,
+      ...convertTimestamps(docSnap.data()),
+    } as HelperProfile));
+
+    // Client-side search filtering
+    let searchedProfilesData = profilesData;
+    if (searchTerm && searchTerm.trim() !== '') {
+        const termLower = searchTerm.toLowerCase();
+        // const searchMappings: Record<string, string[]> = { /* ... */ }; // If needed
+        // const termsToSearch = [termLower, ...(searchMappings[termLower] || []).map(t => t.toLowerCase())];
+        const termsToSearch = [termLower];
+
+        searchedProfilesData = profilesData.filter(profile => 
+            termsToSearch.some(st =>
+                profile.profileTitle.toLowerCase().includes(st) ||
+                profile.details.toLowerCase().includes(st) ||
+                profile.category.toLowerCase().includes(st) ||
+                (profile.subCategory && profile.subCategory.toLowerCase().includes(st)) ||
+                profile.area.toLowerCase().includes(st)
+            )
+        );
+    }
+
+    const lastVisible = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
+
+    return { items: searchedProfilesData, lastVisibleDoc: lastVisible };
+  } catch (error: any) {
+    logFirebaseError("getHelperProfilesPaginated", error);
+    throw error;
+  }
+};
 
 
 // Webboard Posts
@@ -614,24 +736,26 @@ export const deleteWebboardPostService = async (postId: string): Promise<boolean
     throw error;
   }
 };
-export const subscribeToWebboardPostsService = (callback: (data: WebboardPost[]) => void) =>
-  subscribeToCollectionService<WebboardPost>(WEBBOARD_POSTS_COLLECTION, callback, [orderBy("isPinned", "desc"), orderBy("createdAt", "desc")]);
 
-export interface PaginatedPostsResponse {
-  posts: WebboardPost[];
-  lastVisibleDoc: DocumentSnapshot<DocumentData> | null;
-}
-
+// Modified to accept category and search term filters for initial query
 export const getWebboardPostsPaginated = async (
   pageSize: number = 10,
-  startAfterDoc: DocumentSnapshot<DocumentData> | null = null
-): Promise<PaginatedPostsResponse> => {
+  startAfterDoc: DocumentSnapshot<DocumentData> | null = null,
+  categoryFilter: string | null = null,
+  searchTerm: string | null = null
+): Promise<PaginatedDocsResponse<WebboardPost>> => {
   try {
     const constraints: QueryConstraint[] = [
       orderBy("isPinned", "desc"),
       orderBy("createdAt", "desc"),
       limit(pageSize)
     ];
+
+    if (categoryFilter && categoryFilter !== 'all') {
+      constraints.unshift(where("category", "==", categoryFilter));
+    }
+    // As with jobs/profiles, full-text search across multiple fields is complex with Firestore alone.
+    // Client-side filtering will be applied if searchTerm is provided.
 
     if (startAfterDoc) {
       constraints.push(startAfter(startAfterDoc));
@@ -645,9 +769,20 @@ export const getWebboardPostsPaginated = async (
       ...convertTimestamps(docSnap.data()),
     } as WebboardPost));
 
+    // Client-side search filtering
+    let searchedPostsData = postsData;
+    if (searchTerm && searchTerm.trim() !== '') {
+        const termLower = searchTerm.toLowerCase();
+        searchedPostsData = postsData.filter(post =>
+            post.title.toLowerCase().includes(termLower) ||
+            post.body.toLowerCase().includes(termLower) ||
+            post.authorDisplayName.toLowerCase().includes(termLower)
+        );
+    }
+
     const lastVisible = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
 
-    return { posts: postsData, lastVisibleDoc: lastVisible };
+    return { items: searchedPostsData, lastVisibleDoc: lastVisible };
   } catch (error: any) {
     logFirebaseError("getWebboardPostsPaginated", error);
     throw error;
