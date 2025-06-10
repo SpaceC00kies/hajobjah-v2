@@ -214,10 +214,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
         </h3>
         <div className="space-y-1 text-xs sm:text-sm font-sans text-neutral-dark dark:text-dark-textMuted">
           <div className="flex justify-between items-center p-1.5 bg-white/50 dark:bg-dark-cardBg/20 rounded">
-            <span>จำนวนประกาศงานที่ใช้งานอยู่: {userActiveJobsCount}/{maxJobsAllowed}</span>
-          </div>
-          <div className="flex justify-between items-center p-1.5 bg-white/50 dark:bg-dark-cardBg/20 rounded">
-            <span>สร้างประกาศใหม่:</span>
+            <span>จำนวนประกาศ: {userActiveJobsCount}/{maxJobsAllowed}</span>
             {jobCanCreate ? (
               <span className="text-green-600 dark:text-green-400">✅ พร้อมสร้าง</span>
             ) : (
@@ -260,11 +257,8 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
         </h3>
         <div className="space-y-1 text-xs sm:text-sm font-sans text-neutral-dark dark:text-dark-textMuted">
           <div className="flex justify-between items-center p-1.5 bg-white/50 dark:bg-dark-cardBg/20 rounded">
-            <span>จำนวนโปรไฟล์ที่ใช้งานอยู่: {userActiveHelperProfilesCount}/{maxHelperProfilesAllowed}</span>
-          </div>
-          <div className="flex justify-between items-center p-1.5 bg-white/50 dark:bg-dark-cardBg/20 rounded">
-            <span>สร้างโปรไฟล์ใหม่:</span>
-            {profileCanCreate ? (
+            <span>จำนวนโปรไฟล์: {userActiveHelperProfilesCount}/{maxHelperProfilesAllowed}</span>
+             {profileCanCreate ? (
               <span className="text-green-600 dark:text-green-400">✅ พร้อมสร้าง</span>
             ) : (
               <span className="text-orange-600 dark:text-orange-400">⏳ รออีก {helperProfileCooldownHoursRemaining} ชั่วโมง</span>
