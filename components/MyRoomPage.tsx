@@ -1,11 +1,11 @@
 
 import React, { useState, useMemo } from 'react';
 import type { User, Job, HelperProfile, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost } from '../types';
-import { View } from '../types';
+import { View, UserTier } from '../types'; // Added UserTier
 import { Button } from './Button';
 import { UserProfilePage } from './UserProfilePage';
 import { WebboardPostCard } from './WebboardPostCard'; // For Saved Posts
-import { isDateInPast, calculateDaysRemaining } from '../App'; // Import utilities
+import { isDateInPast, calculateHoursRemaining, calculateDaysRemaining } from '../App'; // Import utilities
 
 // Import icons (simple text for now, can be replaced with SVGs)
 const ProfileIcon = () => <span role="img" aria-label="Profile" className="mr-1.5 sm:mr-2">👤</span>;
@@ -47,6 +47,14 @@ const formatDateDisplay = (dateInput?: string | Date | null): string => {
 
 const BUMP_COOLDOWN_DAYS_MY_ROOM = 30;
 
+// Constants for posting limits (mirrored from App.tsx or MyPostsPage for local use)
+const JOB_COOLDOWN_DAYS_DISPLAY = 3;
+const HELPER_PROFILE_COOLDOWN_DAYS_DISPLAY = 3;
+const MAX_ACTIVE_JOBS_FREE_TIER_DISPLAY = 3;
+const MAX_ACTIVE_HELPER_PROFILES_FREE_TIER_DISPLAY = 1;
+const MAX_ACTIVE_JOBS_BADGE_DISPLAY = 4; // For users with activity badge
+const MAX_ACTIVE_HELPER_PROFILES_BADGE_DISPLAY = 2; // For users with activity badge
+
 export const MyRoomPage: React.FC<MyRoomPageProps> = ({
   currentUser,
   users,
@@ -75,7 +83,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
     .map(post => ({
       ...post,
       commentCount: webboardComments.filter(c => c.postId === post.id).length,
-      authorPhoto: currentUser?.photo || post.authorPhoto, // Use current user's photo
+      authorPhoto: currentUser?.photo || post.authorPhoto,
       isAuthorAdmin: currentUser?.role === 'Admin',
     } as EnrichedWebboardPost))
     .sort((a, b) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime()), [allWebboardPostsForAdmin, currentUser.id, webboardComments, currentUser?.photo, currentUser?.role]);
@@ -93,26 +101,20 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
           isAuthorAdmin: author?.role === 'Admin',
         } as EnrichedWebboardPost;
       })
-      .sort((a, b) => { // Sort by savedAt timestamp if available, otherwise createdAt
-        const savedA = currentUser.savedWebboardPosts?.find(saved => saved === a.id); // Assuming savedWebboardPosts stores IDs
-        const savedB = currentUser.savedWebboardPosts?.find(saved => saved === b.id);
-        // This is a simplified sort as savedAt is not directly on EnrichedWebboardPost
-        // For a more accurate sort by saved time, UserSavedWebboardPostEntry would be needed here
-        return new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime();
-      });
-  }, [allWebboardPostsForAdmin, currentUser.savedWebboardPosts, webboardComments, users, currentUser]);
+      .sort((a, b) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime());
+  }, [allWebboardPostsForAdmin, currentUser.savedWebboardPosts, webboardComments, users]);
 
 
   const tabs: { id: ActiveTab; label: string; icon: JSX.Element }[] = [
     { id: 'profile', label: 'โปรไฟล์', icon: <ProfileIcon /> },
-    { id: 'myJobs', label: 'งานของฉัน', icon: <JobsIcon /> },
-    { id: 'myHelperServices', label: 'บริการของฉัน', icon: <ServicesIcon /> },
+    { id: 'myJobs', label: 'ประกาศงาน', icon: <JobsIcon /> }, // Updated label
+    { id: 'myHelperServices', label: 'งานที่เสนอ', icon: <ServicesIcon /> }, // Updated label
     { id: 'myWebboardPosts', label: 'กระทู้ของฉัน', icon: <WebboardIcon /> },
-    { id: 'savedPosts', label: 'ที่บันทึกไว้', icon: <SavedIcon /> },
+    { id: 'savedPosts', label: 'กระทู้ที่บันทึก', icon: <SavedIcon /> }, // Updated label
   ];
 
   const renderItemStatus = (item: Job | HelperProfile) => {
-    const isJob = 'payment' in item; // Type guard
+    const isJob = 'payment' in item;
     const isTrulyExpired = item.isExpired || (item.expiresAt ? isDateInPast(item.expiresAt) : false);
     let statusText = 'กำลังแสดง';
     let statusColor = 'text-green-600 dark:text-green-400';
@@ -134,13 +136,102 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
   };
 
 
+  // --- Posting Limit Calculations ---
+  const {
+    userActiveJobsCount,
+    maxJobsAllowed,
+    jobCooldownHoursRemaining,
+    jobCanCreate,
+  } = useMemo(() => {
+    const activeJobs = userJobs.filter(
+      job => !job.isExpired && (job.expiresAt ? !isDateInPast(job.expiresAt) : true)
+    ).length;
+    
+    let maxJobs = (currentUser.tier === 'free' as UserTier) ? MAX_ACTIVE_JOBS_FREE_TIER_DISPLAY : 999;
+    if (currentUser.activityBadge?.isActive) {
+      maxJobs = MAX_ACTIVE_JOBS_BADGE_DISPLAY;
+    }
+
+    let cooldownHours = 0;
+    const lastJobPostDate = currentUser.postingLimits?.lastJobPostDate;
+    if (lastJobPostDate) {
+      const jobCooldownTotalHours = JOB_COOLDOWN_DAYS_DISPLAY * 24;
+      const hoursSinceLastJobPost = (new Date().getTime() - new Date(lastJobPostDate as string).getTime()) / (1000 * 60 * 60);
+      if (hoursSinceLastJobPost < jobCooldownTotalHours) {
+        cooldownHours = Math.ceil(jobCooldownTotalHours - hoursSinceLastJobPost);
+      }
+    }
+    const canCreate = cooldownHours <= 0;
+
+    return {
+      userActiveJobsCount: activeJobs,
+      maxJobsAllowed: maxJobs,
+      jobCooldownHoursRemaining: cooldownHours,
+      jobCanCreate: canCreate,
+    };
+  }, [userJobs, currentUser.tier, currentUser.activityBadge, currentUser.postingLimits]);
+
+  const {
+    userActiveHelperProfilesCount,
+    maxHelperProfilesAllowed,
+    helperProfileCooldownHoursRemaining,
+    profileCanCreate,
+  } = useMemo(() => {
+    const activeProfiles = userHelperProfiles.filter(
+      profile => !profile.isExpired && (profile.expiresAt ? !isDateInPast(profile.expiresAt) : true)
+    ).length;
+
+    let maxProfiles = (currentUser.tier === 'free' as UserTier) ? MAX_ACTIVE_HELPER_PROFILES_FREE_TIER_DISPLAY : 999;
+    if (currentUser.activityBadge?.isActive) {
+      maxProfiles = MAX_ACTIVE_HELPER_PROFILES_BADGE_DISPLAY;
+    }
+
+    let cooldownHours = 0;
+    const lastHelperProfileDate = currentUser.postingLimits?.lastHelperProfileDate;
+    if (lastHelperProfileDate) {
+      const helperCooldownTotalHours = HELPER_PROFILE_COOLDOWN_DAYS_DISPLAY * 24;
+      const hoursSinceLastHelperProfilePost = (new Date().getTime() - new Date(lastHelperProfileDate as string).getTime()) / (1000 * 60 * 60);
+      if (hoursSinceLastHelperProfilePost < helperCooldownTotalHours) {
+        cooldownHours = Math.ceil(helperCooldownTotalHours - hoursSinceLastHelperProfilePost);
+      }
+    }
+    const canCreate = cooldownHours <= 0;
+    
+    return {
+      userActiveHelperProfilesCount: activeProfiles,
+      maxHelperProfilesAllowed: maxProfiles,
+      helperProfileCooldownHoursRemaining: cooldownHours,
+      profileCanCreate: canCreate,
+    };
+  }, [userHelperProfiles, currentUser.tier, currentUser.activityBadge, currentUser.postingLimits]);
+
+
   const renderMyJobsTab = () => (
     <div className="space-y-4">
+       <div className="mb-6 p-3 bg-neutral-light/50 dark:bg-dark-inputBg/30 shadow-sm rounded-lg border border-neutral-DEFAULT/30 dark:border-dark-border/30">
+        <h3 className="text-md font-sans font-semibold text-neutral-700 dark:text-dark-text mb-2 text-center">
+         📊 สถานะประกาศงาน
+        </h3>
+        <div className="space-y-1 text-xs sm:text-sm font-sans text-neutral-dark dark:text-dark-textMuted">
+          <div className="flex justify-between items-center p-1.5 bg-white/50 dark:bg-dark-cardBg/20 rounded">
+            <span>จำนวนประกาศงานที่ใช้งานอยู่: {userActiveJobsCount}/{maxJobsAllowed}</span>
+          </div>
+          <div className="flex justify-between items-center p-1.5 bg-white/50 dark:bg-dark-cardBg/20 rounded">
+            <span>สร้างประกาศใหม่:</span>
+            {jobCanCreate ? (
+              <span className="text-green-600 dark:text-green-400">✅ พร้อมสร้าง</span>
+            ) : (
+              <span className="text-orange-600 dark:text-orange-400">⏳ รออีก {jobCooldownHoursRemaining} ชั่วโมง</span>
+            )}
+          </div>
+        </div>
+      </div>
+
       {userJobs.length === 0 ? (
         <div className="text-center py-8">
           <p className="text-neutral-medium dark:text-dark-textMuted mb-4">คุณยังไม่ได้ลงประกาศงาน</p>
-          <Button onClick={() => navigateTo(View.PostJob)} variant="primary" size="sm">
-            + สร้างประกาศงานใหม่
+          <Button onClick={() => navigateTo(View.PostJob)} variant="primary" size="sm" disabled={!jobCanCreate && userActiveJobsCount >= maxJobsAllowed}>
+            {jobCanCreate && userActiveJobsCount < maxJobsAllowed ? '+ สร้างประกาศงานใหม่' : 'ไม่สามารถสร้างได้ตอนนี้'}
           </Button>
         </div>
       ) : (
@@ -163,18 +254,38 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
 
   const renderMyHelperServicesTab = () => (
     <div className="space-y-4">
+      <div className="mb-6 p-3 bg-neutral-light/50 dark:bg-dark-inputBg/30 shadow-sm rounded-lg border border-neutral-DEFAULT/30 dark:border-dark-border/30">
+        <h3 className="text-md font-sans font-semibold text-neutral-700 dark:text-dark-text mb-2 text-center">
+         📊 สถานะโปรไฟล์ผู้ช่วย
+        </h3>
+        <div className="space-y-1 text-xs sm:text-sm font-sans text-neutral-dark dark:text-dark-textMuted">
+          <div className="flex justify-between items-center p-1.5 bg-white/50 dark:bg-dark-cardBg/20 rounded">
+            <span>จำนวนโปรไฟล์ที่ใช้งานอยู่: {userActiveHelperProfilesCount}/{maxHelperProfilesAllowed}</span>
+          </div>
+          <div className="flex justify-between items-center p-1.5 bg-white/50 dark:bg-dark-cardBg/20 rounded">
+            <span>สร้างโปรไฟล์ใหม่:</span>
+            {profileCanCreate ? (
+              <span className="text-green-600 dark:text-green-400">✅ พร้อมสร้าง</span>
+            ) : (
+              <span className="text-orange-600 dark:text-orange-400">⏳ รออีก {helperProfileCooldownHoursRemaining} ชั่วโมง</span>
+            )}
+          </div>
+        </div>
+      </div>
+
       {userHelperProfiles.length === 0 ? (
         <div className="text-center py-8">
           <p className="text-neutral-medium dark:text-dark-textMuted mb-4">คุณยังไม่ได้สร้างโปรไฟล์ผู้ช่วย/บริการ</p>
-          <Button onClick={() => navigateTo(View.OfferHelp)} variant="secondary" size="sm">
-            + สร้างโปรไฟล์ใหม่
+          <Button onClick={() => navigateTo(View.OfferHelp)} variant="secondary" size="sm" disabled={!profileCanCreate && userActiveHelperProfilesCount >= maxHelperProfilesAllowed}>
+             {profileCanCreate && userActiveHelperProfilesCount < maxHelperProfilesAllowed ? '+ สร้างโปรไฟล์ใหม่' : 'ไม่สามารถสร้างได้ตอนนี้'}
           </Button>
         </div>
       ) : (
         userHelperProfiles.map(profile => {
           const lastBump = currentUser.postingLimits.lastBumpDates?.[profile.id] || profile.lastBumpedAt;
           const bumpDaysLeft = lastBump ? calculateDaysRemaining(new Date(new Date(lastBump as string).getTime() + BUMP_COOLDOWN_DAYS_MY_ROOM * 24 * 60 * 60 * 1000)) : 0;
-          const canBumpProfile = bumpDaysLeft === 0 && !profile.isExpired && !profile.isUnavailable && !isDateInPast(profile.expiresAt);
+          const canBumpProfile = bumpDaysLeft === 0 && !profile.isExpired && !profile.isUnavailable && (profile.expiresAt ? !isDateInPast(profile.expiresAt) : true);
+
 
           return (
             <div key={profile.id} className="bg-white dark:bg-dark-cardBg p-4 rounded-lg shadow border dark:border-dark-border/70">
@@ -252,7 +363,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <div className="mb-6 sm:mb-8 text-center sm:text-left">
+      <div className="mb-6 sm:mb-8 text-center"> {/* Centered header */}
         <h2 className="text-2xl sm:text-3xl font-sans font-semibold text-neutral-800 dark:text-dark-text">
           🛋️ ห้องของฉัน
         </h2>
@@ -274,7 +385,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
                 font-sans font-medium text-xs sm:text-sm transition-colors duration-150
                 focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-dark-pageBg
                 ${activeTab === tab.id
-                  ? 'border-b-2 border-primary text-primary dark:border-dark-primary dark:text-dark-primary bg-primary/5 dark:bg-dark-primary/10 focus:ring-primary dark:focus:ring-dark-primary'
+                  ? 'border-b-2 border-neutral-700 text-neutral-800 dark:border-dark-text dark:text-dark-text bg-neutral-DEFAULT/20 dark:bg-dark-border/20 focus:ring-neutral-700 dark:focus:ring-dark-text' // Updated active tab style
                   : 'border-b-2 border-transparent text-neutral-medium hover:text-neutral-dark hover:border-neutral-DEFAULT/80 dark:text-dark-textMuted dark:hover:text-dark-text dark:hover:border-dark-border focus:ring-neutral-DEFAULT dark:focus:ring-dark-border'
                 }
               `}
