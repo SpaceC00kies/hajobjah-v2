@@ -51,7 +51,9 @@ import { LoginForm } from './components/LoginForm';
 import { ForgotPasswordModal } from './components/ForgotPasswordModal'; 
 import { AdminDashboard } from './components/AdminDashboard';
 import { ConfirmModal } from './components/ConfirmModal';
-import { MyPostsPage } from './components/MyPostsPage';
+// MyPostsPage is removed as its functionality is integrated into MyRoomPage
+// import { MyPostsPage } from './components/MyPostsPage'; 
+import { MyRoomPage } from './components/MyRoomPage'; // New MyRoomPage
 import { UserProfilePage } from './components/UserProfilePage';
 import { AboutUsPage } from './components/AboutUsPage';
 import { PublicProfilePage } from './components/PublicProfilePage';
@@ -420,7 +422,7 @@ const App: React.FC = () => {
   const navigateTo = (view: View, payload?: any) => {
     const fromView = currentView;
     setIsMobileMenuOpen(false); window.scrollTo(0, 0);
-    const protectedViews: View[] = [View.PostJob, View.OfferHelp, View.UserProfile, View.MyPosts, View.AdminDashboard];
+    const protectedViews: View[] = [View.PostJob, View.OfferHelp, View.UserProfile, View.MyPosts, View.AdminDashboard, View.MyRoom];
     
     if (view === View.PublicProfile && typeof payload === 'string') {
       const targetUser = users.find(u => u.id === payload);
@@ -522,6 +524,11 @@ const App: React.FC = () => {
 
       await updateUserProfileService(currentUser.id, updatedProfileData);
       alert('อัปเดตโปรไฟล์เรียบร้อยแล้ว');
+      // Re-fetch user to update currentUser state globally
+      const updatedUserDoc = await getUserDocument(currentUser.id);
+      if (updatedUserDoc) {
+        setCurrentUser(updatedUserDoc);
+      }
       return true;
     } catch (error: any) {
       logFirebaseError("handleUpdateUserProfile", error);
@@ -563,6 +570,7 @@ const App: React.FC = () => {
         setItemToEdit({ ...(item.originalItem as WebboardPost), isEditing: true }); setEditingItemType('webboardPost'); setSourceViewForForm(View.AdminDashboard); navigateTo(View.Webboard, 'create');
     }
  };
+  // Modified to use MyRoom as source for edits initiated from there
   const handleStartEditMyItem = (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => {
     let originalItem: Job | HelperProfile | WebboardPost | undefined;
     if (itemType === 'job') originalItem = allJobsForAdmin.find(j => j.id === itemId);
@@ -572,7 +580,8 @@ const App: React.FC = () => {
     if (originalItem && canEditOrDelete(originalItem.userId, originalItem.ownerId)) {
         setItemToEdit(itemType === 'webboardPost' ? { ...(originalItem as WebboardPost), isEditing: true } : originalItem);
         setEditingItemType(itemType);
-        setSourceViewForForm(View.MyPosts);
+        // Set source to MyRoom so after edit/cancel, user returns to the dashboard
+        setSourceViewForForm(View.MyRoom); 
         navigateTo(itemType === 'job' ? View.PostJob : itemType === 'profile' ? View.OfferHelp : View.Webboard, itemType === 'webboardPost' ? 'create' : undefined);
     } else { alert("ไม่พบรายการ หรือไม่มีสิทธิ์แก้ไข"); }
   };
@@ -655,14 +664,14 @@ const App: React.FC = () => {
       const updatedUser = await getUserDocument(currentUser.id);
       if (updatedUser) setCurrentUser(updatedUser);
 
-      if (currentView === View.FindJobs || sourceViewForForm === View.FindJobs) {
+      if (currentView === View.FindJobs || sourceViewForForm === View.FindJobs || sourceViewForForm === View.MyRoom) {
         loadJobsFn(true); // Use the passed loadJobs function
       }
-       // Refresh admin list if needed (consider if this fetch is too frequent)
-       const updatedAdminJobs = [...allJobsForAdmin, { ...newJobData, id: 'temp-new-id', userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, contact: generateContactString(currentUser), postedAt: new Date().toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() } as Job]; // Optimistic update
+       // Refresh admin list if needed
+       const updatedAdminJobs = [...allJobsForAdmin, { ...newJobData, id: 'temp-new-id', userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, contact: generateContactString(currentUser), postedAt: new Date().toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() } as Job]; 
        setAllJobsForAdmin(updatedAdminJobs);
 
-      navigateTo(sourceViewForForm === View.MyPosts ? View.MyPosts : View.FindJobs);
+      navigateTo(sourceViewForForm || View.FindJobs); // Navigate based on where form was initiated
       setSourceViewForForm(null); alert('ประกาศงานของคุณถูกเพิ่มแล้ว!');
     } catch (error: any) {
       logFirebaseError("handleAddJob", error);
@@ -684,20 +693,14 @@ const App: React.FC = () => {
       const updatedAdminJobs = allJobsForAdmin.map(j => j.id === updatedJobDataFromForm.id ? {...j, ...updatedJobDataFromForm, contact: generateContactString(currentUser), updatedAt: new Date().toISOString()} : j);
       setAllJobsForAdmin(updatedAdminJobs as Job[]);
 
-      navigateTo(sourceViewForForm || View.Home); setSourceViewForForm(null);
+      navigateTo(sourceViewForForm || View.FindJobs); // Navigate based on where form was initiated
+      setSourceViewForForm(null);
       alert('แก้ไขประกาศงานเรียบร้อยแล้ว');
     } catch (error: any) {
       logFirebaseError("handleUpdateJob", error);
       alert(`เกิดข้อผิดพลาดในการแก้ไขประกาศงาน: ${error.message}`);
     }
   };
-
-  // handleSubmitJobForm will need to be defined within renderFindJobs or passed loadJobs
-  // This is a placeholder, actual implementation will be inside renderFindJobs
-  // const handleSubmitJobForm = (formDataFromForm: JobFormData & { id?: string }) => {
-  //   if (formDataFromForm.id && itemToEdit && editingItemType === 'job') handleUpdateJob(formDataFromForm as JobFormData & { id: string }, specificLoadJobsFn);
-  //   else handleAddJob(formDataFromForm, specificLoadJobsFn);
-  // };
 
  const handleAddHelperProfile = useCallback(async (newProfileData: HelperProfileFormData, loadHelpersFn: (isInitialLoad?: boolean) => void) => {
     if (!currentUser) { requestLoginForAction(View.OfferHelp); return; }
@@ -718,18 +721,18 @@ const App: React.FC = () => {
       const updatedUser = await getUserDocument(currentUser.id); 
       if (updatedUser) setCurrentUser(updatedUser);
 
-      if (currentView === View.FindHelpers || sourceViewForForm === View.FindHelpers) {
+      if (currentView === View.FindHelpers || sourceViewForForm === View.FindHelpers || sourceViewForForm === View.MyRoom) {
         loadHelpersFn(true);
       }
-      const updatedAdminProfiles = [...allHelperProfilesForAdmin, { ...newProfileData, id: 'temp-new-id', userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, contact: generateContactString(currentUser), gender: currentUser.gender, birthdate: currentUser.birthdate, educationLevel: currentUser.educationLevel, postedAt: new Date().toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() } as HelperProfile]; // Optimistic update
+      const updatedAdminProfiles = [...allHelperProfilesForAdmin, { ...newProfileData, id: 'temp-new-id', userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, contact: generateContactString(currentUser), gender: currentUser.gender, birthdate: currentUser.birthdate, educationLevel: currentUser.educationLevel, postedAt: new Date().toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() } as HelperProfile]; 
       setAllHelperProfilesForAdmin(updatedAdminProfiles);
 
 
       setTimeout(() => {
-        navigateTo(sourceViewForForm === View.MyPosts ? View.MyPosts : View.FindHelpers);
+        navigateTo(sourceViewForForm || View.FindHelpers); // Navigate based on where form was initiated
         setSourceViewForForm(null);
         alert('โปรไฟล์ของคุณถูกเพิ่มแล้ว!');
-      }, 100); // Reduced delay
+      }, 100); 
     } catch (error: any) {
       logFirebaseError("handleAddHelperProfile", error);
       alert(`เกิดข้อผิดพลาดในการเพิ่มโปรไฟล์: ${error.message}`);
@@ -750,25 +753,17 @@ const App: React.FC = () => {
       const updatedAdminProfiles = allHelperProfilesForAdmin.map(p => p.id === updatedProfileDataFromForm.id ? {...p, ...updatedProfileDataFromForm, contact: generateContactString(currentUser), updatedAt: new Date().toISOString()} : p);
       setAllHelperProfilesForAdmin(updatedAdminProfiles as HelperProfile[]);
 
-      navigateTo(sourceViewForForm || View.Home);
+      navigateTo(sourceViewForForm || View.FindHelpers); // Navigate based on where form was initiated
       setSourceViewForForm(null); alert('แก้ไขโปรไฟล์เรียบร้อยแล้ว');
     } catch (error: any) {
       logFirebaseError("handleUpdateHelperProfile", error);
       alert(`เกิดข้อผิดพลาดในการแก้ไขโปรไฟล์: ${error.message}`);
     }
   };
-
-  // handleSubmitHelperProfileForm will need to be defined within renderFindHelpers or passed loadHelpers
-  // This is a placeholder
-  // const handleSubmitHelperProfileForm = (formDataFromForm: HelperProfileFormData & { id?: string }) => {
-  //   if (formDataFromForm.id && itemToEdit && editingItemType === 'profile') handleUpdateHelperProfile(formDataFromForm as HelperProfileFormData & { id: string }, specificLoadHelpersFn);
-  //   else handleAddHelperProfile(formDataFromForm, specificLoadHelpersFn);
-  // };
   
-  const handleBumpHelperProfile = async (profileId: string, loadHelpersFn: (isInitialLoad?: boolean) => void) => {
+  const handleBumpHelperProfile = async (profileId: string, loadHelpersFn?: (isInitialLoad?: boolean) => void) => {
     if (!currentUser) { requestLoginForAction(View.FindHelpers, {intent: 'bump', postId: profileId}); return; }
-    // Find profile from either local list (if available) or admin list as fallback
-    const localProfile = allHelperProfilesForAdmin.find(p => p.id === profileId); // Using admin list for now, ideally FindHelpers passes its own list
+    const localProfile = allHelperProfilesForAdmin.find(p => p.id === profileId); 
     if (!localProfile || localProfile.userId !== currentUser.id) {
         alert("ไม่พบโปรไฟล์ หรือคุณไม่ใช่เจ้าของโปรไฟล์นี้");
         return;
@@ -788,7 +783,11 @@ const App: React.FC = () => {
         alert("Bump โปรไฟล์สำเร็จ! โปรไฟล์ของคุณจะแสดงผลเป็นลำดับต้นๆ ชั่วคราว");
         const updatedUser = await getUserDocument(currentUser.id);
         if (updatedUser) setCurrentUser(updatedUser);
-        loadHelpersFn(true); 
+        if (loadHelpersFn) loadHelpersFn(true); 
+        // Also update allHelperProfilesForAdmin for immediate reflection if MyRoomPage is showing it
+        setAllHelperProfilesForAdmin(prev => prev.map(p => 
+            p.id === profileId ? { ...p, lastBumpedAt: new Date().toISOString(), updatedAt: new Date().toISOString() } : p
+        ));
 
     } catch (error: any) {
         logFirebaseError("handleBumpHelperProfile", error);
@@ -817,20 +816,19 @@ const App: React.FC = () => {
         try {
           if (itemType === 'job') {
             await deleteJobService(itemId);
-            if(loadItemsFn) loadItemsFn(true); // Refresh the specific list (e.g., jobsList)
+            if(loadItemsFn) loadItemsFn(true); 
             setAllJobsForAdmin(prev => prev.filter(j => j.id !== itemId));
           } else if (itemType === 'profile') {
             await deleteHelperProfileService(itemId);
-            if(loadItemsFn) loadItemsFn(true); // Refresh the specific list (e.g., helperProfilesList)
+            if(loadItemsFn) loadItemsFn(true); 
             setAllHelperProfilesForAdmin(prev => prev.filter(p => p.id !== itemId));
           } else if (itemType === 'webboardPost') {
             await deleteWebboardPostService(itemId);
-            if(loadItemsFn) loadItemsFn(true); // Refresh WebboardPage list
+            if(loadItemsFn) loadItemsFn(true); 
             setAllWebboardPostsForAdmin(prev => prev.filter(p => p.id !== itemId));
             if (selectedPostId === itemId) { setSelectedPostId(null); navigateTo(View.Webboard); }
           } else if (itemType === 'webboardComment') {
             await deleteWebboardCommentService(itemId);
-            // Comments are re-fetched by WebboardPostDetail or WebboardPage
           }
           alert(`ลบ "${itemTitle}" เรียบร้อยแล้ว`);
         } catch (error: any) {
@@ -853,10 +851,10 @@ const App: React.FC = () => {
     const post = allWebboardPostsForAdmin.find(p => p.id === postId); 
     if (post) handleDeleteItem(postId, 'webboardPost', post.title, post.userId, post.ownerId, loadWebboardFn); 
   };
-  const handleDeleteItemFromMyPosts = (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => {
-    if (itemType === 'job') handleDeleteJob(itemId); 
-    else if (itemType === 'profile') handleDeleteHelperProfile(itemId); 
-    else if (itemType === 'webboardPost') handleDeleteWebboardPost(itemId);
+  const handleDeleteItemFromMyRoom = (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => {
+    if (itemType === 'job') handleDeleteJob(itemId, loadJobs); 
+    else if (itemType === 'profile') handleDeleteHelperProfile(itemId, loadHelpers); 
+    else if (itemType === 'webboardPost') handleDeleteWebboardPost(itemId, () => {/* MyRoomPage's webboard tab will refilter allWebboardPostsForAdmin */});
   };
 
   const toggleItemFlagAndUpdateLists = async (
@@ -876,7 +874,6 @@ const App: React.FC = () => {
       if (loadItemsFn) {
         loadItemsFn(true); // Re-fetch the specific list
       }
-      // Optimistically update admin lists or re-fetch for simplicity if needed
       if (collectionName === 'jobs') {
         setAllJobsForAdmin(prev => prev.map(job => job.id === itemId ? { ...job, [flagName]: !currentValue, updatedAt: new Date().toISOString() } : job));
       } else if (collectionName === 'helperProfiles') {
@@ -918,19 +915,19 @@ const App: React.FC = () => {
     const profile = allHelperProfilesForAdmin.find(p => p.id === profileId); 
     if (profile) toggleItemFlagAndUpdateLists('helperProfiles', profileId, "isUnavailable", profile.userId, profile.ownerId, profile.isUnavailable, loadHelpersFn); 
   };
-  const handleToggleItemStatusFromMyPosts = (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => {
-    // MyPostsPage uses allJobsForAdmin/allHelperProfilesForAdmin, so no specific loadFn needed here for *its* view
-    if (itemType === 'job') handleToggleHiredJobForUserOrAdmin(itemId); 
-    else if (itemType === 'profile') handleToggleUnavailableHelperProfileForUserOrAdmin(itemId);
+  // Modified to pass correct load functions for MyRoomPage context
+  const handleToggleItemStatusFromMyRoom = (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => {
+    if (itemType === 'job') handleToggleHiredJobForUserOrAdmin(itemId, loadJobs); 
+    else if (itemType === 'profile') handleToggleUnavailableHelperProfileForUserOrAdmin(itemId, loadHelpers);
   };
 
   const handleLogHelperContactInteraction = async (helperProfileId: string, loadHelpersFn?: (isInitialLoad?: boolean) => void) => {
     if (!currentUser) { requestLoginForAction(View.FindHelpers, { intent: 'contactHelper', postId: helperProfileId }); return; }
-    const helperProfile = allHelperProfilesForAdmin.find(hp => hp.id === helperProfileId); // Check against admin list
+    const helperProfile = allHelperProfilesForAdmin.find(hp => hp.id === helperProfileId); 
     if (!helperProfile || currentUser.id === helperProfile.userId) return;
     try {
         await logHelperContactInteractionService(helperProfileId, currentUser.id, helperProfile.userId);
-        if (loadHelpersFn) loadHelpersFn(true); // Refresh the list if a function is provided
+        if (loadHelpersFn) loadHelpersFn(true); 
         setAllHelperProfilesForAdmin(prev => prev.map(p => p.id === helperProfileId ? {...p, interestedCount: (p.interestedCount || 0) + 1} : p));
     } catch(error: any) {
         logFirebaseError("handleLogHelperContactInteraction", error);
@@ -962,13 +959,15 @@ const App: React.FC = () => {
             if (updatedUser) setCurrentUser(updatedUser);
             alert('สร้างโพสต์ใหม่เรียบร้อยแล้ว!');
         }
-        // Refresh allWebboardPostsForAdmin, WebboardPage itself calls its own loadWebboardPosts(true)
         const updatedAdminPosts = postIdToUpdate
             ? allWebboardPostsForAdmin.map(p => p.id === postIdToUpdate ? { ...p, ...postData, authorPhoto: currentUser.photo, updatedAt: new Date().toISOString() } : p)
             : [...allWebboardPostsForAdmin, { ...postData, id: finalPostId!, userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, authorPhoto: currentUser.photo, likes: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as WebboardPost];
         setAllWebboardPostsForAdmin(updatedAdminPosts);
 
-        setItemToEdit(null); setEditingItemType(null); setSelectedPostId(finalPostId || null); navigateTo(View.Webboard, finalPostId);
+        setItemToEdit(null); setEditingItemType(null); setSelectedPostId(finalPostId || null); 
+        // If sourceViewForForm is MyRoom, navigate there, otherwise to Webboard
+        navigateTo(sourceViewForForm === View.MyRoom ? View.MyRoom : View.Webboard, finalPostId);
+        if (sourceViewForForm === View.MyRoom) setSourceViewForForm(null); // Reset after navigation
     } catch (error: any) {
         logFirebaseError("handleAddOrUpdateWebboardPost", error);
         alert(`เกิดข้อผิดพลาดในการจัดการโพสต์: ${error.message}`);
@@ -1012,8 +1011,6 @@ const App: React.FC = () => {
     if (!currentUser) { requestLoginForAction(View.Webboard, { action: 'like', postId: postId }); return; }
     try {
         await toggleWebboardPostLikeService(postId, currentUser.id);
-        // WebboardPage or WebboardPostCard will update its local state based on this action
-        // For admin list, might need manual update or re-fetch for consistency if showing like counts there.
         setAllWebboardPostsForAdmin(prev => prev.map(p => {
             if (p.id === postId) {
                 const userIndex = p.likes.indexOf(currentUser!.id);
@@ -1038,10 +1035,10 @@ const App: React.FC = () => {
       const isCurrentlySaved = userSavedPosts.includes(postId);
       if (isCurrentlySaved) {
         await unsaveUserWebboardPostService(currentUser.id, postId);
-        setUserSavedPosts(prev => prev.filter(id => id !== postId));
+        // UserSavedPosts subscription will update currentUser and trigger re-render
       } else {
         await saveUserWebboardPostService(currentUser.id, postId);
-        setUserSavedPosts(prev => [...prev, postId]);
+        // UserSavedPosts subscription will update currentUser and trigger re-render
       }
     } catch (error) {
       logFirebaseError("handleSaveWebboardPost", error);
@@ -1131,17 +1128,14 @@ const App: React.FC = () => {
               </Button>
             )}
 
-            {currentView !== View.UserProfile && (
-              <Button onClick={() => navigateAndCloseMenu(View.UserProfile)} variant="outline" colorScheme="neutral" {...commonButtonPropsBase}>
-                <span className={navItemSpanClass}><span>👤</span><span>โปรไฟล์ของฉัน</span></span>
+            {/* Combined MyRoom link */}
+            {currentView !== View.MyRoom && (
+              <Button onClick={() => navigateAndCloseMenu(View.MyRoom)} variant="outline" colorScheme="neutral" {...commonButtonPropsBase}>
+                <span className={navItemSpanClass}><span>🛋️</span><span>ห้องของฉัน</span></span>
               </Button>
             )}
-
-            {currentUser.role !== UserRole.Admin && currentView !== View.MyPosts && (
-                 <Button onClick={() => navigateAndCloseMenu(View.MyPosts)} variant="outline" colorScheme="neutral" {...commonButtonPropsBase}>
-                    <span className={navItemSpanClass}><span>📁</span><span>โพสต์ของฉัน</span></span>
-                  </Button>
-            )}
+            
+            {/* UserProfile and MyPosts links are removed as they are part of MyRoom */}
 
             {currentUser.role === UserRole.Admin && currentView !== View.AdminDashboard && (
               <Button onClick={() => navigateAndCloseMenu(View.AdminDashboard)} variant="accent" {...commonButtonPropsBase}>
@@ -1327,24 +1321,15 @@ const App: React.FC = () => {
   };
   
   const renderPostJob = () => { 
-    // Retrieve loadJobs from the specific renderFindJobs scope if PostJobForm needs to trigger a reload
-    // For now, PostJobForm uses handleAddJob/handleUpdateJob from App.tsx which call their specific loadJobs
     if (!currentUser) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทางไปยังหน้าเข้าสู่ระบบ...</p>; 
-    // The loadJobs function specific to the renderFindJobs scope must be passed to handleAddJob and handleUpdateJob
-    // This is tricky as PostJobForm is rendered outside renderFindJobs.
-    // One solution is to have handleAddJob and handleUpdateJob call a generic refresh function
-    // or pass the specific loadJobs function through props if PostJobForm is instantiated within renderFindJobs.
-    // For simplicity, the current structure in `handleAddJob` and `handleUpdateJob` uses `currentView` to decide.
-    // A better way might be to pass a callback.
-    // For now, we assume `handleAddJob` and `handleUpdateJob` correctly trigger refresh.
     const handleSubmitJobFormWithLoad = (formDataFromForm: JobFormData & { id?: string }) => {
-        const loadJobsFn = (isInitialLoad = false) => { // Placeholder, real one is in renderFindJobs
+        const loadJobsFn = (isInitialLoad = false) => { 
             console.log("Dummy loadJobs called from PostJobForm", isInitialLoad);
         };
         if (formDataFromForm.id && itemToEdit && editingItemType === 'job') {
-             handleUpdateJob(formDataFromForm as JobFormData & { id: string }, loadJobsFn); // Pass the actual loadJobs
+             handleUpdateJob(formDataFromForm as JobFormData & { id: string }, loadJobsFn); 
         } else {
-            handleAddJob(formDataFromForm, loadJobsFn); // Pass the actual loadJobs
+            handleAddJob(formDataFromForm, loadJobsFn); 
         }
     };
     return <PostJobForm onSubmitJob={handleSubmitJobFormWithLoad} onCancel={handleCancelEditOrPost} initialData={editingItemType === 'job' ? itemToEdit as Job : undefined} isEditing={!!itemToEdit && editingItemType === 'job'} currentUser={currentUser} jobs={allJobsForAdmin} />; 
@@ -1353,7 +1338,7 @@ const App: React.FC = () => {
   const renderOfferHelpForm = () => { 
     if (!currentUser) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทางไปยังหน้าเข้าสู่ระบบ...</p>; 
     const handleSubmitHelperProfileFormWithLoad = (formDataFromForm: HelperProfileFormData & { id?: string }) => {
-        const loadHelpersFn = (isInitialLoad = false) => { // Placeholder
+        const loadHelpersFn = (isInitialLoad = false) => { 
             console.log("Dummy loadHelpers called from OfferHelpForm", isInitialLoad);
         };
         if (formDataFromForm.id && itemToEdit && editingItemType === 'profile') {
@@ -1403,13 +1388,13 @@ const App: React.FC = () => {
     } finally {
       setIsLoadingJobs(false);
     }
-  }, [isLoadingJobs, hasMoreJobs, lastVisibleJob, selectedJobCategoryFilter, jobSearchTerm]); // Removed jobsList
+  }, [isLoadingJobs, hasMoreJobs, lastVisibleJob, selectedJobCategoryFilter, jobSearchTerm]); 
 
   useEffect(() => {
     if (currentView === View.FindJobs) {
       loadJobs(true);
     }
-  }, [currentView, selectedJobCategoryFilter, jobSearchTerm]); // Removed loadJobs
+  }, [currentView, selectedJobCategoryFilter, jobSearchTerm]); 
 
   useEffect(() => {
     if (currentView !== View.FindJobs || !initialJobsLoaded) return;
@@ -1537,13 +1522,13 @@ const App: React.FC = () => {
     } finally {
       setIsLoadingHelpers(false);
     }
-  }, [isLoadingHelpers, hasMoreHelpers, lastVisibleHelper, selectedHelperCategoryFilter, helperSearchTerm]); // Removed helperProfilesList
+  }, [isLoadingHelpers, hasMoreHelpers, lastVisibleHelper, selectedHelperCategoryFilter, helperSearchTerm]); 
 
   useEffect(() => {
     if (currentView === View.FindHelpers) {
       loadHelpers(true);
     }
-  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm]); // Removed loadHelpers
+  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm]); 
 
   useEffect(() => {
     if (currentView !== View.FindHelpers || !initialHelpersLoaded) return;
@@ -1637,7 +1622,32 @@ const App: React.FC = () => {
 
   const renderRegister = () => <RegistrationForm onRegister={handleRegister} onSwitchToLogin={() => navigateTo(View.Login)} />;
   const renderLogin = () => <LoginForm onLogin={handleLogin} onSwitchToRegister={() => navigateTo(View.Register)} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />;
-  const renderUserProfile = () => { if (!currentUser) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทางไปยังหน้าเข้าสู่ระบบ...</p>; return (<UserProfilePage currentUser={currentUser} onUpdateProfile={handleUpdateUserProfile} onCancel={() => navigateTo(View.Home)} />); };
+  // UserProfilePage is now primarily accessed via MyRoomPage
+  // const renderUserProfile = () => { if (!currentUser) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทางไปยังหน้าเข้าสู่ระบบ...</p>; return (<UserProfilePage currentUser={currentUser} onUpdateProfile={handleUpdateUserProfile} onCancel={() => navigateTo(View.Home)} />); };
+  
+  const renderMyRoomPage = () => {
+    if (!currentUser) { 
+      requestLoginForAction(View.MyRoom);
+      return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทางไปยังหน้าเข้าสู่ระบบ...</p>; 
+    }
+    return (<MyRoomPage
+        currentUser={currentUser}
+        users={users}
+        allJobsForAdmin={allJobsForAdmin}
+        allHelperProfilesForAdmin={allHelperProfilesForAdmin}
+        allWebboardPostsForAdmin={allWebboardPostsForAdmin}
+        webboardComments={webboardComments}
+        navigateTo={navigateTo}
+        onEditItem={handleStartEditMyItem}
+        onDeleteItem={handleDeleteItemFromMyRoom}
+        onToggleHiredStatus={handleToggleItemStatusFromMyRoom}
+        onUpdateUserProfile={handleUpdateUserProfile}
+        getUserDisplayBadge={getUserDisplayBadge}
+        onSavePost={handleSaveWebboardPost}
+        onBumpProfile={(id) => handleBumpHelperProfile(id, loadHelpers)} // Pass loadHelpers or a specific MyRoom refresh
+      />);
+  };
+
   const renderAdminDashboard = () => { 
     if (currentUser?.role !== UserRole.Admin) return <p className="text-center p-8 font-serif">คุณไม่มีสิทธิ์เข้าถึงหน้านี้...</p>; 
     return (<AdminDashboard 
@@ -1652,15 +1662,16 @@ const App: React.FC = () => {
         onToggleHiredJob={(id) => handleToggleHiredJobForUserOrAdmin(id, loadJobs)}
         onToggleUnavailableHelperProfile={(id) => handleToggleUnavailableHelperProfileForUserOrAdmin(id, loadHelpers)}
         onToggleVerifiedExperience={(id) => handleToggleVerifiedExperience(id, loadHelpers)}
-        onDeleteWebboardPost={handleDeleteWebboardPost} // WebboardPage handles its own refresh
-        onPinWebboardPost={handlePinWebboardPost}       // WebboardPage handles its own refresh
+        onDeleteWebboardPost={handleDeleteWebboardPost} 
+        onPinWebboardPost={handlePinWebboardPost}       
         onStartEditItem={handleStartEditItemFromAdmin} 
         onSetUserRole={handleSetUserRole} 
         currentUser={currentUser} 
         isSiteLocked={isSiteLocked} onToggleSiteLock={handleToggleSiteLock} 
     />); 
   };
-  const renderMyPostsPage = () => { if (!currentUser || currentUser.role === UserRole.Admin) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทาง...</p>; return (<MyPostsPage currentUser={currentUser} jobs={allJobsForAdmin} helperProfiles={allHelperProfilesForAdmin} webboardPosts={allWebboardPostsForAdmin} webboardComments={webboardComments} onEditItem={handleStartEditMyItem} onDeleteItem={handleDeleteItemFromMyPosts} onToggleHiredStatus={handleToggleItemStatusFromMyPosts} navigateTo={navigateTo} getUserDisplayBadge={(user) => getUserDisplayBadge(user)} />); };
+  // MyPostsPage is replaced by MyRoomPage
+  // const renderMyPostsPage = () => { if (!currentUser || currentUser.role === UserRole.Admin) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทาง...</p>; return (<MyPostsPage currentUser={currentUser} jobs={allJobsForAdmin} helperProfiles={allHelperProfilesForAdmin} webboardPosts={allWebboardPostsForAdmin} webboardComments={webboardComments} onEditItem={handleStartEditMyItem} onDeleteItem={handleDeleteItemFromMyPosts} onToggleHiredStatus={handleToggleItemStatusFromMyPosts} navigateTo={navigateTo} getUserDisplayBadge={(user) => getUserDisplayBadge(user)} />); };
   const renderAboutUsPage = () => <AboutUsPage />;
   const renderSafetyPage = () => <SafetyPage />;
 
@@ -1720,8 +1731,9 @@ const App: React.FC = () => {
           case View.Register: currentViewContent = renderRegister(); break;
           case View.Login: currentViewContent = renderLogin(); break;
           case View.AdminDashboard: currentViewContent = renderAdminDashboard(); break;
-          case View.MyPosts: currentViewContent = renderMyPostsPage(); break;
-          case View.UserProfile: currentViewContent = renderUserProfile(); break;
+          // case View.MyPosts: currentViewContent = renderMyPostsPage(); break; // Replaced by MyRoom
+          // case View.UserProfile: currentViewContent = renderUserProfile(); break; // Replaced by MyRoom's profile tab
+          case View.MyRoom: currentViewContent = renderMyRoomPage(); break; // New case
           case View.AboutUs: currentViewContent = renderAboutUsPage(); break;
           case View.PublicProfile: currentViewContent = renderPublicProfile(); break;
           case View.Safety: currentViewContent = renderSafetyPage(); break;

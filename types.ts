@@ -166,8 +166,9 @@ export enum View {
   Login = 'LOGIN',
   Register = 'REGISTER',
   AdminDashboard = 'ADMIN_DASHBOARD',
-  MyPosts = 'MY_POSTS',
-  UserProfile = 'USER_PROFILE',
+  MyPosts = 'MY_POSTS', // This might be deprecated in favor of MyRoom
+  UserProfile = 'USER_PROFILE', // This might be deprecated in favor of MyRoom's profile tab
+  MyRoom = 'MY_ROOM', // New dashboard view
   AboutUs = 'ABOUT_US',
   PublicProfile = 'PUBLIC_PROFILE',
   Safety = 'SAFETY',
