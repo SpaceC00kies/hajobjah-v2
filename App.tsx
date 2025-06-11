@@ -1644,7 +1644,8 @@ const App: React.FC = () => {
         onUpdateUserProfile={handleUpdateUserProfile}
         getUserDisplayBadge={getUserDisplayBadge}
         onSavePost={handleSaveWebboardPost}
-        onBumpProfile={(id) => handleBumpHelperProfile(id, loadHelpers)} // Pass loadHelpers or a specific MyRoom refresh
+        onBumpProfile={(id) => handleBumpHelperProfile(id, loadHelpers)} 
+        onNavigateToPublicProfile={handleNavigateToPublicProfile}
       />);
   };
 

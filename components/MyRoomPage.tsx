@@ -5,7 +5,7 @@ import { View, UserTier } from '../types'; // Added UserTier
 import { Button } from './Button';
 import { UserProfilePage } from './UserProfilePage';
 import { WebboardPostCard } from './WebboardPostCard'; // For Saved Posts
-import { isDateInPast, calculateHoursRemaining, calculateDaysRemaining } from '../App'; // Import utilities
+import { isDateInPast, calculateDaysRemaining } from '../App'; // Import utilities
 
 // Import icons (simple text for now, can be replaced with SVGs)
 const ProfileIcon = () => <span role="img" aria-label="Profile" className="mr-1.5 sm:mr-2">👤</span>;
@@ -30,6 +30,7 @@ interface MyRoomPageProps {
   getUserDisplayBadge: (user: User | null | undefined) => UserLevel;
   onSavePost: (postId: string) => void; // For un-saving
   onBumpProfile: (profileId: string) => void;
+  onNavigateToPublicProfile: (userId: string) => void; // Added for linking helper profile titles
 }
 
 type ActiveTab = 'profile' | 'myJobs' | 'myHelperServices' | 'myWebboardPosts' | 'savedPosts';
@@ -55,6 +56,19 @@ const MAX_ACTIVE_HELPER_PROFILES_FREE_TIER_DISPLAY = 1;
 const MAX_ACTIVE_JOBS_BADGE_DISPLAY = 4; // For users with activity badge
 const MAX_ACTIVE_HELPER_PROFILES_BADGE_DISPLAY = 2; // For users with activity badge
 
+// Helper function for expiry warning
+const getExpiryWarning = (expiresAt: string | Date | undefined, isHiredOrUnavailable: boolean | undefined, isSuspicious: boolean | undefined): string | null => {
+  if (!expiresAt || isHiredOrUnavailable || isSuspicious || isDateInPast(expiresAt)) {
+    return null;
+  }
+  const daysLeft = calculateDaysRemaining(expiresAt);
+  if (daysLeft > 0 && daysLeft <= 7) { // Show warning if 7 days or less remain
+    return `⏳ หมดอายุใน ${daysLeft} วัน`;
+  }
+  return null;
+};
+
+
 export const MyRoomPage: React.FC<MyRoomPageProps> = ({
   currentUser,
   users,
@@ -70,6 +84,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
   getUserDisplayBadge,
   onSavePost,
   onBumpProfile,
+  onNavigateToPublicProfile,
 }) => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('profile');
 
@@ -107,10 +122,10 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
 
   const tabs: { id: ActiveTab; label: string; icon: JSX.Element }[] = [
     { id: 'profile', label: 'โปรไฟล์', icon: <ProfileIcon /> },
-    { id: 'myJobs', label: 'ประกาศงาน', icon: <JobsIcon /> }, // Updated label
-    { id: 'myHelperServices', label: 'งานที่เสนอ', icon: <ServicesIcon /> }, // Updated label
+    { id: 'myJobs', label: 'ประกาศงาน', icon: <JobsIcon /> },
+    { id: 'myHelperServices', label: 'งานที่เสนอ', icon: <ServicesIcon /> },
     { id: 'myWebboardPosts', label: 'กระทู้ของฉัน', icon: <WebboardIcon /> },
-    { id: 'savedPosts', label: 'กระทู้ที่บันทึก', icon: <SavedIcon /> }, // Updated label
+    { id: 'savedPosts', label: 'กระทู้ที่บันทึก', icon: <SavedIcon /> },
   ];
 
   const renderItemStatus = (item: Job | HelperProfile) => {
@@ -232,19 +247,24 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
           </Button>
         </div>
       ) : (
-        userJobs.map(job => (
-          <div key={job.id} className="bg-white dark:bg-dark-cardBg p-4 rounded-lg shadow border dark:border-dark-border/70">
-            <h4 className="font-semibold text-lg text-primary dark:text-dark-primary mb-1">{job.title}</h4>
-            <p className="text-xs text-neutral-medium dark:text-dark-textMuted mb-1">หมวดหมู่: {job.category} {job.subCategory && `(${job.subCategory})`}</p>
-            <p className="text-xs text-neutral-medium dark:text-dark-textMuted mb-2">ลงประกาศเมื่อ: {formatDateDisplay(job.postedAt)}</p>
-            <div className="mb-3">{renderItemStatus(job)}</div>
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={() => onEditItem(job.id, 'job')} variant="outline" colorScheme="neutral" size="sm" disabled={job.isSuspicious}>✏️ แก้ไข</Button>
-              <Button onClick={() => onToggleHiredStatus(job.id, 'job')} variant="outline" colorScheme="neutral" size="sm" disabled={job.isSuspicious}>{job.isHired ? '🔄 แจ้งว่ายังหาคน' : '✅ แจ้งว่าได้คนแล้ว'}</Button>
-              <Button onClick={() => onDeleteItem(job.id, 'job')} variant="outline" colorScheme="accent" size="sm" disabled={job.isSuspicious}>🗑️ ลบ</Button>
+        userJobs.map(job => {
+          const jobExpiryWarning = getExpiryWarning(job.expiresAt, job.isHired, job.isSuspicious);
+          return (
+            <div key={job.id} className="bg-white dark:bg-dark-cardBg p-4 rounded-lg shadow border dark:border-dark-border/70">
+              <h4 className="font-semibold text-lg text-primary dark:text-dark-primary mb-1">{job.title}</h4>
+              <p className="text-xs text-neutral-medium dark:text-dark-textMuted mb-1">หมวดหมู่: {job.category} {job.subCategory && `(${job.subCategory})`}</p>
+              <p className="text-xs text-neutral-medium dark:text-dark-textMuted mb-2">ลงประกาศเมื่อ: {formatDateDisplay(job.postedAt)}</p>
+              <div className="mb-1 flex items-center gap-2">{renderItemStatus(job)}
+                {jobExpiryWarning && <span className="text-xs text-amber-600 dark:text-amber-400">{jobExpiryWarning}</span>}
+              </div>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <Button onClick={() => onEditItem(job.id, 'job')} variant="outline" colorScheme="neutral" size="sm" disabled={job.isSuspicious}>✏️ แก้ไข</Button>
+                <Button onClick={() => onToggleHiredStatus(job.id, 'job')} variant="outline" colorScheme="neutral" size="sm" disabled={job.isSuspicious}>{job.isHired ? '🔄 แจ้งว่ายังหาคน' : '✅ แจ้งว่าได้คนแล้ว'}</Button>
+                <Button onClick={() => onDeleteItem(job.id, 'job')} variant="outline" colorScheme="accent" size="sm" disabled={job.isSuspicious}>🗑️ ลบ</Button>
+              </div>
             </div>
-          </div>
-        ))
+          );
+        })
       )}
     </div>
   );
@@ -279,18 +299,35 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
           const lastBump = currentUser.postingLimits.lastBumpDates?.[profile.id] || profile.lastBumpedAt;
           const bumpDaysLeft = lastBump ? calculateDaysRemaining(new Date(new Date(lastBump as string).getTime() + BUMP_COOLDOWN_DAYS_MY_ROOM * 24 * 60 * 60 * 1000)) : 0;
           const canBumpProfile = bumpDaysLeft === 0 && !profile.isExpired && !profile.isUnavailable && (profile.expiresAt ? !isDateInPast(profile.expiresAt) : true);
-
+          const profileExpiryWarning = getExpiryWarning(profile.expiresAt, profile.isUnavailable, profile.isSuspicious);
 
           return (
             <div key={profile.id} className="bg-white dark:bg-dark-cardBg p-4 rounded-lg shadow border dark:border-dark-border/70">
-              <h4 className="font-semibold text-lg text-secondary dark:text-dark-secondary mb-1">{profile.profileTitle}</h4>
+              <h4 
+                className="font-semibold text-lg text-secondary dark:text-dark-secondary mb-1 cursor-pointer hover:underline"
+                onClick={() => onNavigateToPublicProfile(profile.userId)}
+                title="ดูโปรไฟล์สาธารณะ"
+              >
+                {profile.profileTitle}
+              </h4>
               <p className="text-xs text-neutral-medium dark:text-dark-textMuted mb-1">หมวดหมู่: {profile.category} {profile.subCategory && `(${profile.subCategory})`}</p>
               <p className="text-xs text-neutral-medium dark:text-dark-textMuted mb-2">ลงประกาศเมื่อ: {formatDateDisplay(profile.postedAt)} (อัปเดตล่าสุด: {formatDateDisplay(profile.updatedAt)})</p>
-              <div className="mb-3">{renderItemStatus(profile)}</div>
-              <div className="flex flex-wrap gap-2">
+              <div className="mb-1 flex items-center gap-2">{renderItemStatus(profile)}
+                {profileExpiryWarning && <span className="text-xs text-amber-600 dark:text-amber-400">{profileExpiryWarning}</span>}
+              </div>
+              <div className="flex flex-wrap gap-2 mt-2">
                 <Button onClick={() => onEditItem(profile.id, 'profile')} variant="outline" colorScheme="neutral" size="sm" disabled={profile.isSuspicious}>✏️ แก้ไข</Button>
                 <Button onClick={() => onToggleHiredStatus(profile.id, 'profile')} variant="outline" colorScheme="neutral" size="sm" disabled={profile.isSuspicious}>{profile.isUnavailable ? '🟢 แจ้งว่าว่าง' : '🔴 แจ้งว่าไม่ว่าง'}</Button>
-                <Button onClick={() => onBumpProfile(profile.id)} variant="outline" colorScheme="primary" size="sm" disabled={!canBumpProfile || profile.isSuspicious} title={canBumpProfile ? "Bump โปรไฟล์" : `รออีก ${bumpDaysLeft} วัน`}>🚀 Bump {canBumpProfile ? '' : `(${bumpDaysLeft} วัน)`}</Button>
+                <Button 
+                  onClick={() => onBumpProfile(profile.id)} 
+                  variant="outline" 
+                  colorScheme="primary" 
+                  size="sm" 
+                  disabled={!canBumpProfile || profile.isSuspicious} 
+                  title={canBumpProfile ? "Bump โปรไฟล์ของคุณขึ้นไปบนสุด" : profile.isSuspicious ? "ไม่สามารถ Bump โปรไฟล์ที่ถูกระงับ" : `รออีก ${bumpDaysLeft} วัน`}
+                >
+                  🚀 Bump {canBumpProfile ? '' : `(${bumpDaysLeft} วัน)`}
+                </Button>
                 <Button onClick={() => onDeleteItem(profile.id, 'profile')} variant="outline" colorScheme="accent" size="sm" disabled={profile.isSuspicious}>🗑️ ลบ</Button>
               </div>
             </div>
@@ -357,7 +394,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <div className="mb-6 sm:mb-8 text-center"> {/* Centered header */}
+      <div className="mb-6 sm:mb-8 text-center">
         <h2 className="text-2xl sm:text-3xl font-sans font-semibold text-neutral-800 dark:text-dark-text">
           🛋️ ห้องของฉัน
         </h2>
@@ -379,7 +416,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
                 font-sans font-medium text-xs sm:text-sm transition-colors duration-150
                 focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-dark-pageBg
                 ${activeTab === tab.id
-                  ? 'border-b-2 border-neutral-700 text-neutral-800 dark:border-dark-text dark:text-dark-text bg-neutral-DEFAULT/20 dark:bg-dark-border/20 focus:ring-neutral-700 dark:focus:ring-dark-text' // Updated active tab style
+                  ? 'border-b-2 border-neutral-700 text-neutral-800 dark:border-dark-text dark:text-dark-text bg-neutral-DEFAULT/20 dark:bg-dark-border/20 focus:ring-neutral-700 dark:focus:ring-dark-text'
                   : 'border-b-2 border-transparent text-neutral-medium hover:text-neutral-dark hover:border-neutral-DEFAULT/80 dark:text-dark-textMuted dark:hover:text-dark-text dark:hover:border-dark-border focus:ring-neutral-DEFAULT dark:focus:ring-dark-border'
                 }
               `}
