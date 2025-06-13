@@ -465,26 +465,8 @@ export interface UserSavedWebboardPostEntry {
   savedAt: string | Date;
 }
 
-// Enum for Provinces
+// Enum for Provinces - Reduced to Chiang Mai and Bangkok
 export enum Province {
   Bangkok = 'กรุงเทพมหานคร',
   ChiangMai = 'เชียงใหม่',
-  ChiangRai = 'เชียงราย',
-  Chonburi = 'ชลบุรี',
-  KhonKaen = 'ขอนแก่น',
-  Lampang = 'ลำปาง',
-  Lamphun = 'ลำพูน',
-  NakhonRatchasima = 'นครราชสีมา',
-  NakhonSawan = 'นครสวรรค์',
-  Nonthaburi = 'นนทบุรี',
-  PathumThani = 'ปทุมธานี',
-  Phitsanulok = 'พิษณุโลก',
-  Phuket = 'ภูเก็ต',
-  Rayong = 'ระยอง',
-  SamutPrakan = 'สมุทรปราการ',
-  Songkhla = 'สงขลา',
-  SuratThani = 'สุราษฎร์ธานี',
-  UdonThani = 'อุดรธานี',
-  // Consider adding "ทั่วประเทศ" (Nationwide) or "ออนไลน์" (Online) if applicable
-  // This list is representative, a full list would be much longer.
 }
