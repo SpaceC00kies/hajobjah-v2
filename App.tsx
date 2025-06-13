@@ -779,9 +779,9 @@ const App: React.FC = () => {
       const updatedAdminJobs = allJobsForAdmin.map(j => j.id === updatedJobDataFromForm.id ? {...j, ...updatedJobDataFromForm, contact: generateContactString(currentUser), updatedAt: new Date().toISOString()} : j);
       setAllJobsForAdmin(updatedAdminJobs as Job[]);
 
-      navigateTo(sourceViewForForm || View.FindHelpers); // Changed from View.FindJobs
+      navigateTo(sourceViewForForm || View.FindJobs); // Navigate based on where form was initiated
       setSourceViewForForm(null);
-      alert('แก้ไขงานที่เสนอเรียบร้อยแล้ว'); // Changed message
+      alert('แก้ไขประกาศงานเรียบร้อยแล้ว');
     } catch (error: any) {
       logFirebaseError("handleUpdateJob", error);
       alert(`เกิดข้อผิดพลาดในการแก้ไขประกาศงาน: ${error.message}`);
