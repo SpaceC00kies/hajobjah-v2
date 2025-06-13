@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import type { Job, User } from '../types'; // Added User
-import { JobDesiredEducationLevelOption, JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP } from '../types';
+import { JobDesiredEducationLevelOption, JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types'; // Added Province
 import { Button } from './Button';
 import { containsBlacklistedWords, calculateHoursRemaining } from '../App'; // Changed to calculateHoursRemaining
 
@@ -20,6 +20,7 @@ interface PostJobFormProps {
 const initialFormStateForCreate: FormDataType = {
   title: '',
   location: '',
+  province: undefined, // Added province
   dateTime: '',
   payment: '',
   description: '',
@@ -101,6 +102,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
       const editableFields: FormDataType = {
         title: editableFieldsBase.title || '',
         location: editableFieldsBase.location || '',
+        province: editableFieldsBase.province || undefined, // Added province
         dateTime: editableFieldsBase.dateTime || '',
         payment: editableFieldsBase.payment || '',
         description: editableFieldsBase.description || '',
@@ -162,6 +164,8 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
         newFormData = { ...newFormData, [currentKey]: value as JobDesiredEducationLevelOption || undefined };
     } else if (currentKey === 'preferredGender') {
          newFormData = { ...newFormData, [currentKey]: value as Job['preferredGender'] || undefined };
+    } else if (currentKey === 'province') {
+         newFormData = { ...newFormData, province: value as Province || undefined };
     } else {
         newFormData = { ...newFormData, [currentKey]: value };
     }
@@ -184,6 +188,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
     if (!formData.title.trim()) errors.title = 'กรุณากรอกชื่องาน';
     else if (containsBlacklistedWords(formData.title)) errors.title = 'หัวข้อมีคำที่ไม่เหมาะสม โปรดแก้ไข';
     if (!formData.location.trim()) errors.location = 'กรุณากรอกสถานที่';
+    // No validation for province as it's optional for now
     if (!formData.payment.trim()) errors.payment = 'กรุณากรอกค่าจ้าง';
     if (!formData.category) errors.category = 'กรุณาเลือกหมวดหมู่งาน';
     else if (JOB_SUBCATEGORIES_MAP[formData.category]?.length > 0 && !formData.subCategory) {
@@ -274,6 +279,26 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
             {formErrors[field.name as keyof FormErrorsType] && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors[field.name as keyof FormErrorsType]}</p>}
           </div>
         ))}
+        
+        <div>
+          <label htmlFor="province" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
+            จังหวัด
+          </label>
+          <select
+            id="province"
+            name="province"
+            value={formData.province || ''}
+            onChange={handleChange}
+            className={`${selectBaseStyle} ${formErrors.province ? inputErrorStyle : inputFocusStyle}`}
+            disabled={!canSubmit && !isEditing}
+          >
+            <option value="">-- ไม่ระบุ --</option>
+            {Object.values(Province).map(provinceValue => (
+              <option key={provinceValue} value={provinceValue}>{provinceValue}</option>
+            ))}
+          </select>
+          {formErrors.province && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.province}</p>}
+        </div>
 
         <div>
           <label htmlFor="category" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">

@@ -150,6 +150,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
 
         <div className="space-y-2 text-neutral-dark dark:text-dark-textMuted mb-4 flex-grow font-normal">
           <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📍 สถานที่:</strong> {job.location}</p>
+          {job.province && (<p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">🏞️ จังหวัด:</strong> {job.province}</p>)}
           {dateNeededDisplay && (<p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">🗓️ วันที่ต้องการ:</strong> {dateNeededDisplay}</p>)}
           {timeNeededDisplay && (<p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">⏰ เวลา:</strong> {timeNeededDisplay}</p>)}
           {job.dateTime && (!dateNeededDisplay || !timeNeededDisplay) && (<p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📅 วันที่/เวลา (เพิ่มเติม):</strong> {job.dateTime}</p>)}
@@ -206,9 +207,9 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
             size="md"
             className="w-full"
             disabled={job.isHired || jobIsTrulyExpired}
-            aria-label={job.isHired ? "งานนี้มีคนทำแล้ว" : jobIsTrulyExpired ? "งานหมดอายุแล้ว" : (currentUser ? "📨 ติดต่องาน" : "เข้าสู่ระบบเพื่อติดต่อ")}
+            aria-label={job.isHired ? "งานนี้มีคนทำแล้ว" : jobIsTrulyExpired ? "งานหมดอายุแล้ว" : (currentUser ? "ติดต่องานนี้" : "เข้าสู่ระบบเพื่อติดต่อ")}
           >
-            {job.isHired ? '✅ งานนี้มีคนทำแล้ว' : jobIsTrulyExpired ? '⛔ งานหมดอายุแล้ว' : (currentUser ? '📨 ติดต่องาน' : 'เข้าสู่ระบบเพื่อติดต่อ')}
+            {job.isHired ? '✅ งานนี้มีคนทำแล้ว' : jobIsTrulyExpired ? '⛔ งานหมดอายุแล้ว' : (currentUser ? '📨 แสดงความสนใจ/ติดต่อ' : 'เข้าสู่ระบบเพื่อติดต่อ')}
           </Button>
         </div>
       </div>

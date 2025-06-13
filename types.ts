@@ -1,8 +1,10 @@
 
+
 export interface Job {
   id: string;
   title: string;
   location: string;
+  province?: Province; // Added province
   dateTime: string;
   payment: string;
   contact: string;
@@ -62,6 +64,7 @@ export interface HelperProfile {
   profileTitle: string;
   details: string;
   area: string;
+  province?: Province; // Added province
   availability: string;
   contact: string;
   category: JobCategory;
@@ -460,4 +463,28 @@ export interface SiteConfig {
 export interface UserSavedWebboardPostEntry {
   postId: string;
   savedAt: string | Date;
+}
+
+// Enum for Provinces
+export enum Province {
+  Bangkok = 'กรุงเทพมหานคร',
+  ChiangMai = 'เชียงใหม่',
+  ChiangRai = 'เชียงราย',
+  Chonburi = 'ชลบุรี',
+  KhonKaen = 'ขอนแก่น',
+  Lampang = 'ลำปาง',
+  Lamphun = 'ลำพูน',
+  NakhonRatchasima = 'นครราชสีมา',
+  NakhonSawan = 'นครสวรรค์',
+  Nonthaburi = 'นนทบุรี',
+  PathumThani = 'ปทุมธานี',
+  Phitsanulok = 'พิษณุโลก',
+  Phuket = 'ภูเก็ต',
+  Rayong = 'ระยอง',
+  SamutPrakan = 'สมุทรปราการ',
+  Songkhla = 'สงขลา',
+  SuratThani = 'สุราษฎร์ธานี',
+  UdonThani = 'อุดรธานี',
+  // Consider adding "ทั่วประเทศ" (Nationwide) or "ออนไลน์" (Online) if applicable
+  // This list is representative, a full list would be much longer.
 }
