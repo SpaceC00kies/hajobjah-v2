@@ -36,7 +36,7 @@ import {
   saveUserWebboardPostService,
   unsaveUserWebboardPostService,
   subscribeToUserSavedPostsService,
-} from './services/firebaseService';
+} from '../services/firebaseService';
 import type { DocumentSnapshot, DocumentData } from 'firebase/firestore';
 import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier } from './types';
 import type { AdminItem as AdminItemType } from './components/AdminDashboard';
