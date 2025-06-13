@@ -11,9 +11,7 @@ export const SafetyPage: React.FC = () => {
 
         <div className="space-y-5 font-serif text-neutral-dark dark:text-dark-textMuted leading-relaxed font-normal text-base sm:text-lg">
           <p>
-            หาจ๊อบจ้าเป็นพื้นที่เปิดให้ทุกคนสามารถหางาน หรือประกาศหาคนช่วยงานได้อย่างอิสระ
-            <br />
-            เพื่อความปลอดภัยในการใช้งาน โปรดปฏิบัติตามคำแนะนำเหล่านี้:
+            เราเป็นพื้นที่เปิดให้ทุกคนสามารถหางาน หรือประกาศหาคนช่วยงานได้อย่างอิสระ เพื่อความปลอดภัยในการใช้งาน โปรดปฏิบัติตามคำแนะนำเหล่านี้:
           </p>
           
           <ul className="list-disc list-inside space-y-2 pl-4 bg-neutral-light/70 dark:bg-dark-inputBg p-4 rounded-lg border border-neutral-DEFAULT dark:border-dark-border">
@@ -32,11 +30,7 @@ export const SafetyPage: React.FC = () => {
           </ul>
 
           <p className="pt-2">
-            <strong className="text-neutral-dark dark:text-dark-text">
-              แพลตฟอร์มนี้ไม่ได้รับผิดชอบต่อความเสียหายที่เกิดจากการติดต่อหรือการทำงานระหว่างผู้ใช้
-            </strong>
-            <br />
-            แต่เรายินดีรับฟังและช่วยเหลือหากพบการใช้งานที่ไม่เหมาะสม
+            แพลตฟอร์มนี้ไม่ได้รับผิดชอบต่อความเสียหายที่เกิดจากการติดต่อหรือการทำงานระหว่างผู้ใช้ แต่เรายินดีรับฟังและช่วยเหลือหากพบการใช้งานที่ไม่เหมาะสม
           </p>
 
           <p className="text-xl sm:text-2xl font-sans font-semibold text-neutral-medium dark:text-dark-textMuted pt-5 text-center italic">
