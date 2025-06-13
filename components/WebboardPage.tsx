@@ -38,35 +38,35 @@ import {
   subscribeToUserSavedPostsService,
 } from '../services/firebaseService';
 import type { DocumentSnapshot, DocumentData } from 'firebase/firestore';
-import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier } from './types';
-import type { AdminItem as AdminItemType } from './components/AdminDashboard';
-import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP, ACTIVITY_BADGE_DETAILS } from './types';
-import { PostJobForm } from './components/PostJobForm';
-import { JobCard } from './components/JobCard';
-import { Button } from './components/Button';
-import { OfferHelpForm } from './components/OfferHelpForm';
-import { HelperCard } from './components/HelperCard';
-import { RegistrationForm } from './components/RegistrationForm';
-import { LoginForm } from './components/LoginForm';
-import { ForgotPasswordModal } from './components/ForgotPasswordModal';
-import { AdminDashboard } from './components/AdminDashboard';
-import { ConfirmModal } from './components/ConfirmModal';
+import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier } from '../types';
+import type { AdminItem as AdminItemType } from '../components/AdminDashboard';
+import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP, ACTIVITY_BADGE_DETAILS } from '../types';
+import { PostJobForm } from '../components/PostJobForm';
+import { JobCard } from '../components/JobCard';
+import { Button } from '../components/Button';
+import { OfferHelpForm } from '../components/OfferHelpForm';
+import { HelperCard } from '../components/HelperCard';
+import { RegistrationForm } from '../components/RegistrationForm';
+import { LoginForm } from '../components/LoginForm';
+import { ForgotPasswordModal } from '../components/ForgotPasswordModal';
+import { AdminDashboard } from '../components/AdminDashboard';
+import { ConfirmModal } from '../components/ConfirmModal';
 // MyPostsPage is removed as its functionality is integrated into MyRoomPage
 // import { MyPostsPage } from './components/MyPostsPage';
-import { MyRoomPage } from './components/MyRoomPage'; // New MyRoomPage
-import { UserProfilePage } from './components/UserProfilePage';
-import { AboutUsPage } from './components/AboutUsPage';
+import { MyRoomPage } from '../components/MyRoomPage'; // New MyRoomPage
+import { UserProfilePage } from '../components/UserProfilePage';
+import { AboutUsPage } from '../components/AboutUsPage';
 import { PublicProfilePage } from './components/PublicProfilePage';
-import { SafetyPage } from './components/SafetyPage';
-import { FeedbackForm } from './components/FeedbackForm';
-import { WebboardPage } from './components/WebboardPage';
-import { UserLevelBadge } from './components/UserLevelBadge';
-import { SiteLockOverlay } from './components/SiteLockOverlay';
-import { CategoryFilterBar } from './components/CategoryFilterBar';
-import { SearchInputWithRecent } from './components/SearchInputWithRecent';
-import { PasswordResetPage } from './components/PasswordResetPage';
+import { SafetyPage } from '../components/SafetyPage';
+import { FeedbackForm } from '../components/FeedbackForm';
+import { WebboardPage } from '../components/WebboardPage';
+import { UserLevelBadge } from '../components/UserLevelBadge';
+import { SiteLockOverlay } from '../components/SiteLockOverlay';
+import { CategoryFilterBar } from '../components/CategoryFilterBar';
+import { SearchInputWithRecent } from '../components/SearchInputWithRecent';
+import { PasswordResetPage } from '../components/PasswordResetPage';
 
-import { logFirebaseError } from './firebase/logging';
+import { logFirebaseError } from '../firebase/logging';
 
 export const THAI_PROFANITY_BLACKLIST: string[] = [ /* Populate this if needed */ ];
 
