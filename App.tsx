@@ -295,14 +295,15 @@ const App: React.FC = () => {
       if (user) {
         const unsubscribeSaved = subscribeToUserSavedPostsService(user.id, (savedIds) => {
           setUserSavedPosts(savedIds);
-           setCurrentUser(prevUser => ({
-            ...prevUser!,
+           setCurrentUser(prevUser => ({ // Ensure currentUser is updated with saved posts
+            ...prevUser!, // Assert prevUser is not null, as 'user' is truthy here
             savedWebboardPosts: savedIds,
           }));
         });
+        // Store this inner unsubscribe to be called when auth unsubscribe is called
         (unsubscribeAuth as any)._unsubscribeSavedPosts = unsubscribeSaved;
       } else {
-        setUserSavedPosts([]);
+        setUserSavedPosts([]); // Clear saved posts on logout
          if ((unsubscribeAuth as any)._unsubscribeSavedPosts) {
             (unsubscribeAuth as any)._unsubscribeSavedPosts();
             delete (unsubscribeAuth as any)._unsubscribeSavedPosts;
@@ -312,8 +313,14 @@ const App: React.FC = () => {
 
     const unsubscribeUsers = subscribeToUsersService(setUsers);
     const unsubscribeWebboardCommentsGlobal = subscribeToWebboardCommentsService(setWebboardComments);
-    const unsubscribeInteractions = subscribeToInteractionsService(setInteractions);
     const unsubscribeSiteConfig = subscribeToSiteConfigService((config) => setIsSiteLocked(config.isSiteLocked));
+
+    // Conditional subscription for interactions
+    let unsubscribeInteractions = () => {}; // Initialize as no-op
+    if (currentUser && currentUser.role === UserRole.Admin) {
+      unsubscribeInteractions = subscribeToInteractionsService(setInteractions);
+    }
+
 
     // Fetch all data for Admin/MyPosts - this could be optimized further if these views also adopt pagination
     const fetchAllJobsForAdminAndMyPosts = async () => {
@@ -371,11 +378,11 @@ const App: React.FC = () => {
       unsubscribeAuth();
       unsubscribeUsers();
       unsubscribeWebboardCommentsGlobal();
-      unsubscribeInteractions();
+      unsubscribeInteractions(); // This will call either the real unsubscribe or the no-op
       unsubscribeSiteConfig();
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [parseUrlAndSetInitialState]);
+  }, [parseUrlAndSetInitialState, currentUser]); // Added currentUser to dependency array
 
   useEffect(() => {
     if (!isLoadingAuth && users.length > 0) {
@@ -1486,7 +1493,7 @@ const App: React.FC = () => {
     if (currentView === View.FindJobs) {
       loadJobs(true);
     }
-  }, [currentView, selectedJobCategoryFilter, jobSearchTerm]);
+  }, [currentView, selectedJobCategoryFilter, jobSearchTerm]); // loadJobs is not added here as it's memoized with its own dependencies
 
   useEffect(() => {
     if (currentView !== View.FindJobs || !initialJobsLoaded) return;
@@ -1620,7 +1627,7 @@ const App: React.FC = () => {
     if (currentView === View.FindHelpers) {
       loadHelpers(true);
     }
-  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm]);
+  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm]); // loadHelpers is not added here
 
   useEffect(() => {
     if (currentView !== View.FindHelpers || !initialHelpersLoaded) return;
