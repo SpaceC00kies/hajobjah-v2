@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react'; // Added useState
 import type { EnrichedWebboardPost, EnrichedWebboardComment, User } from '../types';
 import { USER_LEVELS, UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES } 
@@ -205,7 +204,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
 
         <div className="flex items-center gap-2">
           {canEditPost && (
-             <Button onClick={() => onEditPost(post)} variant="outline" colorScheme="neutral" size="sm" className="text-xs">✏️ แก้ไข</Button>
+             <Button onClick={() => onEditPost(post)} variant="outline" colorScheme="neutral" size="sm" className="text-xs px-2">✏️ แก้ไข</Button>
           )}
           {isAdmin && (
             <Button 
@@ -213,13 +212,13 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
               variant={post.isPinned ? "secondary" : "outline"}
               colorScheme="secondary"
               size="sm" 
-              className="text-xs"
+              className="text-xs px-2"
             >
               {post.isPinned ? 'เลิกปักหมุด' : 'ปักหมุด'}
             </Button>
           )}
           {canDeletePost && (
-            <Button onClick={() => onDeletePost(post.id)} variant="outline" colorScheme="accent" size="sm" className="text-xs border-red-500 text-red-500 hover:bg-red-500 hover:text-white dark:border-red-400 dark:text-red-400 dark:hover:bg-red-400 dark:hover:text-neutral-dark">
+            <Button onClick={() => onDeletePost(post.id)} variant="outline" colorScheme="accent" size="sm" className="text-xs border-red-500 text-red-500 hover:bg-red-500 hover:text-white dark:border-red-400 dark:text-red-400 dark:hover:bg-red-400 dark:hover:text-neutral-dark px-2">
               🗑️ ลบโพสต์
             </Button>
           )}
