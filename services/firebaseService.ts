@@ -693,11 +693,19 @@ export const deleteWebboardPostService = async (postId: string): Promise<boolean
     if (postSnap.exists() && postData.image) {
       await deleteImageService(postData.image);
     }
-    
-    // Deleting the post document itself.
+    const commentsQuery = query(collection(db, WEBBOARD_COMMENTS_COLLECTION), where("postId", "==", postId));
+    const commentsSnapshot = await getDocs(commentsQuery);
+    const batch: WriteBatch = writeBatch(db);
+    commentsSnapshot.forEach(commentDoc => batch.delete(commentDoc.ref));
+
+    const savedPostsQuery = query(collectionGroup(db, USER_SAVED_POSTS_SUBCOLLECTION), where('postId', '==', postId));
+    const savedPostsSnapshot = await getDocs(savedPostsQuery);
+    savedPostsSnapshot.forEach(docSnap => batch.delete(docSnap.ref)); 
+
+    await batch.commit();
+
     await deleteDoc(postRef);
 
-    // This part updates the user's activity score.
     if (postData && postData.userId) {
         const userRef = doc(db, USERS_COLLECTION, postData.userId);
         const userSnap = await getDoc(userRef);
