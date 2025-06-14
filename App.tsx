@@ -231,8 +231,6 @@ const App: React.FC = () => {
   const [itemToEdit, setItemToEdit] = useState<Job | HelperProfile | WebboardPost | null>(null);
   const [editingItemType, setEditingItemType] = useState<'job' | 'profile' | 'webboardPost' | null>(null);
   const [sourceViewForForm, setSourceViewForForm] = useState<View | null>(null);
-  const [myRoomTargetTab, setMyRoomTargetTab] = useState<MyRoomActiveTab | null>(null);
-
 
   // Filters and search terms remain global for now, triggering re-fetch in view-specific logic
   const [selectedJobCategoryFilter, setSelectedJobCategoryFilter] = useState<FilterableCategory>('all');
@@ -241,6 +239,11 @@ const App: React.FC = () => {
   const [helperSearchTerm, setHelperSearchTerm] = useState('');
   const [recentJobSearches, setRecentJobSearches] = useState<string[]>([]);
   const [recentHelperSearches, setRecentHelperSearches] = useState<string[]>([]);
+
+  // State for MyRoomPage tab management
+  const [editOriginMyRoomTab, setEditOriginMyRoomTab] = useState<MyRoomActiveTab | null>(null);
+  const [myRoomInitialTabOverride, setMyRoomInitialTabOverride] = useState<MyRoomActiveTab | null>(null);
+
 
   // States for FindJobs view (managed within renderFindJobs scope)
   // States for FindHelpers view (managed within renderFindHelpers scope)
@@ -498,6 +501,12 @@ const App: React.FC = () => {
 
     setCurrentView(view);
 
+    // Clear MyRoom tab override if navigating away from MyRoom or if no specific override is intended for MyRoom
+    if (view !== View.MyRoom) {
+        setMyRoomInitialTabOverride(null);
+    }
+
+
     // Update URL
     const params = new URLSearchParams();
     params.set('view', view);
@@ -614,7 +623,7 @@ const App: React.FC = () => {
       setLoginRedirectInfo(null); setItemToEdit(null); setEditingItemType(null);
       setSourceViewForForm(null); setViewingProfileId(null); setSelectedPostId(null);
       setSourceViewForPublicProfile(View.FindHelpers);
-      setMyRoomTargetTab(null); // Clear MyRoom target tab on logout
+      setMyRoomInitialTabOverride(null); setEditOriginMyRoomTab(null);
       setIsMobileMenuOpen(false);
       alert('ออกจากระบบเรียบร้อยแล้ว'); navigateTo(View.Home);
     } catch (error: any) {
@@ -643,27 +652,24 @@ const App: React.FC = () => {
     }
  };
   // Modified to use MyRoom as source for edits initiated from there
-  const handleStartEditMyItem = (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => {
+  const handleStartEditMyItem = (itemId: string, itemType: 'job' | 'profile' | 'webboardPost', originatingTab: MyRoomActiveTab) => {
     let originalItem: Job | HelperProfile | WebboardPost | undefined;
     if (itemType === 'job') originalItem = allJobsForAdmin.find(j => j.id === itemId);
     else if (itemType === 'profile') originalItem = allHelperProfilesForAdmin.find(p => p.id === itemId);
     else if (itemType === 'webboardPost') originalItem = allWebboardPostsForAdmin.find(p => p.id === itemId);
 
     if (originalItem && canEditOrDelete(originalItem.userId, originalItem.ownerId)) {
+        setEditOriginMyRoomTab(originatingTab); // Store the originating tab from MyRoomPage
         setItemToEdit(itemType === 'webboardPost' ? { ...(originalItem as WebboardPost), isEditing: true } : originalItem);
         setEditingItemType(itemType);
         setSourceViewForForm(View.MyRoom);
-        // Set the target tab for MyRoomPage
-        if (itemType === 'job') setMyRoomTargetTab('myJobs');
-        else if (itemType === 'profile') setMyRoomTargetTab('myHelperServices');
-        else if (itemType === 'webboardPost') setMyRoomTargetTab('myWebboardPosts');
-
         navigateTo(itemType === 'job' ? View.PostJob : itemType === 'profile' ? View.OfferHelp : View.Webboard, itemType === 'webboardPost' ? 'create' : undefined);
     } else { alert("ไม่พบรายการ หรือไม่มีสิทธิ์แก้ไข"); }
   };
 
   const handleEditWebboardPostFromPage = (postToEdit: EnrichedWebboardPost) => {
     if (canEditOrDelete(postToEdit.userId, postToEdit.ownerId)) {
+        setEditOriginMyRoomTab(null); // Not originating from MyRoom page's tabs
         setItemToEdit({ ...postToEdit, isEditing: true });
         setEditingItemType('webboardPost');
         setSourceViewForForm(View.Webboard);
@@ -780,9 +786,17 @@ const App: React.FC = () => {
       const updatedAdminJobs = allJobsForAdmin.map(j => j.id === updatedJobDataFromForm.id ? {...j, ...updatedJobDataFromForm, contact: generateContactString(currentUser), updatedAt: new Date().toISOString()} : j);
       setAllJobsForAdmin(updatedAdminJobs as Job[]);
 
-      navigateTo(sourceViewForForm || View.FindJobs); // Navigate based on where form was initiated
-      setSourceViewForForm(null);
       alert('แก้ไขประกาศงานเรียบร้อยแล้ว');
+      if (sourceViewForForm === View.MyRoom) {
+        setMyRoomInitialTabOverride(editOriginMyRoomTab);
+        navigateTo(View.MyRoom);
+      } else {
+        setMyRoomInitialTabOverride(null);
+        navigateTo(sourceViewForForm || View.FindJobs);
+      }
+      setEditOriginMyRoomTab(null);
+      setSourceViewForForm(null);
+
     } catch (error: any) {
       logFirebaseError("handleUpdateJob", error);
       alert(`เกิดข้อผิดพลาดในการแก้ไขประกาศงาน: ${error.message}`);
@@ -840,9 +854,16 @@ const App: React.FC = () => {
       const updatedAdminProfiles = allHelperProfilesForAdmin.map(p => p.id === updatedProfileDataFromForm.id ? {...p, ...updatedProfileDataFromForm, contact: generateContactString(currentUser), updatedAt: new Date().toISOString()} : p);
       setAllHelperProfilesForAdmin(updatedAdminProfiles as HelperProfile[]);
 
-      navigateTo(sourceViewForForm || View.FindHelpers); // Navigate based on where form was initiated
-      setSourceViewForForm(null); 
       alert('แก้ไขงานที่เสนอเรียบร้อยแล้ว'); // Updated alert message
+      if (sourceViewForForm === View.MyRoom) {
+        setMyRoomInitialTabOverride(editOriginMyRoomTab);
+        navigateTo(View.MyRoom);
+      } else {
+        setMyRoomInitialTabOverride(null);
+        navigateTo(sourceViewForForm || View.FindHelpers);
+      }
+      setEditOriginMyRoomTab(null);
+      setSourceViewForForm(null);
     } catch (error: any) {
       logFirebaseError("handleUpdateHelperProfile", error);
       alert(`เกิดข้อผิดพลาดในการแก้ไขโปรไฟล์: ${error.message}`);
@@ -885,13 +906,10 @@ const App: React.FC = () => {
 
   const handleCancelEditOrPost = () => {
     const targetView = sourceViewForForm || View.Home;
-    setItemToEdit(null); setEditingItemType(null); 
-    // If cancelling from MyRoom edit, MyRoomTargetTab is already set.
-    // If cancelling from non-MyRoom source, MyRoomTargetTab remains null or its previous value.
-    // It will be used by MyRoomPage if targetView is MyRoom.
-    setSourceViewForForm(null); 
-    setSelectedPostId(null);
+    setItemToEdit(null); setEditingItemType(null); setSourceViewForForm(null); setSelectedPostId(null);
+    setMyRoomInitialTabOverride(editOriginMyRoomTab); // Prepare tab override if returning to MyRoom
     navigateTo(targetView);
+    setEditOriginMyRoomTab(null); // Clear after navigation
   };
 
   const openConfirmModal = (title: string, message: string, onConfirm: () => void) => {
@@ -1059,19 +1077,18 @@ const App: React.FC = () => {
 
         setItemToEdit(null); setEditingItemType(null);
 
-        // For WebboardPage, it handles its own selectedPostId update.
-        // For MyRoom or Admin, App.tsx sets selectedPostId.
         if (sourceViewForForm === View.MyRoom) {
+            setMyRoomInitialTabOverride(editOriginMyRoomTab); // Prepare tab for MyRoomPage
             navigateTo(View.MyRoom);
-            setSourceViewForForm(null);
         } else if (sourceViewForForm === View.AdminDashboard) {
-            setSelectedPostId(finalPostId || null); // To show detail if admin edits from dash then goes to webboard
+            setSelectedPostId(finalPostId || null); 
             navigateTo(View.Webboard, finalPostId);
-            setSourceViewForForm(null);
-        } else { // Default to Webboard view, which will use its own setSelectedPostId logic
+        } else { 
             setSelectedPostId(finalPostId || null);
             navigateTo(View.Webboard, finalPostId);
         }
+        setEditOriginMyRoomTab(null); // Clear origin tab after navigation logic
+        setSourceViewForForm(null);
 
 
     } catch (error: any) {
@@ -1500,7 +1517,7 @@ const App: React.FC = () => {
     if (currentView === View.FindJobs) {
       loadJobs(true);
     }
-  }, [currentView, selectedJobCategoryFilter, jobSearchTerm]); // Removed loadJobs from dependencies to avoid re-triggering due to its own definition change
+  }, [currentView, selectedJobCategoryFilter, jobSearchTerm]);
 
   useEffect(() => {
     if (currentView !== View.FindJobs || !initialJobsLoaded) return;
@@ -1634,7 +1651,7 @@ const App: React.FC = () => {
     if (currentView === View.FindHelpers) {
       loadHelpers(true);
     }
-  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm]); // Removed loadHelpers
+  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm]);
 
   useEffect(() => {
     if (currentView !== View.FindHelpers || !initialHelpersLoaded) return;
@@ -1744,7 +1761,7 @@ const App: React.FC = () => {
         allWebboardPostsForAdmin={allWebboardPostsForAdmin}
         webboardComments={webboardComments}
         navigateTo={navigateTo}
-        onEditItem={handleStartEditMyItem}
+        onEditItem={handleStartEditMyItem} // Will now pass originatingTab
         onDeleteItem={handleDeleteItemFromMyRoom}
         onToggleHiredStatus={handleToggleItemStatusFromMyRoom}
         onUpdateUserProfile={handleUpdateUserProfile}
@@ -1752,8 +1769,8 @@ const App: React.FC = () => {
         onSavePost={handleSaveWebboardPost}
         onBumpProfile={(id) => handleBumpHelperProfile(id, loadHelpers)}
         onNavigateToPublicProfile={handleNavigateToPublicProfile}
-        myRoomTargetTab={myRoomTargetTab}
-        setMyRoomTargetTabApp={setMyRoomTargetTab}
+        initialTab={myRoomInitialTabOverride}
+        onInitialTabProcessed={() => setMyRoomInitialTabOverride(null)}
       />);
   };
 
