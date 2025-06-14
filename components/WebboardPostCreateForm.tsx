@@ -95,24 +95,25 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
 
+    // Ensure name is one of the expected keys for this handler
     if (name === "title" || name === "body" || name === "category") {
         const keyToUpdate = name as keyof Pick<FormDataType, "title" | "body" | "category">;
         
-        let processedValue: string | WebboardCategory | '' = value;
-        if (keyToUpdate === 'category') {
-          processedValue = value as (WebboardCategory | '');
-        }
+        // For category, value from select is string, compatible with WebboardCategory | ''
+        // For title and body, value is string, compatible with string type
+        setFormData(prev => ({ ...prev, [keyToUpdate]: value as any })); // Use 'as any' for value if TypeScript still complains about specific unions like WebboardCategory | ''
 
-        setFormData(prev => ({ ...prev, [keyToUpdate]: processedValue }));
-
+        // Clear specific error for this field
         if (errors[keyToUpdate]) {
             setErrors(prev => ({ ...prev, [keyToUpdate]: undefined }));
         }
 
+        // Special handling for body length validation and error message
         if (keyToUpdate === 'body') {
             if (value.length > MAX_POST_CHARS) {
                 setErrors(prev => ({ ...prev, body: `เนื้อหาต้องไม่เกิน ${MAX_POST_CHARS} ตัวอักษร (${value.length}/${MAX_POST_CHARS})` }));
             } else {
+                // If length is okay, and the current body error is about length, clear it.
                 if (errors.body && errors.body.startsWith('เนื้อหาต้องไม่เกิน')) {
                      setErrors(prev => ({ ...prev, body: undefined }));
                 }

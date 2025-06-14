@@ -17,13 +17,13 @@ interface WebboardPageProps {
   users: User[]; 
   // posts: WebboardPost[]; // Removed: WebboardPage will fetch its own posts
   comments: WebboardComment[]; // Global comments for enrichment
-  onAddOrUpdatePost: (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => Promise<void>; 
+  onAddOrUpdatePost: (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => void; 
   onAddComment: (postId: string, text: string) => void;
-  onToggleLike: (postId: string) => Promise<void>;
-  onSavePost: (postId: string) => Promise<void>; 
+  onToggleLike: (postId: string) => void;
+  onSavePost: (postId: string) => void; 
   onSharePost: (postId: string, postTitle: string) => void; 
   onDeletePost: (postId: string) => void;
-  onPinPost: (postId: string) => Promise<void>;
+  onPinPost: (postId: string) => void;
   onEditPost: (post: EnrichedWebboardPost) => void; 
   onDeleteComment?: (commentId: string) => void;
   onUpdateComment?: (commentId: string, newText: string) => void;
@@ -40,23 +40,38 @@ interface WebboardPageProps {
   pageSize: number; // For infinite scroll
 }
 
-export const WebboardPage: React.FC<WebboardPageProps> = (props) => {
-  const {
-    currentUser, users, comments, onAddOrUpdatePost, onAddComment,
-    onToggleLike: appOnToggleLike, 
-    onSavePost: appOnSavePost, 
-    onSharePost, onDeletePost, 
-    onPinPost: appOnPinPost,
-    onEditPost, onDeleteComment, onUpdateComment, selectedPostId,
-    setSelectedPostId, navigateTo, editingPost, onCancelEdit,
-    getUserDisplayBadge, requestLoginForAction, onNavigateToPublicProfile,
-    checkWebboardPostLimits, checkWebboardCommentLimits, pageSize
-  } = props;
-
+export const WebboardPage: React.FC<WebboardPageProps> = ({
+  currentUser,
+  users,
+  // posts, // Removed
+  comments,
+  onAddOrUpdatePost,
+  onAddComment,
+  onToggleLike,
+  onSavePost,
+  onSharePost,
+  onDeletePost,
+  onPinPost,
+  onEditPost,
+  onDeleteComment,
+  onUpdateComment,
+  selectedPostId,
+  setSelectedPostId,
+  navigateTo,
+  editingPost,
+  onCancelEdit,
+  getUserDisplayBadge,
+  requestLoginForAction, 
+  onNavigateToPublicProfile,
+  checkWebboardPostLimits,
+  checkWebboardCommentLimits,
+  pageSize,
+}) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<WebboardCategory | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // State for infinite scroll
   const [webboardPostsList, setWebboardPostsList] = useState<WebboardPost[]>([]);
   const [lastVisibleWebboardPost, setLastVisibleWebboardPost] = useState<DocumentSnapshot | null>(null);
   const [isLoadingWebboardPosts, setIsLoadingWebboardPosts] = useState(false);
@@ -76,11 +91,12 @@ export const WebboardPage: React.FC<WebboardPageProps> = (props) => {
     }
 
     try {
+      // Pass selectedCategoryFilter and searchTerm to the service function
       const result = await getWebboardPostsPaginatedService(
         pageSize,
         isInitialLoad ? null : lastVisibleWebboardPost,
-        selectedCategoryFilter === 'all' ? null : selectedCategoryFilter,
-        searchTerm
+        selectedCategoryFilter === 'all' ? null : selectedCategoryFilter, // Pass category
+        searchTerm // Pass search term
       );
       console.log("WEBBOARD PAGE: Received result from service:", result);
       setWebboardPostsList(prevPosts => isInitialLoad ? result.items : [...prevPosts, ...result.items]);
@@ -99,10 +115,11 @@ export const WebboardPage: React.FC<WebboardPageProps> = (props) => {
 
   useEffect(() => { 
     loadWebboardPosts(true); 
-  }, [selectedCategoryFilter, searchTerm, loadWebboardPosts]); // Added loadWebboardPosts
+  }, [selectedCategoryFilter, searchTerm]); 
 
  useEffect(() => { 
-    if (selectedPostId !== null && selectedPostId !== 'create') { 
+    if (selectedPostId !== null && selectedPostId !== 'create') { // Only observe if not in detail or create view
+      // If a specific post is selected, infinite scroll is not needed for the list.
       return;
     }
 
@@ -125,11 +142,12 @@ export const WebboardPage: React.FC<WebboardPageProps> = (props) => {
   useEffect(() => {
     if (selectedPostId && selectedPostId !== 'create' && initialWebboardPostsLoaded) {
       const postExists = webboardPostsList.some(p => p.id === selectedPostId);
-      if (!postExists && hasMoreWebboardPosts) { // Only load if not found and potentially more posts
+      if (!postExists) {
+        // Post ID is selected, but post not in current list. Reload to get it.
         loadWebboardPosts(true);
       }
     }
-  }, [selectedPostId, webboardPostsList, initialWebboardPostsLoaded, loadWebboardPosts, hasMoreWebboardPosts]);
+  }, [selectedPostId, webboardPostsList, initialWebboardPostsLoaded, loadWebboardPosts]);
 
 
   useEffect(() => {
@@ -160,33 +178,15 @@ export const WebboardPage: React.FC<WebboardPageProps> = (props) => {
   const handleSubmitPostForm = async (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => {
     await onAddOrUpdatePost(postData, postIdToUpdate); 
     await loadWebboardPosts(true); 
-    // Modal will close reactively based on selectedPostId and editingPost changes driven by App.tsx
-  };
-
-  const handleToggleLikeProxy = async (postId: string) => {
-    await appOnToggleLike(postId);
-    if (webboardPostsList.some(p => p.id === postId) || selectedPostId === postId) {
-      loadWebboardPosts(true);
+    // The modal will close reactively due to selectedPostId changing via App.tsx,
+    // so explicit call to handleCloseCreateModal() is removed from success path.
+    // If it was an edit, selectedPostId might not change, handleCloseCreateModal is needed for the 'X' or 'Cancel' button.
+    // For new post, selectedPostId changes from 'create' to the new ID, triggering useEffect to close modal.
+    if (postIdToUpdate) { // If it was an edit, explicitly close modal if not already closed.
+        handleCloseCreateModal();
     }
-  };
-
-  const handleSavePostProxy = async (postId: string) => {
-    await appOnSavePost(postId);
-  };
-
-  const handlePinPostProxy = async (postId: string) => {
-    await appOnPinPost(postId);
-     if (webboardPostsList.some(p => p.id === postId) || selectedPostId === postId) {
-      loadWebboardPosts(true);
-    }
-  };
-
-  const handleDeletePostProxy = (postId: string) => {
-    onDeletePost(postId); 
-    loadWebboardPosts(true); 
-    if (selectedPostId === postId) {
-      setSelectedPostId(null); 
-    }
+    // For new post, App.tsx's onAddOrUpdatePost will set selectedPostId to the new post's ID,
+    // which will cause the useEffect to close the modal.
   };
 
 
@@ -219,6 +219,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = (props) => {
         })
     : [];
 
+  // Render post detail view if a post is selected
   if (currentDetailedPost) {
     return (
       <div className="p-2 sm:p-4 md:max-w-3xl md:mx-auto"> 
@@ -236,12 +237,12 @@ export const WebboardPage: React.FC<WebboardPageProps> = (props) => {
           comments={commentsForDetailView}
           currentUser={currentUser}
           users={users}
-          onToggleLike={handleToggleLikeProxy}
-          onSavePost={handleSavePostProxy}
+          onToggleLike={onToggleLike}
+          onSavePost={onSavePost}
           onSharePost={onSharePost}
           onAddComment={onAddComment}
-          onDeletePost={handleDeletePostProxy}
-          onPinPost={handlePinPostProxy}
+          onDeletePost={(id) => { onDeletePost(id); loadWebboardPosts(true); setSelectedPostId(null); }}
+          onPinPost={(id) => { onPinPost(id); loadWebboardPosts(true); }}
           onEditPost={onEditPost}
           onDeleteComment={onDeleteComment}
           onUpdateComment={onUpdateComment}
@@ -256,6 +257,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = (props) => {
   const inputBaseStyle = "p-2 sm:p-2.5 bg-white dark:bg-dark-inputBg border border-neutral-DEFAULT dark:border-dark-border rounded-lg text-neutral-dark dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-neutral-DEFAULT dark:focus:ring-dark-border text-sm sm:text-base";
   const selectBaseStyle = `${inputBaseStyle} appearance-none`;
 
+  // Main list view rendering
   return (
     <div className="p-2 sm:p-4 md:max-w-3xl md:mx-auto"> 
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
@@ -301,10 +303,12 @@ export const WebboardPage: React.FC<WebboardPageProps> = (props) => {
         </div>
       </div>
 
+      {/* 1. Initial loading indicator (centered, only when no posts are available yet) */}
       {!initialWebboardPostsLoaded && isLoadingWebboardPosts && webboardPostsList.length === 0 && (
         <div className="text-center py-20"><p className="text-xl font-sans text-neutral-dark dark:text-dark-text">✨ กำลังโหลดกระทู้…</p></div>
       )}
 
+      {/* 2. Empty state (after initial load, if no posts match) */}
       {initialWebboardPostsLoaded && enrichedPosts.length === 0 && !hasMoreWebboardPosts && (
         <div className="text-center py-10 bg-white dark:bg-dark-cardBg p-6 rounded-lg shadow">
           <svg className="mx-auto h-16 w-16 text-neutral-DEFAULT dark:text-dark-border mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -333,6 +337,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = (props) => {
         </div>
       )}
       
+      {/* 3. Display posts if available */}
       {enrichedPosts.length > 0 && (
         <div className="space-y-4"> 
           {enrichedPosts.map(post => (
@@ -341,11 +346,11 @@ export const WebboardPage: React.FC<WebboardPageProps> = (props) => {
               post={post}
               currentUser={currentUser}
               onViewPost={setSelectedPostId}
-              onToggleLike={handleToggleLikeProxy}
-              onSavePost={handleSavePostProxy}
+              onToggleLike={onToggleLike}
+              onSavePost={onSavePost}
               onSharePost={onSharePost}
-              onDeletePost={handleDeletePostProxy}
-              onPinPost={handlePinPostProxy}
+              onDeletePost={(id) => { onDeletePost(id); loadWebboardPosts(true); }}
+              onPinPost={(id) => { onPinPost(id); loadWebboardPosts(true); }}
               onEditPost={onEditPost}
               requestLoginForAction={requestLoginForAction} 
               onNavigateToPublicProfile={onNavigateToPublicProfile}
@@ -354,12 +359,14 @@ export const WebboardPage: React.FC<WebboardPageProps> = (props) => {
         </div>
       )}
 
+      {/* 4. "Load more" indicator at the bottom (for infinite scroll) */}
       <div ref={webboardLoaderRef} className="h-10 flex justify-center items-center">
         {isLoadingWebboardPosts && initialWebboardPostsLoaded && webboardPostsList.length > 0 && (
            <p className="text-sm font-sans text-neutral-medium dark:text-dark-textMuted">กำลังโหลดเพิ่มเติม…</p>
         )}
       </div>
 
+      {/* 5. "No more posts" message */}
       {initialWebboardPostsLoaded && !hasMoreWebboardPosts && webboardPostsList.length > 0 && (
         <p className="text-center text-sm font-sans text-neutral-medium dark:text-dark-textMuted py-4">🎉 คุณดูครบทุกกระทู้แล้ว</p>
       )}
