@@ -82,7 +82,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
             setFormData({ title: '', body: '', category: '', image: undefined, imagePreviewUrl: undefined });
             if (currentUser) {
                 const limits = checkWebboardPostLimits(currentUser); 
-                setLimitMessage(limits.message); // Directly use message from check; will be null if unlimited & no message
+                setLimitMessage(limits.message); 
                 setCanSubmitForm(limits.canPost); 
             } else {
                 setLimitMessage("กรุณาเข้าสู่ระบบเพื่อสร้างกระทู้");
@@ -94,14 +94,31 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name as keyof FormErrorsType]) {
-      setErrors(prev => ({ ...prev, [name]: undefined }));
-    }
-    if (name === 'body' && value.length > MAX_POST_CHARS) {
-        setErrors(prev => ({ ...prev, body: `เนื้อหาต้องไม่เกิน ${MAX_POST_CHARS} ตัวอักษร` }));
-    } else if (name === 'body' && errors.body && errors.body.includes('ตัวอักษร')) {
-        setErrors(prev => ({ ...prev, body: undefined }));
+
+    // Ensure name is one of the expected keys for this handler
+    if (name === "title" || name === "body" || name === "category") {
+        const keyToUpdate = name as keyof Pick<FormDataType, "title" | "body" | "category">;
+        
+        // For category, value from select is string, compatible with WebboardCategory | ''
+        // For title and body, value is string, compatible with string type
+        setFormData(prev => ({ ...prev, [keyToUpdate]: value as any })); // Use 'as any' for value if TypeScript still complains about specific unions like WebboardCategory | ''
+
+        // Clear specific error for this field
+        if (errors[keyToUpdate]) {
+            setErrors(prev => ({ ...prev, [keyToUpdate]: undefined }));
+        }
+
+        // Special handling for body length validation and error message
+        if (keyToUpdate === 'body') {
+            if (value.length > MAX_POST_CHARS) {
+                setErrors(prev => ({ ...prev, body: `เนื้อหาต้องไม่เกิน ${MAX_POST_CHARS} ตัวอักษร (${value.length}/${MAX_POST_CHARS})` }));
+            } else {
+                // If length is okay, and the current body error is about length, clear it.
+                if (errors.body && errors.body.startsWith('เนื้อหาต้องไม่เกิน')) {
+                     setErrors(prev => ({ ...prev, body: undefined }));
+                }
+            }
+        }
     }
   };
 
@@ -150,6 +167,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
     
     if (!formData.category) newErrors.category = 'กรุณาเลือกหมวดหมู่ของโพสต์';
     
+    // Preserve existing image error if it's about file size
     if (errors.image && errors.image.startsWith('ขนาดรูปภาพต้องไม่เกิน')) { 
         newErrors.image = errors.image;
     }
