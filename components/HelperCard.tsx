@@ -195,19 +195,53 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
         
         <TrustBadgesDisplay profile={profile} />
 
-        <div className="space-y-1.5 text-neutral-dark dark:text-dark-textMuted mb-4 flex-grow font-normal">
+        <div className="space-y-3 text-neutral-dark dark:text-dark-textMuted mb-4 flex-grow font-normal">
           {/* Gender, Age, Education Level fields removed from here */}
-          <p className="font-serif flex items-center"><span className="mr-2 text-lg">📍</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">จังหวัด:</strong> {profile.province || Province.ChiangMai}</p>
-          <p className="font-serif flex items-center"><span className="mr-2 text-lg">🗺️</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">พื้นที่สะดวก:</strong> {profile.area}</p>
+          
+          <div className="font-serif">
+            <div className="flex items-center">
+              <span className="mr-2 text-lg">📍</span>
+              <strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">จังหวัด:</strong>
+            </div>
+            <p className="ml-7">{profile.province || Province.ChiangMai}</p>
+          </div>
 
+          <div className="font-serif">
+            <div className="flex items-center">
+                <span className="mr-2 text-lg">🗺️</span>
+                <strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">พื้นที่สะดวก:</strong>
+            </div>
+            <p className="ml-7">{profile.area}</p>
+          </div>
+          
           {availabilityDateDisplay && (
-             <p className="font-serif flex items-center"><span className="mr-2 text-lg">🗓️</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">ช่วงวันที่สะดวก:</strong> {availabilityDateDisplay}</p>
+            <div className="font-serif">
+              <div className="flex items-center">
+                <span className="mr-2 text-lg">🗓️</span>
+                <strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">ช่วงวันที่สะดวก:</strong>
+              </div>
+              <p className="ml-7">{availabilityDateDisplay}</p>
+            </div>
           )}
+
           {profile.availabilityTimeDetails && (
-             <p className="font-serif flex items-center"><span className="mr-2 text-lg">⏰</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">เวลาที่สะดวก (เพิ่มเติม):</strong> {profile.availabilityTimeDetails}</p>
+            <div className="font-serif">
+                <div className="flex items-center">
+                    <span className="mr-2 text-lg">⏰</span>
+                    <strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">เวลาที่สะดวก (เพิ่มเติม):</strong>
+                </div>
+                <p className="ml-7">{profile.availabilityTimeDetails}</p>
+            </div>
           )}
+
           {profile.availability && (!availabilityDateDisplay || !profile.availabilityTimeDetails) && (
-            <p className="font-serif flex items-center"><span className="mr-2 text-lg">🕒</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">วันเวลาที่ว่าง (หมายเหตุ):</strong> {profile.availability}</p>
+            <div className="font-serif">
+                <div className="flex items-center">
+                    <span className="mr-2 text-lg">🕒</span>
+                    <strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">วันเวลาที่ว่าง (หมายเหตุ):</strong>
+                </div>
+                <p className="ml-7">{profile.availability}</p>
+            </div>
           )}
 
            <div className="mt-2 pt-2 border-t border-neutral-DEFAULT/20 dark:border-dark-border/20">
