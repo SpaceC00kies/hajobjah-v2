@@ -697,10 +697,11 @@ export const deleteWebboardPostService = async (postId: string): Promise<boolean
     const commentsSnapshot = await getDocs(commentsQuery);
     const batch: WriteBatch = writeBatch(db);
     commentsSnapshot.forEach(commentDoc => batch.delete(commentDoc.ref));
-
-    const savedPostsQuery = query(collectionGroup(db, USER_SAVED_POSTS_SUBCOLLECTION), where('postId', '==', postId));
-    const savedPostsSnapshot = await getDocs(savedPostsQuery);
-    savedPostsSnapshot.forEach(docSnap => batch.delete(docSnap.ref)); 
+    
+    // The "saved posts" cleanup has been removed because it cannot be secured with Firestore rules.
+    // const savedPostsQuery = query(collectionGroup(db, USER_SAVED_POSTS_SUBCOLLECTION), where('postId', '==', postId));
+    // const savedPostsSnapshot = await getDocs(savedPostsQuery);
+    // savedPostsSnapshot.forEach(docSnap => batch.delete(docSnap.ref)); 
 
     await batch.commit();
 
