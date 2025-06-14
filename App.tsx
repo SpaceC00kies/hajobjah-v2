@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   onAuthChangeService,
@@ -247,63 +245,80 @@ const App: React.FC = () => {
     const mode = params.get('mode');
     const oobCode = params.get('oobCode');
     const viewFromUrl = params.get('view') as View | null;
-    const idFromUrl = params.get('id'); // Generic ID from URL (postId, userId)
+    const idFromUrl = params.get('id');
 
     if (window.location.pathname.endsWith('/reset-password') && mode === 'resetPassword' && oobCode) {
       setCurrentView(View.PasswordReset);
-      // Clear other params from URL to avoid conflicts if user navigates away and back
       const newUrl = `${window.location.pathname}?mode=resetPassword&oobCode=${oobCode}`;
       window.history.replaceState({}, '', newUrl);
-      return; // Prioritize password reset
+      return; 
     }
+    
+    // Preserve existing selectedPostId if current view is Webboard and URL doesn't specify a different one
+    const isCurrentlyWebboardListView = currentView === View.Webboard && !selectedPostId && !viewingProfileId;
 
     if (viewFromUrl && Object.values(View).includes(viewFromUrl)) {
       setCurrentView(viewFromUrl);
-      if (viewFromUrl === View.Webboard && idFromUrl) {
-        setSelectedPostId(idFromUrl);
+      if (viewFromUrl === View.Webboard) {
+        if (idFromUrl) {
+          setSelectedPostId(idFromUrl);
+        } else if (!isCurrentlyWebboardListView) { 
+           // Only set to null if not already in list view and no ID in URL
+          setSelectedPostId(null);
+        }
+        setViewingProfileId(null); 
       } else if (viewFromUrl === View.PublicProfile && idFromUrl) {
         setViewingProfileId(idFromUrl);
-        // Determine a sensible default for sourceView if coming directly to public profile
+        setSelectedPostId(null); 
         const referrerView = params.get('from') as View | null;
         if(referrerView && Object.values(View).includes(referrerView)) {
             setSourceViewForPublicProfile(referrerView);
         } else {
-            setSourceViewForPublicProfile(View.FindHelpers); // Default source
+            setSourceViewForPublicProfile(View.FindHelpers);
         }
       } else {
+        // For other views, or if viewFromUrl is not Webboard/PublicProfile with ID
         setSelectedPostId(null);
         setViewingProfileId(null);
       }
     } else {
-      setCurrentView(View.Home); // Default to Home
-      setSelectedPostId(null);
+      // Default to Home or preserve current if no specific view in URL
+      if (currentView !== View.Home && !isCurrentlyWebboardListView) {
+         setCurrentView(View.Home);
+      }
+      if (!isCurrentlyWebboardListView) { // Don't nullify selectedPostId if user is browsing webboard list
+        setSelectedPostId(null);
+      }
       setViewingProfileId(null);
     }
-  }, []);
+  }, [currentView, selectedPostId, viewingProfileId]); // Added dependencies
 
 
+  // Effect for initial setup, auth, global subscriptions, and URL parsing
   useEffect(() => {
     document.documentElement.classList.remove('dark');
     setRecentJobSearches(getRecentSearches('recentJobSearches'));
     setRecentHelperSearches(getRecentSearches('recentHelperSearches'));
 
-    parseUrlAndSetInitialState(); // Parse URL on initial load
+    parseUrlAndSetInitialState(); // Initial parse
 
     const unsubscribeAuth = onAuthChangeService((user) => {
-      setCurrentUser(user);
+      setCurrentUser(user); // Update currentUser state
       setIsLoadingAuth(false);
       if (user) {
         const unsubscribeSaved = subscribeToUserSavedPostsService(user.id, (savedIds) => {
           setUserSavedPosts(savedIds);
-           setCurrentUser(prevUser => ({ // Ensure currentUser is updated with saved posts
-            ...prevUser!, // Assert prevUser is not null, as 'user' is truthy here
-            savedWebboardPosts: savedIds,
-          }));
+          // Avoid infinite loop by checking if update is necessary
+          setCurrentUser(prevUser => {
+            if (prevUser && JSON.stringify(prevUser.savedWebboardPosts) !== JSON.stringify(savedIds)) {
+              return { ...prevUser, savedWebboardPosts: savedIds };
+            }
+            return prevUser;
+          });
         });
-        // Store this inner unsubscribe to be called when auth unsubscribe is called
         (unsubscribeAuth as any)._unsubscribeSavedPosts = unsubscribeSaved;
       } else {
-        setUserSavedPosts([]); // Clear saved posts on logout
+        setUserSavedPosts([]);
          if ((unsubscribeAuth as any)._unsubscribeSavedPosts) {
             (unsubscribeAuth as any)._unsubscribeSavedPosts();
             delete (unsubscribeAuth as any)._unsubscribeSavedPosts;
@@ -314,98 +329,60 @@ const App: React.FC = () => {
     const unsubscribeUsers = subscribeToUsersService(setUsers);
     const unsubscribeWebboardCommentsGlobal = subscribeToWebboardCommentsService(setWebboardComments);
     const unsubscribeSiteConfig = subscribeToSiteConfigService((config) => setIsSiteLocked(config.isSiteLocked));
+    
+    let unsubscribeInteractionsGlobal = () => {};
+     if (currentUser && currentUser.role === UserRole.Admin) {
+        unsubscribeInteractionsGlobal = subscribeToInteractionsService(setInteractions);
+     }
 
-    // Conditional subscription for interactions
-    let unsubscribeInteractions = () => {}; // Initialize as no-op
-    if (currentUser && currentUser.role === UserRole.Admin) {
-      unsubscribeInteractions = subscribeToInteractionsService(setInteractions);
-    }
 
+    // Fetch all data for Admin/MyPosts
+    const fetchAllData = async () => {
+        let allJ: Job[] = [], allHP: HelperProfile[] = [], allWP: WebboardPost[] = [];
+        let lastJ: DocumentSnapshot | null = null, lastHP: DocumentSnapshot | null = null, lastWP: DocumentSnapshot | null = null;
+        let hasMoreJ = true, hasMoreHP = true, hasMoreWP = true;
+        
+        while(hasMoreJ) { const batch = await getJobsPaginated(50, lastJ); allJ = [...allJ, ...batch.items]; lastJ = batch.lastVisibleDoc; hasMoreJ = !!batch.lastVisibleDoc;}
+        setAllJobsForAdmin(allJ);
+        
+        while(hasMoreHP) { const batch = await getHelperProfilesPaginated(50, lastHP); allHP = [...allHP, ...batch.items]; lastHP = batch.lastVisibleDoc; hasMoreHP = !!batch.lastVisibleDoc;}
+        setAllHelperProfilesForAdmin(allHP);
 
-    // Fetch all data for Admin/MyPosts - this could be optimized further if these views also adopt pagination
-    const fetchAllJobsForAdminAndMyPosts = async () => {
-        let allJobs: Job[] = [];
-        let lastDoc: DocumentSnapshot | null = null;
-        let hasMore = true;
-        while(hasMore) {
-            const batch = await getJobsPaginated(50, lastDoc);
-            allJobs = [...allJobs, ...batch.items];
-            lastDoc = batch.lastVisibleDoc;
-            hasMore = !!batch.lastVisibleDoc;
-        }
-        setAllJobsForAdmin(allJobs);
+        while(hasMoreWP) { const batch = await getWebboardPostsPaginatedService(50, lastWP); allWP = [...allWP, ...batch.items]; lastWP = batch.lastVisibleDoc; hasMoreWP = !!batch.lastVisibleDoc;}
+        setAllWebboardPostsForAdmin(allWP);
     };
-    const fetchAllHelperProfilesForAdminAndMyPosts = async () => {
-        let allProfiles: HelperProfile[] = [];
-        let lastDoc: DocumentSnapshot | null = null;
-        let hasMore = true;
-        while(hasMore) {
-            const batch = await getHelperProfilesPaginated(50, lastDoc);
-            allProfiles = [...allProfiles, ...batch.items];
-            lastDoc = batch.lastVisibleDoc;
-            hasMore = !!batch.lastVisibleDoc;
-        }
-        setAllHelperProfilesForAdmin(allProfiles);
-    };
-     const fetchAllWebboardPostsForAdminAndLevels = async () => {
-        let allPosts: WebboardPost[] = [];
-        let lastDoc: DocumentSnapshot | null = null;
-        let hasMore = true;
-        while(hasMore) {
-            const batch = await getWebboardPostsPaginatedService(50, lastDoc);
-            allPosts = [...allPosts, ...batch.items];
-            lastDoc = batch.lastVisibleDoc;
-            hasMore = !!batch.lastVisibleDoc;
-        }
-        setAllWebboardPostsForAdmin(allPosts);
-    };
+    fetchAllData();
 
-    fetchAllJobsForAdminAndMyPosts();
-    fetchAllHelperProfilesForAdminAndMyPosts();
-    fetchAllWebboardPostsForAdminAndLevels();
 
-    // Handle browser back/forward
     const handlePopState = (event: PopStateEvent) => {
       parseUrlAndSetInitialState();
     };
     window.addEventListener('popstate', handlePopState);
 
-
     return () => {
-      if ((unsubscribeAuth as any)._unsubscribeSavedPosts) {
-        (unsubscribeAuth as any)._unsubscribeSavedPosts();
-      }
+      if ((unsubscribeAuth as any)._unsubscribeSavedPosts) (unsubscribeAuth as any)._unsubscribeSavedPosts();
       unsubscribeAuth();
       unsubscribeUsers();
       unsubscribeWebboardCommentsGlobal();
-      unsubscribeInteractions(); // This will call either the real unsubscribe or the no-op
+      unsubscribeInteractionsGlobal();
       unsubscribeSiteConfig();
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [parseUrlAndSetInitialState, currentUser]); // Added currentUser to dependency array
+  }, [parseUrlAndSetInitialState, currentUser]); // Added currentUser to dependency array for interactions subscription
 
+  // Effect for processing users and current user based on fetched data
   useEffect(() => {
     if (!isLoadingAuth && users.length > 0) {
         const updatedUsers = users.map(u => {
-            let last30DaysActivity = 0;
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-            if (allWebboardPostsForAdmin.length > 0 || webboardComments.length > 0) {
-                const userPostsLast30Days = allWebboardPostsForAdmin.filter(p => p.userId === u.id && p.createdAt && new Date(p.createdAt as string) >= thirtyDaysAgo).length;
-                const userCommentsLast30Days = webboardComments.filter(c => c.userId === u.id && c.createdAt && new Date(c.createdAt as string) >= thirtyDaysAgo).length;
-                last30DaysActivity = userPostsLast30Days + userCommentsLast30Days;
-            }
-
-            const threeDaysAgoForCooldown = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
             const defaultPostingLimits: UserPostingLimits = {
-              lastJobPostDate: threeDaysAgoForCooldown.toISOString(),
-              lastHelperProfileDate: threeDaysAgoForCooldown.toISOString(),
+              lastJobPostDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+              lastHelperProfileDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
               dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() },
               hourlyComments: { count: 0, resetTime: new Date(0).toISOString() },
               lastBumpDates: {},
             };
-
 
             return {
                 ...u,
@@ -415,38 +392,32 @@ const App: React.FC = () => {
                 postingLimits: {
                     ...defaultPostingLimits,
                     ...(u.postingLimits || {}),
-                    dailyWebboardPosts: {
-                      ...defaultPostingLimits.dailyWebboardPosts,
-                      ...(u.postingLimits?.dailyWebboardPosts || {})
-                    },
-                    hourlyComments: {
-                      ...defaultPostingLimits.hourlyComments,
-                      ...(u.postingLimits?.hourlyComments || {})
-                    }
+                     dailyWebboardPosts: { ...defaultPostingLimits.dailyWebboardPosts, ...(u.postingLimits?.dailyWebboardPosts || {}) },
+                     hourlyComments: { ...defaultPostingLimits.hourlyComments, ...(u.postingLimits?.hourlyComments || {}) }
                 },
                 savedWebboardPosts: u.id === currentUser?.id ? userSavedPosts : (u.savedWebboardPosts || [])
             };
         });
-        setUsers(updatedUsers);
+        
+        // Only update users state if it has actually changed to prevent infinite loops
+        if (JSON.stringify(users) !== JSON.stringify(updatedUsers)) {
+            setUsers(updatedUsers);
+        }
 
         if (currentUser) {
             const updatedCurrentUser = updatedUsers.find(u => u.id === currentUser.id);
-            if (updatedCurrentUser) {
-                const userChanged = JSON.stringify(currentUser) !== JSON.stringify(updatedCurrentUser);
-                if (userChanged) {
-                    setCurrentUser(updatedCurrentUser);
-                }
+            if (updatedCurrentUser && JSON.stringify(currentUser) !== JSON.stringify(updatedCurrentUser)) {
+                setCurrentUser(updatedCurrentUser);
             }
         }
     }
-  }, [allWebboardPostsForAdmin, webboardComments, isLoadingAuth, currentUser?.id, userSavedPosts]);
+  }, [allWebboardPostsForAdmin, webboardComments, isLoadingAuth, currentUser, users, userSavedPosts]); // Added users
 
   const requestLoginForAction = (originalView: View, originalPayload?: any) => {
     if (!currentUser) {
       setLoginRedirectInfo({ view: originalView, payload: originalPayload });
       setCurrentView(View.Login);
       setIsMobileMenuOpen(false);
-      // Update URL for login page
       const params = new URLSearchParams();
       params.set('view', View.Login);
       window.history.pushState({ view: View.Login }, '', `?${params.toString()}`);
@@ -466,54 +437,57 @@ const App: React.FC = () => {
       }
       setViewingProfileId(payload);
       if (fromView !== View.PublicProfile) {
-        // Store the true 'fromView' when navigating TO public profile for the first time from another view
         setSourceViewForPublicProfile(fromView);
       }
     } else if (view !== View.PublicProfile) {
+      // If navigating away from PublicProfile, clear its specific state
       if (viewingProfileId !== null) setViewingProfileId(null);
     }
-
-    if (!currentUser && protectedViews.includes(view)) {
-      requestLoginForAction(view, payload);
-      return;
-    }
-
-    let newSelectedPostId = null;
+    
+    // Manage selectedPostId specifically for Webboard view
+    let newSelectedPostIdForNav = null;
     if (view === View.Webboard) {
-      if (typeof payload === 'string') newSelectedPostId = payload;
-      else if (payload && typeof payload === 'object' && payload.postId) newSelectedPostId = payload.postId;
+      if (typeof payload === 'string') newSelectedPostIdForNav = payload; // 'create' or an ID
+      else if (payload && typeof payload === 'object' && payload.postId) newSelectedPostIdForNav = payload.postId;
+      setSelectedPostId(newSelectedPostIdForNav);
+    } else {
+      // If navigating to any view other than Webboard, clear selectedPostId.
+      setSelectedPostId(null);
     }
-    setSelectedPostId(newSelectedPostId);
 
 
     if (view === View.MyRoom && payload?.targetTab) {
       setMyRoomTargetTab(payload.targetTab as MyRoomActiveTab);
     } else if (currentView === View.MyRoom && view !== View.MyRoom) {
-      // Clear target tab if navigating away from MyRoom or if navigating to MyRoom without a specific targetTab
       setMyRoomTargetTab(null);
+    }
+    
+    // Clear itemToEdit and editingItemType if navigating away from a form view
+    // or if explicitly navigating to create something new (unless coming from admin edit)
+    if (view !== View.PostJob && view !== View.OfferHelp && !(view === View.Webboard && (payload === 'create' || (typeof payload === 'object' && payload?.postId)))) {
+        if (sourceViewForForm !== View.AdminDashboard || (sourceViewForForm === View.AdminDashboard && view !== View.Webboard)) {
+            setItemToEdit(null);
+            setEditingItemType(null);
+        }
     }
 
 
     setCurrentView(view);
 
-    // Update URL
     const params = new URLSearchParams();
     params.set('view', view);
     let idForUrl: string | null = null;
 
-    if (view === View.Webboard && newSelectedPostId && newSelectedPostId !== 'create') {
-      idForUrl = newSelectedPostId;
+    if (view === View.Webboard && newSelectedPostIdForNav && newSelectedPostIdForNav !== 'create') {
+      idForUrl = newSelectedPostIdForNav;
     } else if (view === View.PublicProfile && typeof payload === 'string') {
-      idForUrl = payload; // This is the userId
+      idForUrl = payload; 
     }
 
-    if (idForUrl) {
-      params.set('id', idForUrl);
+    if (idForUrl) params.set('id', idForUrl);
+    if(view === View.PublicProfile && fromView !== View.PublicProfile && fromView !== View.Login) {
+        params.set('from', fromView); 
     }
-    if(view === View.PublicProfile && fromView !== View.PublicProfile) {
-        params.set('from', fromView); // Keep track of where user came from to public profile
-    }
-
 
     const newSearch = params.toString();
     if (window.location.search.substring(1) !== newSearch) {
@@ -593,7 +567,6 @@ const App: React.FC = () => {
 
       await updateUserProfileService(currentUser.id, updatedProfileData);
       alert('อัปเดตโปรไฟล์เรียบร้อยแล้ว');
-      // Re-fetch user to update currentUser state globally
       const updatedUserDoc = await getUserDocument(currentUser.id);
       if (updatedUserDoc) {
         setCurrentUser(updatedUserDoc);
@@ -639,7 +612,7 @@ const App: React.FC = () => {
         setItemToEdit({ ...(item.originalItem as WebboardPost), isEditing: true }); setEditingItemType('webboardPost'); setSourceViewForForm(View.AdminDashboard); navigateTo(View.Webboard, 'create');
     }
  };
-  // Modified to use MyRoom as source for edits initiated from there
+
   const handleStartEditMyItem = (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => {
     let originalItem: Job | HelperProfile | WebboardPost | undefined;
     if (itemType === 'job') originalItem = allJobsForAdmin.find(j => j.id === itemId);
@@ -649,7 +622,6 @@ const App: React.FC = () => {
     if (originalItem && canEditOrDelete(originalItem.userId, originalItem.ownerId)) {
         setItemToEdit(itemType === 'webboardPost' ? { ...(originalItem as WebboardPost), isEditing: true } : originalItem);
         setEditingItemType(itemType);
-        // Set source to MyRoom so after edit/cancel, user returns to the dashboard
         setSourceViewForForm(View.MyRoom);
         navigateTo(itemType === 'job' ? View.PostJob : itemType === 'profile' ? View.OfferHelp : View.Webboard, itemType === 'webboardPost' ? 'create' : undefined);
     } else { alert("ไม่พบรายการ หรือไม่มีสิทธิ์แก้ไข"); }
@@ -660,7 +632,7 @@ const App: React.FC = () => {
         setItemToEdit({ ...postToEdit, isEditing: true });
         setEditingItemType('webboardPost');
         setSourceViewForForm(View.Webboard);
-        navigateTo(View.Webboard, 'create');
+        navigateTo(View.Webboard, 'create'); 
     } else {
         alert("ไม่พบรายการ หรือไม่มีสิทธิ์แก้ไข");
     }
@@ -739,13 +711,12 @@ const App: React.FC = () => {
       if (updatedUser) setCurrentUser(updatedUser);
 
       if (currentView === View.FindJobs || sourceViewForForm === View.FindJobs || sourceViewForForm === View.MyRoom) {
-        loadJobsFn(true); // Use the passed loadJobs function
+        loadJobsFn(true); 
       }
-       // Refresh admin list if needed
        const updatedAdminJobs = [...allJobsForAdmin, { ...newJobData, id: 'temp-new-id', userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, contact: generateContactString(currentUser), postedAt: new Date().toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() } as Job];
        setAllJobsForAdmin(updatedAdminJobs);
 
-      navigateTo(sourceViewForForm || View.FindJobs); // Navigate based on where form was initiated
+      navigateTo(sourceViewForForm || View.FindJobs); 
       setSourceViewForForm(null); alert('ประกาศงานของคุณถูกเพิ่มแล้ว!');
     } catch (error: any) {
       logFirebaseError("handleAddJob", error);
@@ -767,7 +738,7 @@ const App: React.FC = () => {
       const updatedAdminJobs = allJobsForAdmin.map(j => j.id === updatedJobDataFromForm.id ? {...j, ...updatedJobDataFromForm, contact: generateContactString(currentUser), updatedAt: new Date().toISOString()} : j);
       setAllJobsForAdmin(updatedAdminJobs as Job[]);
 
-      navigateTo(sourceViewForForm || View.FindJobs); // Navigate based on where form was initiated
+      navigateTo(sourceViewForForm || View.FindJobs); 
       setSourceViewForForm(null);
       alert('แก้ไขประกาศงานเรียบร้อยแล้ว');
     } catch (error: any) {
@@ -803,7 +774,7 @@ const App: React.FC = () => {
 
 
       setTimeout(() => {
-        navigateTo(sourceViewForForm || View.FindHelpers); // Navigate based on where form was initiated
+        navigateTo(sourceViewForForm || View.FindHelpers); 
         setSourceViewForForm(null);
         alert('โปรไฟล์ของคุณถูกเพิ่มแล้ว!');
       }, 100);
@@ -864,7 +835,6 @@ const App: React.FC = () => {
         const updatedUser = await getUserDocument(currentUser.id);
         if (updatedUser) setCurrentUser(updatedUser);
         if (loadHelpersFn) loadHelpersFn(true);
-        // Also update allHelperProfilesForAdmin for immediate reflection if MyRoomPage is showing it
         setAllHelperProfilesForAdmin(prev => prev.map(p =>
             p.id === profileId ? { ...p, lastBumpedAt: new Date().toISOString(), updatedAt: new Date().toISOString() } : p
         ));
@@ -876,8 +846,12 @@ const App: React.FC = () => {
   };
 
   const handleCancelEditOrPost = () => {
-    const targetView = sourceViewForForm || View.Home;
-    setItemToEdit(null); setEditingItemType(null); setSourceViewForForm(null); setSelectedPostId(null);
+    const targetView = sourceViewForForm || (currentView === View.Webboard && selectedPostId === 'create' ? View.Webboard : View.Home);
+    setItemToEdit(null); setEditingItemType(null); setSourceViewForForm(null); 
+    // Only set selectedPostId to null if it was 'create', otherwise leave it (e.g. if user was editing from detail view)
+    if (selectedPostId === 'create') {
+        setSelectedPostId(null);
+    }
     navigateTo(targetView);
   };
 
@@ -952,7 +926,7 @@ const App: React.FC = () => {
     try {
       await toggleItemFlagService(collectionName, itemId, flagName as any, currentValue);
       if (loadItemsFn) {
-        loadItemsFn(true); // Re-fetch the specific list
+        loadItemsFn(true); 
       }
       if (collectionName === 'jobs') {
         setAllJobsForAdmin(prev => prev.map(job => job.id === itemId ? { ...job, [flagName]: !currentValue, updatedAt: new Date().toISOString() } : job));
@@ -995,7 +969,6 @@ const App: React.FC = () => {
     const profile = allHelperProfilesForAdmin.find(p => p.id === profileId);
     if (profile) toggleItemFlagAndUpdateLists('helperProfiles', profileId, "isUnavailable", profile.userId, profile.ownerId, profile.isUnavailable, loadHelpersFn);
   };
-  // Modified to pass correct load functions for MyRoomPage context
   const handleToggleItemStatusFromMyRoom = (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => {
     if (itemType === 'job') handleToggleHiredJobForUserOrAdmin(itemId, loadJobs);
     else if (itemType === 'profile') handleToggleUnavailableHelperProfileForUserOrAdmin(itemId, loadHelpers);
@@ -1046,20 +1019,14 @@ const App: React.FC = () => {
 
         setItemToEdit(null); setEditingItemType(null);
 
-        // For WebboardPage, it handles its own selectedPostId update.
-        // For MyRoom or Admin, App.tsx sets selectedPostId.
         if (sourceViewForForm === View.MyRoom) {
             navigateTo(View.MyRoom, { targetTab: 'myWebboardPosts' });
-            setSourceViewForForm(null);
         } else if (sourceViewForForm === View.AdminDashboard) {
-            setSelectedPostId(finalPostId || null); // To show detail if admin edits from dash then goes to webboard
-            navigateTo(View.Webboard, finalPostId);
-            setSourceViewForForm(null);
-        } else { // Default to Webboard view, which will use its own setSelectedPostId logic
-            setSelectedPostId(finalPostId || null);
-            navigateTo(View.Webboard, finalPostId);
+            navigateTo(View.Webboard, finalPostId); // Navigate to the specific post
+        } else { 
+             navigateTo(View.Webboard, finalPostId); // Navigate to the specific post
         }
-
+        setSourceViewForForm(null); // Reset source view after navigation
 
     } catch (error: any) {
         logFirebaseError("handleAddOrUpdateWebboardPost", error);
@@ -1128,10 +1095,8 @@ const App: React.FC = () => {
       const isCurrentlySaved = userSavedPosts.includes(postId);
       if (isCurrentlySaved) {
         await unsaveUserWebboardPostService(currentUser.id, postId);
-        // UserSavedPosts subscription will update currentUser and trigger re-render
       } else {
         await saveUserWebboardPostService(currentUser.id, postId);
-        // UserSavedPosts subscription will update currentUser and trigger re-render
       }
     } catch (error) {
       logFirebaseError("handleSaveWebboardPost", error);
@@ -1153,10 +1118,10 @@ const App: React.FC = () => {
   };
 
 
-  const handlePinWebboardPost = (postId: string, loadWebboardFn?: (isInitialLoad?: boolean) => void) => {
+  const handlePinWebboardPost = async (postId: string, loadWebboardFn?: (isInitialLoad?: boolean) => void) => {
     const post = allWebboardPostsForAdmin.find(p => p.id === postId);
     if (post && currentUser?.role === UserRole.Admin) {
-      toggleItemFlagAndUpdateLists('webboardPosts', postId, "isPinned", post.userId, post.ownerId, post.isPinned, loadWebboardFn);
+      await toggleItemFlagAndUpdateLists('webboardPosts', postId, "isPinned", post.userId, post.ownerId, post.isPinned, loadWebboardFn);
     } else if (currentUser?.role !== UserRole.Admin) {
       alert("เฉพาะแอดมินเท่านั้นที่สามารถปักหมุดโพสต์ได้");
     }
@@ -1219,14 +1184,11 @@ const App: React.FC = () => {
               </Button>
             )}
 
-            {/* Combined MyRoom link */}
             {currentView !== View.MyRoom && (
               <Button onClick={() => navigateAndCloseMenu(View.MyRoom)} variant="outline" colorScheme="neutral" {...commonButtonPropsBase}>
                 <span className={navItemSpanClass}><span>🛋️</span><span>ห้องของฉัน</span></span>
               </Button>
             )}
-
-            {/* UserProfile and MyPosts links are removed as they are part of MyRoom */}
 
             {currentUser.role === UserRole.Admin && currentView !== View.AdminDashboard && (
               <Button onClick={() => navigateAndCloseMenu(View.AdminDashboard)} variant="accent" {...commonButtonPropsBase}>
@@ -1485,7 +1447,7 @@ const App: React.FC = () => {
     if (currentView === View.FindJobs) {
       loadJobs(true);
     }
-  }, [currentView, selectedJobCategoryFilter, jobSearchTerm]); // loadJobs is not added here as it's memoized with its own dependencies
+  }, [currentView, selectedJobCategoryFilter, jobSearchTerm, loadJobs]); // Added loadJobs to ensure it uses the latest version
 
   useEffect(() => {
     if (currentView !== View.FindJobs || !initialJobsLoaded) return;
@@ -1619,7 +1581,7 @@ const App: React.FC = () => {
     if (currentView === View.FindHelpers) {
       loadHelpers(true);
     }
-  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm]); // loadHelpers is not added here
+  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm, loadHelpers]); // Added loadHelpers
 
   useEffect(() => {
     if (currentView !== View.FindHelpers || !initialHelpersLoaded) return;
@@ -1713,8 +1675,6 @@ const App: React.FC = () => {
 
   const renderRegister = () => <RegistrationForm onRegister={handleRegister} onSwitchToLogin={() => navigateTo(View.Login)} />;
   const renderLogin = () => <LoginForm onLogin={handleLogin} onSwitchToRegister={() => navigateTo(View.Register)} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />;
-  // UserProfilePage is now primarily accessed via MyRoomPage
-  // const renderUserProfile = () => { if (!currentUser) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทางไปยังหน้าเข้าสู่ระบบ...</p>; return (<UserProfilePage currentUser={currentUser} onUpdateProfile={handleUpdateUserProfile} onCancel={() => navigateTo(View.Home)} />); };
 
   const renderMyRoomPage = () => {
     if (!currentUser) {
@@ -1764,14 +1724,11 @@ const App: React.FC = () => {
         isSiteLocked={isSiteLocked} onToggleSiteLock={handleToggleSiteLock}
     />);
   };
-  // MyPostsPage is replaced by MyRoomPage
-  // const renderMyPostsPage = () => { if (!currentUser || currentUser.role === UserRole.Admin) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทาง...</p>; return (<MyPostsPage currentUser={currentUser} jobs={allJobsForAdmin} helperProfiles={allHelperProfilesForAdmin} webboardPosts={allWebboardPostsForAdmin} webboardComments={webboardComments} onEditItem={handleStartEditMyItem} onDeleteItem={handleDeleteItemFromMyPosts} onToggleHiredStatus={handleToggleItemStatusFromMyPosts} navigateTo={navigateTo} getUserDisplayBadge={(user) => getUserDisplayBadge(user)} />); };
   const renderAboutUsPage = () => <AboutUsPage />;
   const renderSafetyPage = () => <SafetyPage />;
 
   const handleBackFromPublicProfile = () => {
-    // Use the stored sourceViewForPublicProfile to navigate back
-    navigateTo(sourceViewForPublicProfile || View.FindHelpers); // Default to FindHelpers if somehow not set
+    navigateTo(sourceViewForPublicProfile || View.FindHelpers); 
   };
 
   const renderPublicProfile = () => {
@@ -1825,9 +1782,7 @@ const App: React.FC = () => {
           case View.Register: currentViewContent = renderRegister(); break;
           case View.Login: currentViewContent = renderLogin(); break;
           case View.AdminDashboard: currentViewContent = renderAdminDashboard(); break;
-          // case View.MyPosts: currentViewContent = renderMyPostsPage(); break; // Replaced by MyRoom
-          // case View.UserProfile: currentViewContent = renderUserProfile(); break; // Replaced by MyRoom's profile tab
-          case View.MyRoom: currentViewContent = renderMyRoomPage(); break; // New case
+          case View.MyRoom: currentViewContent = renderMyRoomPage(); break; 
           case View.AboutUs: currentViewContent = renderAboutUsPage(); break;
           case View.PublicProfile: currentViewContent = renderPublicProfile(); break;
           case View.Safety: currentViewContent = renderSafetyPage(); break;
