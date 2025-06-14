@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 // Corrected import path for types
 import type { WebboardPost, WebboardComment, User, EnrichedWebboardPost, EnrichedWebboardComment, UserLevel, UserRole } from '../types';
@@ -98,7 +97,6 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
         selectedCategoryFilter === 'all' ? null : selectedCategoryFilter, // Pass category
         searchTerm // Pass search term
       );
-      console.log("WEBBOARD PAGE: Received result from service:", result);
       setWebboardPostsList(prevPosts => isInitialLoad ? result.items : [...prevPosts, ...result.items]);
       setLastVisibleWebboardPost(result.lastVisibleDoc);
       setHasMoreWebboardPosts(result.items.length === pageSize && result.lastVisibleDoc !== null);
@@ -118,10 +116,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
   }, [selectedCategoryFilter, searchTerm]); 
 
  useEffect(() => { 
-    if (selectedPostId !== null && selectedPostId !== 'create') { // Only observe if not in detail or create view
-      // If a specific post is selected, infinite scroll is not needed for the list.
-      return;
-    }
+    if (selectedPostId !== null) return; 
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -137,17 +132,6 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
       if (currentLoaderRef) observer.unobserve(currentLoaderRef);
     };
   }, [selectedPostId, hasMoreWebboardPosts, isLoadingWebboardPosts, initialWebboardPostsLoaded, loadWebboardPosts]);
-
-
-  useEffect(() => {
-    if (selectedPostId && selectedPostId !== 'create' && initialWebboardPostsLoaded) {
-      const postExists = webboardPostsList.some(p => p.id === selectedPostId);
-      if (!postExists) {
-        // Post ID is selected, but post not in current list. Reload to get it.
-        loadWebboardPosts(true);
-      }
-    }
-  }, [selectedPostId, webboardPostsList, initialWebboardPostsLoaded, loadWebboardPosts]);
 
 
   useEffect(() => {
@@ -167,7 +151,6 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
   };
 
   const handleCloseCreateModal = () => {
-    console.log("BUG HUNT: The function that closes the modal was just called!");
     setIsCreateModalOpen(false);
     if (selectedPostId === 'create' || editingPost) { 
       setSelectedPostId(null); 
@@ -175,18 +158,10 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
     }
   };
   
-  const handleSubmitPostForm = async (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => {
-    await onAddOrUpdatePost(postData, postIdToUpdate); 
-    await loadWebboardPosts(true); 
-    // The modal will close reactively due to selectedPostId changing via App.tsx,
-    // so explicit call to handleCloseCreateModal() is removed from success path.
-    // If it was an edit, selectedPostId might not change, handleCloseCreateModal is needed for the 'X' or 'Cancel' button.
-    // For new post, selectedPostId changes from 'create' to the new ID, triggering useEffect to close modal.
-    if (postIdToUpdate) { // If it was an edit, explicitly close modal if not already closed.
-        handleCloseCreateModal();
-    }
-    // For new post, App.tsx's onAddOrUpdatePost will set selectedPostId to the new post's ID,
-    // which will cause the useEffect to close the modal.
+  const handleSubmitPostForm = (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => {
+    onAddOrUpdatePost(postData, postIdToUpdate);
+    loadWebboardPosts(true); 
+    handleCloseCreateModal(); 
   };
 
 
