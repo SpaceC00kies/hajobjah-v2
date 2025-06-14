@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import type { EnrichedHelperProfile, User } from '../types';
-import { GenderOption, HelperEducationLevelOption, View, JobCategory, JOB_CATEGORY_STYLES, Province } from '../types'; // Added Province
+import { View, JobCategory, JOB_CATEGORY_STYLES, Province } from '../types'; // GenderOption, HelperEducationLevelOption removed as they are not directly used
 import { Button } from './Button';
 import { Modal } from './Modal';
 import { isDateInPast, calculateDaysRemaining } from '../App'; // Import utilities
@@ -16,31 +16,16 @@ interface HelperCardProps {
   onBumpProfile: (profileId: string) => void; 
 }
 
-const FallbackAvatarDisplay: React.FC<{ name?: string, size?: string, className?: string }> = ({ name, size = "w-16 h-16", className = "" }) => {
+const FallbackAvatarDisplay: React.FC<{ name?: string, size?: string, className?: string }> = ({ name, size = "w-24 h-24 sm:w-28 sm:h-28", className = "" }) => { // Updated default size
   const initial = name ? name.charAt(0).toUpperCase() : '👤';
   return (
-    <div className={`${size} rounded-full bg-neutral dark:bg-dark-inputBg flex items-center justify-center text-2xl font-sans text-white dark:text-dark-text ${className}`}>
+    <div className={`${size} rounded-full bg-neutral dark:bg-dark-inputBg flex items-center justify-center text-4xl sm:text-5xl font-sans text-white dark:text-dark-text ${className}`}>
       {initial}
     </div>
   );
 };
 
-const calculateAge = (birthdateString?: string): number | null => {
-  if (!birthdateString) return null;
-  const birthDate = new Date(birthdateString);
-  if (isNaN(birthDate.getTime())) return null;
-
-  const today = new Date();
-  if (birthDate > today) return null;
-
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-    age--;
-  }
-  return age;
-};
+// calculateAge function removed as it's no longer used directly in this card's display
 
 const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
   if (dateInput === null || dateInput === undefined) {
@@ -79,7 +64,7 @@ const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
 
 const TrustBadgesDisplay: React.FC<{ profile: EnrichedHelperProfile }> = ({ profile }) => {
   return (
-    <div className="flex gap-1 flex-wrap my-2 font-sans justify-start">
+    <div className="flex gap-1 flex-wrap my-2 font-sans justify-center"> {/* Changed to justify-center */}
       {profile.verifiedExperienceBadge && (
         <span className="bg-yellow-200 text-yellow-800 dark:bg-yellow-600/30 dark:text-yellow-200 text-xs px-2 py-0.5 rounded-full font-medium">⭐ ผ่านงานมาก่อน</span>
       )}
@@ -121,7 +106,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
     setIsContactModalOpen(true);
   };
 
-  const age = calculateAge(profile.birthdate);
+  // age calculation removed from here
   const availabilityDateFromText = formatDateDisplay(profile.availabilityDateFrom);
   const availabilityDateToText = formatDateDisplay(profile.availabilityDateTo);
 
@@ -144,7 +129,6 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
     availabilityDateDisplay = `ถึง ${availabilityDateToText}`;
   }
 
-  // const shortAddress = profile.userAddress ? profile.userAddress.split(',')[0] : null; // Calculation can remain if used elsewhere or for future features
   const detailsPreview = profile.details.substring(0, 150);
   const categoryStyle = profile.category ? JOB_CATEGORY_STYLES[profile.category] : JOB_CATEGORY_STYLES[JobCategory.ShortTermMisc];
 
@@ -181,41 +165,35 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
           </div>
         )}
 
-        <div className="flex items-start mb-1">
+        {/* === UPDATED HEADER SECTION START === */}
+        <div className="flex flex-col items-center mb-3">
           {profile.userPhoto ? (
-            <img src={profile.userPhoto} alt={profile.authorDisplayName} className="w-16 h-16 rounded-full object-cover mr-4 shadow" />
+            <img src={profile.userPhoto} alt={profile.authorDisplayName} className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover shadow-lg mb-2" />
           ) : (
-            <FallbackAvatarDisplay name={profile.authorDisplayName} className="mr-4 shadow" />
+            <FallbackAvatarDisplay name={profile.authorDisplayName} size="w-24 h-24 sm:w-28 sm:h-28" className="mb-2 shadow-lg" />
           )}
-          <div className="flex-1">
-            <h3 className="text-2xl font-sans font-semibold text-secondary-hover dark:text-dark-secondary-hover">{profile.profileTitle}</h3>
-            <p className="text-sm font-sans text-neutral-medium dark:text-dark-textMuted">โดย: {profile.authorDisplayName}</p>
-          </div>
+          <p className="text-sm font-sans text-neutral-medium dark:text-dark-textMuted text-center">โดย: {profile.authorDisplayName}</p>
+          <h3 className="text-xl sm:text-2xl font-sans font-semibold text-secondary-hover dark:text-dark-secondary-hover text-center mt-1 leading-tight" title={profile.profileTitle}>
+            {profile.profileTitle}
+          </h3>
         </div>
 
-        <div className="my-1">
+        <div className="my-2 text-center">
           <span className={`text-xs font-sans font-medium px-2 py-0.5 rounded-full inline-block ${categoryStyle.bg} ${categoryStyle.text} ${categoryStyle.border ? `border ${categoryStyle.border}`: ''}`}>
             {profile.category}
           </span>
         </div>
         {profile.subCategory && (
-          <p className="text-xs font-serif text-neutral-medium dark:text-dark-textMuted mb-2 ml-1">
+          <p className="text-xs font-serif text-neutral-medium dark:text-dark-textMuted mb-3 text-center">
             └ {profile.subCategory}
           </p>
         )}
-
+        {/* === UPDATED HEADER SECTION END === */}
+        
         <TrustBadgesDisplay profile={profile} />
 
         <div className="space-y-1.5 text-neutral-dark dark:text-dark-textMuted mb-4 flex-grow font-normal">
-          {profile.gender && profile.gender !== GenderOption.NotSpecified && (
-            <p className="font-serif flex items-center"><span className="mr-2 text-lg">👤</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">เพศ:</strong> {profile.gender}</p>
-          )}
-          {age !== null && (
-            <p className="font-serif flex items-center"><span className="mr-2 text-lg">🎂</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">อายุ:</strong> {age} ปี</p>
-          )}
-          {profile.educationLevel && profile.educationLevel !== HelperEducationLevelOption.NotStated && (
-            <p className="font-serif flex items-center"><span className="mr-2 text-lg">🎓</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">ระดับการศึกษา:</strong> {profile.educationLevel}</p>
-          )}
+          {/* Gender, Age, Education Level fields removed from here */}
           <p className="font-serif flex items-center"><span className="mr-2 text-lg">📍</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">จังหวัด:</strong> {profile.province || Province.ChiangMai}</p>
           <p className="font-serif flex items-center"><span className="mr-2 text-lg">🗺️</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">พื้นที่สะดวก:</strong> {profile.area}</p>
 
