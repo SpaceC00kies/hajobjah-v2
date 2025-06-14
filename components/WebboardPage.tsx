@@ -151,12 +151,16 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
 
 
   useEffect(() => {
+    console.log("selectedPostId changed to:", selectedPostId);
+    console.log("editingPost:", editingPost);
     if (selectedPostId === 'create' || editingPost) {
+      console.log("Opening modal");
       setIsCreateModalOpen(true);
     } else {
+      console.log("Closing modal");
       setIsCreateModalOpen(false);
     }
-  }, [selectedPostId, editingPost]);
+}, [selectedPostId, editingPost]);
 
   const handleOpenCreateModal = () => {
     if (!currentUser) {
@@ -165,6 +169,15 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
       setSelectedPostId('create'); 
     }
   };
+
+  const handleOpenCreateModal = () => {
+    console.log("Opening create modal, currentUser:", currentUser);
+    if (!currentUser) {
+      requestLoginForAction(View.Webboard, { action: 'createPost' });
+    } else {
+      setSelectedPostId('create'); 
+    }
+};
 
   const handleCloseCreateModal = () => {
     console.log("BUG HUNT: The function that closes the modal was just called!");
