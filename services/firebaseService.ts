@@ -720,6 +720,7 @@ export const getWebboardPostsPaginated = async (
 
     const q = query(collection(db, WEBBOARD_POSTS_COLLECTION), ...constraints);
     const querySnapshot = await getDocs(q);
+    console.log("DATABASE CHECK: Found " + querySnapshot.size + " documents in webboardPosts.");
 
     const postsData = querySnapshot.docs.map(docSnap => ({
       id: docSnap.id,

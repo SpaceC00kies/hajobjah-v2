@@ -98,6 +98,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
         selectedCategoryFilter === 'all' ? null : selectedCategoryFilter, // Pass category
         searchTerm // Pass search term
       );
+      console.log("WEBBOARD PAGE: Received result from service:", result);
       setWebboardPostsList(prevPosts => isInitialLoad ? result.items : [...prevPosts, ...result.items]);
       setLastVisibleWebboardPost(result.lastVisibleDoc);
       setHasMoreWebboardPosts(result.items.length === pageSize && result.lastVisibleDoc !== null);
@@ -166,6 +167,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
   };
 
   const handleCloseCreateModal = () => {
+    console.log("BUG HUNT: The function that closes the modal was just called!");
     setIsCreateModalOpen(false);
     if (selectedPostId === 'create' || editingPost) { 
       setSelectedPostId(null); 
