@@ -1420,7 +1420,7 @@ const App: React.FC = () => {
     return (
     <div className="flex flex-col items-center justify-center pt-6 sm:pt-8 lg:pt-10 pb-6 px-6 sm:pb-8 sm:px-8 text-center">
       <h2 className="text-3xl sm:text-4xl lg:text-5xl font-sans font-medium text-neutral-dark mb-2 tracking-tight leading-snug"> ✨ หาจ๊อบจ้า ✨ </h2>
-      <p className="text-base sm:text-lg lg:text-xl text-neutral-dark max-w-xl leading-relaxed mb-8 font-normal font-serif"> เชื่อมคนมีสกิลกับงานที่ใช่ มีใจก็ลองดู ❤︎ </p>
+      <p className="text-base sm:text-lg lg:text-xl text-neutral-dark max-w-xl leading-relaxed mb-8 font-normal font-serif"> ชุมชนสำหรับประกาศงานหรือเสนอช่วยงาน </p>
       <div className="w-full max-w-3xl lg:max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 lg:gap-14">
         <div className="bg-white p-6 rounded-xl shadow-lg border border-primary/30">
           <h3 className="text-lg font-sans font-semibold text-primary mb-4">หาคนทำงาน</h3>
@@ -1585,7 +1585,7 @@ const App: React.FC = () => {
     return (
     <div className="p-4 sm:p-6">
       <div className="text-center mb-6 lg:mb-8">
-        <h2 className="text-3xl font-sans font-semibold text-primary mb-3">👀 ประกาศงาน</h2>
+        <h2 className="text-3xl font-sans font-semibold text-primary mb-3">👀 หางานดูตรงนี้</h2>
         <p className="text-md font-serif text-neutral-dark mb-6 max-w-xl mx-auto font-normal"> งานด่วน งานเร่ง งานจิปาถะ โพสต์หาคนดูนะ! </p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-x-8">
@@ -1594,7 +1594,7 @@ const App: React.FC = () => {
             <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedJobCategoryFilter} onSelectCategory={handleJobCategoryFilterChange} />
             <SearchInputWithRecent searchTerm={jobSearchTerm} onSearchTermChange={handleJobSearch} placeholder="ค้นหางาน, รายละเอียด..." recentSearches={recentJobSearches} onRecentSearchSelect={(term) => { setJobSearchTerm(term); addRecentSearch('recentJobSearches', term); setRecentJobSearches(getRecentSearches('recentJobSearches')); }} ariaLabel="ค้นหางาน" />
             {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="w-full sm:px-4 sm:text-sm">
-              <span className="flex items-center justify-center gap-2"><span>📣</span><span>ฝากงานกดตรงนี้</span></span>
+              <span className="flex items-center justify-center gap-2"><span>📣</span><span>ตรงนี้</span></span>
             </Button> )}
           </div>
         </aside>
