@@ -1,3 +1,4 @@
+
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -41,7 +42,7 @@ import {
 } from 'firebase/storage';
 
 import { auth, db, storage } from '../firebase';
-import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier, UserSavedWebboardPostEntry } from '../types';
+import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier, UserSavedWebboardPostEntry, Province } from '../types'; // Added Province
 import { UserRole, WebboardCategory, USER_LEVELS, GenderOption, HelperEducationLevelOption } from '../types';
 import { logFirebaseError } from '../firebase/logging';
 
@@ -369,7 +370,7 @@ export const addJobService = async (jobData: JobFormData, author: { userId: stri
     expiresAt.setDate(expiresAt.getDate() + 30);
 
     const newJobDoc: Omit<Job, 'id'> = {
-      ...jobData,
+      ...jobData, // Includes province from form
       userId: author.userId,
       authorDisplayName: author.authorDisplayName,
       contact: author.contact,
@@ -396,6 +397,7 @@ export const addJobService = async (jobData: JobFormData, author: { userId: stri
 };
 export const updateJobService = async (jobId: string, jobData: Partial<JobFormData>, contact: string): Promise<boolean> => {
   try {
+    // province will be part of jobData if it's being updated
     const dataToUpdate = { ...jobData, contact, updatedAt: serverTimestamp() as any };
     await updateDoc(doc(db, JOBS_COLLECTION, jobId), cleanDataForFirestore(dataToUpdate as Record<string, any>));
     return true;
@@ -493,7 +495,7 @@ export const addHelperProfileService = async (profileData: HelperProfileFormData
     const nowServerTimestamp = serverTimestamp();
 
     const newProfileDoc: Omit<HelperProfile, 'id'> = {
-      ...profileData,
+      ...profileData, // Includes province from form
       userId: author.userId,
       authorDisplayName: author.authorDisplayName,
       contact: author.contact,
@@ -523,6 +525,7 @@ export const addHelperProfileService = async (profileData: HelperProfileFormData
 
 export const updateHelperProfileService = async (profileId: string, profileData: Partial<HelperProfileFormData>, contact: string): Promise<boolean> => {
   try {
+    // province will be part of profileData if it's being updated
     const dataToUpdate = { ...profileData, contact, updatedAt: serverTimestamp() as any };
     await updateDoc(doc(db, HELPER_PROFILES_COLLECTION, profileId), cleanDataForFirestore(dataToUpdate as Record<string, any>));
     return true;

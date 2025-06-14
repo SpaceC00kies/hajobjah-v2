@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import type { Job, User } from '../types'; // Added User
-import { JobDesiredEducationLevelOption, JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP } from '../types';
+import { JobDesiredEducationLevelOption, JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types'; // Added Province
 import { Button } from './Button';
 import { containsBlacklistedWords, calculateHoursRemaining } from '../App'; // Changed to calculateHoursRemaining
 
@@ -20,6 +20,7 @@ interface PostJobFormProps {
 const initialFormStateForCreate: FormDataType = {
   title: '',
   location: '',
+  province: Province.ChiangMai, // Default province
   dateTime: '',
   payment: '',
   description: '',
@@ -101,6 +102,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
       const editableFields: FormDataType = {
         title: editableFieldsBase.title || '',
         location: editableFieldsBase.location || '',
+        province: editableFieldsBase.province || Province.ChiangMai,
         dateTime: editableFieldsBase.dateTime || '',
         payment: editableFieldsBase.payment || '',
         description: editableFieldsBase.description || '',
@@ -149,6 +151,8 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
       }
     } else if (currentKey === 'subCategory') {
         newFormData = { ...newFormData, subCategory: value as JobSubCategory || undefined };
+    } else if (currentKey === 'province') {
+        newFormData = { ...newFormData, province: value as Province };
     } else if (currentKey === 'desiredAgeStart' || currentKey === 'desiredAgeEnd') {
         let processedValue: number | undefined;
         if (value === '') {
@@ -184,6 +188,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
     if (!formData.title.trim()) errors.title = 'กรุณากรอกชื่องาน';
     else if (containsBlacklistedWords(formData.title)) errors.title = 'หัวข้อมีคำที่ไม่เหมาะสม โปรดแก้ไข';
     if (!formData.location.trim()) errors.location = 'กรุณากรอกสถานที่';
+    if (!formData.province) errors.province = 'กรุณาเลือกจังหวัด';
     if (!formData.payment.trim()) errors.payment = 'กรุณากรอกค่าจ้าง';
     if (!formData.category) errors.category = 'กรุณาเลือกหมวดหมู่งาน';
     else if (JOB_SUBCATEGORIES_MAP[formData.category]?.length > 0 && !formData.subCategory) {
@@ -224,7 +229,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
 
   const baseFormFields = [
     { name: 'title', label: 'ชื่องาน', placeholder: 'เช่น พนักงานเสิร์ฟด่วน, ผู้ช่วยทำความสะอาด', required: true },
-    { name: 'location', label: 'สถานที่', placeholder: 'เช่น ร้านกาแฟ Cafe Amazon สาขานิมมาน', required: true },
+    { name: 'location', label: 'สถานที่ (เช่น ชื่อร้าน, ถนน, อาคาร)', placeholder: 'เช่น ร้านกาแฟ Cafe Amazon สาขานิมมาน', required: true },
     { name: 'dateTime', label: 'วันที่และเวลา (แบบข้อความ ถ้ามี)', placeholder: 'เช่น 15 ส.ค. 67 (10:00-18:00) หรือ "เสาร์-อาทิตย์นี้"', required: false },
     { name: 'payment', label: 'ค่าจ้าง', placeholder: 'เช่น 400 บาท/วัน, 60 บาท/ชั่วโมง', required: true },
   ] as const;
@@ -274,6 +279,26 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
             {formErrors[field.name as keyof FormErrorsType] && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors[field.name as keyof FormErrorsType]}</p>}
           </div>
         ))}
+
+        <div>
+          <label htmlFor="province" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
+            จังหวัด <span className="text-red-500 dark:text-red-400">*</span>
+          </label>
+          <select
+            id="province"
+            name="province"
+            value={formData.province}
+            onChange={handleChange}
+            className={`${selectBaseStyle} ${formErrors.province ? inputErrorStyle : inputFocusStyle}`}
+            disabled={!canSubmit && !isEditing}
+          >
+            {Object.values(Province).map(provinceValue => (
+              <option key={provinceValue} value={provinceValue}>{provinceValue}</option>
+            ))}
+          </select>
+          {formErrors.province && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.province}</p>}
+        </div>
+
 
         <div>
           <label htmlFor="category" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">

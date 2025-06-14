@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import type { Job, User } from '../types';
-import { View, JobCategory, JOB_CATEGORY_STYLES, JobDesiredEducationLevelOption } from '../types'; // Added JobDesiredEducationLevelOption
+import { View, JobCategory, JOB_CATEGORY_STYLES, JobDesiredEducationLevelOption, Province } from '../types'; // Added Province and JobDesiredEducationLevelOption
 import { Button } from './Button';
 import { Modal } from './Modal';
 import { isDateInPast } from '../App';
@@ -149,7 +149,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
         )}
 
         <div className="space-y-2 text-neutral-dark dark:text-dark-textMuted mb-4 flex-grow font-normal">
-          <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📍 สถานที่:</strong> {job.location}</p>
+          <p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📍 สถานที่:</strong> {job.location} ({job.province || Province.ChiangMai})</p>
           {dateNeededDisplay && (<p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">🗓️ วันที่ต้องการ:</strong> {dateNeededDisplay}</p>)}
           {timeNeededDisplay && (<p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">⏰ เวลา:</strong> {timeNeededDisplay}</p>)}
           {job.dateTime && (!dateNeededDisplay || !timeNeededDisplay) && (<p className="font-serif"><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📅 วันที่/เวลา (เพิ่มเติม):</strong> {job.dateTime}</p>)}

@@ -1,8 +1,14 @@
 
+export enum Province {
+  ChiangMai = 'เชียงใหม่',
+  Bangkok = 'กรุงเทพมหานคร',
+}
+
 export interface Job {
   id: string;
   title: string;
   location: string;
+  province: Province; // Added province
   dateTime: string;
   payment: string;
   contact: string;
@@ -62,6 +68,7 @@ export interface HelperProfile {
   profileTitle: string;
   details: string;
   area: string;
+  province: Province; // Added province
   availability: string;
   contact: string;
   category: JobCategory;

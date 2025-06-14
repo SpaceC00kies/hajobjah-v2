@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import type { EnrichedHelperProfile, User } from '../types';
-import { GenderOption, HelperEducationLevelOption, View, JobCategory, JOB_CATEGORY_STYLES } from '../types';
+import { GenderOption, HelperEducationLevelOption, View, JobCategory, JOB_CATEGORY_STYLES, Province } from '../types'; // Added Province
 import { Button } from './Button';
 import { Modal } from './Modal';
 import { isDateInPast, calculateDaysRemaining } from '../App'; // Import utilities
@@ -216,7 +216,8 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
           {profile.educationLevel && profile.educationLevel !== HelperEducationLevelOption.NotStated && (
             <p className="font-serif flex items-center"><span className="mr-2 text-lg">🎓</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">ระดับการศึกษา:</strong> {profile.educationLevel}</p>
           )}
-          <p className="font-serif flex items-center"><span className="mr-2 text-lg">📍</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">พื้นที่สะดวก:</strong> {profile.area}</p>
+          <p className="font-serif flex items-center"><span className="mr-2 text-lg">📍</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">จังหวัด:</strong> {profile.province || Province.ChiangMai}</p>
+          <p className="font-serif flex items-center"><span className="mr-2 text-lg">🗺️</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">พื้นที่สะดวก:</strong> {profile.area}</p>
 
           {availabilityDateDisplay && (
              <p className="font-serif flex items-center"><span className="mr-2 text-lg">🗓️</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">ช่วงวันที่สะดวก:</strong> {availabilityDateDisplay}</p>
