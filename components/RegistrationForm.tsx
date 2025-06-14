@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import type { User } from '../types';
 import { GenderOption, HelperEducationLevelOption } from '../types';
@@ -203,7 +202,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
             <input type="text" id="publicDisplayName" value={publicDisplayName} onChange={(e) => setPublicDisplayName(e.target.value)}
                     className={`${inputBaseStyle} ${errors.publicDisplayName ? inputErrorStyle : inputFocusStyle}`} placeholder="เช่น Sunny Y., ช่างภาพใจดี123"/>
             <p className="text-xs font-sans text-neutral-medium dark:text-dark-textMuted mt-1">
-              ชื่อนี้จะแสดงบนที่สาธารณะ เช่น ประกาศงาน, โปรไฟล์และกระทู้ โปรดตั้งอย่างเหมาะสม (เช่น ชื่อจริงและนามสกุลย่อ Sunny J., หรือเกี่ยวกับตัวเรา นักการตลาดมือฉมัง1993) ห้ามใช้คำหยาบหรือสื่ออะไรที่ไม่เหมาะสม
+            ชื่อต้องมี 2-30 ตัวอักษร ได้เฉพาะภาษาไทย/อังกฤษ, เว้นวรรค, จุด เช่น Sunny Y. กรุณาอย่าตั้งชื่อที่ไม่เหมาะสม
             </p>
             {errors.publicDisplayName && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.publicDisplayName}</p>}
             </div>

@@ -1586,7 +1586,7 @@ const App: React.FC = () => {
     <div className="p-4 sm:p-6">
       <div className="text-center mb-6 lg:mb-8">
         <h2 className="text-3xl font-sans font-semibold text-primary mb-3">👀 หางานดูตรงนี้</h2>
-        <p className="text-md font-serif text-neutral-dark mb-6 max-w-xl mx-auto font-normal"> งานด่วน งานเร่ง งานจิปาถะ โพสต์หาคนดูนะ! </p>
+        <p className="text-md font-serif text-neutral-dark mb-6 max-w-xl mx-auto font-normal"> หางานที่เหมาะสมกับทักษะและเวลาที่มีนะ! </p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-x-8">
         <aside className="lg:col-span-3 mb-8 lg:mb-0">
