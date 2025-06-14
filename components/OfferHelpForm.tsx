@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import type { HelperProfile, User } from '../types'; // Added User
-import { JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types'; // Added Province
+import { JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP } from '../types';
 import { Button } from './Button';
 import { containsBlacklistedWords, calculateHoursRemaining } from '../App'; // Changed to calculateHoursRemaining
 
@@ -21,7 +21,6 @@ const initialFormStateForCreate: FormDataType = {
   profileTitle: '',
   details: '',
   area: '',
-  province: undefined, // Added province
   category: '' as JobCategory,
   subCategory: undefined,
   availability: '',
@@ -42,7 +41,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
 
   const HELPER_PROFILE_COOLDOWN_DAYS_FORM = 3; // Updated to 3 days
   const MAX_ACTIVE_HELPER_PROFILES_FREE_TIER_FORM = 1; // Updated for free tier
-  // const MAX_ACTIVE_HELPER_PROFILES_BADGE_FORM = 2; // Badge enhancement - This constant is no longer used
+  const MAX_ACTIVE_HELPER_PROFILES_BADGE_FORM = 2; // Badge enhancement
 
   useEffect(() => {
     if (!currentUser) {
@@ -70,10 +69,9 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
       const userActiveProfiles = helperProfiles.filter(p => p.userId === currentUser.id && !p.isExpired && new Date(p.expiresAt as string) > new Date()).length;
       
       let maxProfiles = (currentUser.tier === 'free') ? MAX_ACTIVE_HELPER_PROFILES_FREE_TIER_FORM : 999; // Default for free, high for others
-      // Removed: Activity badge no longer grants extra helper profiles
-      // if (currentUser.activityBadge?.isActive) {
-      //   maxProfiles = MAX_ACTIVE_HELPER_PROFILES_BADGE_FORM; 
-      // }
+      if (currentUser.activityBadge?.isActive) {
+        maxProfiles = MAX_ACTIVE_HELPER_PROFILES_BADGE_FORM; // Badge overrides
+      }
 
       if (userActiveProfiles >= maxProfiles) {
         setLimitMessage(`คุณมีโปรไฟล์ผู้ช่วยที่ยังไม่หมดอายุ ${userActiveProfiles}/${maxProfiles} โปรไฟล์แล้ว`);
@@ -98,7 +96,6 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
         profileTitle: editableFieldsBase.profileTitle || '',
         details: editableFieldsBase.details || '',
         area: editableFieldsBase.area || '',
-        province: editableFieldsBase.province || undefined, // Added province
         category: editableFieldsBase.category || ('' as JobCategory),
         subCategory: editableFieldsBase.subCategory || undefined,
         availability: editableFieldsBase.availability || '',
@@ -140,8 +137,6 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
         }
     } else if (key === 'subCategory') {
         newFormData = { ...newFormData, subCategory: value as JobSubCategory || undefined };
-    } else if (key === 'province') {
-        newFormData = { ...newFormData, province: value as Province || undefined };
     } else {
         newFormData = { ...newFormData, [key]: value };
     }
@@ -158,7 +153,6 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
     if (!formData.details.trim()) errors.details = 'กรุณากรอกรายละเอียดเกี่ยวกับตัวเอง';
     else if (containsBlacklistedWords(formData.details)) errors.details = 'รายละเอียดมีคำที่ไม่เหมาะสม โปรดแก้ไข';
     if (!formData.area.trim()) errors.area = 'กรุณากรอกพื้นที่ที่สะดวก';
-    // No validation for province as it's optional
     if (!formData.category) errors.category = 'กรุณาเลือกหมวดหมู่งานที่ถนัด';
     else if (JOB_SUBCATEGORIES_MAP[formData.category]?.length > 0 && !formData.subCategory) {
         errors.subCategory = 'กรุณาเลือกหมวดหมู่ย่อยที่ถนัด';
@@ -242,26 +236,6 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
                 {formErrors[field.name as keyof FormErrorsType] && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors[field.name as keyof FormErrorsType]}</p>}
             </div>
             ))}
-
-            <div className="mb-6">
-              <label htmlFor="province" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
-                จังหวัดที่สะดวกทำงาน
-              </label>
-              <select
-                id="province"
-                name="province"
-                value={formData.province || ''}
-                onChange={handleChange}
-                className={`${selectBaseStyle} ${formErrors.province ? inputErrorStyle : inputFocusStyle}`}
-                disabled={!canSubmit && !isEditing}
-              >
-                <option value="">-- ไม่ระบุ --</option>
-                {Object.values(Province).map(provinceValue => (
-                  <option key={provinceValue} value={provinceValue}>{provinceValue}</option>
-                ))}
-              </select>
-              {formErrors.province && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.province}</p>}
-            </div>
 
             <div className="mb-6">
               <label htmlFor="category" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">

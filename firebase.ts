@@ -8,12 +8,12 @@ import { getStorage, FirebaseStorage } from 'firebase/storage';
 // WARNING: Replace with your actual Firebase project configuration.
 // This is a placeholder configuration and will not work.
 const firebaseConfig = {
-  apiKey: "AIzaSyAmhIItKW9XR4cgtCxtTUm2EKCY17xNOlo", // REPLACE THIS
+  apiKey: "AIzaSyDYXXXXXXXXXXXXXXXXXXXXXXXXXXXX", // REPLACE THIS
   authDomain: "hajobjah.firebaseapp.com",        // REPLACE THIS if different
   projectId: "hajobjah",                         // REPLACE THIS if different
-  storageBucket: "hajobjah.firebasestorage.app",       // REPLACE THIS (often hajobjah.appspot.com)
-  messagingSenderId: "441394350866",             // REPLACE THIS if different
-  appId: "1:441394350866:web:7b83583818449c0f3901cb" // REPLACE THIS
+  storageBucket: "hajobjah.appspot.com",       // REPLACE THIS (often hajobjah.appspot.com)
+  messagingSenderId: "529002298721",             // REPLACE THIS if different
+  appId: "1:529002298721:web:88888888888888888888888" // REPLACE THIS
 };
 
 const app: FirebaseApp = initializeApp(firebaseConfig); // Updated initialization

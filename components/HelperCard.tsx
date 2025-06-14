@@ -217,7 +217,6 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
             <p className="font-serif flex items-center"><span className="mr-2 text-lg">🎓</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">ระดับการศึกษา:</strong> {profile.educationLevel}</p>
           )}
           <p className="font-serif flex items-center"><span className="mr-2 text-lg">📍</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">พื้นที่สะดวก:</strong> {profile.area}</p>
-          {profile.province && (<p className="font-serif flex items-center"><span className="mr-2 text-lg">🏞️</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">จังหวัด:</strong> {profile.province}</p>)}
 
           {availabilityDateDisplay && (
              <p className="font-serif flex items-center"><span className="mr-2 text-lg">🗓️</span><strong className="font-sans font-medium text-neutral-dark dark:text-dark-text mr-1">ช่วงวันที่สะดวก:</strong> {availabilityDateDisplay}</p>

@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from 'react'; // Added useEffect
+import React, { useState, useMemo } from 'react';
 import type { User, Job, HelperProfile, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost } from '../types';
 import { View, UserTier } from '../types'; // Added UserTier
 import { Button } from './Button';
@@ -13,8 +13,6 @@ const JobsIcon = () => <span role="img" aria-label="Jobs" className="mr-1.5 sm:m
 const ServicesIcon = () => <span role="img" aria-label="Services" className="mr-1.5 sm:mr-2">🛠️</span>;
 const WebboardIcon = () => <span role="img" aria-label="Webboard" className="mr-1.5 sm:mr-2">💬</span>;
 const SavedIcon = () => <span role="img" aria-label="Saved" className="mr-1.5 sm:mr-2">💾</span>;
-
-export type ActiveTab = 'profile' | 'myJobs' | 'myHelperServices' | 'myWebboardPosts' | 'savedPosts';
 
 
 interface MyRoomPageProps {
@@ -33,10 +31,9 @@ interface MyRoomPageProps {
   onSavePost: (postId: string) => void; // For un-saving
   onBumpProfile: (profileId: string) => void;
   onNavigateToPublicProfile: (userId: string) => void; // Added for linking helper profile titles
-  initialActiveTab?: ActiveTab | null;
-  onTabHandled?: () => void;
 }
 
+type ActiveTab = 'profile' | 'myJobs' | 'myHelperServices' | 'myWebboardPosts' | 'savedPosts';
 
 const formatDateDisplay = (dateInput?: string | Date | null): string => {
   if (dateInput === null || dateInput === undefined) return 'N/A';
@@ -56,8 +53,8 @@ const JOB_COOLDOWN_DAYS_DISPLAY = 3;
 const HELPER_PROFILE_COOLDOWN_DAYS_DISPLAY = 3;
 const MAX_ACTIVE_JOBS_FREE_TIER_DISPLAY = 3;
 const MAX_ACTIVE_HELPER_PROFILES_FREE_TIER_DISPLAY = 1;
-// const MAX_ACTIVE_JOBS_BADGE_DISPLAY = 4; // For users with activity badge - No longer used
-// const MAX_ACTIVE_HELPER_PROFILES_BADGE_DISPLAY = 2; // For users with activity badge - No longer used
+const MAX_ACTIVE_JOBS_BADGE_DISPLAY = 4; // For users with activity badge
+const MAX_ACTIVE_HELPER_PROFILES_BADGE_DISPLAY = 2; // For users with activity badge
 
 /**
  * Determines if an expiry warning should be shown for a job or helper profile.
@@ -108,20 +105,8 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
   onSavePost,
   onBumpProfile,
   onNavigateToPublicProfile,
-  initialActiveTab,
-  onTabHandled,
 }) => {
-  const [activeTab, setActiveTab] = useState<ActiveTab>(initialActiveTab || 'profile');
-
-  useEffect(() => {
-    if (initialActiveTab) {
-      setActiveTab(initialActiveTab);
-      if (onTabHandled) {
-        onTabHandled();
-      }
-    }
-  }, [initialActiveTab, onTabHandled]);
-
+  const [activeTab, setActiveTab] = useState<ActiveTab>('profile');
 
   const userJobs = useMemo(() => allJobsForAdmin.filter(job => job.userId === currentUser.id)
     .sort((a, b) => new Date(b.postedAt as string).getTime() - new Date(a.postedAt as string).getTime()), [allJobsForAdmin, currentUser.id]);
@@ -198,10 +183,9 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
     ).length;
     
     let maxJobs = (currentUser.tier === 'free' as UserTier) ? MAX_ACTIVE_JOBS_FREE_TIER_DISPLAY : 999;
-    // Removed: Activity badge no longer grants extra job posts
-    // if (currentUser.activityBadge?.isActive) {
-    //   maxJobs = MAX_ACTIVE_JOBS_BADGE_DISPLAY;
-    // }
+    if (currentUser.activityBadge?.isActive) {
+      maxJobs = MAX_ACTIVE_JOBS_BADGE_DISPLAY;
+    }
 
     let cooldownHours = 0;
     const lastJobPostDate = currentUser.postingLimits?.lastJobPostDate;
@@ -220,7 +204,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
       jobCooldownHoursRemaining: cooldownHours,
       jobCanCreate: canCreate,
     };
-  }, [userJobs, currentUser.tier, currentUser.postingLimits]);
+  }, [userJobs, currentUser.tier, currentUser.activityBadge, currentUser.postingLimits]);
 
   const {
     userActiveHelperProfilesCount,
@@ -233,10 +217,9 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
     ).length;
 
     let maxProfiles = (currentUser.tier === 'free' as UserTier) ? MAX_ACTIVE_HELPER_PROFILES_FREE_TIER_DISPLAY : 999;
-    // Removed: Activity badge no longer grants extra helper profiles
-    // if (currentUser.activityBadge?.isActive) {
-    //   maxProfiles = MAX_ACTIVE_HELPER_PROFILES_BADGE_DISPLAY;
-    // }
+    if (currentUser.activityBadge?.isActive) {
+      maxProfiles = MAX_ACTIVE_HELPER_PROFILES_BADGE_DISPLAY;
+    }
 
     let cooldownHours = 0;
     const lastHelperProfileDate = currentUser.postingLimits?.lastHelperProfileDate;
@@ -255,7 +238,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
       helperProfileCooldownHoursRemaining: cooldownHours,
       profileCanCreate: canCreate,
     };
-  }, [userHelperProfiles, currentUser.tier, currentUser.postingLimits]);
+  }, [userHelperProfiles, currentUser.tier, currentUser.activityBadge, currentUser.postingLimits]);
 
 
   const renderMyJobsTab = () => (

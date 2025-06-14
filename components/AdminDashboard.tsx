@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import type { Job, HelperProfile, User, Interaction, WebboardPost, WebboardComment, UserLevel } from '../types';
 import { UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, USER_LEVELS } from '../types';

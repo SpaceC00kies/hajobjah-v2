@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   onAuthChangeService,
@@ -40,9 +38,9 @@ import {
   subscribeToUserSavedPostsService,
 } from './services/firebaseService';
 import type { DocumentSnapshot, DocumentData } from 'firebase/firestore';
-import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserTier } from './types';
+import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier } from './types';
 import type { AdminItem as AdminItemType } from './components/AdminDashboard';
-import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP } from './types';
+import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP, ACTIVITY_BADGE_DETAILS } from './types';
 import { PostJobForm } from './components/PostJobForm';
 import { JobCard } from './components/JobCard';
 import { Button } from './components/Button';
@@ -55,7 +53,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { ConfirmModal } from './components/ConfirmModal';
 // MyPostsPage is removed as its functionality is integrated into MyRoomPage
 // import { MyPostsPage } from './components/MyPostsPage';
-import { MyRoomPage, ActiveTab as MyRoomActiveTab } from './components/MyRoomPage'; // New MyRoomPage, import ActiveTab
+import { MyRoomPage } from './components/MyRoomPage'; // New MyRoomPage
 import { UserProfilePage } from './components/UserProfilePage';
 import { AboutUsPage } from './components/AboutUsPage';
 import { PublicProfilePage } from './components/PublicProfilePage';
@@ -119,6 +117,10 @@ const BUMP_COOLDOWN_DAYS = 30;
 // Free Tier Limits
 const MAX_ACTIVE_JOBS_FREE_TIER = 3;
 const MAX_ACTIVE_HELPER_PROFILES_FREE_TIER = 1;
+
+// For users with "🔥 ขยันใช้เว็บ" badge (enhancement over free tier)
+const MAX_ACTIVE_JOBS_BADGE = 4;
+const MAX_ACTIVE_HELPER_PROFILES_BADGE = 2;
 
 // Page size for infinite scroll
 const JOBS_PAGE_SIZE = 9;
@@ -190,7 +192,7 @@ const searchMappings: Record<string, string[]> = {
   'clean': ['ทำความสะอาด', 'แม่บ้าน'], 'cook': ['ทำอาหาร', 'ครัว', 'เชฟ']
 };
 
-type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence'> & { password: string };
+type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts'> & { password: string };
 
 
 const App: React.FC = () => {
@@ -228,8 +230,6 @@ const App: React.FC = () => {
   const [itemToEdit, setItemToEdit] = useState<Job | HelperProfile | WebboardPost | null>(null);
   const [editingItemType, setEditingItemType] = useState<'job' | 'profile' | 'webboardPost' | null>(null);
   const [sourceViewForForm, setSourceViewForForm] = useState<View | null>(null);
-  const [myRoomTargetTab, setMyRoomTargetTab] = useState<MyRoomActiveTab | null>(null);
-
 
   // Filters and search terms remain global for now, triggering re-fetch in view-specific logic
   const [selectedJobCategoryFilter, setSelectedJobCategoryFilter] = useState<FilterableCategory>('all');
@@ -295,15 +295,14 @@ const App: React.FC = () => {
       if (user) {
         const unsubscribeSaved = subscribeToUserSavedPostsService(user.id, (savedIds) => {
           setUserSavedPosts(savedIds);
-           setCurrentUser(prevUser => ({ // Ensure currentUser is updated with saved posts
-            ...prevUser!, // Assert prevUser is not null, as 'user' is truthy here
+           setCurrentUser(prevUser => ({
+            ...prevUser!,
             savedWebboardPosts: savedIds,
           }));
         });
-        // Store this inner unsubscribe to be called when auth unsubscribe is called
         (unsubscribeAuth as any)._unsubscribeSavedPosts = unsubscribeSaved;
       } else {
-        setUserSavedPosts([]); // Clear saved posts on logout
+        setUserSavedPosts([]);
          if ((unsubscribeAuth as any)._unsubscribeSavedPosts) {
             (unsubscribeAuth as any)._unsubscribeSavedPosts();
             delete (unsubscribeAuth as any)._unsubscribeSavedPosts;
@@ -313,14 +312,8 @@ const App: React.FC = () => {
 
     const unsubscribeUsers = subscribeToUsersService(setUsers);
     const unsubscribeWebboardCommentsGlobal = subscribeToWebboardCommentsService(setWebboardComments);
+    const unsubscribeInteractions = subscribeToInteractionsService(setInteractions);
     const unsubscribeSiteConfig = subscribeToSiteConfigService((config) => setIsSiteLocked(config.isSiteLocked));
-
-    // Conditional subscription for interactions
-    let unsubscribeInteractions = () => {}; // Initialize as no-op
-    if (currentUser && currentUser.role === UserRole.Admin) {
-      unsubscribeInteractions = subscribeToInteractionsService(setInteractions);
-    }
-
 
     // Fetch all data for Admin/MyPosts - this could be optimized further if these views also adopt pagination
     const fetchAllJobsForAdminAndMyPosts = async () => {
@@ -378,11 +371,11 @@ const App: React.FC = () => {
       unsubscribeAuth();
       unsubscribeUsers();
       unsubscribeWebboardCommentsGlobal();
-      unsubscribeInteractions(); // This will call either the real unsubscribe or the no-op
+      unsubscribeInteractions();
       unsubscribeSiteConfig();
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [parseUrlAndSetInitialState, currentUser]); // Added currentUser to dependency array
+  }, [parseUrlAndSetInitialState]);
 
   useEffect(() => {
     if (!isLoadingAuth && users.length > 0) {
@@ -397,6 +390,9 @@ const App: React.FC = () => {
                 last30DaysActivity = userPostsLast30Days + userCommentsLast30Days;
             }
 
+            const accountAgeInDays = u.createdAt ? (new Date().getTime() - new Date(u.createdAt as string).getTime()) / (1000 * 60 * 60 * 24) : 0;
+            const isActivityBadgeActive = accountAgeInDays >= 30 && last30DaysActivity >= 15;
+
             const threeDaysAgoForCooldown = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
             const defaultPostingLimits: UserPostingLimits = {
               lastJobPostDate: threeDaysAgoForCooldown.toISOString(),
@@ -406,6 +402,11 @@ const App: React.FC = () => {
               lastBumpDates: {},
             };
 
+            const defaultActivityBadge: UserActivityBadge = {
+              isActive: false,
+              last30DaysActivity: 0,
+              lastActivityCheck: new Date(0).toISOString(),
+            };
 
             return {
                 ...u,
@@ -423,6 +424,13 @@ const App: React.FC = () => {
                       ...defaultPostingLimits.hourlyComments,
                       ...(u.postingLimits?.hourlyComments || {})
                     }
+                },
+                activityBadge: {
+                    ...defaultActivityBadge,
+                    ...(u.activityBadge || {}),
+                    isActive: isActivityBadgeActive,
+                    last30DaysActivity: last30DaysActivity,
+                    lastActivityCheck: new Date().toISOString(),
                 },
                 savedWebboardPosts: u.id === currentUser?.id ? userSavedPosts : (u.savedWebboardPosts || [])
             };
@@ -484,15 +492,6 @@ const App: React.FC = () => {
       else if (payload && typeof payload === 'object' && payload.postId) newSelectedPostId = payload.postId;
     }
     setSelectedPostId(newSelectedPostId);
-
-
-    if (view === View.MyRoom && payload?.targetTab) {
-      setMyRoomTargetTab(payload.targetTab as MyRoomActiveTab);
-    } else if (currentView === View.MyRoom && view !== View.MyRoom) {
-      // Clear target tab if navigating away from MyRoom or if navigating to MyRoom without a specific targetTab
-      setMyRoomTargetTab(null);
-    }
-
 
     setCurrentView(view);
 
@@ -689,6 +688,9 @@ const App: React.FC = () => {
     const userActiveJobs = allJobsForAdmin.filter(job => job.userId === user.id && !isDateInPast(job.expiresAt) && !job.isExpired).length;
 
     let maxJobs = (user.tier === 'free') ? MAX_ACTIVE_JOBS_FREE_TIER : 999;
+    if (user.activityBadge?.isActive) {
+        maxJobs = MAX_ACTIVE_JOBS_BADGE;
+    }
 
     if (userActiveJobs >= maxJobs) {
         return { canPost: false, message: `คุณมีงานที่ยังไม่หมดอายุ ${userActiveJobs}/${maxJobs} งานแล้ว` };
@@ -708,6 +710,9 @@ const App: React.FC = () => {
     const userActiveProfiles = allHelperProfilesForAdmin.filter(p => p.userId === user.id && !isDateInPast(p.expiresAt) && !p.isExpired).length;
 
     let maxProfiles = (user.tier === 'free') ? MAX_ACTIVE_HELPER_PROFILES_FREE_TIER : 999;
+    if (user.activityBadge?.isActive) {
+        maxProfiles = MAX_ACTIVE_HELPER_PROFILES_BADGE;
+    }
 
     if (userActiveProfiles >= maxProfiles) {
         return { canPost: false, message: `คุณมีโปรไฟล์ผู้ช่วยที่ยังไม่หมดอายุ ${userActiveProfiles}/${maxProfiles} โปรไฟล์แล้ว` };
@@ -827,14 +832,8 @@ const App: React.FC = () => {
       const updatedAdminProfiles = allHelperProfilesForAdmin.map(p => p.id === updatedProfileDataFromForm.id ? {...p, ...updatedProfileDataFromForm, contact: generateContactString(currentUser), updatedAt: new Date().toISOString()} : p);
       setAllHelperProfilesForAdmin(updatedAdminProfiles as HelperProfile[]);
 
-      if (sourceViewForForm === View.MyRoom) {
-        alert('แก้ไขงานที่เสนอเรียบร้อยแล้ว');
-        navigateTo(View.MyRoom, { targetTab: 'myHelperServices' });
-      } else {
-        alert('แก้ไขโปรไฟล์เรียบร้อยแล้ว');
-        navigateTo(sourceViewForForm || View.FindHelpers);
-      }
-      setSourceViewForForm(null);
+      navigateTo(sourceViewForForm || View.FindHelpers); // Navigate based on where form was initiated
+      setSourceViewForForm(null); alert('แก้ไขโปรไฟล์เรียบร้อยแล้ว');
     } catch (error: any) {
       logFirebaseError("handleUpdateHelperProfile", error);
       alert(`เกิดข้อผิดพลาดในการแก้ไขโปรไฟล์: ${error.message}`);
@@ -1049,7 +1048,7 @@ const App: React.FC = () => {
         // For WebboardPage, it handles its own selectedPostId update.
         // For MyRoom or Admin, App.tsx sets selectedPostId.
         if (sourceViewForForm === View.MyRoom) {
-            navigateTo(View.MyRoom, { targetTab: 'myWebboardPosts' });
+            navigateTo(View.MyRoom);
             setSourceViewForForm(null);
         } else if (sourceViewForForm === View.AdminDashboard) {
             setSelectedPostId(finalPostId || null); // To show detail if admin edits from dash then goes to webboard
@@ -1205,11 +1204,13 @@ const App: React.FC = () => {
               <div className={`font-sans font-medium mb-3 py-2 px-4 border-b border-neutral-DEFAULT/50 dark:border-dark-border/50 w-full text-center`}>
                 สวัสดี, {currentUser.publicDisplayName}!
                 <UserLevelBadge level={displayBadgeForProfile} size="sm" />
+                {currentUser.activityBadge?.isActive && <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm" />}
               </div>
             )}
             {!isMobile && (
                <div className={`font-sans font-medium mr-4 text-sm lg:text-base items-center flex gap-2`}>
                 สวัสดี, {currentUser.publicDisplayName}!
+                {currentUser.activityBadge?.isActive && <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm" />}
               </div>
             )}
 
@@ -1485,7 +1486,7 @@ const App: React.FC = () => {
     if (currentView === View.FindJobs) {
       loadJobs(true);
     }
-  }, [currentView, selectedJobCategoryFilter, jobSearchTerm]); // loadJobs is not added here as it's memoized with its own dependencies
+  }, [currentView, selectedJobCategoryFilter, jobSearchTerm]);
 
   useEffect(() => {
     if (currentView !== View.FindJobs || !initialJobsLoaded) return;
@@ -1619,7 +1620,7 @@ const App: React.FC = () => {
     if (currentView === View.FindHelpers) {
       loadHelpers(true);
     }
-  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm]); // loadHelpers is not added here
+  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm]);
 
   useEffect(() => {
     if (currentView !== View.FindHelpers || !initialHelpersLoaded) return;
@@ -1737,8 +1738,6 @@ const App: React.FC = () => {
         onSavePost={handleSaveWebboardPost}
         onBumpProfile={(id) => handleBumpHelperProfile(id, loadHelpers)}
         onNavigateToPublicProfile={handleNavigateToPublicProfile}
-        initialActiveTab={myRoomTargetTab}
-        onTabHandled={() => setMyRoomTargetTab(null)}
       />);
   };
 

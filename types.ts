@@ -3,7 +3,6 @@ export interface Job {
   id: string;
   title: string;
   location: string;
-  province?: Province; // Added province
   dateTime: string;
   payment: string;
   contact: string;
@@ -63,7 +62,6 @@ export interface HelperProfile {
   profileTitle: string;
   details: string;
   area: string;
-  province?: Province; // Added province
   availability: string;
   contact: string;
   category: JobCategory;
@@ -114,6 +112,12 @@ export interface UserPostingLimits {
   };
 }
 
+export interface UserActivityBadge {
+  isActive: boolean; 
+  lastActivityCheck?: string | Date; 
+  last30DaysActivity: number; 
+}
+
 export type UserTier = 'free' | 'premium';
 
 
@@ -149,6 +153,7 @@ export interface User {
   updatedAt?: string | Date;
 
   postingLimits: UserPostingLimits;
+  activityBadge: UserActivityBadge;
   savedWebboardPosts?: string[]; // Array of saved post IDs
 }
 
@@ -427,6 +432,12 @@ export const MODERATOR_BADGE_DETAILS: UserLevel = {
   textColorClass: 'text-blue-900 dark:text-blue-50',
 };
 
+export const ACTIVITY_BADGE_DETAILS: UserLevel = { // For "🔥 ขยันใช้เว็บ"
+    name: "🔥 ขยันใช้เว็บ",
+    colorClass: 'bg-orange-200 dark:bg-orange-600/40',
+    textColorClass: 'text-orange-800 dark:text-orange-200',
+};
+
 // Enriched types for Webboard - authorLevel is removed as badges are not shown on webboard items
 export interface EnrichedWebboardPost extends WebboardPost {
   commentCount: number;
@@ -449,10 +460,4 @@ export interface SiteConfig {
 export interface UserSavedWebboardPostEntry {
   postId: string;
   savedAt: string | Date;
-}
-
-// Enum for Provinces - Reduced to Chiang Mai and Bangkok
-export enum Province {
-  Bangkok = 'กรุงเทพมหานคร',
-  ChiangMai = 'เชียงใหม่',
 }

@@ -93,7 +93,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     setFavoriteFood(currentUser.favoriteFood || '');
     setDislikedThing(currentUser.dislikedThing || '');
     setIntroSentence(currentUser.introSentence || '');
-  }, []); // Changed dependency array from [currentUser] to []
+  }, [currentUser]);
 
   useEffect(() => {
     if (feedback && feedbackRef.current) {
