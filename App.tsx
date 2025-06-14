@@ -1040,14 +1040,24 @@ const App: React.FC = () => {
     else if (itemType === 'profile') handleToggleUnavailableHelperProfileForUserOrAdmin(itemId, loadHelpers);
   };
 
-  const handleLogHelperContactInteraction = async (helperProfileId: string, loadHelpersFn?: (isInitialLoad?: boolean) => void) => {
+  const handleLogHelperContactInteraction = async (helperProfileId: string) => {
     if (!currentUser) { requestLoginForAction(View.FindHelpers, { intent: 'contactHelper', postId: helperProfileId }); return; }
     const helperProfile = allHelperProfilesForAdmin.find(hp => hp.id === helperProfileId);
     if (!helperProfile || currentUser.id === helperProfile.userId) return;
     try {
         await logHelperContactInteractionService(helperProfileId, currentUser.id, helperProfile.userId);
-        if (loadHelpersFn) loadHelpersFn(true);
-        setAllHelperProfilesForAdmin(prev => prev.map(p => p.id === helperProfileId ? {...p, interestedCount: (p.interestedCount || 0) + 1} : p));
+        
+        // Update allHelperProfilesForAdmin (for Admin, MyRoom, etc.)
+        setAllHelperProfilesForAdmin(prev => prev.map(p => 
+            p.id === helperProfileId ? {...p, interestedCount: (p.interestedCount || 0) + 1 } : p
+        ));
+
+        // Update helperProfilesList (for FindHelpers view) to reflect the change immediately
+        // This avoids a full re-fetch and keeps the modal open.
+        setHelperProfilesList(prevList => prevList.map(p => 
+            p.id === helperProfileId ? {...p, interestedCount: (p.interestedCount || 0) + 1 } : p
+        ));
+
     } catch(error: any) {
         logFirebaseError("handleLogHelperContactInteraction", error);
         alert(`เกิดข้อผิดพลาดในการบันทึกการติดต่อ: ${error.message}`);
@@ -1738,7 +1748,7 @@ const App: React.FC = () => {
             )}
             {enrichedHelperProfilesList.length > 0 && (
                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {enrichedHelperProfilesList.map(profile => (<HelperCard key={profile.id} profile={profile} onNavigateToPublicProfile={handleNavigateToPublicProfile} navigateTo={navigateTo} onLogHelperContact={() => handleLogHelperContactInteraction(profile.id, loadHelpers)} currentUser={currentUser} requestLoginForAction={requestLoginForAction} onBumpProfile={(id) => handleBumpHelperProfile(id, loadHelpers)} />))}
+                    {enrichedHelperProfilesList.map(profile => (<HelperCard key={profile.id} profile={profile} onNavigateToPublicProfile={handleNavigateToPublicProfile} navigateTo={navigateTo} onLogHelperContact={() => handleLogHelperContactInteraction(profile.id)} currentUser={currentUser} requestLoginForAction={requestLoginForAction} onBumpProfile={(id) => handleBumpHelperProfile(id, loadHelpers)} />))}
                  </div>
             )}
             <div ref={helpersLoaderRef} className="h-10 flex justify-center items-center">
