@@ -39,33 +39,33 @@ import {
 } from '../services/firebaseService';
 import type { DocumentSnapshot, DocumentData } from 'firebase/firestore';
 import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier } from '../types';
-import type { AdminItem as AdminItemType } from './components/AdminDashboard';
+import type { AdminItem as AdminItemType } from './AdminDashboard';
 import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP, ACTIVITY_BADGE_DETAILS } from '../types';
-import { PostJobForm } from '../components/PostJobForm';
-import { JobCard } from '../components/JobCard';
-import { Button } from '../components/Button';
-import { OfferHelpForm } from '../components/OfferHelpForm';
-import { HelperCard } from '../components/HelperCard';
-import { RegistrationForm } from '../components/RegistrationForm';
-import { LoginForm } from '../components/LoginForm';
-import { ForgotPasswordModal } from './components/ForgotPasswordModal';
-import { AdminDashboard } from '../components/AdminDashboard';
-import { ConfirmModal } from '../components/ConfirmModal';
+import { PostJobForm } from './PostJobForm';
+import { JobCard } from './JobCard';
+import { Button } from './Button';
+import { OfferHelpForm } from './OfferHelpForm';
+import { HelperCard } from './HelperCard';
+import { RegistrationForm } from './RegistrationForm';
+import { LoginForm } from './LoginForm';
+import { ForgotPasswordModal } from './ForgotPasswordModal';
+import { AdminDashboard } from './AdminDashboard';
+import { ConfirmModal } from './ConfirmModal';
 // MyPostsPage is removed as its functionality is integrated into MyRoomPage
 // import { MyPostsPage } from './components/MyPostsPage';
-import { MyRoomPage } from '../components/MyRoomPage'; // New MyRoomPage
-import type { ActiveTab as MyRoomActiveTab } from '../components/MyRoomPage'; // Import ActiveTab type
-import { UserProfilePage } from '../components/UserProfilePage';
-import { AboutUsPage } from '../components/AboutUsPage';
-import { PublicProfilePage } from './components/PublicProfilePage';
-import { SafetyPage } from '../components/SafetyPage';
-import { FeedbackForm } from '../components/FeedbackForm';
-import { WebboardPage } from '../components/WebboardPage';
-import { UserLevelBadge } from '../components/UserLevelBadge';
-import { SiteLockOverlay } from '../components/SiteLockOverlay';
-import { CategoryFilterBar } from '../components/CategoryFilterBar';
-import { SearchInputWithRecent } from '../components/SearchInputWithRecent';
-import { PasswordResetPage } from '../components/PasswordResetPage';
+import { MyRoomPage } from './MyRoomPage'; // New MyRoomPage
+import type { ActiveTab as MyRoomActiveTab } from './MyRoomPage'; // Import ActiveTab type
+import { UserProfilePage } from './UserProfilePage';
+import { AboutUsPage } from './AboutUsPage';
+import { PublicProfilePage } from './PublicProfilePage';
+import { SafetyPage } from './SafetyPage';
+import { FeedbackForm } from './FeedbackForm';
+import { WebboardPage } from './WebboardPage';
+import { UserLevelBadge } from './UserLevelBadge';
+import { SiteLockOverlay } from './SiteLockOverlay';
+import { CategoryFilterBar } from './CategoryFilterBar';
+import { SearchInputWithRecent } from './SearchInputWithRecent';
+import { PasswordResetPage } from './PasswordResetPage';
 
 import { logFirebaseError } from '../firebase/logging';
 
