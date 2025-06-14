@@ -11,10 +11,12 @@ import {
   updateJobService,
   deleteJobService,
   getJobsPaginated, // Using paginated fetch
+  getJobDocument, // Added to fetch single job doc
   addHelperProfileService,
   updateHelperProfileService,
   deleteHelperProfileService,
   getHelperProfilesPaginated, // Using paginated fetch
+  getHelperProfileDocument, // Added to fetch single helper profile doc
   bumpHelperProfileService,
   addWebboardPostService,
   updateWebboardPostService,
@@ -753,18 +755,22 @@ const App: React.FC = () => {
     }
     if (containsBlacklistedWords(newJobData.description) || containsBlacklistedWords(newJobData.title)) { alert('เนื้อหาหรือหัวข้อมีคำที่ไม่เหมาะสม'); return; }
     try {
-      await addJobService(newJobData, {userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, contact: generateContactString(currentUser)});
+      const newJobId = await addJobService(newJobData, {userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, contact: generateContactString(currentUser)});
       const updatedUser = await getUserDocument(currentUser.id);
       if (updatedUser) setCurrentUser(updatedUser);
 
       if (currentView === View.FindJobs || sourceViewForForm === View.FindJobs || sourceViewForForm === View.MyRoom) {
         loadJobsFn(true); // Use the passed loadJobs function
       }
-       // Refresh admin list if needed
-       const updatedAdminJobs = [...allJobsForAdmin, { ...newJobData, id: 'temp-new-id', userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, contact: generateContactString(currentUser), postedAt: new Date().toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() } as Job];
-       setAllJobsForAdmin(updatedAdminJobs);
+      
+      const newJobDoc = await getJobDocument(newJobId);
+      if (newJobDoc) {
+        setAllJobsForAdmin(prev => [...prev, newJobDoc]);
+      } else {
+        console.warn(`Failed to fetch newly created job ${newJobId} for admin list update. The list might be updated on next full load.`);
+      }
 
-      navigateTo(sourceViewForForm || View.FindJobs); // Navigate based on where form was initiated
+      navigateTo(sourceViewForForm || View.FindJobs); 
       setSourceViewForForm(null); alert('ประกาศงานของคุณถูกเพิ่มแล้ว!');
     } catch (error: any) {
       logFirebaseError("handleAddJob", error);
@@ -815,7 +821,7 @@ const App: React.FC = () => {
         alert('กรุณาอัปเดตข้อมูลส่วนตัว (เพศ, วันเกิด, ระดับการศึกษา) ในหน้าโปรไฟล์ของคุณก่อน'); navigateTo(View.UserProfile); return;
     }
     try {
-      await addHelperProfileService(newProfileData, {
+      const newProfileId = await addHelperProfileService(newProfileData, {
         userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, contact: generateContactString(currentUser),
         gender: currentUser.gender, birthdate: currentUser.birthdate, educationLevel: currentUser.educationLevel
       });
@@ -825,15 +831,17 @@ const App: React.FC = () => {
       if (currentView === View.FindHelpers || sourceViewForForm === View.FindHelpers || sourceViewForForm === View.MyRoom) {
         loadHelpersFn(true);
       }
-      const updatedAdminProfiles = [...allHelperProfilesForAdmin, { ...newProfileData, id: 'temp-new-id', userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, contact: generateContactString(currentUser), gender: currentUser.gender, birthdate: currentUser.birthdate, educationLevel: currentUser.educationLevel, postedAt: new Date().toISOString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() } as HelperProfile];
-      setAllHelperProfilesForAdmin(updatedAdminProfiles);
-
-
-      setTimeout(() => {
-        navigateTo(sourceViewForForm || View.FindHelpers); // Navigate based on where form was initiated
-        setSourceViewForForm(null);
-        alert('โปรไฟล์ของคุณถูกเพิ่มแล้ว!');
-      }, 100);
+      
+      const newHelperProfileDoc = await getHelperProfileDocument(newProfileId);
+      if (newHelperProfileDoc) {
+        setAllHelperProfilesForAdmin(prev => [...prev, newHelperProfileDoc]);
+      } else {
+         console.warn(`Failed to fetch newly created helper profile ${newProfileId} for admin list update. The list might be updated on next full load.`);
+      }
+      
+      navigateTo(sourceViewForForm || View.FindHelpers); 
+      setSourceViewForForm(null);
+      alert('โปรไฟล์ของคุณถูกเพิ่มแล้ว!');
     } catch (error: any) {
       logFirebaseError("handleAddHelperProfile", error);
       alert(`เกิดข้อผิดพลาดในการเพิ่มโปรไฟล์: ${error.message}`);

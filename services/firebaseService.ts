@@ -468,6 +468,20 @@ export const getJobsPaginated = async (
   }
 };
 
+export const getJobDocument = async (jobId: string): Promise<Job | null> => {
+  try {
+    const docRef = doc(db, JOBS_COLLECTION, jobId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...convertTimestamps(docSnap.data()) } as Job;
+    }
+    return null;
+  } catch (error) {
+    logFirebaseError("getJobDocument", error);
+    return null;
+  }
+};
+
 
 // Helper Profiles
 type HelperProfileFormData = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt'>;
@@ -596,6 +610,20 @@ export const getHelperProfilesPaginated = async (
   } catch (error: any) {
     logFirebaseError("getHelperProfilesPaginated", error);
     throw error;
+  }
+};
+
+export const getHelperProfileDocument = async (profileId: string): Promise<HelperProfile | null> => {
+  try {
+    const docRef = doc(db, HELPER_PROFILES_COLLECTION, profileId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...convertTimestamps(docSnap.data()) } as HelperProfile;
+    }
+    return null;
+  } catch (error) {
+    logFirebaseError("getHelperProfileDocument", error);
+    return null;
   }
 };
 
