@@ -42,7 +42,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
 
   const HELPER_PROFILE_COOLDOWN_DAYS_FORM = 3; // Updated to 3 days
   const MAX_ACTIVE_HELPER_PROFILES_FREE_TIER_FORM = 1; // Updated for free tier
-  const MAX_ACTIVE_HELPER_PROFILES_BADGE_FORM = 2; // Badge enhancement
+  // const MAX_ACTIVE_HELPER_PROFILES_BADGE_FORM = 2; // Badge enhancement - This constant is no longer used
 
   useEffect(() => {
     if (!currentUser) {
@@ -70,9 +70,10 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
       const userActiveProfiles = helperProfiles.filter(p => p.userId === currentUser.id && !p.isExpired && new Date(p.expiresAt as string) > new Date()).length;
       
       let maxProfiles = (currentUser.tier === 'free') ? MAX_ACTIVE_HELPER_PROFILES_FREE_TIER_FORM : 999; // Default for free, high for others
-      if (currentUser.activityBadge?.isActive) {
-        maxProfiles = MAX_ACTIVE_HELPER_PROFILES_BADGE_FORM; // Badge overrides
-      }
+      // Removed: Activity badge no longer grants extra helper profiles
+      // if (currentUser.activityBadge?.isActive) {
+      //   maxProfiles = MAX_ACTIVE_HELPER_PROFILES_BADGE_FORM; 
+      // }
 
       if (userActiveProfiles >= maxProfiles) {
         setLimitMessage(`คุณมีโปรไฟล์ผู้ช่วยที่ยังไม่หมดอายุ ${userActiveProfiles}/${maxProfiles} โปรไฟล์แล้ว`);

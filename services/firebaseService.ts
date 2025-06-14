@@ -42,7 +42,7 @@ import {
 } from 'firebase/storage';
 
 import { auth, db, storage } from '../firebase';
-import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier, UserSavedWebboardPostEntry } from '../types';
+import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserTier, UserSavedWebboardPostEntry } from '../types';
 import { UserRole, WebboardCategory, USER_LEVELS, GenderOption, HelperEducationLevelOption } from '../types';
 import { logFirebaseError } from '../firebase/logging';
 
@@ -90,7 +90,7 @@ const cleanDataForFirestore = <T extends Record<string, any>>(data: T): Partial<
   return cleanedData;
 };
 
-type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts'> & { password: string };
+type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence'> & { password: string };
 
 
 // --- Authentication Services ---
@@ -130,10 +130,6 @@ export const signUpWithEmailPasswordService = async (
         dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() },
         hourlyComments: { count: 0, resetTime: new Date(0).toISOString() },
         lastBumpDates: {},
-      },
-      activityBadge: {
-        isActive: false,
-        last30DaysActivity: 0,
       },
       savedWebboardPosts: [], // Initialize saved posts
       createdAt: serverTimestamp() as any,
@@ -185,14 +181,10 @@ export const signInWithEmailPasswordService = async (loginIdentifier: string, pa
         hourlyComments: { count: 0, resetTime: new Date(0).toISOString() },
         lastBumpDates: {},
       };
-      const activityBadge = userData.activityBadge || {
-        isActive: false,
-        last30DaysActivity: 0,
-      };
       const tier = userData.tier || ('free' as UserTier);
       const savedWebboardPosts = userData.savedWebboardPosts || []; // Initialize if missing
 
-      return { id: firebaseUser.uid, ...convertTimestamps(userData), tier, postingLimits: convertTimestamps(postingLimits), activityBadge: convertTimestamps(activityBadge), savedWebboardPosts } as User;
+      return { id: firebaseUser.uid, ...convertTimestamps(userData), tier, postingLimits: convertTimestamps(postingLimits), savedWebboardPosts } as User;
     } else {
       logFirebaseError("signInWithEmailPasswordService", new Error(`User ${firebaseUser.uid} authenticated but no Firestore data.`));
       await signOut(auth);
@@ -244,13 +236,9 @@ export const onAuthChangeService = (callback: (user: User | null) => void): (() 
             hourlyComments: { count: 0, resetTime: new Date(0).toISOString() },
             lastBumpDates: {},
           };
-          const activityBadge = userData.activityBadge || {
-            isActive: false,
-            last30DaysActivity: 0,
-          };
           const tier = userData.tier || ('free' as UserTier);
           const savedWebboardPosts = userData.savedWebboardPosts || []; // Initialize if missing
-          callback({ id: firebaseUser.uid, ...convertTimestamps(userData), tier, postingLimits: convertTimestamps(postingLimits), activityBadge: convertTimestamps(activityBadge), savedWebboardPosts } as User);
+          callback({ id: firebaseUser.uid, ...convertTimestamps(userData), tier, postingLimits: convertTimestamps(postingLimits), savedWebboardPosts } as User);
         } else {
           logFirebaseError("onAuthChangeService", new Error(`User ${firebaseUser.uid} not found in Firestore.`));
           callback(null);
@@ -310,7 +298,7 @@ export const deleteImageService = async (imageUrl?: string | null): Promise<void
 // --- User Profile Service ---
 export const updateUserProfileService = async (
   userId: string,
-  profileData: Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username' | 'postingLimits' | 'activityBadge' | 'userLevel' | 'tier' | 'savedWebboardPosts'>>
+  profileData: Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username' | 'postingLimits' | 'userLevel' | 'tier' | 'savedWebboardPosts'>>
 ): Promise<boolean> => {
   try {
     const userDocRef = doc(db, USERS_COLLECTION, userId);
@@ -630,13 +618,7 @@ export const addWebboardPostService = async (postData: { title: string; body: st
     const docRef = await addDoc(collection(db, WEBBOARD_POSTS_COLLECTION), cleanDataForFirestore(newPostDoc as Record<string, any>));
 
     const userRef = doc(db, USERS_COLLECTION, author.userId);
-    const userSnap = await getDoc(userRef);
-    if (userSnap.exists()) {
-      const userData = userSnap.data() as User;
-      await updateDoc(userRef, {
-        'activityBadge.last30DaysActivity': (userData.activityBadge.last30DaysActivity || 0) + 1
-      });
-    }
+    // Removed activityBadge update as it's no longer used.
     return docRef.id;
   } catch (error: any) {
     logFirebaseError("addWebboardPostService", error);
@@ -707,16 +689,7 @@ export const deleteWebboardPostService = async (postId: string): Promise<boolean
 
     await deleteDoc(postRef);
 
-    if (postData && postData.userId) {
-        const userRef = doc(db, USERS_COLLECTION, postData.userId);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-            const userData = userSnap.data() as User;
-            await updateDoc(userRef, {
-                'activityBadge.last30DaysActivity': Math.max(0, (userData.activityBadge.last30DaysActivity || 0) - 1)
-            });
-        }
-    }
+    // Removed activityBadge update as it's no longer used.
     return true;
   } catch (error: any) {
     logFirebaseError("deleteWebboardPostService", error);
@@ -788,15 +761,7 @@ export const addWebboardCommentService = async (postId: string, text: string, au
       updatedAt: serverTimestamp() as any,
     };
     const docRef = await addDoc(collection(db, WEBBOARD_COMMENTS_COLLECTION), cleanDataForFirestore(newCommentDoc as Record<string, any>));
-
-    const userRef = doc(db, USERS_COLLECTION, author.userId);
-    const userSnap = await getDoc(userRef);
-    if (userSnap.exists()) {
-      const userData = userSnap.data() as User;
-      await updateDoc(userRef, {
-        'activityBadge.last30DaysActivity': (userData.activityBadge.last30DaysActivity || 0) + 1
-      });
-    }
+    // Removed activityBadge update as it's no longer used.
     return docRef.id;
   } catch (error: any) {
     logFirebaseError("addWebboardCommentService", error);
@@ -816,21 +781,8 @@ export const updateWebboardCommentService = async (commentId: string, newText: s
 export const deleteWebboardCommentService = async (commentId: string): Promise<boolean> => {
   try {
     const commentRef = doc(db, WEBBOARD_COMMENTS_COLLECTION, commentId);
-    const commentSnap = await getDoc(commentRef);
-    const commentData = commentSnap.data() as WebboardComment;
-
+    // Removed activityBadge update as it's no longer used.
     await deleteDoc(commentRef);
-
-    if (commentData && commentData.userId) {
-        const userRef = doc(db, USERS_COLLECTION, commentData.userId);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-            const userData = userSnap.data() as User;
-            await updateDoc(userRef, {
-                'activityBadge.last30DaysActivity': Math.max(0, (userData.activityBadge.last30DaysActivity || 0) - 1)
-            });
-        }
-    }
     return true;
   } catch (error: any) {
     logFirebaseError("deleteWebboardCommentService", error);

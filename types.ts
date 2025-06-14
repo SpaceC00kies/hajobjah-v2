@@ -1,5 +1,4 @@
 
-
 export interface Job {
   id: string;
   title: string;
@@ -115,12 +114,6 @@ export interface UserPostingLimits {
   };
 }
 
-export interface UserActivityBadge {
-  isActive: boolean; 
-  lastActivityCheck?: string | Date; 
-  last30DaysActivity: number; 
-}
-
 export type UserTier = 'free' | 'premium';
 
 
@@ -156,7 +149,6 @@ export interface User {
   updatedAt?: string | Date;
 
   postingLimits: UserPostingLimits;
-  activityBadge: UserActivityBadge;
   savedWebboardPosts?: string[]; // Array of saved post IDs
 }
 
@@ -433,12 +425,6 @@ export const MODERATOR_BADGE_DETAILS: UserLevel = {
   name: "👮 ผู้ตรวจการ",
   colorClass: 'bg-blue-400 dark:bg-blue-500/70',
   textColorClass: 'text-blue-900 dark:text-blue-50',
-};
-
-export const ACTIVITY_BADGE_DETAILS: UserLevel = { // For "🔥 ขยันใช้เว็บ"
-    name: "🔥 ขยันใช้เว็บ",
-    colorClass: 'bg-orange-200 dark:bg-orange-600/40',
-    textColorClass: 'text-orange-800 dark:text-orange-200',
 };
 
 // Enriched types for Webboard - authorLevel is removed as badges are not shown on webboard items

@@ -48,7 +48,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
 
   const JOB_COOLDOWN_DAYS_FORM = 3; // Updated to 3 days
   const MAX_ACTIVE_JOBS_FREE_TIER_FORM = 3; // Updated for free tier
-  const MAX_ACTIVE_JOBS_BADGE_FORM = 4; // Badge enhancement
+  // const MAX_ACTIVE_JOBS_BADGE_FORM = 4; // Badge enhancement - This constant is no longer used
 
   useEffect(() => {
     if (!currentUser) {
@@ -76,9 +76,10 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
       const userActiveJobs = jobs.filter(job => job.userId === currentUser.id && !job.isExpired && new Date(job.expiresAt as string) > new Date()).length;
       
       let maxJobs = (currentUser.tier === 'free') ? MAX_ACTIVE_JOBS_FREE_TIER_FORM : 999; // Default for free, high for others
-      if (currentUser.activityBadge?.isActive) {
-          maxJobs = MAX_ACTIVE_JOBS_BADGE_FORM; // Badge overrides
-      }
+      // Removed: Activity badge no longer grants extra job posts
+      // if (currentUser.activityBadge?.isActive) {
+      //     maxJobs = MAX_ACTIVE_JOBS_BADGE_FORM; 
+      // }
 
       if (userActiveJobs >= maxJobs) {
         setLimitMessage(`คุณมีงานที่ยังไม่หมดอายุ ${userActiveJobs}/${maxJobs} งานแล้ว`);

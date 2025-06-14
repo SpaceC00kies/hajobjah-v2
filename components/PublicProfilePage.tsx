@@ -1,7 +1,9 @@
 
+
+
 import React from 'react';
 import type { User, HelperProfile } from '../types'; 
-import { HelperEducationLevelOption, GenderOption, ACTIVITY_BADGE_DETAILS } from '../types'; // Added ACTIVITY_BADGE_DETAILS
+import { HelperEducationLevelOption, GenderOption } from '../types'; 
 import { Button } from './Button';
 import { UserLevelBadge } from './UserLevelBadge'; 
 
@@ -46,9 +48,6 @@ const TrustBadgesPublicProfile: React.FC<{ user: User, helperProfile?: HelperPro
       )}
       {helperProfile?.isSuspicious && ( 
         <span className="bg-red-100 text-red-700 dark:bg-red-700/30 dark:text-red-200 text-sm px-2.5 py-1 rounded-full font-medium">🔺 ระวังผู้ใช้นี้</span>
-      )}
-      {user.activityBadge?.isActive && (
-        <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="md" />
       )}
     </div>
   );
@@ -107,15 +106,6 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, help
           </h2>
           {user.userLevel && <UserLevelBadge level={user.userLevel} size="md" />}
           <TrustBadgesPublicProfile user={user} helperProfile={helperProfile} />
-           {user.activityBadge?.isActive && (
-            <div className="mt-2 p-2 bg-orange-50 dark:bg-orange-700/20 border border-orange-200 dark:border-orange-500/40 rounded-md text-xs font-sans">
-                <p className="font-medium text-orange-600 dark:text-orange-300">สิทธิพิเศษสำหรับผู้ใช้ "🔥 ขยันใช้เว็บ":</p>
-                <ul className="list-disc list-inside text-left ml-4 text-orange-500 dark:text-orange-400">
-                    <li>โพสต์กระทู้ได้ 4 ครั้ง/วัน (ปกติ 3)</li>
-                    <li>มีโปรไฟล์ผู้ช่วยได้ 2 โปรไฟล์พร้อมกัน (ปกติ 1)</li>
-                </ul>
-            </div>
-          )}
         </div>
 
         <div className="mb-6 pt-4 border-t border-neutral-DEFAULT/30 dark:border-dark-border/30">
@@ -133,7 +123,7 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, help
         
         {helperProfile?.details && (
           <div className="mb-6 pt-4 border-t border-neutral-DEFAULT/30 dark:border-dark-border/30">
-            <h3 className="text-xl font-sans font-semibold text-neutral-dark dark:text-dark-text mb-2">ทักษะ / ประสบการณ์:</h3>
+            <h3 className="text-xl font-sans font-semibold text-neutral-dark dark:text-dark-text mb-2">ทักษะ / ประสบการณ์ (จากโปรไฟล์ผู้ช่วย):</h3>
             <p className="font-serif text-neutral-medium dark:text-dark-textMuted whitespace-pre-wrap p-3 bg-neutral-light dark:bg-dark-inputBg/50 rounded-md">
               {helperProfile.details}
             </p>
@@ -153,7 +143,7 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, help
 
         <div className="mt-8 text-center">
           <Button onClick={onBack} variant="outline" colorScheme="secondary" size="md">
-            กลับไปหน้าเดิม
+            กลับไปหน้ารายการ
           </Button>
         </div>
       </div>

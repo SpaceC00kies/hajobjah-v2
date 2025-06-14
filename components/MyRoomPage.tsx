@@ -56,8 +56,8 @@ const JOB_COOLDOWN_DAYS_DISPLAY = 3;
 const HELPER_PROFILE_COOLDOWN_DAYS_DISPLAY = 3;
 const MAX_ACTIVE_JOBS_FREE_TIER_DISPLAY = 3;
 const MAX_ACTIVE_HELPER_PROFILES_FREE_TIER_DISPLAY = 1;
-const MAX_ACTIVE_JOBS_BADGE_DISPLAY = 4; // For users with activity badge
-const MAX_ACTIVE_HELPER_PROFILES_BADGE_DISPLAY = 2; // For users with activity badge
+// const MAX_ACTIVE_JOBS_BADGE_DISPLAY = 4; // For users with activity badge - No longer used
+// const MAX_ACTIVE_HELPER_PROFILES_BADGE_DISPLAY = 2; // For users with activity badge - No longer used
 
 /**
  * Determines if an expiry warning should be shown for a job or helper profile.
@@ -198,9 +198,10 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
     ).length;
     
     let maxJobs = (currentUser.tier === 'free' as UserTier) ? MAX_ACTIVE_JOBS_FREE_TIER_DISPLAY : 999;
-    if (currentUser.activityBadge?.isActive) {
-      maxJobs = MAX_ACTIVE_JOBS_BADGE_DISPLAY;
-    }
+    // Removed: Activity badge no longer grants extra job posts
+    // if (currentUser.activityBadge?.isActive) {
+    //   maxJobs = MAX_ACTIVE_JOBS_BADGE_DISPLAY;
+    // }
 
     let cooldownHours = 0;
     const lastJobPostDate = currentUser.postingLimits?.lastJobPostDate;
@@ -219,7 +220,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
       jobCooldownHoursRemaining: cooldownHours,
       jobCanCreate: canCreate,
     };
-  }, [userJobs, currentUser.tier, currentUser.activityBadge, currentUser.postingLimits]);
+  }, [userJobs, currentUser.tier, currentUser.postingLimits]);
 
   const {
     userActiveHelperProfilesCount,
@@ -232,9 +233,10 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
     ).length;
 
     let maxProfiles = (currentUser.tier === 'free' as UserTier) ? MAX_ACTIVE_HELPER_PROFILES_FREE_TIER_DISPLAY : 999;
-    if (currentUser.activityBadge?.isActive) {
-      maxProfiles = MAX_ACTIVE_HELPER_PROFILES_BADGE_DISPLAY;
-    }
+    // Removed: Activity badge no longer grants extra helper profiles
+    // if (currentUser.activityBadge?.isActive) {
+    //   maxProfiles = MAX_ACTIVE_HELPER_PROFILES_BADGE_DISPLAY;
+    // }
 
     let cooldownHours = 0;
     const lastHelperProfileDate = currentUser.postingLimits?.lastHelperProfileDate;
@@ -253,7 +255,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
       helperProfileCooldownHoursRemaining: cooldownHours,
       profileCanCreate: canCreate,
     };
-  }, [userHelperProfiles, currentUser.tier, currentUser.activityBadge, currentUser.postingLimits]);
+  }, [userHelperProfiles, currentUser.tier, currentUser.postingLimits]);
 
 
   const renderMyJobsTab = () => (

@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   onAuthChangeService,
@@ -38,9 +40,9 @@ import {
   subscribeToUserSavedPostsService,
 } from './services/firebaseService';
 import type { DocumentSnapshot, DocumentData } from 'firebase/firestore';
-import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier } from './types';
+import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserTier } from './types';
 import type { AdminItem as AdminItemType } from './components/AdminDashboard';
-import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP, ACTIVITY_BADGE_DETAILS } from './types';
+import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP } from './types';
 import { PostJobForm } from './components/PostJobForm';
 import { JobCard } from './components/JobCard';
 import { Button } from './components/Button';
@@ -118,10 +120,6 @@ const BUMP_COOLDOWN_DAYS = 30;
 const MAX_ACTIVE_JOBS_FREE_TIER = 3;
 const MAX_ACTIVE_HELPER_PROFILES_FREE_TIER = 1;
 
-// For users with "🔥 ขยันใช้เว็บ" badge (enhancement over free tier)
-const MAX_ACTIVE_JOBS_BADGE = 4;
-const MAX_ACTIVE_HELPER_PROFILES_BADGE = 2;
-
 // Page size for infinite scroll
 const JOBS_PAGE_SIZE = 9;
 const HELPERS_PAGE_SIZE = 9;
@@ -192,7 +190,7 @@ const searchMappings: Record<string, string[]> = {
   'clean': ['ทำความสะอาด', 'แม่บ้าน'], 'cook': ['ทำอาหาร', 'ครัว', 'เชฟ']
 };
 
-type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts'> & { password: string };
+type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence'> & { password: string };
 
 
 const App: React.FC = () => {
@@ -399,9 +397,6 @@ const App: React.FC = () => {
                 last30DaysActivity = userPostsLast30Days + userCommentsLast30Days;
             }
 
-            const accountAgeInDays = u.createdAt ? (new Date().getTime() - new Date(u.createdAt as string).getTime()) / (1000 * 60 * 60 * 24) : 0;
-            const isActivityBadgeActive = accountAgeInDays >= 30 && last30DaysActivity >= 15;
-
             const threeDaysAgoForCooldown = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
             const defaultPostingLimits: UserPostingLimits = {
               lastJobPostDate: threeDaysAgoForCooldown.toISOString(),
@@ -411,11 +406,6 @@ const App: React.FC = () => {
               lastBumpDates: {},
             };
 
-            const defaultActivityBadge: UserActivityBadge = {
-              isActive: false,
-              last30DaysActivity: 0,
-              lastActivityCheck: new Date(0).toISOString(),
-            };
 
             return {
                 ...u,
@@ -433,13 +423,6 @@ const App: React.FC = () => {
                       ...defaultPostingLimits.hourlyComments,
                       ...(u.postingLimits?.hourlyComments || {})
                     }
-                },
-                activityBadge: {
-                    ...defaultActivityBadge,
-                    ...(u.activityBadge || {}),
-                    isActive: isActivityBadgeActive,
-                    last30DaysActivity: last30DaysActivity,
-                    lastActivityCheck: new Date().toISOString(),
                 },
                 savedWebboardPosts: u.id === currentUser?.id ? userSavedPosts : (u.savedWebboardPosts || [])
             };
@@ -706,9 +689,6 @@ const App: React.FC = () => {
     const userActiveJobs = allJobsForAdmin.filter(job => job.userId === user.id && !isDateInPast(job.expiresAt) && !job.isExpired).length;
 
     let maxJobs = (user.tier === 'free') ? MAX_ACTIVE_JOBS_FREE_TIER : 999;
-    if (user.activityBadge?.isActive) {
-        maxJobs = MAX_ACTIVE_JOBS_BADGE;
-    }
 
     if (userActiveJobs >= maxJobs) {
         return { canPost: false, message: `คุณมีงานที่ยังไม่หมดอายุ ${userActiveJobs}/${maxJobs} งานแล้ว` };
@@ -728,9 +708,6 @@ const App: React.FC = () => {
     const userActiveProfiles = allHelperProfilesForAdmin.filter(p => p.userId === user.id && !isDateInPast(p.expiresAt) && !p.isExpired).length;
 
     let maxProfiles = (user.tier === 'free') ? MAX_ACTIVE_HELPER_PROFILES_FREE_TIER : 999;
-    if (user.activityBadge?.isActive) {
-        maxProfiles = MAX_ACTIVE_HELPER_PROFILES_BADGE;
-    }
 
     if (userActiveProfiles >= maxProfiles) {
         return { canPost: false, message: `คุณมีโปรไฟล์ผู้ช่วยที่ยังไม่หมดอายุ ${userActiveProfiles}/${maxProfiles} โปรไฟล์แล้ว` };
@@ -1228,13 +1205,11 @@ const App: React.FC = () => {
               <div className={`font-sans font-medium mb-3 py-2 px-4 border-b border-neutral-DEFAULT/50 dark:border-dark-border/50 w-full text-center`}>
                 สวัสดี, {currentUser.publicDisplayName}!
                 <UserLevelBadge level={displayBadgeForProfile} size="sm" />
-                {currentUser.activityBadge?.isActive && <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm" />}
               </div>
             )}
             {!isMobile && (
                <div className={`font-sans font-medium mr-4 text-sm lg:text-base items-center flex gap-2`}>
                 สวัสดี, {currentUser.publicDisplayName}!
-                {currentUser.activityBadge?.isActive && <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm" />}
               </div>
             )}
 
