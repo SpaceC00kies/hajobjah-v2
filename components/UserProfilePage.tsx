@@ -255,7 +255,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             placeholder="เช่น Sunny Y., ช่างภาพใจดี123"
           />
            <p className="text-xs font-sans text-neutral-medium dark:text-dark-textMuted mt-1">
-              ชื่อนี้จะแสดงบนที่สาธารณะ เช่น ประกาศงาน, โปรไฟล์และกระทู้ โปรดตั้งอย่างเหมาะสม (เช่น ชื่อจริงและนามสกุลย่อ Sunny J., หรือเกี่ยวกับตัวเรา นักการตลาดมือฉมัง1993) ห้ามใช้คำหยาบหรือสื่ออะไรที่ไม่เหมาะสม
+              ชื่อต้องมี 2-30 ตัวอักษร ได้เฉพาะภาษาไทย/อังกฤษ, เว้นวรรค, จุด เช่น Sunny Y. กรุณาอย่าตั้งชื่อที่ไม่เหมาะสม
             </p>
           {errors.publicDisplayName && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.publicDisplayName}</p>}
         </div>
@@ -295,7 +295,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
           </summary>
           <div className="mt-3 space-y-4">
             <p className="text-xs font-sans text-neutral-medium dark:text-dark-textMuted mb-3">
-              ข้อมูลส่วนนี้ <strong className="text-red-500 dark:text-red-400">จำเป็นต้องกรอก</strong> และจะแสดงในโปรไฟล์สาธารณะของคุณ (ยกเว้นชื่อจริง-นามสกุล อาจแสดงบางส่วน หรือตามความเหมาะสม)
+              ข้อมูลส่วนนี้ <strong className="text-red-500 dark:text-red-400">จำเป็นต้องกรอก</strong> และจะแสดงในโปรไฟล์สาธารณะของคุณ
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4">
                 <div>
@@ -333,15 +333,15 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                  {errors.educationLevel && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.educationLevel}</p>}
             </div>
             <div className="mt-4">
-                <label htmlFor="profileNickname" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ชื่อเล่น (ไม่บังคับ)</label>
+                <label htmlFor="profileNickname" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ชื่อเล่น</label>
                 <input type="text" id="profileNickname" value={nickname} onChange={(e) => setNickname(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle}`} placeholder="เช่น ซันนี่, จอห์น"/>
             </div>
             <div className="mt-4">
-                <label htmlFor="profileFirstName" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ชื่อจริง (ไม่บังคับ)</label>
+                <label htmlFor="profileFirstName" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ชื่อจริง</label>
                 <input type="text" id="profileFirstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle}`} placeholder="เช่น ยาทิดา, สมชาย"/>
             </div>
             <div className="mt-4">
-                <label htmlFor="profileLastName" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">นามสกุล (ไม่บังคับ)</label>
+                <label htmlFor="profileLastName" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">นามสกุล</label>
                 <input type="text" id="profileLastName" value={lastName} onChange={(e) => setLastName(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle}`} placeholder="เช่น แสงอรุณ, ใจดี"/>
             </div>
             <div>
@@ -361,7 +361,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
         <details className="group pt-4 border-t border-neutral-DEFAULT/50 dark:border-dark-border/30">
           <summary className="flex items-center justify-between cursor-pointer list-none p-2 -ml-2 rounded-md hover:bg-neutral-light/50 dark:hover:bg-dark-inputBg/30 transition-colors">
             <h3 className="text-lg font-sans font-medium text-neutral-dark dark:text-dark-text">
-              👤 เพิ่มเติมเกี่ยวกับตัวตน
+              👤 เกี่ยวกับฉัน
             </h3>
             <span className="text-secondary dark:text-dark-secondary-DEFAULT transform transition-transform duration-200 group-open:rotate-90">
               ▶
