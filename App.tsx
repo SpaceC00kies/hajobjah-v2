@@ -54,6 +54,7 @@ import { ConfirmModal } from './components/ConfirmModal';
 // MyPostsPage is removed as its functionality is integrated into MyRoomPage
 // import { MyPostsPage } from './components/MyPostsPage';
 import { MyRoomPage } from './components/MyRoomPage'; // New MyRoomPage
+import type { ActiveTab as MyRoomActiveTab } from './components/MyRoomPage'; // Import ActiveTab type
 import { UserProfilePage } from './components/UserProfilePage';
 import { AboutUsPage } from './components/AboutUsPage';
 import { PublicProfilePage } from './components/PublicProfilePage';
@@ -230,6 +231,8 @@ const App: React.FC = () => {
   const [itemToEdit, setItemToEdit] = useState<Job | HelperProfile | WebboardPost | null>(null);
   const [editingItemType, setEditingItemType] = useState<'job' | 'profile' | 'webboardPost' | null>(null);
   const [sourceViewForForm, setSourceViewForForm] = useState<View | null>(null);
+  const [myRoomTargetTab, setMyRoomTargetTab] = useState<MyRoomActiveTab | null>(null);
+
 
   // Filters and search terms remain global for now, triggering re-fetch in view-specific logic
   const [selectedJobCategoryFilter, setSelectedJobCategoryFilter] = useState<FilterableCategory>('all');
@@ -611,6 +614,7 @@ const App: React.FC = () => {
       setLoginRedirectInfo(null); setItemToEdit(null); setEditingItemType(null);
       setSourceViewForForm(null); setViewingProfileId(null); setSelectedPostId(null);
       setSourceViewForPublicProfile(View.FindHelpers);
+      setMyRoomTargetTab(null); // Clear MyRoom target tab on logout
       setIsMobileMenuOpen(false);
       alert('ออกจากระบบเรียบร้อยแล้ว'); navigateTo(View.Home);
     } catch (error: any) {
@@ -648,8 +652,12 @@ const App: React.FC = () => {
     if (originalItem && canEditOrDelete(originalItem.userId, originalItem.ownerId)) {
         setItemToEdit(itemType === 'webboardPost' ? { ...(originalItem as WebboardPost), isEditing: true } : originalItem);
         setEditingItemType(itemType);
-        // Set source to MyRoom so after edit/cancel, user returns to the dashboard
         setSourceViewForForm(View.MyRoom);
+        // Set the target tab for MyRoomPage
+        if (itemType === 'job') setMyRoomTargetTab('myJobs');
+        else if (itemType === 'profile') setMyRoomTargetTab('myHelperServices');
+        else if (itemType === 'webboardPost') setMyRoomTargetTab('myWebboardPosts');
+
         navigateTo(itemType === 'job' ? View.PostJob : itemType === 'profile' ? View.OfferHelp : View.Webboard, itemType === 'webboardPost' ? 'create' : undefined);
     } else { alert("ไม่พบรายการ หรือไม่มีสิทธิ์แก้ไข"); }
   };
@@ -833,7 +841,8 @@ const App: React.FC = () => {
       setAllHelperProfilesForAdmin(updatedAdminProfiles as HelperProfile[]);
 
       navigateTo(sourceViewForForm || View.FindHelpers); // Navigate based on where form was initiated
-      setSourceViewForForm(null); alert('แก้ไขโปรไฟล์เรียบร้อยแล้ว');
+      setSourceViewForForm(null); 
+      alert('แก้ไขงานที่เสนอเรียบร้อยแล้ว'); // Updated alert message
     } catch (error: any) {
       logFirebaseError("handleUpdateHelperProfile", error);
       alert(`เกิดข้อผิดพลาดในการแก้ไขโปรไฟล์: ${error.message}`);
@@ -876,7 +885,12 @@ const App: React.FC = () => {
 
   const handleCancelEditOrPost = () => {
     const targetView = sourceViewForForm || View.Home;
-    setItemToEdit(null); setEditingItemType(null); setSourceViewForForm(null); setSelectedPostId(null);
+    setItemToEdit(null); setEditingItemType(null); 
+    // If cancelling from MyRoom edit, MyRoomTargetTab is already set.
+    // If cancelling from non-MyRoom source, MyRoomTargetTab remains null or its previous value.
+    // It will be used by MyRoomPage if targetView is MyRoom.
+    setSourceViewForForm(null); 
+    setSelectedPostId(null);
     navigateTo(targetView);
   };
 
@@ -1486,7 +1500,7 @@ const App: React.FC = () => {
     if (currentView === View.FindJobs) {
       loadJobs(true);
     }
-  }, [currentView, selectedJobCategoryFilter, jobSearchTerm]);
+  }, [currentView, selectedJobCategoryFilter, jobSearchTerm]); // Removed loadJobs from dependencies to avoid re-triggering due to its own definition change
 
   useEffect(() => {
     if (currentView !== View.FindJobs || !initialJobsLoaded) return;
@@ -1620,7 +1634,7 @@ const App: React.FC = () => {
     if (currentView === View.FindHelpers) {
       loadHelpers(true);
     }
-  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm]);
+  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm]); // Removed loadHelpers
 
   useEffect(() => {
     if (currentView !== View.FindHelpers || !initialHelpersLoaded) return;
@@ -1738,6 +1752,8 @@ const App: React.FC = () => {
         onSavePost={handleSaveWebboardPost}
         onBumpProfile={(id) => handleBumpHelperProfile(id, loadHelpers)}
         onNavigateToPublicProfile={handleNavigateToPublicProfile}
+        myRoomTargetTab={myRoomTargetTab}
+        setMyRoomTargetTabApp={setMyRoomTargetTab}
       />);
   };
 
