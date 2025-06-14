@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react'; // Added useEffect
 import type { User, Job, HelperProfile, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost } from '../types';
 import { View, UserTier } from '../types'; // Added UserTier
 import { Button } from './Button';
@@ -13,6 +13,8 @@ const JobsIcon = () => <span role="img" aria-label="Jobs" className="mr-1.5 sm:m
 const ServicesIcon = () => <span role="img" aria-label="Services" className="mr-1.5 sm:mr-2">🛠️</span>;
 const WebboardIcon = () => <span role="img" aria-label="Webboard" className="mr-1.5 sm:mr-2">💬</span>;
 const SavedIcon = () => <span role="img" aria-label="Saved" className="mr-1.5 sm:mr-2">💾</span>;
+
+export type ActiveTab = 'profile' | 'myJobs' | 'myHelperServices' | 'myWebboardPosts' | 'savedPosts';
 
 
 interface MyRoomPageProps {
@@ -31,9 +33,10 @@ interface MyRoomPageProps {
   onSavePost: (postId: string) => void; // For un-saving
   onBumpProfile: (profileId: string) => void;
   onNavigateToPublicProfile: (userId: string) => void; // Added for linking helper profile titles
+  initialActiveTab?: ActiveTab | null;
+  onTabHandled?: () => void;
 }
 
-type ActiveTab = 'profile' | 'myJobs' | 'myHelperServices' | 'myWebboardPosts' | 'savedPosts';
 
 const formatDateDisplay = (dateInput?: string | Date | null): string => {
   if (dateInput === null || dateInput === undefined) return 'N/A';
@@ -56,13 +59,33 @@ const MAX_ACTIVE_HELPER_PROFILES_FREE_TIER_DISPLAY = 1;
 const MAX_ACTIVE_JOBS_BADGE_DISPLAY = 4; // For users with activity badge
 const MAX_ACTIVE_HELPER_PROFILES_BADGE_DISPLAY = 2; // For users with activity badge
 
-// Helper function for expiry warning
+/**
+ * Determines if an expiry warning should be shown for a job or helper profile.
+ * The warning "⏳ หมดอายุใน X วัน" is displayed if ALL of the following conditions are true:
+ * 1. The item has a valid `expiresAt` date.
+ * 2. The item is NOT hired (for jobs) or unavailable (for profiles).
+ * 3. The item is NOT suspicious.
+ * 4. The item has NOT already expired (i.e., `isDateInPast(expiresAt)` is false).
+ * 5. The item is due to expire in 1 to 7 days (inclusive).
+ *
+ * @param expiresAt The expiration date of the item.
+ * @param isHiredOrUnavailable Boolean indicating if the item is hired (job) or unavailable (profile).
+ * @param isSuspicious Boolean indicating if the item is marked as suspicious.
+ * @returns A string with the warning message if conditions are met, otherwise null.
+ */
 const getExpiryWarning = (expiresAt: string | Date | undefined, isHiredOrUnavailable: boolean | undefined, isSuspicious: boolean | undefined): string | null => {
+  // Condition 1: expiresAt must exist.
+  // Condition 2: Must NOT be hired/unavailable.
+  // Condition 3: Must NOT be suspicious.
+  // Condition 4: Must NOT be already past its expiry date.
   if (!expiresAt || isHiredOrUnavailable || isSuspicious || isDateInPast(expiresAt)) {
     return null;
   }
-  const daysLeft = calculateDaysRemaining(expiresAt);
-  if (daysLeft > 0 && daysLeft <= 7) { // Show warning if 7 days or less remain
+
+  const daysLeft = calculateDaysRemaining(expiresAt); // calculateDaysRemaining ensures daysLeft >= 0 if not expired.
+
+  // Condition 5: Must be expiring within 1 to 7 days (inclusive).
+  if (daysLeft > 0 && daysLeft <= 7) {
     return `⏳ หมดอายุใน ${daysLeft} วัน`;
   }
   return null;
@@ -85,8 +108,20 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
   onSavePost,
   onBumpProfile,
   onNavigateToPublicProfile,
+  initialActiveTab,
+  onTabHandled,
 }) => {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('profile');
+  const [activeTab, setActiveTab] = useState<ActiveTab>(initialActiveTab || 'profile');
+
+  useEffect(() => {
+    if (initialActiveTab) {
+      setActiveTab(initialActiveTab);
+      if (onTabHandled) {
+        onTabHandled();
+      }
+    }
+  }, [initialActiveTab, onTabHandled]);
+
 
   const userJobs = useMemo(() => allJobsForAdmin.filter(job => job.userId === currentUser.id)
     .sort((a, b) => new Date(b.postedAt as string).getTime() - new Date(a.postedAt as string).getTime()), [allJobsForAdmin, currentUser.id]);
@@ -307,6 +342,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
                 className="font-semibold text-lg text-secondary dark:text-dark-secondary mb-1 cursor-pointer hover:underline"
                 onClick={() => onNavigateToPublicProfile(profile.userId)}
                 title="ดูโปรไฟล์สาธารณะ"
+                aria-label={`ดูโปรไฟล์สาธารณะของ ${profile.profileTitle}`}
               >
                 {profile.profileTitle}
               </h4>
