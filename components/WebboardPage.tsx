@@ -381,9 +381,6 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
               onToggleLike={handleToggleLikeForPage}
               onSavePost={onSavePost}
               onSharePost={onSharePost}
-              onDeletePost={(id) => { onDeletePost(id); loadWebboardPosts(true); }}
-              onPinPost={(id) => { onPinPost(id); loadWebboardPosts(true); }}
-              onEditPost={onEditPost}
               requestLoginForAction={requestLoginForAction}
               onNavigateToPublicProfile={onNavigateToPublicProfile}
             />

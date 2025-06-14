@@ -11,11 +11,8 @@ interface WebboardPostCardProps {
   currentUser: User | null;
   onViewPost: (postId: string) => void;
   onToggleLike: (postId: string) => void;
-  onSavePost: (postId: string) => void; // New prop
-  onSharePost: (postId: string, postTitle: string) => void; // New prop
-  onDeletePost?: (postId: string) => void;
-  onPinPost?: (postId: string) => void;
-  onEditPost?: (post: EnrichedWebboardPost) => void;
+  onSavePost: (postId: string) => void; 
+  onSharePost: (postId: string, postTitle: string) => void; 
   requestLoginForAction: (view: View, payload?: any) => void; 
   onNavigateToPublicProfile: (userId: string) => void;
 }
@@ -33,9 +30,7 @@ const CommentIcon = () => <Icon path="M18 10c0 3.866-3.582 7-8 7a8.839 8.839 0 0
 const SaveIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" />;
 const SavedIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" className="w-4 h-4 text-blue-500 dark:text-blue-400"/>;
 const ShareIcon = () => <Icon path="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />;
-const EditIcon = () => <Icon path="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z M5 12V6.508l5-5L14.508 6 10 10.508V12H5z" />;
-const DeleteIcon = () => <Icon path="M6 18L18 6M6 6l12 12" />; // Simple X for delete, or use a trash can
-const PinIconAdmin = () => <Icon path="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm0 4a1 1 0 011 1v10l-1.293 1.293a1 1 0 01-1.414-1.414L9 17.586V8a1 1 0 011-1z" />;
+// EditIcon, DeleteIcon, PinIconAdmin removed as they are no longer used on the card
 
 
 export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
@@ -45,22 +40,11 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
   onToggleLike,
   onSavePost,
   onSharePost,
-  onDeletePost,
-  onPinPost,
-  onEditPost,
   requestLoginForAction, 
   onNavigateToPublicProfile,
 }) => {
-  const isAuthor = currentUser?.id === post.userId;
-  const isAdmin = currentUser?.role === UserRole.Admin;
-  const isModerator = currentUser?.role === UserRole.Moderator;
-  
   const hasLiked = currentUser && post.likes.includes(currentUser.id);
   const isSaved = currentUser?.savedWebboardPosts?.includes(post.id) || false;
-
-  const canModeratorDelete = isModerator && !post.isAuthorAdmin;
-  const canEdit = isAuthor || isAdmin || (isModerator && !post.isAuthorAdmin);
-  const canDelete = isAuthor || isAdmin || canModeratorDelete;
 
   const timeSince = (dateInput: string | Date | null | undefined): string => {
     if (dateInput === null || dateInput === undefined) return "just now";
@@ -98,24 +82,11 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
     onSharePost(post.id, post.title);
   };
   
-  const handleEditClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onEditPost) onEditPost(post);
-  };
-
-  const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onDeletePost) onDeletePost(post.id);
-  };
-
-  const handlePinClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onPinPost) onPinPost(post.id);
-  };
+  // handleEditClick, handleDeleteClick, handlePinClick removed
 
   const categoryStyle = WEBBOARD_CATEGORY_STYLES[post.category] || WEBBOARD_CATEGORY_STYLES[WebboardCategory.General];
   const actionButtonClass = "flex items-center gap-1 p-1.5 rounded-md hover:bg-neutral-light dark:hover:bg-dark-inputBg focus:outline-none focus:ring-1 focus:ring-neutral-DEFAULT dark:focus:ring-dark-border";
-  const actionIconClass = "w-4 h-4 text-neutral-medium dark:text-dark-textMuted";
+  // const actionIconClass = "w-4 h-4 text-neutral-medium dark:text-dark-textMuted"; // No longer needed if icons are styled directly
 
 
   return (
@@ -186,24 +157,7 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
             </>
           )}
           
-          {/* Admin/Author actions */}
-          {(isAdmin || canEdit || canDelete) && <div className="border-l border-neutral-DEFAULT/30 dark:border-dark-border/30 h-5 mx-1"></div>}
-
-          {isAdmin && onPinPost && (
-             <button onClick={handlePinClick} className={`${actionButtonClass} ${post.isPinned ? 'text-yellow-600 dark:text-yellow-400' : ''}`} aria-pressed={!!post.isPinned} aria-label={post.isPinned ? "Unpin" : "Pin"}>
-               <PinIconAdmin /> <span className="hidden sm:inline">{post.isPinned ? 'Unpin' : 'Pin'}</span>
-             </button>
-          )}
-          {canEdit && onEditPost && (
-            <button onClick={handleEditClick} className={actionButtonClass} aria-label="Edit">
-              <EditIcon /> <span className="hidden sm:inline">Edit</span>
-            </button>
-          )}
-          {canDelete && onDeletePost && (
-             <button onClick={handleDeleteClick} className={`${actionButtonClass} text-red-500 dark:text-red-400`} aria-label="Delete">
-               <DeleteIcon /> <span className="hidden sm:inline">Delete</span>
-             </button>
-          )}
+          {/* Admin/Author actions (Edit, Delete, Pin) removed from here */}
         </div>
       </div>
     </div>
