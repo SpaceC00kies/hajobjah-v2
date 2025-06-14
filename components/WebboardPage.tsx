@@ -19,7 +19,7 @@ interface WebboardPageProps {
   comments: WebboardComment[]; // Global comments for enrichment
   onAddOrUpdatePost: (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => void; 
   onAddComment: (postId: string, text: string) => void;
-  onToggleLike: (postId: string) => void;
+  onToggleLike: (postId: string) => Promise<void>; // Changed to Promise<void>
   onSavePost: (postId: string) => void; 
   onSharePost: (postId: string, postTitle: string) => void; 
   onDeletePost: (postId: string) => void;
@@ -114,7 +114,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
 
   useEffect(() => { 
     loadWebboardPosts(true); 
-  }, [selectedCategoryFilter, searchTerm]); 
+  }, [selectedCategoryFilter, searchTerm, loadWebboardPosts]); // Added loadWebboardPosts to dependency array
 
  useEffect(() => { 
     if (selectedPostId !== null && selectedPostId !== 'create') { // Only observe if not in detail or create view
@@ -176,15 +176,44 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
   const handleSubmitPostForm = async (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => {
     await onAddOrUpdatePost(postData, postIdToUpdate); 
     await loadWebboardPosts(true); 
-    // The modal will close reactively due to selectedPostId changing via App.tsx,
-    // so explicit call to handleCloseCreateModal() is removed from success path.
-    // If it was an edit, selectedPostId might not change, handleCloseCreateModal is needed for the 'X' or 'Cancel' button.
-    // For new post, selectedPostId changes from 'create' to the new ID, triggering useEffect to close modal.
-    if (postIdToUpdate) { // If it was an edit, explicitly close modal if not already closed.
+    if (postIdToUpdate) { 
         handleCloseCreateModal();
     }
-    // For new post, App.tsx's onAddOrUpdatePost will set selectedPostId to the new post's ID,
-    // which will cause the useEffect to close the modal.
+  };
+
+  const handleToggleLikeForPage = async (postId: string) => {
+    if (!currentUser) {
+      requestLoginForAction(View.Webboard, { action: 'like', postId });
+      return;
+    }
+    
+    try {
+      // Call the App.tsx handler to update Firebase & allWebboardPostsForAdmin
+      await onToggleLike(postId); // This is props.onToggleLike from App.tsx
+
+      // Now, update local webboardPostsList for immediate UI refresh
+      setWebboardPostsList(prevList =>
+        prevList.map(p => {
+          if (p.id === postId) {
+            const userIndex = p.likes.indexOf(currentUser!.id);
+            const newLikes =
+              userIndex > -1
+                ? p.likes.filter(id => id !== currentUser!.id)
+                : [...p.likes, currentUser!.id];
+            return { ...p, likes: newLikes, updatedAt: new Date().toISOString() }; 
+          }
+          return p;
+        })
+      );
+    } catch (error) {
+      // This catch block is for errors specifically from the onToggleLike prop (App.tsx's handler)
+      // App.tsx's handler already includes an alert for errors from toggleWebboardPostLikeService.
+      // So, we might not need to alert again here, just log or handle UI reversion if it was optimistic.
+      console.error("Error during onToggleLike prop call in WebboardPage:", error);
+      // If the backend update failed (alerted from App.tsx), the local state update above might have
+      // optimistically updated the UI. A more robust solution might involve reverting this local change,
+      // but for now, the primary error reporting is in App.tsx.
+    }
   };
 
 
@@ -235,7 +264,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
           comments={commentsForDetailView}
           currentUser={currentUser}
           users={users}
-          onToggleLike={onToggleLike}
+          onToggleLike={handleToggleLikeForPage} // Use wrapped handler
           onSavePost={onSavePost}
           onSharePost={onSharePost}
           onAddComment={onAddComment}
@@ -344,7 +373,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
               post={post}
               currentUser={currentUser}
               onViewPost={setSelectedPostId}
-              onToggleLike={onToggleLike}
+              onToggleLike={handleToggleLikeForPage} // Use wrapped handler
               onSavePost={onSavePost}
               onSharePost={onSharePost}
               onDeletePost={(id) => { onDeletePost(id); loadWebboardPosts(true); }}
