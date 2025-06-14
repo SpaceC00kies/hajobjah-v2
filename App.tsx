@@ -53,7 +53,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { ConfirmModal } from './components/ConfirmModal';
 // MyPostsPage is removed as its functionality is integrated into MyRoomPage
 // import { MyPostsPage } from './components/MyPostsPage';
-import { MyRoomPage, ActiveTab as MyRoomActiveTab } from './components/MyRoomPage'; // New MyRoomPage, import ActiveTab
+import { MyRoomPage } from './components/MyRoomPage'; // New MyRoomPage
 import { UserProfilePage } from './components/UserProfilePage';
 import { AboutUsPage } from './components/AboutUsPage';
 import { PublicProfilePage } from './components/PublicProfilePage';
@@ -230,8 +230,6 @@ const App: React.FC = () => {
   const [itemToEdit, setItemToEdit] = useState<Job | HelperProfile | WebboardPost | null>(null);
   const [editingItemType, setEditingItemType] = useState<'job' | 'profile' | 'webboardPost' | null>(null);
   const [sourceViewForForm, setSourceViewForForm] = useState<View | null>(null);
-  const [myRoomTargetTab, setMyRoomTargetTab] = useState<MyRoomActiveTab | null>(null);
-
 
   // Filters and search terms remain global for now, triggering re-fetch in view-specific logic
   const [selectedJobCategoryFilter, setSelectedJobCategoryFilter] = useState<FilterableCategory>('all');
@@ -501,15 +499,6 @@ const App: React.FC = () => {
       else if (payload && typeof payload === 'object' && payload.postId) newSelectedPostId = payload.postId;
     }
     setSelectedPostId(newSelectedPostId);
-
-
-    if (view === View.MyRoom && payload?.targetTab) {
-      setMyRoomTargetTab(payload.targetTab as MyRoomActiveTab);
-    } else if (currentView === View.MyRoom && view !== View.MyRoom) {
-      // Clear target tab if navigating away from MyRoom or if navigating to MyRoom without a specific targetTab
-      setMyRoomTargetTab(null);
-    }
-
 
     setCurrentView(view);
 
@@ -850,14 +839,8 @@ const App: React.FC = () => {
       const updatedAdminProfiles = allHelperProfilesForAdmin.map(p => p.id === updatedProfileDataFromForm.id ? {...p, ...updatedProfileDataFromForm, contact: generateContactString(currentUser), updatedAt: new Date().toISOString()} : p);
       setAllHelperProfilesForAdmin(updatedAdminProfiles as HelperProfile[]);
 
-      if (sourceViewForForm === View.MyRoom) {
-        alert('แก้ไขงานที่เสนอเรียบร้อยแล้ว');
-        navigateTo(View.MyRoom, { targetTab: 'myHelperServices' });
-      } else {
-        alert('แก้ไขโปรไฟล์เรียบร้อยแล้ว');
-        navigateTo(sourceViewForForm || View.FindHelpers);
-      }
-      setSourceViewForForm(null);
+      navigateTo(sourceViewForForm || View.FindHelpers); // Navigate based on where form was initiated
+      setSourceViewForForm(null); alert('แก้ไขโปรไฟล์เรียบร้อยแล้ว');
     } catch (error: any) {
       logFirebaseError("handleUpdateHelperProfile", error);
       alert(`เกิดข้อผิดพลาดในการแก้ไขโปรไฟล์: ${error.message}`);
@@ -1072,7 +1055,7 @@ const App: React.FC = () => {
         // For WebboardPage, it handles its own selectedPostId update.
         // For MyRoom or Admin, App.tsx sets selectedPostId.
         if (sourceViewForForm === View.MyRoom) {
-            navigateTo(View.MyRoom, { targetTab: 'myWebboardPosts' });
+            navigateTo(View.MyRoom);
             setSourceViewForForm(null);
         } else if (sourceViewForForm === View.AdminDashboard) {
             setSelectedPostId(finalPostId || null); // To show detail if admin edits from dash then goes to webboard
@@ -1762,8 +1745,6 @@ const App: React.FC = () => {
         onSavePost={handleSaveWebboardPost}
         onBumpProfile={(id) => handleBumpHelperProfile(id, loadHelpers)}
         onNavigateToPublicProfile={handleNavigateToPublicProfile}
-        initialActiveTab={myRoomTargetTab}
-        onTabHandled={() => setMyRoomTargetTab(null)}
       />);
   };
 
