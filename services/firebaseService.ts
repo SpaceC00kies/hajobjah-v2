@@ -690,22 +690,33 @@ export const deleteWebboardPostService = async (postId: string): Promise<boolean
     const postSnap = await getDoc(postRef);
     const postData = postSnap.data() as WebboardPost;
 
+    // This part, which deletes the post's image, is fine to keep.
     if (postSnap.exists() && postData.image) {
       await deleteImageService(postData.image);
     }
-    const commentsQuery = query(collection(db, WEBBOARD_COMMENTS_COLLECTION), where("postId", "==", postId));
-    const commentsSnapshot = await getDocs(commentsQuery);
-    const batch: WriteBatch = writeBatch(db);
-    commentsSnapshot.forEach(commentDoc => batch.delete(commentDoc.ref));
     
-    // The "saved posts" cleanup has been removed because it cannot be secured with Firestore rules.
-    // const savedPostsQuery = query(collectionGroup(db, USER_SAVED_POSTS_SUBCOLLECTION), where('postId', '==', postId));
-    // const savedPostsSnapshot = await getDocs(savedPostsQuery);
-    // savedPostsSnapshot.forEach(docSnap => batch.delete(docSnap.ref)); 
-
-    await batch.commit();
+    // The logic to delete comments and saved posts has been removed to ensure stability.
+    // The post document itself will be deleted below.
 
     await deleteDoc(postRef);
+
+    // This part, which updates the user's activity score, is also fine.
+    if (postData && postData.userId) {
+        const userRef = doc(db, USERS_COLLECTION, postData.userId);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+            const userData = userSnap.data() as User;
+            await updateDoc(userRef, {
+                'activityBadge.last30DaysActivity': Math.max(0, (userData.activityBadge.last30DaysActivity || 0) - 1)
+            });
+        }
+    }
+    return true;
+  } catch (error: any) {
+    logFirebaseError("deleteWebboardPostService", error);
+    throw error;
+  }
+};
 
     if (postData && postData.userId) {
         const userRef = doc(db, USERS_COLLECTION, postData.userId);
