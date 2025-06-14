@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 // Corrected import path for types
 import type { WebboardPost, WebboardComment, User, EnrichedWebboardPost, EnrichedWebboardComment, UserLevel, UserRole } from '../types';
-import { View, USER_LEVELS, WebboardCategory } from '../types'; 
+import { View, USER_LEVELS, WebboardCategory } from '../types';
 import { Button } from './Button';
 import { WebboardPostCard } from './WebboardPostCard';
 import { WebboardPostDetail } from './WebboardPostDetail';
@@ -14,26 +14,26 @@ import { logFirebaseError } from '../firebase/logging';
 
 interface WebboardPageProps {
   currentUser: User | null;
-  users: User[]; 
+  users: User[];
   // posts: WebboardPost[]; // Removed: WebboardPage will fetch its own posts
   comments: WebboardComment[]; // Global comments for enrichment
-  onAddOrUpdatePost: (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => void; 
+  onAddOrUpdatePost: (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => void;
   onAddComment: (postId: string, text: string) => void;
   onToggleLike: (postId: string) => Promise<void>; // Changed to Promise<void>
-  onSavePost: (postId: string) => void; 
-  onSharePost: (postId: string, postTitle: string) => void; 
+  onSavePost: (postId: string) => void;
+  onSharePost: (postId: string, postTitle: string) => void;
   onDeletePost: (postId: string) => void;
   onPinPost: (postId: string) => void;
-  onEditPost: (post: EnrichedWebboardPost) => void; 
+  onEditPost: (post: EnrichedWebboardPost) => void;
   onDeleteComment?: (commentId: string) => void;
   onUpdateComment?: (commentId: string, newText: string) => void;
-  selectedPostId: string | null; 
+  selectedPostId: string | null;
   setSelectedPostId: (postId: string | null) => void;
   navigateTo: (view: View, payload?: any) => void;
-  editingPost?: WebboardPost | null; 
-  onCancelEdit: () => void; 
-  getUserDisplayBadge: (user: User | null | undefined) => UserLevel; 
-  requestLoginForAction: (view: View, payload?: any) => void; 
+  editingPost?: WebboardPost | null;
+  onCancelEdit: () => void;
+  getUserDisplayBadge: (user: User | null | undefined) => UserLevel;
+  requestLoginForAction: (view: View, payload?: any) => void;
   onNavigateToPublicProfile: (userId: string) => void;
   checkWebboardPostLimits: (user: User) => { canPost: boolean; message?: string | null };
   checkWebboardCommentLimits: (user: User) => { canPost: boolean; message?: string };
@@ -61,7 +61,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
   editingPost,
   onCancelEdit,
   getUserDisplayBadge,
-  requestLoginForAction, 
+  requestLoginForAction,
   onNavigateToPublicProfile,
   checkWebboardPostLimits,
   checkWebboardCommentLimits,
@@ -79,70 +79,86 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
   const [initialWebboardPostsLoaded, setInitialWebboardPostsLoaded] = useState(false);
   const webboardLoaderRef = useRef<HTMLDivElement>(null);
 
+  // Refs for current state values to be used in useCallback
+  const isLoadingRef = useRef(isLoadingWebboardPosts);
+  const hasMoreRef = useRef(hasMoreWebboardPosts);
+  const lastVisibleRef = useRef(lastVisibleWebboardPost);
+
+  useEffect(() => {
+    isLoadingRef.current = isLoadingWebboardPosts;
+    hasMoreRef.current = hasMoreWebboardPosts;
+    lastVisibleRef.current = lastVisibleWebboardPost;
+  }, [isLoadingWebboardPosts, hasMoreWebboardPosts, lastVisibleWebboardPost]);
+
+
   const loadWebboardPosts = useCallback(async (isInitialLoad = false) => {
-    if (isLoadingWebboardPosts || (!isInitialLoad && !hasMoreWebboardPosts)) return;
+    if (isLoadingRef.current || (!isInitialLoad && !hasMoreRef.current)) {
+      return;
+    }
     setIsLoadingWebboardPosts(true);
 
     if (isInitialLoad) {
       setWebboardPostsList([]);
-      setLastVisibleWebboardPost(null);
-      setHasMoreWebboardPosts(true); 
-      setInitialWebboardPostsLoaded(false); 
+      setLastVisibleWebboardPost(null); // This will update lastVisibleRef.current via useEffect
+      setHasMoreWebboardPosts(true);    // This will update hasMoreRef.current via useEffect
+      setInitialWebboardPostsLoaded(false);
     }
 
     try {
-      // Pass selectedCategoryFilter and searchTerm to the service function
       const result = await getWebboardPostsPaginatedService(
         pageSize,
-        isInitialLoad ? null : lastVisibleWebboardPost,
-        selectedCategoryFilter === 'all' ? null : selectedCategoryFilter, // Pass category
-        searchTerm // Pass search term
+        isInitialLoad ? null : lastVisibleRef.current, // Use ref for the actual fetch
+        selectedCategoryFilter === 'all' ? null : selectedCategoryFilter,
+        searchTerm
       );
       setWebboardPostsList(prevPosts => isInitialLoad ? result.items : [...prevPosts, ...result.items]);
       setLastVisibleWebboardPost(result.lastVisibleDoc);
       setHasMoreWebboardPosts(result.items.length === pageSize && result.lastVisibleDoc !== null);
-      setInitialWebboardPostsLoaded(true); 
+      setInitialWebboardPostsLoaded(true);
     } catch (error) {
       console.error("Error loading webboard posts:", error);
       logFirebaseError("loadWebboardPosts", error);
-      setHasMoreWebboardPosts(false); 
-      setInitialWebboardPostsLoaded(true); 
+      setHasMoreWebboardPosts(false);
+      setInitialWebboardPostsLoaded(true);
     } finally {
       setIsLoadingWebboardPosts(false);
     }
-  }, [isLoadingWebboardPosts, hasMoreWebboardPosts, lastVisibleWebboardPost, pageSize, selectedCategoryFilter, searchTerm]);
+  }, [
+    pageSize, selectedCategoryFilter, searchTerm,
+    // Setters are stable and fine in useCallback deps
+    setIsLoadingWebboardPosts, setWebboardPostsList, setLastVisibleWebboardPost, setHasMoreWebboardPosts, setInitialWebboardPostsLoaded
+  ]);
 
-  useEffect(() => { 
-    loadWebboardPosts(true); 
-  }, [selectedCategoryFilter, searchTerm, loadWebboardPosts]); // Added loadWebboardPosts to dependency array
 
- useEffect(() => { 
-    if (selectedPostId !== null && selectedPostId !== 'create') { // Only observe if not in detail or create view
-      // If a specific post is selected, infinite scroll is not needed for the list.
+  useEffect(() => {
+    loadWebboardPosts(true);
+  }, [selectedCategoryFilter, searchTerm, loadWebboardPosts]);
+
+ useEffect(() => {
+    if (selectedPostId !== null && selectedPostId !== 'create') {
       return;
     }
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMoreWebboardPosts && !isLoadingWebboardPosts && initialWebboardPostsLoaded) {
-          loadWebboardPosts(); 
+        if (entries[0].isIntersecting && hasMoreRef.current && !isLoadingRef.current && initialWebboardPostsLoaded) {
+          loadWebboardPosts();
         }
       },
-      { threshold: 0.8 } 
+      { threshold: 0.8 }
     );
     const currentLoaderRef = webboardLoaderRef.current;
     if (currentLoaderRef) observer.observe(currentLoaderRef);
     return () => {
       if (currentLoaderRef) observer.unobserve(currentLoaderRef);
     };
-  }, [selectedPostId, hasMoreWebboardPosts, isLoadingWebboardPosts, initialWebboardPostsLoaded, loadWebboardPosts]);
+  }, [selectedPostId, initialWebboardPostsLoaded, loadWebboardPosts]); // Dependencies use state values that control the observer logic
 
 
   useEffect(() => {
     if (selectedPostId && selectedPostId !== 'create' && initialWebboardPostsLoaded) {
       const postExists = webboardPostsList.some(p => p.id === selectedPostId);
       if (!postExists) {
-        // Post ID is selected, but post not in current list. Reload to get it.
         loadWebboardPosts(true);
       }
     }
@@ -161,22 +177,22 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
     if (!currentUser) {
       requestLoginForAction(View.Webboard, { action: 'createPost' });
     } else {
-      setSelectedPostId('create'); 
+      setSelectedPostId('create');
     }
   };
 
   const handleCloseCreateModal = () => {
     setIsCreateModalOpen(false);
-    if (selectedPostId === 'create' || editingPost) { 
-      setSelectedPostId(null); 
-      onCancelEdit(); 
+    if (selectedPostId === 'create' || editingPost) {
+      setSelectedPostId(null);
+      onCancelEdit();
     }
   };
-  
+
   const handleSubmitPostForm = async (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => {
-    await onAddOrUpdatePost(postData, postIdToUpdate); 
-    await loadWebboardPosts(true); 
-    if (postIdToUpdate) { 
+    await onAddOrUpdatePost(postData, postIdToUpdate);
+    await loadWebboardPosts(true);
+    if (postIdToUpdate) {
         handleCloseCreateModal();
     }
   };
@@ -186,12 +202,10 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
       requestLoginForAction(View.Webboard, { action: 'like', postId });
       return;
     }
-    
-    try {
-      // Call the App.tsx handler to update Firebase & allWebboardPostsForAdmin
-      await onToggleLike(postId); // This is props.onToggleLike from App.tsx
 
-      // Now, update local webboardPostsList for immediate UI refresh
+    try {
+      await onToggleLike(postId);
+
       setWebboardPostsList(prevList =>
         prevList.map(p => {
           if (p.id === postId) {
@@ -200,19 +214,13 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
               userIndex > -1
                 ? p.likes.filter(id => id !== currentUser!.id)
                 : [...p.likes, currentUser!.id];
-            return { ...p, likes: newLikes, updatedAt: new Date().toISOString() }; 
+            return { ...p, likes: newLikes, updatedAt: new Date().toISOString() };
           }
           return p;
         })
       );
     } catch (error) {
-      // This catch block is for errors specifically from the onToggleLike prop (App.tsx's handler)
-      // App.tsx's handler already includes an alert for errors from toggleWebboardPostLikeService.
-      // So, we might not need to alert again here, just log or handle UI reversion if it was optimistic.
       console.error("Error during onToggleLike prop call in WebboardPage:", error);
-      // If the backend update failed (alerted from App.tsx), the local state update above might have
-      // optimistically updated the UI. A more robust solution might involve reverting this local change,
-      // but for now, the primary error reporting is in App.tsx.
     }
   };
 
@@ -224,13 +232,13 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
         ...post,
         commentCount: comments.filter(c => c.postId === post.id).length,
         authorPhoto: author?.photo || post.authorPhoto,
-        isAuthorAdmin: author?.role === 'Admin' as UserRole.Admin, 
+        isAuthorAdmin: author?.role === 'Admin' as UserRole.Admin,
       };
     });
 
 
   const currentDetailedPost = selectedPostId && selectedPostId !== 'create'
-    ? enrichedPosts.find(p => p.id === selectedPostId) 
+    ? enrichedPosts.find(p => p.id === selectedPostId)
     : null;
 
   const commentsForDetailView: EnrichedWebboardComment[] = currentDetailedPost
@@ -249,12 +257,12 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
   // Render post detail view if a post is selected
   if (currentDetailedPost) {
     return (
-      <div className="p-2 sm:p-4 md:max-w-3xl md:mx-auto"> 
-        <Button 
-          onClick={() => setSelectedPostId(null)} 
-          variant="outline" 
-          colorScheme="neutral" 
-          size="sm" 
+      <div className="p-2 sm:p-4 md:max-w-3xl md:mx-auto">
+        <Button
+          onClick={() => setSelectedPostId(null)}
+          variant="outline"
+          colorScheme="neutral"
+          size="sm"
           className="mb-4 rounded-full"
         >
           &larr; กลับไปหน้ารวมกระทู้
@@ -273,7 +281,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
           onEditPost={onEditPost}
           onDeleteComment={onDeleteComment}
           onUpdateComment={onUpdateComment}
-          requestLoginForAction={requestLoginForAction} 
+          requestLoginForAction={requestLoginForAction}
           onNavigateToPublicProfile={onNavigateToPublicProfile}
           checkWebboardCommentLimits={checkWebboardCommentLimits}
         />
@@ -286,16 +294,16 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
 
   // Main list view rendering
   return (
-    <div className="p-2 sm:p-4 md:max-w-3xl md:mx-auto"> 
+    <div className="p-2 sm:p-4 md:max-w-3xl md:mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <h2 className="text-2xl sm:text-3xl font-sans font-semibold text-neutral-700 dark:text-neutral-300 text-center sm:text-left">
           💬 กระทู้พูดคุย
         </h2>
-        
-        <Button 
-          onClick={handleOpenCreateModal} 
-          variant="login" 
-          size="sm" 
+
+        <Button
+          onClick={handleOpenCreateModal}
+          variant="login"
+          size="sm"
           className="rounded-full font-semibold flex-shrink-0"
         >
           + สร้างกระทู้ใหม่
@@ -330,12 +338,10 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
         </div>
       </div>
 
-      {/* 1. Initial loading indicator (centered, only when no posts are available yet) */}
       {!initialWebboardPostsLoaded && isLoadingWebboardPosts && webboardPostsList.length === 0 && (
         <div className="text-center py-20"><p className="text-xl font-sans text-neutral-dark dark:text-dark-text">✨ กำลังโหลดกระทู้…</p></div>
       )}
 
-      {/* 2. Empty state (after initial load, if no posts match) */}
       {initialWebboardPostsLoaded && enrichedPosts.length === 0 && !hasMoreWebboardPosts && (
         <div className="text-center py-10 bg-white dark:bg-dark-cardBg p-6 rounded-lg shadow">
           <svg className="mx-auto h-16 w-16 text-neutral-DEFAULT dark:text-dark-border mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -352,10 +358,10 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
             </p>
           )}
           {currentUser && !(searchTerm || selectedCategoryFilter !== 'all') && (
-            <Button 
+            <Button
               onClick={handleOpenCreateModal}
-              variant="login" 
-              size="sm" 
+              variant="login"
+              size="sm"
               className="rounded-full font-semibold"
             >
               เป็นคนแรกที่สร้างกระทู้!
@@ -363,37 +369,34 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
           )}
         </div>
       )}
-      
-      {/* 3. Display posts if available */}
+
       {enrichedPosts.length > 0 && (
-        <div className="space-y-4"> 
+        <div className="space-y-4">
           {enrichedPosts.map(post => (
             <WebboardPostCard
               key={post.id}
               post={post}
               currentUser={currentUser}
               onViewPost={setSelectedPostId}
-              onToggleLike={handleToggleLikeForPage} // Use wrapped handler
+              onToggleLike={handleToggleLikeForPage}
               onSavePost={onSavePost}
               onSharePost={onSharePost}
               onDeletePost={(id) => { onDeletePost(id); loadWebboardPosts(true); }}
               onPinPost={(id) => { onPinPost(id); loadWebboardPosts(true); }}
               onEditPost={onEditPost}
-              requestLoginForAction={requestLoginForAction} 
+              requestLoginForAction={requestLoginForAction}
               onNavigateToPublicProfile={onNavigateToPublicProfile}
             />
           ))}
         </div>
       )}
 
-      {/* 4. "Load more" indicator at the bottom (for infinite scroll) */}
       <div ref={webboardLoaderRef} className="h-10 flex justify-center items-center">
         {isLoadingWebboardPosts && initialWebboardPostsLoaded && webboardPostsList.length > 0 && (
            <p className="text-sm font-sans text-neutral-medium dark:text-dark-textMuted">กำลังโหลดเพิ่มเติม…</p>
         )}
       </div>
 
-      {/* 5. "No more posts" message */}
       {initialWebboardPostsLoaded && !hasMoreWebboardPosts && webboardPostsList.length > 0 && (
         <p className="text-center text-sm font-sans text-neutral-medium dark:text-dark-textMuted py-4">🎉 คุณดูครบทุกกระทู้แล้ว</p>
       )}
