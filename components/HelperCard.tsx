@@ -278,7 +278,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
                 colorScheme="secondary"
                 size="md"
                 className="w-full sm:w-1/2"
-                disabled={profile.isUnavailable || profileIsTrulyExpired}
+                disabled={profileIsTrulyExpired}
                 aria-label={`ดูโปรไฟล์เต็มของ ${profile.authorDisplayName}`}
             >
                 👤 โปรไฟล์

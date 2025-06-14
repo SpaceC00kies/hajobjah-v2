@@ -73,7 +73,7 @@ export const SearchInputWithRecent: React.FC<SearchInputWithRecentProps> = ({
                 }
               }}
             >
-              🕒 {recentTerm}
+              ⚡ {recentTerm}
             </li>
           ))}
         </ul>
