@@ -690,34 +690,14 @@ export const deleteWebboardPostService = async (postId: string): Promise<boolean
     const postSnap = await getDoc(postRef);
     const postData = postSnap.data() as WebboardPost;
 
-    // This part, which deletes the post's image, is fine to keep.
     if (postSnap.exists() && postData.image) {
       await deleteImageService(postData.image);
     }
     
-    // The logic to delete comments and saved posts has been removed to ensure stability.
-    // The post document itself will be deleted below.
-
+    // Deleting the post document itself.
     await deleteDoc(postRef);
 
-    // This part, which updates the user's activity score, is also fine.
-    if (postData && postData.userId) {
-        const userRef = doc(db, USERS_COLLECTION, postData.userId);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-            const userData = userSnap.data() as User;
-            await updateDoc(userRef, {
-                'activityBadge.last30DaysActivity': Math.max(0, (userData.activityBadge.last30DaysActivity || 0) - 1)
-            });
-        }
-    }
-    return true;
-  } catch (error: any) {
-    logFirebaseError("deleteWebboardPostService", error);
-    throw error;
-  }
-};
-
+    // This part updates the user's activity score.
     if (postData && postData.userId) {
         const userRef = doc(db, USERS_COLLECTION, postData.userId);
         const userSnap = await getDoc(userRef);
