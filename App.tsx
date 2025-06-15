@@ -212,7 +212,10 @@ const App: React.FC = () => {
   const [isSiteLocked, setIsSiteLocked] = useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loginRedirectInfo, setLoginRedirectInfo] = useState<{ view: View; payload?: any } | null>(null);
+  
   const [copiedLinkNotification, setCopiedLinkNotification] = useState<string | null>(null);
+  const [showCopiedNotificationAnim, setShowCopiedNotificationAnim] = useState(false);
+  const copiedNotificationTimerRef = useRef<number | null>(null);
 
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -382,6 +385,9 @@ const App: React.FC = () => {
       unsubscribeInteractions();
       unsubscribeSiteConfig();
       window.removeEventListener('popstate', handlePopState);
+      if (copiedNotificationTimerRef.current) {
+        clearTimeout(copiedNotificationTimerRef.current);
+      }
     };
   }, [parseUrlAndSetInitialState]);
 
@@ -1191,12 +1197,30 @@ const App: React.FC = () => {
     const postUrl = `${window.location.origin}${window.location.pathname}?view=${View.Webboard}&id=${postId}`;
     try {
       await navigator.clipboard.writeText(postUrl);
-      setCopiedLinkNotification(`คัดลอกลิงก์แล้ว: ${postTitle}`);
-      setTimeout(() => setCopiedLinkNotification(null), 2500);
+      
+      if (copiedNotificationTimerRef.current) {
+        clearTimeout(copiedNotificationTimerRef.current);
+      }
+      setCopiedLinkNotification(`คัดลอกลิงก์แล้ว: ${postTitle.substring(0, 30)}${postTitle.length > 30 ? '...' : ''}`);
+      setShowCopiedNotificationAnim(true);
+
+      copiedNotificationTimerRef.current = setTimeout(() => {
+        setShowCopiedNotificationAnim(false); // Start fade out
+        copiedNotificationTimerRef.current = setTimeout(() => {
+          setCopiedLinkNotification(null); // Remove from DOM after fade out
+        }, 300); // Match animation duration
+      }, 2200); // Visible time before starting fade out (2500 - 300)
+
     } catch (err) {
       console.error('Failed to copy: ', err);
       setCopiedLinkNotification('ไม่สามารถคัดลอกลิงก์ได้');
-      setTimeout(() => setCopiedLinkNotification(null), 2500);
+      setShowCopiedNotificationAnim(true);
+      copiedNotificationTimerRef.current = setTimeout(() => {
+        setShowCopiedNotificationAnim(false);
+         copiedNotificationTimerRef.current = setTimeout(() => {
+          setCopiedLinkNotification(null);
+        }, 300);
+      }, 2200);
     }
   };
 
@@ -1887,6 +1911,10 @@ const App: React.FC = () => {
     }
   }
 
+  const copiedNotificationBaseClass = "fixed bottom-5 left-1/2 -translate-x-1/2 bg-neutral-dark text-white px-4 py-2 rounded-md shadow-lg text-sm z-50 transform transition-all duration-300 ease-out";
+  const copiedNotificationHiddenClass = "opacity-0 translate-y-10";
+  const copiedNotificationVisibleClass = "opacity-100 translate-y-0";
+
   return (
     <div className="flex flex-col min-h-screen bg-neutral-light dark:bg-dark-pageBg font-serif text-neutral-dark dark:text-dark-text">
       {!(currentView === View.PasswordReset && !currentUser) && renderHeader()}
@@ -1905,7 +1933,7 @@ const App: React.FC = () => {
         </footer>
       )}
        {copiedLinkNotification && (
-        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 bg-neutral-dark text-white px-4 py-2 rounded-md shadow-lg text-sm z-50 transition-opacity duration-300 ease-in-out">
+        <div className={`${copiedNotificationBaseClass} ${showCopiedNotificationAnim ? copiedNotificationVisibleClass : copiedNotificationHiddenClass}`}>
           {copiedLinkNotification}
         </div>
       )}
