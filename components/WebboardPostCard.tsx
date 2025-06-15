@@ -5,6 +5,7 @@ import { UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES }
 from '../types';
 // Button component might be used for consistency if styled appropriately, or use raw <button> for icons
 // import { Button } from './Button'; 
+import { triggerHapticFeedback } from '../utils/haptics'; // Import haptic utility
 
 interface WebboardPostCardProps {
   post: EnrichedWebboardPost;
@@ -67,8 +68,12 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
 
   const handleLikeClick = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card click
-    if (!currentUser) requestLoginForAction(View.Webboard, { action: 'like', postId: post.id });
-    else onToggleLike(post.id);
+    if (!currentUser) {
+      requestLoginForAction(View.Webboard, { action: 'like', postId: post.id });
+    } else {
+      onToggleLike(post.id);
+      triggerHapticFeedback(15); // Add haptic feedback
+    }
   };
   
   const handleSaveClick = (e: React.MouseEvent) => {

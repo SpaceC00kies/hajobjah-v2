@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react'; // Added useState
 import type { EnrichedWebboardPost, EnrichedWebboardComment, User } from '../types';
 import { USER_LEVELS, UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES } 
@@ -6,6 +7,7 @@ import { Button } from './Button';
 // UserLevelBadge is removed from direct import here as it's no longer used in this component
 import { WebboardCommentItem } from './WebboardCommentItem';
 import { WebboardCommentForm } from './WebboardCommentForm';
+import { triggerHapticFeedback } from '../utils/haptics'; // Import haptic utility
 
 interface WebboardPostDetailProps {
   post: EnrichedWebboardPost;
@@ -104,8 +106,12 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
   const postAuthor = users.find(u => u.id === post.userId);
 
   const handleLikeClick = () => {
-    if (!currentUser) requestLoginForAction(View.Webboard, { action: 'like', postId: post.id });
-    else onToggleLike(post.id);
+    if (!currentUser) {
+      requestLoginForAction(View.Webboard, { action: 'like', postId: post.id });
+    } else {
+      onToggleLike(post.id);
+      triggerHapticFeedback(15); // Add haptic feedback
+    }
   };
 
   const handleSaveClick = () => {
