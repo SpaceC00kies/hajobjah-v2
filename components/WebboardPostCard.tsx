@@ -1,11 +1,10 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import type { EnrichedWebboardPost, User } from '../types';
 import { UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES } 
 from '../types';
 // Button component might be used for consistency if styled appropriately, or use raw <button> for icons
 // import { Button } from './Button'; 
-import { triggerHapticFeedback } from '../utils/haptics'; // Import haptic utility
+import { triggerHapticFeedback } from '@/utils/haptics'; // Import haptic utility
 
 interface WebboardPostCardProps {
   post: EnrichedWebboardPost;
