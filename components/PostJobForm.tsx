@@ -234,7 +234,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
     { name: 'payment', label: 'ค่าจ้าง', placeholder: 'เช่น 400 บาท/วัน, 60 บาท/ชั่วโมง', required: true },
   ] as const;
 
-  const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border border-[#CCCCCC] dark:border-dark-border rounded-[10px] text-neutral-dark dark:text-dark-text font-serif font-normal focus:outline-none";
+  const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border border-[#CCCCCC] dark:border-dark-border rounded-[10px] text-neutral-dark dark:text-dark-text font-serif font-normal focus:outline-none transition-colors duration-150 ease-in-out";
   const inputFocusStyle = "focus:border-primary dark:focus:border-dark-primary-DEFAULT focus:ring-2 focus:ring-primary focus:ring-opacity-70 dark:focus:ring-dark-primary-DEFAULT dark:focus:ring-opacity-70";
   const inputErrorStyle = "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-2 focus:ring-red-500 focus:ring-opacity-70 dark:focus:ring-red-400 dark:focus:ring-opacity-70";
   const selectBaseStyle = `${inputBaseStyle} appearance-none`;
@@ -273,7 +273,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
               value={(formData[field.name as keyof typeof formData] as string) ?? ''}
               onChange={handleChange}
               placeholder={field.placeholder}
-              className={`${inputBaseStyle} ${formErrors[field.name as keyof FormErrorsType] ? inputErrorStyle : inputFocusStyle}`}
+              className={`${inputBaseStyle} ${formErrors[field.name as keyof FormErrorsType] ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
               disabled={!canSubmit && !isEditing}
             />
             {formErrors[field.name as keyof FormErrorsType] && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors[field.name as keyof FormErrorsType]}</p>}
@@ -289,7 +289,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
             name="province"
             value={formData.province}
             onChange={handleChange}
-            className={`${selectBaseStyle} ${formErrors.province ? inputErrorStyle : inputFocusStyle}`}
+            className={`${selectBaseStyle} ${formErrors.province ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
             disabled={!canSubmit && !isEditing}
           >
             {Object.values(Province).map(provinceValue => (
@@ -309,7 +309,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
             name="category"
             value={formData.category}
             onChange={handleChange}
-            className={`${selectBaseStyle} ${formErrors.category ? inputErrorStyle : inputFocusStyle}`}
+            className={`${selectBaseStyle} ${formErrors.category ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
             disabled={!canSubmit && !isEditing}
           >
             <option value="" disabled>-- เลือกหมวดหมู่ --</option>
@@ -330,7 +330,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
               name="subCategory"
               value={formData.subCategory || ''}
               onChange={handleChange}
-              className={`${selectBaseStyle} ${formErrors.subCategory ? inputErrorStyle : inputFocusStyle}`}
+              className={`${selectBaseStyle} ${formErrors.subCategory ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
               disabled={(!canSubmit && !isEditing) || availableSubCategories.length === 0}
             >
               <option value="" disabled>-- เลือกหมวดหมู่ย่อย --</option>
@@ -355,7 +355,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
             onChange={handleChange}
             rows={5}
             placeholder="อธิบายลักษณะงาน, คุณสมบัติที่ต้องการ, หรือข้อมูลอื่นๆ ที่สำคัญ..."
-            className={`${inputBaseStyle} ${formErrors.description ? inputErrorStyle : inputFocusStyle}`}
+            className={`${inputBaseStyle} ${formErrors.description ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
             disabled={!canSubmit && !isEditing}
           />
            {formErrors.description && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.description}</p>}
@@ -366,37 +366,37 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4">
               <div>
                 <label htmlFor="dateNeededFrom" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">วันที่ต้องการ: ตั้งแต่</label>
-                <input type="date" id="dateNeededFrom" name="dateNeededFrom" value={getDateString(formData.dateNeededFrom)} onChange={handleChange} className={`${inputBaseStyle} ${formErrors.dateNeededFrom ? inputErrorStyle : inputFocusStyle}`} disabled={!canSubmit && !isEditing}/>
+                <input type="date" id="dateNeededFrom" name="dateNeededFrom" value={getDateString(formData.dateNeededFrom)} onChange={handleChange} className={`${inputBaseStyle} ${formErrors.dateNeededFrom ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} disabled={!canSubmit && !isEditing}/>
                 {formErrors.dateNeededFrom && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.dateNeededFrom}</p>}
               </div>
               <div>
                 <label htmlFor="dateNeededTo" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ถึง (ถ้ามี)</label>
-                <input type="date" id="dateNeededTo" name="dateNeededTo" value={getDateString(formData.dateNeededTo)} onChange={handleChange} className={`${inputBaseStyle} ${formErrors.dateNeededTo ? inputErrorStyle : inputFocusStyle}`} min={getDateString(formData.dateNeededFrom) || undefined} disabled={!canSubmit && !isEditing}/>
+                <input type="date" id="dateNeededTo" name="dateNeededTo" value={getDateString(formData.dateNeededTo)} onChange={handleChange} className={`${inputBaseStyle} ${formErrors.dateNeededTo ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} min={getDateString(formData.dateNeededFrom) || undefined} disabled={!canSubmit && !isEditing}/>
                 {formErrors.dateNeededTo && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.dateNeededTo}</p>}
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4">
               <div>
                 <label htmlFor="timeNeededStart" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">เวลาที่ต้องการ: เริ่ม</label>
-                <input type="time" id="timeNeededStart" name="timeNeededStart" value={formData.timeNeededStart || ''} onChange={handleChange} className={`${inputBaseStyle} ${formErrors.timeNeededStart ? inputErrorStyle : inputFocusStyle}`} disabled={!canSubmit && !isEditing}/>
+                <input type="time" id="timeNeededStart" name="timeNeededStart" value={formData.timeNeededStart || ''} onChange={handleChange} className={`${inputBaseStyle} ${formErrors.timeNeededStart ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} disabled={!canSubmit && !isEditing}/>
                 {formErrors.timeNeededStart && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.timeNeededStart}</p>}
               </div>
               <div>
                 <label htmlFor="timeNeededEnd" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">สิ้นสุด</label>
-                <input type="time" id="timeNeededEnd" name="timeNeededEnd" value={formData.timeNeededEnd || ''} onChange={handleChange} className={`${inputBaseStyle} ${formErrors.timeNeededEnd ? inputErrorStyle : inputFocusStyle}`} disabled={!canSubmit && !isEditing}/>
+                <input type="time" id="timeNeededEnd" name="timeNeededEnd" value={formData.timeNeededEnd || ''} onChange={handleChange} className={`${inputBaseStyle} ${formErrors.timeNeededEnd ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} disabled={!canSubmit && !isEditing}/>
                 {formErrors.timeNeededEnd && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.timeNeededEnd}</p>}
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4">
                 <div>
                     <label htmlFor="desiredAgeStart" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ช่วงอายุ: ตั้งแต่</label>
-                    <select id="desiredAgeStart" name="desiredAgeStart" value={formData.desiredAgeStart === undefined ? '' : String(formData.desiredAgeStart)} onChange={handleChange} className={`${selectBaseStyle} ${formErrors.desiredAgeStart ? inputErrorStyle : inputFocusStyle}`} disabled={!canSubmit && !isEditing}>
+                    <select id="desiredAgeStart" name="desiredAgeStart" value={formData.desiredAgeStart === undefined ? '' : String(formData.desiredAgeStart)} onChange={handleChange} className={`${selectBaseStyle} ${formErrors.desiredAgeStart ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} disabled={!canSubmit && !isEditing}>
                         {ageOptions.map(age => (<option key={`start-${age}`} value={age}>{age === '' ? 'ไม่ระบุ' : `${age} ปี`}</option>))}
                     </select>
                 </div>
                 <div>
                     <label htmlFor="desiredAgeEnd" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ถึง</label>
-                    <select id="desiredAgeEnd" name="desiredAgeEnd" value={formData.desiredAgeEnd === undefined ? '' : String(formData.desiredAgeEnd)} onChange={handleChange} className={`${selectBaseStyle} ${formErrors.desiredAgeEnd ? inputErrorStyle : inputFocusStyle}`} disabled={!canSubmit && !isEditing}>
+                    <select id="desiredAgeEnd" name="desiredAgeEnd" value={formData.desiredAgeEnd === undefined ? '' : String(formData.desiredAgeEnd)} onChange={handleChange} className={`${selectBaseStyle} ${formErrors.desiredAgeEnd ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} disabled={!canSubmit && !isEditing}>
                          {ageOptions.map(age => (<option key={`end-${age}`} value={age} disabled={formData.desiredAgeStart !== undefined && age !== '' && typeof age === 'number' ? age < formData.desiredAgeStart : false}>{age === '' ? 'ไม่ระบุ' : `${age} ปี`}</option>))}
                     </select>
                      {formErrors.desiredAgeEnd && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.desiredAgeEnd}</p>}
@@ -415,7 +415,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
             </div>
             <div>
               <label htmlFor="desiredEducationLevel" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ระดับการศึกษาที่ต้องการ</label>
-              <select id="desiredEducationLevel" name="desiredEducationLevel" value={formData.desiredEducationLevel || ''} onChange={handleChange} className={`${selectBaseStyle} ${formErrors.desiredEducationLevel ? inputErrorStyle : inputFocusStyle}`} disabled={!canSubmit && !isEditing}>
+              <select id="desiredEducationLevel" name="desiredEducationLevel" value={formData.desiredEducationLevel || ''} onChange={handleChange} className={`${selectBaseStyle} ${formErrors.desiredEducationLevel ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} disabled={!canSubmit && !isEditing}>
                 <option value="">-- ไม่จำกัด --</option>
                 {Object.values(JobDesiredEducationLevelOption).filter(level => level !== JobDesiredEducationLevelOption.Any).map(level => (<option key={level} value={level}>{level}</option>))}
               </select>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from './Button';
 import { Modal } from './Modal';
@@ -60,9 +61,9 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
     }
   };
 
-  const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border rounded-[10px] text-neutral-dark dark:text-dark-text font-serif font-normal focus:outline-none";
+  const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border rounded-[10px] text-neutral-dark dark:text-dark-text font-serif font-normal focus:outline-none transition-colors duration-150 ease-in-out";
   // Consistent green focus style with login/registration
-  const inputFocusStyle = "border-[#CCCCCC] dark:border-dark-border focus:border-brandGreen dark:focus:border-dark-brandGreen-DEFAULT focus:ring-2 focus:ring-brandGreen focus:ring-opacity-70 dark:focus:ring-dark-brandGreen-DEFAULT dark:focus:ring-opacity-70";
+  const inputFocusStyle = "focus:border-brandGreen dark:focus:border-dark-brandGreen-DEFAULT focus:ring-2 focus:ring-brandGreen focus:ring-opacity-70 dark:focus:ring-dark-brandGreen-DEFAULT dark:focus:ring-opacity-70";
   const inputErrorStyle = "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-2 focus:ring-red-500 focus:ring-opacity-70 dark:focus:ring-red-400 dark:focus:ring-opacity-70";
 
   return (
@@ -86,7 +87,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
               if (error) setError(null);
               if (successMessage) setSuccessMessage(null);
             }}
-            className={`${inputBaseStyle} ${error ? inputErrorStyle : inputFocusStyle}`}
+            className={`${inputBaseStyle} ${error ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
             placeholder="your.email@example.com"
             disabled={isLoading}
           />

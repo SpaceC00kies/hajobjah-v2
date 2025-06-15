@@ -173,7 +173,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
     onSubmit(finalDataToSubmit, editingPost?.id);
   };
   
-  const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border border-[#CCCCCC] dark:border-dark-border rounded-[10px] text-neutral-dark dark:text-dark-text font-serif font-normal focus:outline-none";
+  const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border border-[#CCCCCC] dark:border-dark-border rounded-[10px] text-neutral-dark dark:text-dark-text font-serif font-normal focus:outline-none transition-colors duration-150 ease-in-out";
   const inputFocusStyle = "focus:ring-1 focus:ring-neutral-DEFAULT/50 dark:focus:ring-dark-border/50";
   const inputErrorStyle = "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-2 focus:ring-red-500 focus:ring-opacity-70 dark:focus:ring-red-400 dark:focus:ring-opacity-70";
   const selectBaseStyle = `${inputBaseStyle} appearance-none`;
@@ -202,7 +202,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
             name="title"
             value={formData.title}
             onChange={handleChange}
-            className={`${inputBaseStyle} ${errors.title ? inputErrorStyle : inputFocusStyle}`}
+            className={`${inputBaseStyle} ${errors.title ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
             placeholder="เช่น มีใครเคยลอง... / ขอคำแนะนำเรื่อง..."
             disabled={!canSubmitForm && !editingPost}
           />
@@ -224,7 +224,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
             value={formData.body}
             onChange={handleChange}
             rows={6}
-            className={`${inputBaseStyle} ${errors.body ? inputErrorStyle : inputFocusStyle}`}
+            className={`${inputBaseStyle} ${errors.body ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
             placeholder="เล่าเรื่องราว ถามคำถาม หรือแบ่งปันประสบการณ์ของคุณที่นี่..."
             disabled={!canSubmitForm && !editingPost}
             maxLength={MAX_POST_CHARS + 100} // Allow slight overtyping for UX, validate on submit
@@ -241,7 +241,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
             name="category"
             value={formData.category}
             onChange={handleChange}
-            className={`${selectBaseStyle} ${errors.category ? inputErrorStyle : inputFocusStyle}`}
+            className={`${selectBaseStyle} ${errors.category ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
             disabled={!canSubmitForm && !editingPost}
           >
             <option value="" disabled>-- กรุณาเลือกหมวดหมู่ --</option>
@@ -267,7 +267,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
                         file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border file:border-neutral-DEFAULT/70 dark:file:border-dark-border/70 
                         file:bg-neutral-light/30 dark:file:bg-dark-inputBg/30 file:text-sm file:font-semibold file:text-neutral-medium dark:file:text-dark-textMuted
                         hover:file:bg-neutral-light/70 dark:hover:file:bg-dark-inputBg/50 hover:file:border-neutral-DEFAULT dark:hover:file:border-dark-border
-                        ${errors.image ? inputErrorStyle : inputFocusStyle}`}
+                        ${errors.image ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
              disabled={!canSubmitForm && !editingPost}
           />
           {errors.image && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.image}</p>}

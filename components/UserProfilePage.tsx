@@ -101,7 +101,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     }
   }, [feedback]);
 
-  const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border border-[#CCCCCC] dark:border-dark-border rounded-[10px] text-neutral-dark dark:text-dark-text font-serif font-normal focus:outline-none";
+  const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border border-[#CCCCCC] dark:border-dark-border rounded-[10px] text-neutral-dark dark:text-dark-text font-serif font-normal focus:outline-none transition-colors duration-150 ease-in-out";
   const inputFocusStyle = "focus:border-secondary dark:focus:border-dark-secondary-DEFAULT focus:ring-2 focus:ring-secondary focus:ring-opacity-70 dark:focus:ring-dark-secondary-DEFAULT dark:focus:ring-opacity-70";
   const inputErrorStyle = "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-2 focus:ring-red-500 focus:ring-opacity-70 dark:focus:ring-red-400 dark:focus:ring-opacity-70";
   const readOnlyStyle = "bg-neutral-light dark:bg-dark-inputBg/50 cursor-not-allowed";
@@ -251,11 +251,11 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             id="profilePublicDisplayName"
             value={publicDisplayName}
             onChange={(e) => setPublicDisplayName(e.target.value)}
-            className={`${inputBaseStyle} ${errors.publicDisplayName ? inputErrorStyle : inputFocusStyle}`}
+            className={`${inputBaseStyle} ${errors.publicDisplayName ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
             placeholder="เช่น Sunny Y., ช่างภาพใจดี123"
           />
            <p className="text-xs font-sans text-neutral-medium dark:text-dark-textMuted mt-1">
-              ชื่อต้องมี 2-30 ตัวอักษร ได้เฉพาะภาษาไทย/อังกฤษ, เว้นวรรค, จุด เช่น Sunny Y. กรุณาอย่าตั้งชื่อที่ไม่เหมาะสม
+              ชื่อนี้จะแสดงบนที่สาธารณะ เช่น ประกาศงาน, โปรไฟล์และกระทู้ โปรดตั้งอย่างเหมาะสม (เช่น ชื่อจริงและนามสกุลย่อ Sunny J., หรือเกี่ยวกับตัวเรา นักการตลาดมือฉมัง1993) ห้ามใช้คำหยาบหรือสื่ออะไรที่ไม่เหมาะสม
             </p>
           {errors.publicDisplayName && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.publicDisplayName}</p>}
         </div>
@@ -267,7 +267,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             id="profileUsername"
             value={currentUser.username}
             readOnly
-            className={`${inputBaseStyle} ${readOnlyStyle}`}
+            className={`${inputBaseStyle} ${readOnlyStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
             aria-readonly="true"
           />
         </div>
@@ -279,7 +279,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             id="profileEmail"
             value={currentUser.email}
             readOnly
-            className={`${inputBaseStyle} ${readOnlyStyle}`}
+            className={`${inputBaseStyle} ${readOnlyStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
             aria-readonly="true"
           />
         </div>
@@ -295,7 +295,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
           </summary>
           <div className="mt-3 space-y-4">
             <p className="text-xs font-sans text-neutral-medium dark:text-dark-textMuted mb-3">
-              ข้อมูลส่วนนี้ <strong className="text-red-500 dark:text-red-400">จำเป็นต้องกรอก</strong> และจะแสดงในโปรไฟล์สาธารณะของคุณ
+              ข้อมูลส่วนนี้ <strong className="text-red-500 dark:text-red-400">จำเป็นต้องกรอก</strong> และจะแสดงในโปรไฟล์สาธารณะของคุณ (ยกเว้นชื่อจริง-นามสกุล อาจแสดงบางส่วน หรือตามความเหมาะสม)
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4">
                 <div>
@@ -316,7 +316,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                     <label htmlFor="profileBirthdate" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">วันเกิด <span className="text-red-500 dark:text-red-400">*</span></label>
                     <input type="date" id="profileBirthdate" value={birthdate} onChange={handleBirthdateChange}
                             max={new Date().toISOString().split("T")[0]}
-                            className={`${inputBaseStyle} ${errors.birthdate ? inputErrorStyle : inputFocusStyle}`} />
+                            className={`${inputBaseStyle} ${errors.birthdate ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} />
                     {currentAge !== null && <p className="text-xs font-sans text-neutral-dark dark:text-dark-textMuted mt-1">อายุ: {currentAge} ปี</p>}
                     {errors.birthdate && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.birthdate}</p>}
                 </div>
@@ -325,7 +325,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                 <label htmlFor="profileEducationLevel" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ระดับการศึกษา <span className="text-red-500 dark:text-red-400">*</span></label>
                 <select id="profileEducationLevel" value={educationLevel}
                         onChange={(e) => setEducationLevel(e.target.value as HelperEducationLevelOption)}
-                        className={`${selectBaseStyle} ${errors.educationLevel ? inputErrorStyle : inputFocusStyle}`}>
+                        className={`${selectBaseStyle} ${errors.educationLevel ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}>
                     {Object.values(HelperEducationLevelOption).map(level => (
                         <option key={level} value={level}>{level}</option>
                     ))}
@@ -333,16 +333,16 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                  {errors.educationLevel && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.educationLevel}</p>}
             </div>
             <div className="mt-4">
-                <label htmlFor="profileNickname" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ชื่อเล่น</label>
-                <input type="text" id="profileNickname" value={nickname} onChange={(e) => setNickname(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle}`} placeholder="เช่น ซันนี่, จอห์น"/>
+                <label htmlFor="profileNickname" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ชื่อเล่น (ไม่บังคับ)</label>
+                <input type="text" id="profileNickname" value={nickname} onChange={(e) => setNickname(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} placeholder="เช่น ซันนี่, จอห์น"/>
             </div>
             <div className="mt-4">
-                <label htmlFor="profileFirstName" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ชื่อจริง</label>
-                <input type="text" id="profileFirstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle}`} placeholder="เช่น ยาทิดา, สมชาย"/>
+                <label htmlFor="profileFirstName" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ชื่อจริง (ไม่บังคับ)</label>
+                <input type="text" id="profileFirstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} placeholder="เช่น ยาทิดา, สมชาย"/>
             </div>
             <div className="mt-4">
-                <label htmlFor="profileLastName" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">นามสกุล</label>
-                <input type="text" id="profileLastName" value={lastName} onChange={(e) => setLastName(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle}`} placeholder="เช่น แสงอรุณ, ใจดี"/>
+                <label htmlFor="profileLastName" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">นามสกุล (ไม่บังคับ)</label>
+                <input type="text" id="profileLastName" value={lastName} onChange={(e) => setLastName(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} placeholder="เช่น แสงอรุณ, ใจดี"/>
             </div>
             <div>
               <label htmlFor="profileAddress" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ที่อยู่ (ไม่บังคับ - จะแสดงในโปรไฟล์สาธารณะของคุณ)</label>
@@ -351,7 +351,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 rows={3}
-                className={`${textareaBaseStyle} ${inputFocusStyle}`}
+                className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
                 placeholder="เช่น บ้านเลขที่, ถนน, ตำบล, อำเภอ, จังหวัด, รหัสไปรษณีย์"
               />
             </div>
@@ -361,7 +361,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
         <details className="group pt-4 border-t border-neutral-DEFAULT/50 dark:border-dark-border/30">
           <summary className="flex items-center justify-between cursor-pointer list-none p-2 -ml-2 rounded-md hover:bg-neutral-light/50 dark:hover:bg-dark-inputBg/30 transition-colors">
             <h3 className="text-lg font-sans font-medium text-neutral-dark dark:text-dark-text">
-              👤 เกี่ยวกับฉัน
+              👤 เพิ่มเติมเกี่ยวกับตัวตน
             </h3>
             <span className="text-secondary dark:text-dark-secondary-DEFAULT transform transition-transform duration-200 group-open:rotate-90">
               ▶
@@ -382,7 +382,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                     value={field.value}
                     onChange={(e) => field.setter(e.target.value)}
                     rows={field.name === 'introSentence' ? 3 : 2}
-                    className={`${textareaBaseStyle} ${inputFocusStyle}`}
+                    className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
                     placeholder={field.placeholder}
                   />
                 ) : (
@@ -391,7 +391,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                     id={`profile-${field.name}`}
                     value={field.value}
                     onChange={(e) => field.setter(e.target.value)}
-                    className={`${inputBaseStyle} ${inputFocusStyle}`}
+                    className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
                     placeholder={field.placeholder}
                   />
                 )}
@@ -410,7 +410,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                 id="profileMobile"
                 value={mobile}
                 onChange={(e) => setMobile(e.target.value)}
-                className={`${inputBaseStyle} ${errors.mobile ? inputErrorStyle : inputFocusStyle}`}
+                className={`${inputBaseStyle} ${errors.mobile ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
                 placeholder="เช่น 0812345678"
                 aria-describedby={errors.mobile ? "mobile-error" : undefined}
                 aria-invalid={!!errors.mobile}
@@ -425,7 +425,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                 id="profileLineId"
                 value={lineId}
                 onChange={(e) => setLineId(e.target.value)}
-                className={`${inputBaseStyle} ${inputFocusStyle}`}
+                className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
                 placeholder="เช่น mylineid"
             />
             </div>
@@ -437,7 +437,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                 id="profileFacebook"
                 value={facebook}
                 onChange={(e) => setFacebook(e.target.value)}
-                className={`${inputBaseStyle} ${inputFocusStyle}`}
+                className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
                 placeholder="ลิงก์โปรไฟล์ หรือชื่อผู้ใช้ Facebook"
             />
             </div>

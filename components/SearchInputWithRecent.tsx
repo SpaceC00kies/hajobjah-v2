@@ -45,7 +45,7 @@ export const SearchInputWithRecent: React.FC<SearchInputWithRecentProps> = ({
         onChange={(e) => onSearchTermChange(e.target.value)}
         onFocus={() => setIsFocused(true)}
         placeholder={placeholder}
-        className="w-full p-3 bg-white dark:bg-dark-inputBg border border-neutral-DEFAULT dark:border-dark-border rounded-lg text-neutral-dark dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-neutral-dark dark:focus:ring-dark-text placeholder-neutral-medium dark:placeholder-dark-textMuted text-base font-serif"
+        className="w-full p-3 bg-white dark:bg-dark-inputBg border border-neutral-DEFAULT dark:border-dark-border rounded-lg text-neutral-dark dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-neutral-dark dark:focus:ring-dark-text placeholder-neutral-medium dark:placeholder-dark-textMuted text-base font-serif transition-colors duration-150 ease-in-out focus:bg-gray-50 dark:focus:bg-[#383838]"
         aria-label={ariaLabel}
         autoComplete="off"
       />
@@ -73,7 +73,7 @@ export const SearchInputWithRecent: React.FC<SearchInputWithRecentProps> = ({
                 }
               }}
             >
-              ⚡ {recentTerm}
+              🕒 {recentTerm}
             </li>
           ))}
         </ul>

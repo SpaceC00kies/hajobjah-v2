@@ -81,9 +81,9 @@ export const WebboardCommentForm: React.FC<WebboardCommentFormProps> = ({ postId
               if (error) setError(null);
             }}
             rows={3}
-            className={`w-full p-2 border rounded-md text-sm font-normal
+            className={`w-full p-2 border rounded-md text-sm font-normal transition-colors duration-150 ease-in-out
                         bg-white dark:bg-dark-inputBg text-neutral-dark dark:text-dark-text 
-                        focus:outline-none focus:ring-2
+                        focus:outline-none focus:ring-2 focus:bg-gray-50 dark:focus:bg-[#383838]
                         ${error 
                             ? 'border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500 focus:ring-opacity-70 dark:focus:ring-red-400 dark:focus:ring-opacity-70' 
                             : 'border-gray-200 dark:border-gray-700 focus:border-gray-300 dark:focus:border-gray-600 focus:ring-gray-300 focus:ring-opacity-70 dark:focus:ring-gray-600 dark:focus:ring-opacity-70'}`}

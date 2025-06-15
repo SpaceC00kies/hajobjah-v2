@@ -193,7 +193,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
   ] as const;
 
   const availabilityField = { name: 'availability', label: 'หมายเหตุเรื่องวันเวลาที่ว่างโดยรวม (ถ้ามี)', placeholder: 'เช่น "สะดวกเฉพาะช่วงเย็น", "ไม่ว่างวันที่ 10-15 นี้"', type: 'text', required: false };
-  const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border border-[#CCCCCC] dark:border-dark-border rounded-[10px] text-neutral-dark dark:text-dark-text font-serif font-normal focus:outline-none";
+  const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border border-[#CCCCCC] dark:border-dark-border rounded-[10px] text-neutral-dark dark:text-dark-text font-serif font-normal focus:outline-none transition-colors duration-150 ease-in-out";
   const inputFocusStyle = "focus:border-secondary dark:focus:border-dark-secondary-DEFAULT focus:ring-2 focus:ring-secondary focus:ring-opacity-70 dark:focus:ring-dark-secondary-DEFAULT dark:focus:ring-opacity-70";
   const inputErrorStyle = "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-2 focus:ring-red-500 focus:ring-opacity-70 dark:focus:ring-red-400 dark:focus:ring-opacity-70";
   const selectBaseStyle = `${inputBaseStyle} appearance-none`;
@@ -235,7 +235,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
                   value={(formData[field.name as keyof typeof formData] as string) ?? ''}
                   onChange={handleChange}
                   placeholder={field.placeholder}
-                  className={`${inputBaseStyle} ${formErrors[field.name as keyof FormErrorsType] ? inputErrorStyle : inputFocusStyle}`}
+                  className={`${inputBaseStyle} ${formErrors[field.name as keyof FormErrorsType] ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
                   disabled={!canSubmit && !isEditing}
                 />
                 {formErrors[field.name as keyof FormErrorsType] && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors[field.name as keyof FormErrorsType]}</p>}
@@ -251,7 +251,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
                 name="province"
                 value={formData.province}
                 onChange={handleChange}
-                className={`${selectBaseStyle} ${formErrors.province ? inputErrorStyle : inputFocusStyle}`}
+                className={`${selectBaseStyle} ${formErrors.province ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
                 disabled={!canSubmit && !isEditing}
               >
                 {Object.values(Province).map(provinceValue => (
@@ -265,7 +265,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
               <label htmlFor="category" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
                 หมวดหมู่งานที่ถนัด <span className="text-red-500 dark:text-red-400">*</span>
               </label>
-              <select id="category" name="category" value={formData.category} onChange={handleChange} className={`${selectBaseStyle} ${formErrors.category ? inputErrorStyle : inputFocusStyle}`} disabled={!canSubmit && !isEditing}>
+              <select id="category" name="category" value={formData.category} onChange={handleChange} className={`${selectBaseStyle} ${formErrors.category ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} disabled={!canSubmit && !isEditing}>
                 <option value="" disabled>-- เลือกหมวดหมู่ --</option>
                 {Object.values(JobCategory).map(categoryValue => (<option key={categoryValue} value={categoryValue}>{categoryValue}</option>))}
               </select>
@@ -275,7 +275,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
             {availableSubCategories.length > 0 && (
                 <div className="mb-6">
                     <label htmlFor="subCategory" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">หมวดหมู่ย่อยที่ถนัด <span className="text-red-500 dark:text-red-400">*</span></label>
-                    <select id="subCategory" name="subCategory" value={formData.subCategory || ''} onChange={handleChange} className={`${selectBaseStyle} ${formErrors.subCategory ? inputErrorStyle : inputFocusStyle}`} disabled={(!canSubmit && !isEditing) || availableSubCategories.length === 0}>
+                    <select id="subCategory" name="subCategory" value={formData.subCategory || ''} onChange={handleChange} className={`${selectBaseStyle} ${formErrors.subCategory ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} disabled={(!canSubmit && !isEditing) || availableSubCategories.length === 0}>
                       <option value="" disabled>-- เลือกหมวดหมู่ย่อย --</option>
                       {availableSubCategories.map(subCategoryValue => (<option key={subCategoryValue} value={subCategoryValue}>{subCategoryValue}</option>))}
                     </select>
@@ -285,7 +285,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
 
             <div>
             <label htmlFor="details" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">รายละเอียดเกี่ยวกับตัวเอง (ทักษะ, ประสบการณ์) <span className="text-red-500 dark:text-red-400">*</span></label>
-            <textarea id="details" name="details" value={formData.details} onChange={handleChange} rows={5} placeholder="เช่น สามารถยกของหนักได้, มีประสบการณ์ดูแลเด็ก 2 ปี, ทำอาหารคลีนได้..." className={`${inputBaseStyle} ${formErrors.details ? inputErrorStyle : inputFocusStyle}`} disabled={!canSubmit && !isEditing}/>
+            <textarea id="details" name="details" value={formData.details} onChange={handleChange} rows={5} placeholder="เช่น สามารถยกของหนักได้, มีประสบการณ์ดูแลเด็ก 2 ปี, ทำอาหารคลีนได้..." className={`${inputBaseStyle} ${formErrors.details ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} disabled={!canSubmit && !isEditing}/>
             {formErrors.details && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.details}</p>}
             </div>
         </div>
@@ -295,23 +295,23 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4">
                 <div>
                     <label htmlFor="availabilityDateFrom" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ช่วงวันที่ว่าง: ตั้งแต่</label>
-                    <input type="date" id="availabilityDateFrom" name="availabilityDateFrom" value={getDateString(formData.availabilityDateFrom)} onChange={handleChange} className={`${inputBaseStyle} ${formErrors.availabilityDateFrom ? inputErrorStyle : inputFocusStyle}`} disabled={!canSubmit && !isEditing}/>
+                    <input type="date" id="availabilityDateFrom" name="availabilityDateFrom" value={getDateString(formData.availabilityDateFrom)} onChange={handleChange} className={`${inputBaseStyle} ${formErrors.availabilityDateFrom ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} disabled={!canSubmit && !isEditing}/>
                     {formErrors.availabilityDateFrom && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.availabilityDateFrom}</p>}
                 </div>
                 <div>
                     <label htmlFor="availabilityDateTo" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ถึง (ถ้ามี)</label>
-                    <input type="date" id="availabilityDateTo" name="availabilityDateTo" value={getDateString(formData.availabilityDateTo)} onChange={handleChange} min={getDateString(formData.availabilityDateFrom) || undefined} className={`${inputBaseStyle} ${formErrors.availabilityDateTo ? inputErrorStyle : inputFocusStyle}`} disabled={!canSubmit && !isEditing}/>
+                    <input type="date" id="availabilityDateTo" name="availabilityDateTo" value={getDateString(formData.availabilityDateTo)} onChange={handleChange} min={getDateString(formData.availabilityDateFrom) || undefined} className={`${inputBaseStyle} ${formErrors.availabilityDateTo ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} disabled={!canSubmit && !isEditing}/>
                     {formErrors.availabilityDateTo && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.availabilityDateTo}</p>}
                 </div>
             </div>
             <div className="mb-6">
                 <label htmlFor={availabilityField.name} className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">{availabilityField.label} {availabilityField.required && <span className="text-red-500 dark:text-red-400">*</span>}</label>
-                <input type={availabilityField.type} id={availabilityField.name} name={availabilityField.name} value={(formData[availabilityField.name as keyof typeof formData] as string) ?? ''} onChange={handleChange} placeholder={availabilityField.placeholder} className={`${inputBaseStyle} ${formErrors[availabilityField.name as keyof FormErrorsType] ? inputErrorStyle : inputFocusStyle}`} disabled={!canSubmit && !isEditing}/>
+                <input type={availabilityField.type} id={availabilityField.name} name={availabilityField.name} value={(formData[availabilityField.name as keyof typeof formData] as string) ?? ''} onChange={handleChange} placeholder={availabilityField.placeholder} className={`${inputBaseStyle} ${formErrors[availabilityField.name as keyof FormErrorsType] ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} disabled={!canSubmit && !isEditing}/>
                 {formErrors[availabilityField.name as keyof FormErrorsType] && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors[availabilityField.name as keyof FormErrorsType]}</p>}
             </div>
             <div>
                 <label htmlFor="availabilityTimeDetails" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">รายละเอียดวัน/เวลาที่สะดวกเพิ่มเติม (ถ้ามี)</label>
-                <textarea id="availabilityTimeDetails" name="availabilityTimeDetails" value={formData.availabilityTimeDetails || ''} onChange={handleChange} rows={3} placeholder="เช่น ทุกวัน จ-ศ หลัง 17:00 น., เสาร์-อาทิตย์ทั้งวัน, เฉพาะช่วงปิดเทอม" className={`${inputBaseStyle} ${formErrors.availabilityTimeDetails ? inputErrorStyle : inputFocusStyle}`} disabled={!canSubmit && !isEditing}/>
+                <textarea id="availabilityTimeDetails" name="availabilityTimeDetails" value={formData.availabilityTimeDetails || ''} onChange={handleChange} rows={3} placeholder="เช่น ทุกวัน จ-ศ หลัง 17:00 น., เสาร์-อาทิตย์ทั้งวัน, เฉพาะช่วงปิดเทอม" className={`${inputBaseStyle} ${formErrors.availabilityTimeDetails ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} disabled={!canSubmit && !isEditing}/>
                 {formErrors.availabilityTimeDetails && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.availabilityTimeDetails}</p>}
             </div>
         </div>

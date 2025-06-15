@@ -15,7 +15,7 @@ export const CategoryFilterBar: React.FC<CategoryFilterBarProps> = ({
   onSelectCategory,
 }) => {
   const allItemsLabel = 'หมวดหมู่ทั้งหมด';
-  const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border border-[#CCCCCC] dark:border-dark-border rounded-[10px] text-neutral-dark dark:text-dark-text font-serif font-normal focus:outline-none";
+  const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border border-[#CCCCCC] dark:border-dark-border rounded-[10px] text-neutral-dark dark:text-dark-text font-serif font-normal focus:outline-none transition-colors duration-150 ease-in-out";
   const selectBaseStyle = `${inputBaseStyle} appearance-none`;
   // Using a neutral focus style for the dropdown, similar to form inputs
   const inputFocusStyle = "focus:border-neutral-dark dark:focus:border-dark-text focus:ring-1 focus:ring-neutral-dark dark:focus:ring-dark-text focus:ring-opacity-50";
@@ -30,7 +30,7 @@ export const CategoryFilterBar: React.FC<CategoryFilterBarProps> = ({
         id="category-filter-select"
         value={selectedCategory}
         onChange={(e) => onSelectCategory(e.target.value as FilterableCategory)}
-        className={`${selectBaseStyle} ${inputFocusStyle} text-base`} // Ensure text size is appropriate
+        className={`${selectBaseStyle} ${inputFocusStyle} text-base focus:bg-gray-50 dark:focus:bg-[#383838]`} // Ensure text size is appropriate
         aria-label="กรองตามหมวดหมู่"
       >
         <option value="all">{allItemsLabel}</option>

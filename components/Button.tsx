@@ -16,7 +16,7 @@ export const Button: React.FC<ButtonProps> = ({
   colorScheme = 'primary', 
   ...props
 }) => {
-  const baseStyle = 'font-sans font-medium rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-colors duration-150 ease-in-out';
+  const baseStyle = 'font-sans font-medium rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-150 ease-out hover:-translate-y-px hover:shadow-md active:translate-y-px active:shadow-sm';
 
   let variantStyle = '';
   switch (variant) {

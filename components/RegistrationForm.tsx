@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { User } from '../types';
 import { GenderOption, HelperEducationLevelOption } from '../types';
@@ -68,7 +69,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
     symbol: false,
   });
 
-  const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border border-[#CCCCCC] dark:border-dark-border rounded-[10px] text-neutral-dark dark:text-dark-text font-serif font-normal focus:outline-none";
+  const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border border-[#CCCCCC] dark:border-dark-border rounded-[10px] text-neutral-dark dark:text-dark-text font-serif font-normal focus:outline-none transition-colors duration-150 ease-in-out";
   const inputFocusStyle = "focus:border-brandGreen dark:focus:border-dark-brandGreen-DEFAULT focus:ring-2 focus:ring-brandGreen focus:ring-opacity-70 dark:focus:ring-dark-brandGreen-DEFAULT dark:focus:ring-opacity-70";
   const inputErrorStyle = "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-2 focus:ring-red-500 focus:ring-opacity-70 dark:focus:ring-red-400 dark:focus:ring-opacity-70";
   const selectBaseStyle = `${inputBaseStyle} appearance-none`;
@@ -200,16 +201,16 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
             <div>
             <label htmlFor="publicDisplayName" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ชื่อที่แสดงบนเว็บไซต์ (สาธารณะ) <span className="text-red-500 dark:text-red-400">*</span></label>
             <input type="text" id="publicDisplayName" value={publicDisplayName} onChange={(e) => setPublicDisplayName(e.target.value)}
-                    className={`${inputBaseStyle} ${errors.publicDisplayName ? inputErrorStyle : inputFocusStyle}`} placeholder="เช่น Sunny Y., ช่างภาพใจดี123"/>
+                    className={`${inputBaseStyle} ${errors.publicDisplayName ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} placeholder="เช่น Sunny Y., ช่างภาพใจดี123"/>
             <p className="text-xs font-sans text-neutral-medium dark:text-dark-textMuted mt-1">
-            ชื่อต้องมี 2-30 ตัวอักษร ได้เฉพาะภาษาไทย/อังกฤษ, เว้นวรรค, จุด เช่น Sunny Y. กรุณาอย่าตั้งชื่อที่ไม่เหมาะสม
+              ชื่อนี้จะแสดงบนที่สาธารณะ เช่น ประกาศงาน, โปรไฟล์และกระทู้ โปรดตั้งอย่างเหมาะสม (เช่น ชื่อจริงและนามสกุลย่อ Sunny J., หรือเกี่ยวกับตัวเรา นักการตลาดมือฉมัง1993) ห้ามใช้คำหยาบหรือสื่ออะไรที่ไม่เหมาะสม
             </p>
             {errors.publicDisplayName && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.publicDisplayName}</p>}
             </div>
             <div>
             <label htmlFor="username" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ชื่อผู้ใช้ (สำหรับเข้าระบบ) <span className="text-red-500 dark:text-red-400">*</span></label>
             <input type="text" id="username" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())}
-                    className={`${inputBaseStyle} ${errors.username ? inputErrorStyle : inputFocusStyle}`} placeholder="เช่น somchai_j (อังกฤษ/ตัวเลข)"/>
+                    className={`${inputBaseStyle} ${errors.username ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} placeholder="เช่น somchai_j (อังกฤษ/ตัวเลข)"/>
             {errors.username && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.username}</p>}
             </div>
         </div>
@@ -217,7 +218,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
         <div>
           <label htmlFor="email" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">อีเมล <span className="text-red-500 dark:text-red-400">*</span></label>
           <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                 className={`${inputBaseStyle} ${errors.email ? inputErrorStyle : inputFocusStyle}`} placeholder="เช่น user@example.com"/>
+                 className={`${inputBaseStyle} ${errors.email ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} placeholder="เช่น user@example.com"/>
           {errors.email && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.email}</p>}
         </div>
 
@@ -242,7 +243,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
                     <label htmlFor="birthdate" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">วันเกิด <span className="text-red-500 dark:text-red-400">*</span></label>
                     <input type="date" id="birthdate" value={birthdate} onChange={handleBirthdateChange}
                            max={new Date().toISOString().split("T")[0]} // Prevent future dates
-                           className={`${inputBaseStyle} ${errors.birthdate ? inputErrorStyle : inputFocusStyle}`} />
+                           className={`${inputBaseStyle} ${errors.birthdate ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} />
                     {currentAge !== null && <p className="text-xs font-sans text-neutral-dark dark:text-dark-textMuted mt-1">อายุ: {currentAge} ปี</p>}
                     {errors.birthdate && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.birthdate}</p>}
                 </div>
@@ -251,7 +252,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
                 <label htmlFor="educationLevel" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ระดับการศึกษา <span className="text-red-500 dark:text-red-400">*</span></label>
                 <select id="educationLevel" value={educationLevel || ''}
                         onChange={(e) => setEducationLevel(e.target.value as HelperEducationLevelOption)}
-                        className={`${selectBaseStyle} ${errors.educationLevel ? inputErrorStyle : inputFocusStyle}`}>
+                        className={`${selectBaseStyle} ${errors.educationLevel ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}>
                     <option value="" disabled>-- กรุณาเลือก --</option>
                     {Object.values(HelperEducationLevelOption).map(level => (
                         <option key={level} value={level}>{level}</option>
@@ -267,18 +268,18 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
             <div>
             <label htmlFor="mobile" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">เบอร์โทรศัพท์ <span className="text-red-500 dark:text-red-400">*</span></label>
             <input type="tel" id="mobile" value={mobile} onChange={(e) => setMobile(e.target.value)}
-                    className={`${inputBaseStyle} ${errors.mobile ? inputErrorStyle : inputFocusStyle}`} placeholder="เช่น 0812345678"/>
+                    className={`${inputBaseStyle} ${errors.mobile ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} placeholder="เช่น 0812345678"/>
             {errors.mobile && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.mobile}</p>}
             </div>
             <div className="mt-4">
             <label htmlFor="lineId" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">LINE ID (ถ้ามี)</label>
             <input type="text" id="lineId" value={lineId} onChange={(e) => setLineId(e.target.value)}
-                    className={`${inputBaseStyle} ${inputFocusStyle}`} placeholder="เช่น mylineid"/>
+                    className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} placeholder="เช่น mylineid"/>
             </div>
             <div className="mt-4">
             <label htmlFor="facebook" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">Facebook (ถ้ามี)</label>
             <input type="text" id="facebook" value={facebook} onChange={(e) => setFacebook(e.target.value)}
-                    className={`${inputBaseStyle} ${inputFocusStyle}`} placeholder="ลิงก์โปรไฟล์ หรือชื่อ Facebook"/>
+                    className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} placeholder="ลิงก์โปรไฟล์ หรือชื่อ Facebook"/>
             </div>
         </div>
 
@@ -288,14 +289,14 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
                 <div>
                 <label htmlFor="password" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">รหัสผ่าน <span className="text-red-500 dark:text-red-400">*</span></label>
                 <input type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                        className={`${inputBaseStyle} ${errors.password ? inputErrorStyle : inputFocusStyle}`} placeholder="9-12 ตัวอักษร, ตัวใหญ่/เล็ก, เลข, สัญลักษณ์"/>
+                        className={`${inputBaseStyle} ${errors.password ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} placeholder="9-12 ตัวอักษร, ตัวใหญ่/เล็ก, เลข, สัญลักษณ์"/>
                 {errors.password && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.password}</p>}
                 <PasswordCriteriaDisplay criteria={passwordCriteria} />
                 </div>
                 <div>
                 <label htmlFor="confirmPassword" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ยืนยันรหัสผ่าน <span className="text-red-500 dark:text-red-400">*</span></label>
                 <input type="password" id="confirmPassword" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-                        className={`${inputBaseStyle} ${errors.confirmPassword ? inputErrorStyle : inputFocusStyle}`} placeholder="กรอกรหัสผ่านอีกครั้ง"/>
+                        className={`${inputBaseStyle} ${errors.confirmPassword ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} placeholder="กรอกรหัสผ่านอีกครั้ง"/>
                 {errors.confirmPassword && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.confirmPassword}</p>}
                 </div>
             </div>
