@@ -215,7 +215,7 @@ const App: React.FC = () => {
   
   const [copiedLinkNotification, setCopiedLinkNotification] = useState<string | null>(null);
   const [showCopiedNotificationAnim, setShowCopiedNotificationAnim] = useState(false);
-  const copiedNotificationTimerRef = useRef<number | null>(null);
+  const copiedNotificationTimerRef = useRef<NodeJS.Timeout | null>(null);
 
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
