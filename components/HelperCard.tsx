@@ -1,45 +1,34 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { EnrichedHelperProfile, User } from '../types';
-import { View, JobCategory, JOB_CATEGORY_STYLES, Province } from '../types';
+import { View, JobCategory, JOB_CATEGORY_STYLES, Province } from '../types'; // GenderOption, HelperEducationLevelOption removed as they are not directly used
 import { Button } from './Button';
 import { Modal } from './Modal';
-import { isDateInPast, calculateDaysRemaining } from '../App';
+import { isDateInPast, calculateDaysRemaining } from '../App'; // Import utilities
+// Corrected import path below
 import { logHelperContactInteractionService } from '../services/firebaseService';
-
-// Paper Plane Icon SVG
-const PaperPlaneIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-  </svg>
-);
-
-// User Icon SVG (for pill button)
-const UserIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
-    <svg className={className} fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-    </svg>
-);
 
 
 interface HelperCardProps {
   profile: EnrichedHelperProfile;
   onNavigateToPublicProfile: (userId: string) => void;
   navigateTo: (view: View) => void;
-  onLogHelperContact: (helperProfileId: string) => void;
+  onLogHelperContact: (helperProfileId: string) => void; // Removed loadHelpersFn from here
   currentUser: User | null;
   requestLoginForAction: (view: View, payload?: any) => void;
-  onBumpProfile: (profileId: string) => void;
+  onBumpProfile: (profileId: string) => void; 
 }
 
-const FallbackAvatarDisplay: React.FC<{ name?: string, size?: string, className?: string }> = ({ name, size = "w-24 h-24 sm:w-28 sm:h-28", className = "" }) => {
+const FallbackAvatarDisplay: React.FC<{ name?: string, size?: string, className?: string }> = ({ name, size = "w-24 h-24 sm:w-28 sm:h-28", className = "" }) => { // Updated default size
   const initial = name ? name.charAt(0).toUpperCase() : '👤';
   return (
-    <div className={`${size} rounded-[12px] bg-neutral dark:bg-dark-inputBg flex items-center justify-center text-4xl sm:text-5xl font-sans text-white dark:text-dark-text ${className}`}>
+    <div className={`${size} rounded-full bg-neutral dark:bg-dark-inputBg flex items-center justify-center text-4xl sm:text-5xl font-sans text-white dark:text-dark-text ${className}`}>
       {initial}
     </div>
   );
 };
+
+// calculateAge function removed as it's no longer used directly in this card's display
 
 const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
   if (dateInput === null || dateInput === undefined) {
@@ -76,9 +65,9 @@ const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
   }
 };
 
-const TrustBadgesDisplay: React.FC<{ profile: EnrichedHelperProfile, animateInterest: boolean }> = ({ profile, animateInterest }) => {
+const TrustBadgesDisplay: React.FC<{ profile: EnrichedHelperProfile }> = ({ profile }) => {
   return (
-    <div className="flex gap-1 flex-wrap my-2 font-sans justify-center">
+    <div className="flex gap-1 flex-wrap my-2 font-sans justify-center"> {/* Changed to justify-center */}
       {profile.verifiedExperienceBadge && (
         <span className="bg-yellow-200 text-yellow-800 dark:bg-yellow-600/30 dark:text-yellow-200 text-xs px-2 py-0.5 rounded-full font-medium">⭐ ผ่านงานมาก่อน</span>
       )}
@@ -86,7 +75,7 @@ const TrustBadgesDisplay: React.FC<{ profile: EnrichedHelperProfile, animateInte
         <span className="bg-green-100 text-green-700 dark:bg-green-700/30 dark:text-green-200 text-xs px-2 py-0.5 rounded-full font-medium">🟢 โปรไฟล์ครบถ้วน</span>
       )}
       {(profile.interestedCount || 0) > 0 && (
-         <span className={`bg-sky-100 text-sky-700 dark:bg-sky-700/30 dark:text-sky-200 text-xs px-2 py-0.5 rounded-full font-medium transition-transform duration-150 ease-in-out ${animateInterest ? 'scale-110' : 'scale-100'}`}>
+         <span className="bg-sky-100 text-sky-700 dark:bg-sky-700/30 dark:text-sky-200 text-xs px-2 py-0.5 rounded-full font-medium">
           👀 มีผู้สนใจแล้ว {profile.interestedCount} ครั้ง
         </span>
       )}
@@ -101,8 +90,6 @@ const TrustBadgesDisplay: React.FC<{ profile: EnrichedHelperProfile, animateInte
 export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPublicProfile, navigateTo, onLogHelperContact, currentUser, requestLoginForAction, onBumpProfile }) => {
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
-  const [animateInterestCount, setAnimateInterestCount] = useState(false);
-
 
   const handleContact = () => {
     setIsWarningModalOpen(true);
@@ -118,12 +105,11 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
 
   const handleProceedToContact = () => {
     onLogHelperContact(profile.id);
-    setAnimateInterestCount(true);
-    setTimeout(() => setAnimateInterestCount(false), 300); // Duration of animation
     setIsWarningModalOpen(false);
     setIsContactModalOpen(true);
   };
 
+  // age calculation removed from here
   const availabilityDateFromText = formatDateDisplay(profile.availabilityDateFrom);
   const availabilityDateToText = formatDateDisplay(profile.availabilityDateTo);
 
@@ -152,7 +138,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
 
   return (
     <>
-      <div className="group bg-white dark:bg-dark-cardBg rounded-[12px] p-6 mb-6 border border-neutral-DEFAULT/70 dark:border-dark-border/70 shadow-[0_4px_8px_rgba(0,0,0,0.05)] hover:shadow-xl hover:-translate-y-[2px] transition-all duration-150 ease-out flex flex-col h-full">
+      <div className="bg-white dark:bg-dark-cardBg shadow-lg rounded-xl p-6 mb-6 border border-neutral-DEFAULT dark:border-dark-border hover:shadow-xl transition-shadow duration-300 flex flex-col h-full">
         {profile.isPinned && (
            <div className="mb-3 p-2 bg-yellow-100 dark:bg-dark-secondary-DEFAULT/30 border border-yellow-300 dark:border-dark-secondary-DEFAULT/50 rounded-md text-center">
             <p className="text-sm font-sans font-medium text-yellow-700 dark:text-dark-secondary-hover">
@@ -174,7 +160,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
             </p>
           </div>
         )}
-        {profile.isSuspicious && !profile.warningBadge && (
+        {profile.isSuspicious && !profile.warningBadge && ( 
           <div className="mb-3 p-2 bg-red-100 dark:bg-red-700/30 border border-red-300 dark:border-red-500/50 rounded-md text-center">
             <p className="text-sm font-sans font-medium text-red-700 dark:text-red-300">
               ⚠️ โปรไฟล์นี้น่าสงสัย โปรดใช้ความระมัดระวังเป็นพิเศษ
@@ -182,14 +168,15 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
           </div>
         )}
 
+        {/* === UPDATED HEADER SECTION START === */}
         <div className="flex flex-col items-center mb-3">
           {profile.userPhoto ? (
-            <img src={profile.userPhoto} alt={profile.authorDisplayName} className="w-24 h-24 sm:w-28 sm:h-28 rounded-[12px] object-cover shadow-lg mb-2" />
+            <img src={profile.userPhoto} alt={profile.authorDisplayName} className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover shadow-lg mb-2" />
           ) : (
             <FallbackAvatarDisplay name={profile.authorDisplayName} size="w-24 h-24 sm:w-28 sm:h-28" className="mb-2 shadow-lg" />
           )}
-          <p className="text-sm font-sans text-neutral-dark dark:text-dark-textMuted text-center">โดย: {profile.authorDisplayName}</p>
-          <h3 className="text-xl sm:text-2xl font-sans font-semibold text-amber-700 dark:text-dark-secondary-hover text-center mt-1 leading-tight" title={profile.profileTitle}>
+          <p className="text-sm font-sans text-neutral-medium dark:text-dark-textMuted text-center">โดย: {profile.authorDisplayName}</p>
+          <h3 className="text-xl sm:text-2xl font-sans font-semibold text-secondary-hover dark:text-dark-secondary-hover text-center mt-1 leading-tight" title={profile.profileTitle}>
             {profile.profileTitle}
           </h3>
         </div>
@@ -204,10 +191,12 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
             └ {profile.subCategory}
           </p>
         )}
+        {/* === UPDATED HEADER SECTION END === */}
         
-        <TrustBadgesDisplay profile={profile} animateInterest={animateInterestCount} />
+        <TrustBadgesDisplay profile={profile} />
 
-        <div className="space-y-3 text-neutral-dark dark:text-dark-textMuted mb-4 flex-grow font-normal leading-[1.6]">
+        <div className="space-y-3 text-neutral-dark dark:text-dark-textMuted mb-4 flex-grow font-normal">
+          {/* Gender, Age, Education Level fields removed from here */}
           
           <div className="font-serif">
             <div className="flex items-center">
@@ -257,7 +246,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
 
            <div className="mt-2 pt-2 border-t border-neutral-DEFAULT/20 dark:border-dark-border/20">
             <strong className="font-sans font-medium text-neutral-dark dark:text-dark-text">📝 เกี่ยวกับฉัน:</strong>
-            <div className="mt-1 text-sm font-serif bg-[#FFFBEA] dark:bg-[#3a352a] text-neutral-dark dark:text-dark-textMuted p-3 rounded-md whitespace-pre-wrap h-32 overflow-y-auto font-normal border border-neutral-DEFAULT/50 dark:border-dark-border/50 leading-[1.6]">
+            <div className="mt-1 text-sm font-serif bg-neutral-light dark:bg-dark-inputBg dark:text-dark-text p-3 rounded-md whitespace-pre-wrap h-32 overflow-y-auto font-normal border border-neutral-DEFAULT/50 dark:border-dark-border/50">
                 {(!currentUser || profileIsTrulyExpired) && profile.details.length > 150 ? (
                     <>
                     {detailsPreview}...
@@ -282,28 +271,26 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
           </p>
         )}
         
-        <div className="mt-auto mt-3 flex flex-col sm:flex-row gap-3">
+        <div className="mt-auto mt-3 flex flex-col sm:flex-row gap-3"> {/* Added mt-3 for spacing */}
             <Button
                 onClick={() => onNavigateToPublicProfile(profile.userId)}
                 variant="outline"
                 colorScheme="secondary"
                 size="md"
-                className="w-full sm:w-1/2 !rounded-full !border-2 hover:!bg-secondary hover:!text-neutral-dark dark:hover:!text-dark-textOnSecondaryDark"
+                className="w-full sm:w-1/2"
                 disabled={profileIsTrulyExpired}
                 aria-label={`ดูโปรไฟล์เต็มของ ${profile.authorDisplayName}`}
             >
-                <UserIcon className="mr-1.5" /> โปรไฟล์
+                👤 โปรไฟล์
             </Button>
              <Button
                 onClick={currentUser ? handleContact : () => requestLoginForAction(View.FindHelpers, { intent: 'contactHelper', postId: profile.id })}
+                variant="secondary"
                 size="md"
-                className="w-full sm:flex-grow !rounded-[12px] bg-gradient-to-b from-[#FFEA7C] to-[#FFDE5A] text-neutral-dark hover:from-[#FADE6C] hover:to-[#F7D04A] shadow-md focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-opacity-50 transition-all duration-150 ease-out hover:-translate-y-px active:translate-y-px"
+                className="w-full sm:flex-grow"
                 disabled={profile.isUnavailable || profileIsTrulyExpired}
             >
-                <span className="flex items-center justify-center gap-1.5">
-                    <PaperPlaneIcon className="w-3.5 h-3.5" />
-                    {profile.isUnavailable ? '🚫 ผู้ช่วยนี้ไม่ว่าง' : profileIsTrulyExpired ? '⛔ หมดอายุแล้ว' : (currentUser ? 'ติดต่อ' : 'เข้าสู่ระบบเพื่อติดต่อ')}
-                </span>
+                {profile.isUnavailable ? '🚫 ผู้ช่วยนี้ไม่ว่าง' : profileIsTrulyExpired ? '⛔ หมดอายุแล้ว' : (currentUser ? '📨 ติดต่อ' : 'เข้าสู่ระบบเพื่อติดต่อ')}
             </Button>
         </div>
         {currentUser?.id === profile.userId && !profile.isUnavailable && !profileIsTrulyExpired && (
@@ -312,7 +299,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
                 variant="outline"
                 colorScheme="primary"
                 size="sm"
-                className="w-full mt-3 !rounded-[12px]"
+                className="w-full mt-3"
                 disabled={!canBump}
                 title={canBump ? "Bump โปรไฟล์ของคุณขึ้นไปบนสุด" : `คุณสามารถ Bump โปรไฟล์นี้ได้อีก ${bumpDaysRemaining} วัน`}
             >
@@ -339,12 +326,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
                 </button>
                 </p>
             </div>
-            <Button 
-              onClick={handleProceedToContact} 
-              variant="accent" 
-              className="w-full mt-4 !rounded-[12px]"
-              size="md"
-            >
+            <Button onClick={handleProceedToContact} variant="accent" className="w-full mt-4">
                 เข้าใจแล้ว ดำเนินการต่อ
             </Button>
             </Modal>
@@ -358,7 +340,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
                  <p className="text-xs text-neutral-medium dark:text-dark-textMuted mt-4 text-center">
                     (การคลิก "ดำเนินการต่อ" ในหน้าก่อนหน้านี้ ได้บันทึกการติดต่อของคุณแล้ว เพื่อให้ผู้ช่วยทราบว่ามีคนสนใจ)
                 </p>
-                <Button onClick={closeContactModal} variant="secondary" className="w-full mt-6 !rounded-[12px]" size="md">
+                <Button onClick={closeContactModal} variant="secondary" className="w-full mt-6">
                 ปิดหน้าต่างนี้
                 </Button>
             </div>
