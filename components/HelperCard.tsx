@@ -195,13 +195,13 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
               <span className="location-pin-emoji" role="img" aria-label="Location pin">📍</span>
               {profile.province || Province.ChiangMai}
             </p>
-            {profile.category && (
-              <div className="helper-card-header-category-tag" title={profile.category}>
+            {(profile.category || profile.subCategory) && (
+              <div
+                className="helper-card-header-categories-combined"
+                title={profile.category && profile.subCategory ? `${profile.category} - ${profile.subCategory}` : profile.category || profile.subCategory}
+              >
                 {profile.category}
-              </div>
-            )}
-            {profile.subCategory && (
-              <div className="helper-card-header-subcategory-tag" title={profile.subCategory}>
+                {profile.category && profile.subCategory && <span className="category-separator">›</span>}
                 {profile.subCategory}
               </div>
             )}

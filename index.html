@@ -241,40 +241,25 @@
         font-size: 1em; 
       }
 
-      /* New: Styling for separate category and subcategory tags */
-      .helper-card-header-category-tag, .helper-card-header-subcategory-tag {
+      /* Updated: Styling for combined category/subcategory display */
+      .helper-card-header-categories-combined {
         color: #4A5568; 
-        padding: 3px 10px;
-        border-radius: 12px;
-        font-weight: 500;
-        line-height: 1.3;
-        display: inline-block;
-        max-width: 100%; 
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        border: 1px solid rgba(0,0,0,0.05);
-      }
-      .helper-card-header-category-tag { /* Main category */
-        background-color: rgba(255, 255, 255, 0.7);
-        font-size: 11px;
-        margin-bottom: 4px; /* Space to subcategory or trust badges */
-      }
-      .helper-card-header-subcategory-tag { /* Subcategory, slightly different */
-        background-color: rgba(255, 255, 255, 0.55);
-        font-size: 10px;
+        font-weight: 600; /* Semibold */
+        font-size: 11px; /* Consistent small size */
+        line-height: 1.4;
         margin-bottom: 8px; /* Space before trust badges */
+        /* Removed: background, padding, border, border-radius, box-shadow, text-overflow, white-space, overflow */
+        /* Text will wrap naturally */
       }
-      .dark .helper-card-header-category-tag {
-        background-color: rgba(0, 0, 0, 0.4); 
-        color: #CBD5E0; 
-        border-color: rgba(255,255,255,0.1);
+      .dark .helper-card-header-categories-combined {
+        color: #CBD5E0;
       }
-      .dark .helper-card-header-subcategory-tag {
-        background-color: rgba(0, 0, 0, 0.3); 
-        color: #A0AEC0; /* Slightly more muted for subcategory in dark */
-        border-color: rgba(255,255,255,0.08);
+      .helper-card-header-categories-combined .category-separator {
+        margin: 0 4px; /* mx-1 */
+        color: #666666; /* Softer color for separator */
+      }
+      .dark .helper-card-header-categories-combined .category-separator {
+        color: #AAAAAA;
       }
       
       .helper-card-info-grid {
@@ -508,8 +493,7 @@
         .helper-card-name { font-size: 14px; } /* Adjusted name size */
         .helper-card-name .name-arrow { font-size: 12px; } /* Adjusted arrow size */
         .helper-card-header-location { font-size: 12px; }
-        .helper-card-header-category-tag { font-size: 10px; padding: 2px 7px;}
-        .helper-card-header-subcategory-tag { font-size: 9px; padding: 2px 6px;}
+        .helper-card-header-categories-combined { font-size: 10px; }
         
         .helper-card-info-grid { padding: 8px 12px; gap: 5px; }
         .helper-card-info-item { font-size: 12px; }
