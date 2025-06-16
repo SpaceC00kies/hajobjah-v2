@@ -1447,36 +1447,36 @@ const App: React.FC = () => {
       <p className="text-base sm:text-lg lg:text-xl text-neutral-dark max-w-xl leading-relaxed mb-8 font-normal font-serif"> เชื่อมคนมีสกิลกับงานที่ใช่ มีใจก็ลองดู ❤︎ </p>
       <div className="w-full max-w-3xl lg:max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 lg:gap-14">
         <div className="bg-white p-6 rounded-xl shadow-lg border border-primary/30">
-          <h3 className="text-lg font-sans font-semibold text-primary mb-4">หาคนทำงาน</h3>
+          <h3 className="text-lg font-sans font-semibold text-primary mb-4">ประกาศงาน</h3>
           <div className="space-y-4">
-            <Button onClick={() => { setSourceViewForForm(View.Home); navigateTo(View.PostJob); }} variant="primary" size="md" className="w-full">
-              <span className="flex items-center justify-center gap-2"><span>📢</span><span>มีงาน? ฝากตรงนี้</span></span>
+             <Button onClick={() => currentUser ? navigateTo(View.FindJobs) : requestLoginForAction(View.FindJobs)} variant="primary" size="md" className="w-full">
+              <span className="flex items-center justify-center gap-2"><span>📢</span><span>ดูประกาศงานทั้งหมด</span></span>
             </Button>
             <Button
-              onClick={() => currentUser ? navigateTo(View.FindHelpers) : requestLoginForAction(View.FindHelpers)}
+              onClick={() => { setSourceViewForForm(View.Home); navigateTo(View.PostJob); }}
               variant="outline"
               colorScheme="primary"
               size="md"
               className="w-full"
             >
-              <span className="flex items-center justify-center gap-2"><span>🔍</span><span>หาคนช่วย? ดูโปรไฟล์เลย</span></span>
+              <span className="flex items-center justify-center gap-2"><span>📝</span><span>สร้างประกาศงาน</span></span>
             </Button>
           </div>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-lg border border-secondary/30">
-          <h3 className="text-lg font-sans font-semibold text-secondary-hover mb-4">คนอยากหางาน</h3>
+          <h3 className="text-lg font-sans font-semibold text-secondary-hover mb-4">โปรไฟล์ผู้ช่วยและบริการ</h3>
           <div className="space-y-4">
-            <Button onClick={() => { setSourceViewForForm(View.Home); navigateTo(View.OfferHelp); }} variant="secondary" size="md" className="w-full">
-              <span className="flex items-center justify-center gap-2"><span>🙋</span><span>เสนองาน? ฝากโปรไฟล์</span></span>
+             <Button onClick={() => currentUser ? navigateTo(View.FindHelpers) : requestLoginForAction(View.FindHelpers)} variant="secondary" size="md" className="w-full">
+              <span className="flex items-center justify-center gap-2"><span>🫂</span><span>ดูโปรไฟล์ทั้งหมด</span></span>
             </Button>
             <Button
-              onClick={() => currentUser ? navigateTo(View.FindJobs) : requestLoginForAction(View.FindJobs)}
+               onClick={() => { setSourceViewForForm(View.Home); navigateTo(View.OfferHelp); }}
               variant="outline"
               colorScheme="secondary"
               size="md"
               className="w-full"
             >
-              <span className="flex items-center justify-center gap-2"><span>👀</span><span>อยากหางาน? ดูประกาศเลย</span></span>
+              <span className="flex items-center justify-center gap-2"><span>🙋</span><span>สร้างโปรไฟล์ผู้ช่วย</span></span>
             </Button>
           </div>
         </div>
