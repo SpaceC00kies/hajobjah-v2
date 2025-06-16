@@ -461,7 +461,6 @@ const App: React.FC = () => {
             }
         }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allWebboardPostsForAdmin, webboardComments, isLoadingAuth, currentUser?.id, userSavedPosts]);
 
   const requestLoginForAction = (originalView: View, originalPayload?: any) => {
@@ -783,7 +782,7 @@ const App: React.FC = () => {
       logFirebaseError("handleAddJob", error);
       alert(`เกิดข้อผิดพลาดในการเพิ่มประกาศงาน: ${error.message}`);
     }
-  }, [currentUser, sourceViewForForm, navigateTo, currentView, allJobsForAdmin]);
+  }, [currentUser, sourceViewForForm, navigateTo, users, currentView, allJobsForAdmin]);
 
   const handleUpdateJob = async (updatedJobDataFromForm: JobFormData & { id: string }, loadJobsFn: (isInitialLoad?: boolean) => void) => {
     if (!currentUser) { requestLoginForAction(View.PostJob); return; }
@@ -1560,7 +1559,7 @@ const App: React.FC = () => {
     if (currentView === View.FindJobs) {
       loadJobs(true);
     }
-  }, [currentView, selectedJobCategoryFilter, jobSearchTerm, loadJobs]);
+  }, [currentView, selectedJobCategoryFilter, jobSearchTerm]);
 
   useEffect(() => {
     if (currentView !== View.FindJobs || !initialJobsLoaded) return;
@@ -1694,7 +1693,7 @@ const App: React.FC = () => {
     if (currentView === View.FindHelpers) {
       loadHelpers(true);
     }
-  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm, loadHelpers]);
+  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm]);
 
   useEffect(() => {
     if (currentView !== View.FindHelpers || !initialHelpersLoaded) return;
@@ -1773,7 +1772,7 @@ const App: React.FC = () => {
             )}
             {enrichedHelperProfilesList.length > 0 && (
                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {enrichedHelperProfilesList.map(profile => (<HelperCard key={profile.id} profile={profile} users={users} onNavigateToPublicProfile={handleNavigateToPublicProfile} navigateTo={navigateTo} onLogHelperContact={() => handleLogHelperContactInteraction(profile.id)} currentUser={currentUser} requestLoginForAction={requestLoginForAction} onBumpProfile={(id) => handleBumpHelperProfile(id, loadHelpers)} />))}
+                    {enrichedHelperProfilesList.map(profile => (<HelperCard key={profile.id} profile={profile} onNavigateToPublicProfile={handleNavigateToPublicProfile} navigateTo={navigateTo} onLogHelperContact={() => handleLogHelperContactInteraction(profile.id)} currentUser={currentUser} requestLoginForAction={requestLoginForAction} onBumpProfile={(id) => handleBumpHelperProfile(id, loadHelpers)} />))}
                  </div>
             )}
             <div ref={helpersLoaderRef} className="h-10 flex justify-center items-center">

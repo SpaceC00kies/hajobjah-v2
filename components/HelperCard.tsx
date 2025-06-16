@@ -12,12 +12,11 @@ interface HelperCardProps {
   navigateTo: (view: View, payload?: any) => void;
   onLogHelperContact: (helperProfileId: string) => void;
   currentUser: User | null;
-  users: User[]; // Added users prop
   requestLoginForAction: (view: View, payload?: any) => void;
   onBumpProfile: (profileId: string) => void;
 }
 
-const FallbackAvatarDisplay: React.FC<{ name?: string, size?: string, className?: string }> = ({ name, size = "w-[80px] h-[80px]", className = "" }) => { // Default size updated
+const FallbackAvatarDisplay: React.FC<{ name?: string, size?: string, className?: string }> = ({ name, size = "w-[80px] h-[80px]", className = "" }) => {
   const initial = name ? name.charAt(0).toUpperCase() : '👤';
   return (
     <div className={`${size} rounded-full bg-neutral dark:bg-dark-inputBg flex items-center justify-center text-3xl font-sans text-white dark:text-dark-text ${className}`}>
@@ -38,42 +37,41 @@ const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
 };
 
 const TrustBadgesCompact: React.FC<{ profile: EnrichedHelperProfile, user: User | undefined }> = ({ profile, user }) => {
-  if (!user && !profile.adminVerifiedExperience && !(profile.interestedCount && profile.interestedCount > 0) && !profile.isSuspicious) return null;
+  if (!user && !(profile.interestedCount && profile.interestedCount > 0) && !profile.adminVerifiedExperience && !profile.isSuspicious) return null;
   
-  const badges = [];
-  if (profile.adminVerifiedExperience) {
-    badges.push(<span key="verified" className="helper-card-trust-badge bg-yellow-200 text-yellow-800 dark:bg-yellow-600/30 dark:text-yellow-200">⭐ ผ่านงาน</span>);
-  }
-  if (user?.profileComplete) {
-    badges.push(<span key="complete" className="helper-card-trust-badge bg-green-100 text-green-700 dark:bg-green-700/30 dark:text-green-200">🟢 โปรไฟล์ครบ</span>);
-  }
-  if ((profile.interestedCount || 0) > 0) {
-    badges.push(
-       <span key="interested" className="helper-card-trust-badge bg-sky-100 text-sky-700 dark:bg-sky-700/30 dark:text-sky-200">
-        👀 สนใจ {profile.interestedCount}
-      </span>
-    );
-  }
-   if (user?.activityBadge?.isActive) {
-     badges.push(
-       <span key="activity" className="helper-card-trust-badge bg-orange-100 text-orange-700 dark:bg-orange-600/30 dark:text-orange-200">🔥 ขยันใช้เว็บ</span>
-     );
-  }
-  if (profile.isSuspicious) {
-    badges.push(<span key="suspicious" className="helper-card-trust-badge bg-red-100 text-red-700 dark:bg-red-700/30 dark:text-red-200">🔺 ระวัง</span>);
-  }
+  const hasVisibleBadge = 
+    (user && (user.profileComplete || user.activityBadge?.isActive)) ||
+    profile.adminVerifiedExperience ||
+    (profile.interestedCount && profile.interestedCount > 0) ||
+    profile.isSuspicious;
 
-  if (badges.length === 0) return null;
+  if (!hasVisibleBadge) return null;
 
   return (
     <div className="helper-card-trust-badges">
-      {badges}
+      {profile.adminVerifiedExperience && (
+        <span className="helper-card-trust-badge bg-yellow-200 text-yellow-800 dark:bg-yellow-600/30 dark:text-yellow-200">⭐ ผ่านงาน</span>
+      )}
+      {user?.profileComplete && (
+        <span className="helper-card-trust-badge bg-green-100 text-green-700 dark:bg-green-700/30 dark:text-green-200">🟢 โปรไฟล์ครบ</span>
+      )}
+      {(profile.interestedCount || 0) > 0 && (
+         <span className="helper-card-trust-badge bg-sky-100 text-sky-700 dark:bg-sky-700/30 dark:text-sky-200">
+          👀 สนใจ {profile.interestedCount}
+        </span>
+      )}
+       {user?.activityBadge?.isActive && (
+         <span className="helper-card-trust-badge bg-orange-100 text-orange-700 dark:bg-orange-600/30 dark:text-orange-200">🔥 ขยันใช้เว็บ</span>
+      )}
+      {profile.isSuspicious && (
+        <span className="helper-card-trust-badge bg-red-100 text-red-700 dark:bg-red-700/30 dark:text-red-200">🔺 ระวัง</span>
+      )}
     </div>
   );
 };
 
 
-export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPublicProfile, navigateTo, onLogHelperContact, currentUser, users, requestLoginForAction, onBumpProfile }) => {
+export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPublicProfile, navigateTo, onLogHelperContact, currentUser, requestLoginForAction, onBumpProfile }) => {
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
   const [showFullDetails, setShowFullDetails] = useState(false);
@@ -119,6 +117,23 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
     }
   };
   
+  const getAvailabilityText = () => {
+    const availabilityParts = [];
+    if (profile.availabilityDateFrom && profile.availabilityDateTo) {
+        availabilityParts.push(`${formatDateDisplay(profile.availabilityDateFrom)} - ${formatDateDisplay(profile.availabilityDateTo)}`);
+    } else if (profile.availabilityDateFrom) {
+        availabilityParts.push(`ตั้งแต่ ${formatDateDisplay(profile.availabilityDateFrom)}`);
+    } else if (profile.availabilityDateTo) {
+        availabilityParts.push(`ถึง ${formatDateDisplay(profile.availabilityDateTo)}`);
+    }
+    if(profile.availabilityTimeDetails) availabilityParts.push(profile.availabilityTimeDetails);
+    if(profile.availability && availabilityParts.length === 0) availabilityParts.push(profile.availability);
+    
+    let combined = availabilityParts.join(', ');
+    if (combined.length > 50) combined = combined.substring(0, 47) + "...";
+    return combined || "ตามตกลง";
+  };
+
   const categoryDisplayString = profile.category + (profile.subCategory ? ` - ${profile.subCategory}` : '');
 
   return (
@@ -138,15 +153,14 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
         )}
 
         <div className="helper-card-header">
-          <div className="helper-card-avatar-container">
-            {profile.userPhoto ? (
-                <img
-                    src={profile.userPhoto}
-                    alt={profile.authorDisplayName}
-                    className="helper-card-avatar"
-                    onClick={() => onNavigateToPublicProfile(profile.userId)}
-                    onError={(e) => (e.currentTarget.style.display = 'none')} 
-                />
+           {profile.userPhoto ? (
+            <img
+                src={profile.userPhoto}
+                alt={profile.authorDisplayName}
+                className="helper-card-avatar"
+                onClick={() => onNavigateToPublicProfile(profile.userId)}
+                onError={(e) => (e.currentTarget.style.display = 'none')} 
+            />
             ) : (
                  <FallbackAvatarDisplay name={profile.authorDisplayName} className="helper-card-avatar" />
             )}
@@ -155,50 +169,46 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
                     const avatarImg = document.querySelector(`.helper-card-avatar[src="${profile.userPhoto}"]`);
                     if (avatarImg && !avatarImg.nextElementSibling?.classList.contains('fallback-avatar-rendered')) {
                         const fallbackNode = document.createElement('div');
-                        fallbackNode.className = 'helper-card-avatar fallback-avatar-rendered';
+                        fallbackNode.className = 'helper-card-avatar fallback-avatar-rendered'; 
                         const initial = profile.authorDisplayName ? profile.authorDisplayName.charAt(0).toUpperCase() : '👤';
                         fallbackNode.innerHTML = `<div class="w-full h-full rounded-full bg-neutral dark:bg-dark-inputBg flex items-center justify-center text-3xl font-sans text-white dark:text-dark-text">${initial}</div>`;
                         avatarImg.parentNode?.insertBefore(fallbackNode, avatarImg.nextSibling);
                     }
                 }} />
             )}
-          </div>
-          
-          <div className="helper-card-header-content">
-            <div className="helper-card-name-container">
-              <h3 className="helper-card-name" onClick={() => onNavigateToPublicProfile(profile.userId)}>
-                {profile.authorDisplayName}
-                <span className="name-arrow">→</span>
-              </h3>
-            </div>
+          <div className="helper-card-header-content-wrapper">
+            <h3 className="helper-card-name" onClick={() => onNavigateToPublicProfile(profile.userId)}>
+              {profile.authorDisplayName}
+              <span className="name-arrow">→</span>
+            </h3>
             <p className="helper-card-header-location">
               <span className="location-pin-emoji" role="img" aria-label="Location pin">📍</span>
               {profile.province || Province.ChiangMai}
             </p>
-            <h4 className="helper-card-main-title" title={profile.profileTitle}>{profile.profileTitle}</h4>
-            {categoryDisplayString && (
-              <div className="helper-card-category-pill-header" title={categoryDisplayString}>
+             {categoryDisplayString && (
+              <div className="helper-card-category-badge" title={categoryDisplayString}>
                 {categoryDisplayString}
               </div>
             )}
-            <TrustBadgesCompact profile={profile} user={userForBadges} />
+            <div className="helper-card-header-info-item">
+              <span className="info-icon" role="img" aria-label="Work area">🌐</span> พื้นที่: {profile.area.length > 30 ? profile.area.substring(0,27) + "..." : profile.area}
+            </div>
+            <div className="helper-card-header-info-item">
+              <span className="info-icon" role="img" aria-label="Availability">⏰</span> ความพร้อม: {getAvailabilityText()}
+            </div>
           </div>
         </div>
         
-        <div className="helper-card-info-grid">
-          <div className="helper-card-info-item">
-            <span className="info-icon" role="img" aria-label="Work area">🌐</span> ได้ทุกที่ในเชียงใหม่
-          </div>
-          <div className="helper-card-info-item">
-            <span className="info-icon" role="img" aria-label="Availability">⏰</span> ได้ทุกวันเสาร์บ่ายโมงถึงห้าโมง
-          </div>
+        <div className="p-4 text-center">
+          <h4 className="helper-card-main-title" title={profile.profileTitle}>{profile.profileTitle}</h4>
+          <TrustBadgesCompact profile={profile} user={userForBadges} />
         </div>
-
+        
         <div className="helper-card-details-box">
           <h5 className="helper-card-details-title">
             เกี่ยวกับฉัน / รายละเอียดงาน
           </h5>
-          <ul className="pl-0"> {/* Removed custom bullet styling, ensure alignment */}
+          <ul> {/* If not a list, this should be a <p> */}
             <li className={detailsNeedsTruncation && !showFullDetails && !(currentUser && !profileIsTrulyExpired) ? "details-line-clamp" : ""}>
               {displayDetails}
             </li>
@@ -279,3 +289,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
     </>
   );
 };
+
+// Helper function to get users array in HelperCard.tsx context
+// This is a placeholder. In a real app, this would come from a global state/context or props.
+const users: User[] = [];
