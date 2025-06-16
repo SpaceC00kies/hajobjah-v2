@@ -16,7 +16,7 @@ interface HelperCardProps {
   onBumpProfile: (profileId: string) => void;
 }
 
-const FallbackAvatarDisplay: React.FC<{ name?: string, size?: string, className?: string }> = ({ name, size = "w-[80px] h-[80px]", className = "" }) => { // Default size increased
+const FallbackAvatarDisplay: React.FC<{ name?: string, size?: string, className?: string }> = ({ name, size = "w-[80px] h-[80px]", className = "" }) => { 
   const initial = name ? name.charAt(0).toUpperCase() : '👤';
   return (
     <div className={`${size} rounded-full bg-neutral dark:bg-dark-inputBg flex items-center justify-center text-3xl font-sans text-white dark:text-dark-text ${className}`}>
@@ -37,7 +37,7 @@ const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
 };
 
 const TrustBadgesCompact: React.FC<{ profile: EnrichedHelperProfile, user: User | undefined }> = ({ profile, user }) => {
-  if (!user && !profile.adminVerifiedExperience && !(profile.interestedCount && profile.interestedCount > 0)) return null; // Check all possible badges before returning null
+  if (!user && !profile.adminVerifiedExperience && !(profile.interestedCount && profile.interestedCount > 0)) return null;
 
   const badges = [];
   if (profile.adminVerifiedExperience) {
@@ -83,11 +83,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
   const [showFullDetails, setShowFullDetails] = useState(false);
   
-  // Determine which user object to use for badges (current user if it's their own profile, otherwise the profile's author)
-  // This requires fetching the author's full User object if not already available via currentUser.
-  // For simplicity now, if not currentUser, we assume badges related to 'user' (like profileComplete) are derived from enrichedProfile or might not show.
-  // Ideally, the enrichedProfile would contain all necessary badge-related user flags if not currentUser.
-  const userForBadges = profile.userId === currentUser?.id ? currentUser : undefined; // Simplified for now
+  const userForBadges = profile.userId === currentUser?.id ? currentUser : undefined; 
 
   const handleContact = () => {
     if (!currentUser) {
@@ -144,8 +140,6 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
     return combined || "ตามตกลง";
   };
 
-  const categoryDisplayString = profile.category + (profile.subCategory ? ` - ${profile.subCategory}` : '');
-
   return (
     <>
       <div className="helper-card-redesigned font-sans h-full">
@@ -190,6 +184,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
           </div>
           
           <div className="helper-card-header-content">
+            <h4 className="helper-card-main-title" title={profile.profileTitle}>{profile.profileTitle}</h4>
             <div className="helper-card-name-container">
               <h3 className="helper-card-name" onClick={() => onNavigateToPublicProfile(profile.userId)}>
                 {profile.authorDisplayName}
@@ -200,10 +195,14 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
               <span className="location-pin-emoji" role="img" aria-label="Location pin">📍</span>
               {profile.province || Province.ChiangMai}
             </p>
-            <h4 className="helper-card-main-title" title={profile.profileTitle}>{profile.profileTitle}</h4>
-            {categoryDisplayString && (
-              <div className="helper-card-header-category-tag" title={categoryDisplayString}>
-                {categoryDisplayString}
+            {profile.category && (
+              <div className="helper-card-header-category-tag" title={profile.category}>
+                {profile.category}
+              </div>
+            )}
+            {profile.subCategory && (
+              <div className="helper-card-header-subcategory-tag" title={profile.subCategory}>
+                {profile.subCategory}
               </div>
             )}
             <TrustBadgesCompact profile={profile} user={userForBadges || currentUser} />
@@ -212,16 +211,16 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
         
         <div className="helper-card-info-grid">
           <div className="helper-card-info-item">
-            <span className="info-icon" role="img" aria-label="Work area">🌐</span> พื้นที่: {profile.area.length > 30 ? profile.area.substring(0,27) + "..." : profile.area}
+            <span className="info-icon" role="img" aria-label="Work area">🌐</span> {profile.area.length > 40 ? profile.area.substring(0,37) + "..." : profile.area}
           </div>
           <div className="helper-card-info-item">
-            <span className="info-icon" role="img" aria-label="Availability">⏰</span> ความพร้อม: {getAvailabilityText()}
+            <span className="info-icon" role="img" aria-label="Availability">⏰</span> {getAvailabilityText()}
           </div>
         </div>
 
         <div className="helper-card-details-box">
           <h5 className="helper-card-details-title">
-            เกี่ยวกับฉัน / รายละเอียดงาน
+            รายละเอียด
           </h5>
           <ul>
             <li className={detailsNeedsTruncation && !showFullDetails && !(currentUser && !profileIsTrulyExpired) ? "details-line-clamp" : ""}>

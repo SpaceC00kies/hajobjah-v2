@@ -146,59 +146,66 @@
       .helper-card-header {
         background: linear-gradient(to bottom, #FFF4D6, #FFE8A3);
         padding: 16px;
-        display: flex; /* New: Enable flexbox */
-        align-items: flex-start; /* New: Align items to the start (top) */
-        text-align: left; /* New: Align text to the left */
-        position: relative; /* Retain for potential absolute elements if needed */
+        display: flex; 
+        align-items: flex-start; 
+        text-align: left; 
+        position: relative; 
       }
       .dark .helper-card-header {
-        background: linear-gradient(to bottom, #4a4230, #413927); /* Darker yellow gradient */
+        background: linear-gradient(to bottom, #4a4230, #413927); 
       }
 
-      /* New: Wrapper for avatar in header */
       .helper-card-header-avatar-wrapper {
           flex-shrink: 0;
-          margin-right: 16px; /* Space between avatar and text block */
+          margin-right: 16px; 
       }
       
-      .helper-card-avatar { /* Adjusted */
-        width: 80px; /* Increased size */
-        height: 80px; /* Increased size */
+      .helper-card-avatar { 
+        width: 80px; 
+        height: 80px; 
         border-radius: 50%;
         object-fit: cover;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         transition: transform 0.3s ease;
         cursor: pointer;
-        /* margin: 0; Removed auto margins */
       }
       .helper-card-avatar:hover {
         transform: scale(1.05);
       }
 
-      /* New: Wrapper for text content next to avatar */
       .helper-card-header-content {
-          flex-grow: 1; /* Allow this section to take remaining space */
+          flex-grow: 1; 
           display: flex;
-          flex-direction: column; /* Stack name, location, title, category */
+          flex-direction: column; 
+      }
+      
+      .helper-card-main-title { /* Primary title in header */
+        font-size: 20px; /* Adjusted size */
+        font-weight: 700;
+        color: #333333;
+        margin: 0 0 2px 0; /* Space below main title */
+        line-height: 1.3;
+      }
+      .dark .helper-card-main-title {
+        color: #EEEEEE;
       }
 
-      .helper-card-name-container { /* Adjusted */
+      .helper-card-name-container { 
         display: flex;
-        /* justify-content: center; Removed */
         align-items: center;
-        margin-bottom: 2px; /* Spacing between name and location */
+        margin-bottom: 2px; /* Spacing from name to location */
       }
-      .helper-card-name {
-        font-size: 20px;
-        font-weight: 600;
-        color: #333333;
+      .helper-card-name { /* User's actual name, now smaller */
+        font-size: 16px; /* Smaller size */
+        font-weight: 500; /* Less prominent */
+        color: #454545; /* Slightly muted */
         cursor: pointer;
         display: inline-flex; 
         align-items: center;
         transition: color 0.3s ease;
       }
       .dark .helper-card-name {
-        color: #EEEEEE; 
+        color: #DDDDDD; 
       }
       .helper-card-name:hover {
         color: #FFB800; 
@@ -207,30 +214,25 @@
         color: #F0C95D; 
       }
 
-      .helper-card-name .name-arrow { /* Adjusted for always visible arrow */
-        opacity: 1; /* Always visible */
-        transform: translateX(0); /* No initial movement */
-        transition: none; /* Remove transition for opacity/transform */
-        margin-left: 6px; /* Spacing from name text */
-        font-size: 18px; /* Slightly larger arrow */
-        color: #555555; /* Arrow color */
+      .helper-card-name .name-arrow { 
+        opacity: 1; 
+        transform: translateX(0); 
+        transition: none; 
+        margin-left: 4px; /* Adjusted spacing */
+        font-size: 14px; /* Smaller arrow */
+        color: #666666; 
       }
       .dark .helper-card-name .name-arrow {
-          color: #BBBBBB;
+          color: #AAAAAA;
       }
-      /* Remove hover effect specifically for arrow opacity/transform */
-      .helper-card-name:hover .name-arrow {
-        /* Arrow is always visible, hover effect handled by .helper-card-name:hover color */
-      }
-
-      .helper-card-header-location {
+      
+      .helper-card-header-location { /* Location below name */
         font-size: 13px;
         color: #555555;
         display: flex;
         align-items: center;
-        /* justify-content: center; Removed */
         gap: 4px; 
-        margin-bottom: 4px; /* Spacing from location to main title */
+        margin-bottom: 6px; /* Space from location to category tags */
       }
       .dark .helper-card-header-location {
         color: #BBBBBB; 
@@ -239,44 +241,41 @@
         font-size: 1em; 
       }
 
-      .helper-card-main-title {
-        font-size: 22px;
-        font-weight: 700;
-        color: #333333;
-        margin: 0 0 6px 0; /* Adjusted margin */
-        line-height: 1.2;
-      }
-      .dark .helper-card-main-title {
-        color: #EEEEEE;
-      }
-
-      /* New: Styling for category tag within the header content */
-      .helper-card-header-category-tag {
-        background-color: rgba(255, 255, 255, 0.6); /* Semi-transparent white */
-        color: #4A5568; /* Tailwind gray-700 */
+      /* New: Styling for separate category and subcategory tags */
+      .helper-card-header-category-tag, .helper-card-header-subcategory-tag {
+        color: #4A5568; 
         padding: 3px 10px;
         border-radius: 12px;
-        font-size: 11px;
         font-weight: 500;
         line-height: 1.3;
-        display: inline-block; /* Allows it to sit nicely */
-        margin-top: 4px; /* Space from profileTitle */
-        margin-bottom: 8px; /* Space before trust badges */
-        max-width: 90%; /* Prevent overflow on narrow cards if title is long */
+        display: inline-block;
+        max-width: 100%; 
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
         box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         border: 1px solid rgba(0,0,0,0.05);
       }
+      .helper-card-header-category-tag { /* Main category */
+        background-color: rgba(255, 255, 255, 0.7);
+        font-size: 11px;
+        margin-bottom: 4px; /* Space to subcategory or trust badges */
+      }
+      .helper-card-header-subcategory-tag { /* Subcategory, slightly different */
+        background-color: rgba(255, 255, 255, 0.55);
+        font-size: 10px;
+        margin-bottom: 8px; /* Space before trust badges */
+      }
       .dark .helper-card-header-category-tag {
-        background-color: rgba(0, 0, 0, 0.35); /* Semi-transparent black */
-        color: #CBD5E0; /* Tailwind gray-300 */
+        background-color: rgba(0, 0, 0, 0.4); 
+        color: #CBD5E0; 
         border-color: rgba(255,255,255,0.1);
       }
-      
-      /* Removed .helper-card-top-category as category is moved */
-      /* .helper-card-top-category { ... } */
+      .dark .helper-card-header-subcategory-tag {
+        background-color: rgba(0, 0, 0, 0.3); 
+        color: #A0AEC0; /* Slightly more muted for subcategory in dark */
+        border-color: rgba(255,255,255,0.08);
+      }
       
       .helper-card-info-grid {
         display: grid;
@@ -296,7 +295,7 @@
       .helper-card-info-item .info-icon {
         width: 1.2em; 
         height: 1.2em; 
-        margin-right: 8px; 
+        margin-right: 8px; /* Space between icon and text value */
         color: #777777;
         flex-shrink: 0;
         display: inline-flex; 
@@ -306,6 +305,8 @@
       .dark .helper-card-info-item .info-icon {
         color: #999999;
       }
+      /* Removed text label specific styles as it's now icon + value */
+
       .helper-card-details-box {
         background-color: #F8F8F8;
         padding: 12px 16px; 
@@ -315,7 +316,7 @@
       .dark .helper-card-details-box {
         background-color: #333333; 
       }
-      .helper-card-details-title {
+      .helper-card-details-title { /* Title changed to "รายละเอียด" */
         font-size: 15px; 
         font-weight: 600;
         color: #333333;
@@ -333,7 +334,6 @@
         margin: 0;
       }
       .helper-card-details-box li {
-        /* padding-left: 18px; Removed padding for bullet */
         position: relative;
         margin-bottom: 5px; 
         font-size: 13px; 
@@ -344,9 +344,8 @@
         color: #BBBBBB; 
       }
       .helper-card-details-box li::before {
-        content: none; /* Removed bullet */
+        content: none; /* Bullet removed */
       }
-      /* .dark .helper-card-details-box li::before { ... } */
 
       .helper-card-footer {
         display: flex;
@@ -430,9 +429,8 @@
       .helper-card-trust-badges {
         display: flex;
         flex-wrap: wrap;
-        /* justify-content: center; Removed for left-align in new layout */
         gap: 6px;
-        margin-top: 8px;
+        margin-top: 8px; /* Ensure space from category/subcategory tags */
       }
       .helper-card-trust-badge {
         font-size: 11px; 
@@ -503,23 +501,17 @@
       }
 
       /* Responsive adjustments */
-      @media (max-width: 480px) { /* Increased breakpoint for better layout on slightly larger small screens */
-        .helper-card-header { 
-            padding: 12px; 
-            /* flex-direction: column; Consider this if avatar + text becomes too cramped */
-            /* align-items: center; If column direction */
-        }
-        /* .helper-card-header-avatar-wrapper { margin-right: 0; margin-bottom: 10px; } If column direction */
+      @media (max-width: 480px) { 
+        .helper-card-header { padding: 12px; }
         .helper-card-avatar { width: 60px; height: 60px; }
-        .helper-card-name { font-size: 18px; }
+        .helper-card-main-title { font-size: 18px; } /* Adjusted main title size */
+        .helper-card-name { font-size: 14px; } /* Adjusted name size */
+        .helper-card-name .name-arrow { font-size: 12px; } /* Adjusted arrow size */
         .helper-card-header-location { font-size: 12px; }
-        .helper-card-main-title { font-size: 19px; margin: 2px 0 6px; } /* Slightly smaller title for mobile */
-        .helper-card-header-category-tag { font-size: 10px; padding: 2px 7px; margin-top: 2px; margin-bottom: 6px;}
+        .helper-card-header-category-tag { font-size: 10px; padding: 2px 7px;}
+        .helper-card-header-subcategory-tag { font-size: 9px; padding: 2px 6px;}
         
-        .helper-card-info-grid { 
-            padding: 8px 12px; 
-            gap: 5px; 
-        }
+        .helper-card-info-grid { padding: 8px 12px; gap: 5px; }
         .helper-card-info-item { font-size: 12px; }
         .helper-card-info-item .info-icon { margin-right: 6px; }
 

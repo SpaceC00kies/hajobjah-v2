@@ -215,7 +215,7 @@ const App: React.FC = () => {
   
   const [copiedLinkNotification, setCopiedLinkNotification] = useState<string | null>(null);
   const [showCopiedNotificationAnim, setShowCopiedNotificationAnim] = useState(false);
-  const copiedNotificationTimerRef = useRef<number | null>(null);
+  const copiedNotificationTimerRef = useRef<NodeJS.Timeout | null>(null);
 
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -461,7 +461,8 @@ const App: React.FC = () => {
             }
         }
     }
-  }, [allWebboardPostsForAdmin, webboardComments, isLoadingAuth, currentUser?.id, userSavedPosts]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allWebboardPostsForAdmin, webboardComments, isLoadingAuth, currentUser?.id, userSavedPosts, users.length]); // users.length dependency seems a bit off, maybe monitor
 
   const requestLoginForAction = (originalView: View, originalPayload?: any) => {
     if (!currentUser) {
@@ -1559,7 +1560,7 @@ const App: React.FC = () => {
     if (currentView === View.FindJobs) {
       loadJobs(true);
     }
-  }, [currentView, selectedJobCategoryFilter, jobSearchTerm]);
+  }, [currentView, selectedJobCategoryFilter, jobSearchTerm, loadJobs]);
 
   useEffect(() => {
     if (currentView !== View.FindJobs || !initialJobsLoaded) return;
@@ -1693,7 +1694,7 @@ const App: React.FC = () => {
     if (currentView === View.FindHelpers) {
       loadHelpers(true);
     }
-  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm]);
+  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm, loadHelpers]);
 
   useEffect(() => {
     if (currentView !== View.FindHelpers || !initialHelpersLoaded) return;
