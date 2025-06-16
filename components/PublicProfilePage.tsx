@@ -85,10 +85,10 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, help
     { label: "🎧 เพลงที่ชอบ", value: user.favoriteMusic },
     { label: "📚 หนังสือที่ชอบ", value: user.favoriteBook },
     { label: "🎬 หนังที่ชอบ", value: user.favoriteMovie },
-    { label: "🧶 งานอดิเรก", value: user.hobbies, isMultiline: true },
+    { label: "🧶 งานอดิเรก", value: user.hobbies, isMultiline: true }, // isMultiline here is for default value, will be overridden for rendering
     { label: "🍜 อาหารที่ชอบ", value: user.favoriteFood },
     { label: "🚫 สิ่งที่ไม่ชอบที่สุด", value: user.dislikedThing },
-    { label: "💬 เกี่ยวกับฉันสั้นๆ", value: user.introSentence, isMultiline: true },
+    // "เกี่ยวกับฉันสั้นๆ" is now handled separately
   ].filter(item => item.value && item.value.trim() !== '');
 
 
@@ -133,9 +133,18 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, help
         
         {helperProfile?.details && (
           <div className="mb-6 pt-4 border-t border-neutral-DEFAULT/30 dark:border-dark-border/30">
-            <h3 className="text-xl font-sans font-semibold text-neutral-dark dark:text-dark-text mb-2">ทักษะ / ประสบการณ์ (ที่เกี่ยวข้อง):</h3>
+            <h3 className="text-xl font-sans font-semibold text-neutral-dark dark:text-dark-text mb-2">ทักษะ / ประสบการณ์ (จากโปรไฟล์ผู้ช่วย):</h3>
             <p className="font-serif text-neutral-medium dark:text-dark-textMuted whitespace-pre-wrap p-3 bg-neutral-light dark:bg-dark-inputBg/50 rounded-md">
               {helperProfile.details}
+            </p>
+          </div>
+        )}
+
+        {user.introSentence && user.introSentence.trim() !== '' && (
+          <div className="mb-6 pt-4 border-t border-neutral-DEFAULT/30 dark:border-dark-border/30">
+            <h3 className="text-xl font-sans font-semibold text-neutral-dark dark:text-dark-text mb-2">💬 เกี่ยวกับฉัน</h3>
+            <p className="font-serif text-neutral-medium dark:text-dark-textMuted whitespace-pre-wrap p-3 bg-neutral-light dark:bg-dark-inputBg/50 rounded-md">
+              {user.introSentence}
             </p>
           </div>
         )}
@@ -143,8 +152,9 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, help
         {personalityItems.length > 0 && (
           <div className="mb-6 pt-4 border-t border-neutral-DEFAULT/30 dark:border-dark-border/30">
             <h3 className="text-xl font-sans font-semibold text-neutral-dark dark:text-dark-text mb-3">ข้อมูลเพิ่มเติม:</h3>
-            <div className="space-y-2 bg-neutral-light/50 dark:bg-dark-inputBg/30 p-4 rounded-lg">
-                {personalityItems.map(item => renderInfoItem(item.label, item.value, false, item.isMultiline))}
+            <div className="space-y-1 bg-neutral-light/50 dark:bg-dark-inputBg/30 p-4 rounded-lg">
+                {/* Always render these items with isMultiline true for consistent "label on top" layout */}
+                {personalityItems.map(item => renderInfoItem(item.label, item.value, false, true))}
             </div>
           </div>
         )}
