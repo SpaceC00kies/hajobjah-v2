@@ -124,6 +124,389 @@
         animation: like-pop-animation 0.3s ease-out;
         display: inline-block; /* Ensure transform applies correctly */
       }
+
+      /* Helper Card Redesign Styles */
+      .helper-card-redesigned {
+        background-color: white;
+        border-radius: 20px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        transition: all 0.3s ease-in-out;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden; /* Ensures content respects border-radius */
+      }
+      .dark .helper-card-redesigned {
+        background-color: #2A2A2A; /* dark.cardBg */
+      }
+      .helper-card-redesigned:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 25px rgba(0,0,0,0.12);
+      }
+      .helper-card-header {
+        background: linear-gradient(to bottom, #FFF4D6, #FFE8A3);
+        padding: 16px; /* Reduced padding */
+        text-align: center;
+        position: relative;
+      }
+      .dark .helper-card-header {
+        background: linear-gradient(to bottom, #4a4230, #413927); /* Darker yellow gradient */
+      }
+      .helper-card-avatar {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin: 0 auto 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+        cursor: pointer;
+      }
+      .helper-card-avatar:hover {
+        transform: scale(1.05);
+      }
+      .helper-card-name {
+        font-size: 20px;
+        font-weight: 600;
+        color: #333333;
+        cursor: pointer;
+        display: inline-flex; /* For arrow alignment */
+        align-items: center;
+        transition: color 0.3s ease;
+      }
+      .dark .helper-card-name {
+        color: #EEEEEE; /* dark.text */
+      }
+      .helper-card-name:hover {
+        color: #FFB800; /* Primary button color for hover */
+      }
+      .dark .helper-card-name:hover {
+        color: #F0C95D; /* dark.secondary.DEFAULT */
+      }
+      .helper-card-name .name-arrow {
+        opacity: 0;
+        transform: translateX(-5px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+        margin-left: 5px;
+        font-size: 16px;
+      }
+      .helper-card-name:hover .name-arrow {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      .helper-card-header-location {
+        font-size: 13px;
+        color: #555555;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        margin-top: 2px;
+      }
+      .dark .helper-card-header-location {
+        color: #BBBBBB; /* dark.textMuted */
+      }
+      .helper-card-main-title {
+        font-size: 22px;
+        font-weight: 700;
+        color: #333333;
+        margin: 6px 0;
+        line-height: 1.2;
+      }
+      .dark .helper-card-main-title {
+        color: #EEEEEE; /* dark.text */
+      }
+      .helper-card-subtitle {
+        font-size: 16px; /* Adjusted from 18px to save space */
+        color: #444444;
+        margin-bottom: 8px;
+        line-height: 1.3;
+      }
+      .dark .helper-card-subtitle {
+        color: #DDDDDD;
+      }
+      .helper-card-categories {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px; /* Reduced gap */
+        padding: 10px 16px; /* Adjusted padding */
+      }
+      .helper-card-category-pill {
+        background-color: rgba(138, 43, 226, 0.1);
+        color: rgb(138, 43, 226);
+        padding: 4px 10px; /* Reduced padding */
+        border-radius: 16px;
+        font-size: 12px; /* Reduced font size */
+        font-weight: 500;
+      }
+      .dark .helper-card-category-pill {
+        background-color: rgba(138, 43, 226, 0.2);
+        color: rgb(190, 130, 255);
+      }
+      .helper-card-info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px; /* Reduced gap */
+        padding: 12px 16px; /* Adjusted padding */
+      }
+      .helper-card-info-item {
+        display: flex;
+        align-items: center;
+        font-size: 13px; /* Reduced font size */
+        color: #555555;
+      }
+      .dark .helper-card-info-item {
+        color: #BBBBBB; /* dark.textMuted */
+      }
+      .helper-card-info-item svg, .helper-card-info-item .info-icon {
+        width: 14px;
+        height: 14px;
+        margin-right: 6px;
+        color: #777777;
+        flex-shrink: 0;
+      }
+      .dark .helper-card-info-item svg, .dark .helper-card-info-item .info-icon {
+        color: #999999;
+      }
+      .helper-card-details-box {
+        background-color: #F8F8F8;
+        padding: 12px 16px; /* Adjusted padding */
+        margin: 12px 16px; /* Add margin */
+        border-radius: 10px;
+      }
+      .dark .helper-card-details-box {
+        background-color: #333333; /* dark.inputBg */
+      }
+      .helper-card-details-title {
+        font-size: 15px; /* Adjusted */
+        font-weight: 600;
+        color: #333333;
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .dark .helper-card-details-title {
+        color: #EEEEEE; /* dark.text */
+      }
+      .helper-card-details-title svg, .helper-card-details-title .details-icon {
+        width: 16px;
+        height: 16px;
+        margin-right: 6px;
+        color: #777777;
+      }
+      .dark .helper-card-details-title svg, .dark .helper-card-details-title .details-icon {
+        color: #999999;
+      }
+      .helper-card-details-box ul {
+        list-style-type: none;
+        padding-left: 0;
+        margin: 0;
+      }
+      .helper-card-details-box li {
+        padding-left: 18px; /* Adjusted */
+        position: relative;
+        margin-bottom: 5px; /* Adjusted */
+        font-size: 13px; /* Reduced font size */
+        line-height: 1.5; /* Adjusted */
+        color: #555555;
+      }
+      .dark .helper-card-details-box li {
+        color: #BBBBBB; /* dark.textMuted */
+      }
+      .helper-card-details-box li::before {
+        content: '•';
+        color: #FFB800; /* Primary button color */
+        font-size: 18px; /* Adjusted */
+        position: absolute;
+        left: 0;
+        top: -2px; /* Adjusted for new line-height/font-size */
+      }
+      .dark .helper-card-details-box li::before {
+        color: #F0C95D; /* dark.secondary.DEFAULT */
+      }
+      .helper-card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px; /* Adjusted padding */
+        border-top: 1px solid #E0E0E0;
+      }
+      .dark .helper-card-footer {
+        border-top-color: #555555; /* dark.border */
+      }
+      .helper-card-posted-time {
+        font-size: 12px; /* Reduced font size */
+        color: #777777;
+        display: flex;
+        align-items: center;
+      }
+      .dark .helper-card-posted-time {
+        color: #999999;
+      }
+      .helper-card-posted-time svg, .helper-card-posted-time .time-icon {
+        width: 12px;
+        height: 12px;
+        margin-right: 4px;
+      }
+      .helper-card-action-buttons {
+        display: flex;
+        gap: 8px; /* Reduced gap */
+      }
+
+      /* Button styles for HelperCard */
+      .helper-card-button {
+        padding: 6px 12px; /* Reduced padding */
+        border-radius: 8px;
+        font-size: 13px; /* Reduced font size */
+        font-weight: 500;
+        transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+      }
+      .helper-card-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .helper-card-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: translateY(0);
+        box-shadow: none;
+      }
+      .helper-card-button-primary {
+        background-color: #FFB800;
+        color: white;
+      }
+      .helper-card-button-primary:hover:not(:disabled) {
+        background-color: #FF9500;
+      }
+      .dark .helper-card-button-primary {
+        background-color: #F0C95D; /* dark.secondary.DEFAULT */
+        color: #2B2B2B; /* dark.textOnSecondaryDark */
+      }
+      .dark .helper-card-button-primary:hover:not(:disabled) {
+        background-color: #E8BF4A; /* dark.secondary.hover */
+      }
+
+      .helper-card-button-secondary { /* Used for "Bump" or less prominent actions */
+        background-color: transparent;
+        color: #FFB800;
+        border: 1.5px solid #FFB800;
+      }
+      .helper-card-button-secondary:hover:not(:disabled) {
+        background-color: #FFB800;
+        color: white;
+      }
+      .dark .helper-card-button-secondary {
+        color: #F0C95D; /* dark.secondary.DEFAULT */
+        border-color: #F0C95D;
+      }
+      .dark .helper-card-button-secondary:hover:not(:disabled) {
+        background-color: #F0C95D;
+        color: #2B2B2B; /* dark.textOnSecondaryDark */
+      }
+
+      /* Trust Badges (for header) */
+      .helper-card-trust-badges {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .helper-card-trust-badge {
+        font-size: 11px; /* Adjusted */
+        padding: 3px 8px; /* Adjusted */
+        border-radius: 12px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+      }
+
+      /* Status Banners */
+      .helper-card-status-banner {
+        padding: 6px 12px;
+        font-size: 13px;
+        font-weight: 500;
+        text-align: center;
+        border-bottom: 1px solid; /* Separator, color will be specific */
+      }
+      .status-banner-pinned {
+        background-color: #FFFBE5; /* Lighter yellow */
+        color: #D4A017; /* Darker yellow */
+        border-color: #FCEBC5;
+      }
+      .dark .status-banner-pinned {
+        background-color: #4A4230;
+        color: #F0D27F;
+        border-color: #6F5F3E;
+      }
+      .status-banner-unavailable {
+        background-color: #FFF0F0; /* Lighter red */
+        color: #D9534F; /* Darker red */
+        border-color: #F9D4D4;
+      }
+      .dark .status-banner-unavailable {
+        background-color: #4D3232;
+        color: #F08080;
+        border-color: #7C5050;
+      }
+      .status-banner-expired {
+        background-color: #F5F5F5; /* Lighter gray */
+        color: #777777; /* Darker gray */
+        border-color: #E0E0E0;
+      }
+      .dark .status-banner-expired {
+        background-color: #3E3E3E;
+        color: #AAAAAA;
+        border-color: #555555;
+      }
+      .status-banner-suspicious {
+        background-color: #FFEBEB; /* Lightest red/pink */
+        color: #E53E3E; /* Strong red */
+        border-color: #FED7D7;
+      }
+      .dark .status-banner-suspicious {
+        background-color: #522A2A;
+        color: #FC8181;
+        border-color: #8C4343;
+      }
+
+      /* Line clamp for details */
+      .details-line-clamp {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 400px) {
+        .helper-card-header { padding: 12px; }
+        .helper-card-avatar { width: 60px; height: 60px; margin-bottom: 6px; }
+        .helper-card-name { font-size: 18px; }
+        .helper-card-header-location { font-size: 12px; }
+        .helper-card-main-title { font-size: 20px; margin: 4px 0; }
+        .helper-card-subtitle { font-size: 15px; margin-bottom: 6px; }
+        .helper-card-categories { padding: 8px 12px; gap: 4px; }
+        .helper-card-category-pill { font-size: 11px; padding: 3px 8px; }
+        .helper-card-info-grid { grid-template-columns: 1fr; padding: 10px 12px; gap: 6px; } /* Stack on smallest screens */
+        .helper-card-info-item { font-size: 12px; }
+        .helper-card-details-box { padding: 10px 12px; margin: 10px 12px; }
+        .helper-card-details-title { font-size: 14px; }
+        .helper-card-details-box li { font-size: 12px; padding-left: 16px; }
+        .helper-card-footer { padding: 10px 12px; flex-direction: column; gap: 8px; }
+        .helper-card-action-buttons { width: 100%; justify-content: space-around; }
+        .helper-card-button { width: 100%; } /* Make footer buttons full width on mobile */
+        .helper-card-button-secondary { width: 100%; }
+      }
+
     </style>
   <script type="importmap">
 {
