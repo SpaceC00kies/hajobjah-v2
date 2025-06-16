@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import type { EnrichedHelperProfile, User } from '../types';
 import { View, Province, ACTIVITY_BADGE_DETAILS } from '../types';
@@ -14,6 +15,7 @@ interface HelperCardProps {
   currentUser: User | null;
   requestLoginForAction: (view: View, payload?: any) => void;
   onBumpProfile: (profileId: string) => void;
+  onEditProfileFromFindView?: (profileId: string) => void; // New prop for editing from FindHelpers
 }
 
 const FallbackAvatarDisplay: React.FC<{ name?: string, size?: string, className?: string }> = ({ name, size = "w-[80px] h-[80px]", className = "" }) => { 
@@ -78,7 +80,16 @@ const TrustBadgesCompact: React.FC<{ profile: EnrichedHelperProfile, user: User 
 };
 
 
-export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPublicProfile, navigateTo, onLogHelperContact, currentUser, requestLoginForAction, onBumpProfile }) => {
+export const HelperCard: React.FC<HelperCardProps> = ({ 
+    profile, 
+    onNavigateToPublicProfile, 
+    navigateTo, 
+    onLogHelperContact, 
+    currentUser, 
+    requestLoginForAction, 
+    onBumpProfile,
+    onEditProfileFromFindView 
+}) => {
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
   const [showFullDetails, setShowFullDetails] = useState(false);
@@ -253,13 +264,23 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
                 🚀 Bump {canBump ? '' : `(${bumpDaysRemaining}d)`}
               </button>
             )}
-            <button
-              onClick={handleContact}
-              className="helper-card-button helper-card-button-primary"
-              disabled={profile.isUnavailable || profileIsTrulyExpired || currentUser?.id === profile.userId}
-            >
-              {profile.isUnavailable ? '🚫 ไม่ว่าง' : profileIsTrulyExpired ? '⛔ หมดอายุ' : (currentUser?.id === profile.userId ? '👤 โปรไฟล์คุณ' : 'ติดต่อ')}
-            </button>
+            {onEditProfileFromFindView && currentUser?.id === profile.userId ? (
+                 <button
+                    onClick={() => onEditProfileFromFindView(profile.id)}
+                    className="helper-card-button helper-card-button-primary" // Or a different style for "Edit"
+                    disabled={profileIsTrulyExpired}
+                >
+                    ✏️ แก้ไข
+                </button>
+            ) : (
+                <button
+                  onClick={handleContact}
+                  className="helper-card-button helper-card-button-primary"
+                  disabled={profile.isUnavailable || profileIsTrulyExpired || currentUser?.id === profile.userId}
+                >
+                  {profile.isUnavailable ? '🚫 ไม่ว่าง' : profileIsTrulyExpired ? '⛔ หมดอายุ' : (currentUser?.id === profile.userId ? '👤 โปรไฟล์คุณ' : 'ติดต่อ')}
+                </button>
+            )}
           </div>
         </div>
       </div>

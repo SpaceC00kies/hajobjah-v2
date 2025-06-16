@@ -1731,15 +1731,30 @@ const App: React.FC = () => {
     }
   };
 
+  const handleEditOwnHelperProfileFromFindView = (profileId: string) => {
+    const profileToEdit = allHelperProfilesForAdmin.find(p => p.id === profileId);
+    if (profileToEdit && currentUser && profileToEdit.userId === currentUser.id) {
+        setItemToEdit(profileToEdit);
+        setEditingItemType('profile');
+        setSourceViewForForm(View.FindHelpers); // Set source view
+        navigateTo(View.OfferHelp);
+    } else {
+        alert("ไม่สามารถแก้ไขโปรไฟล์นี้ได้");
+    }
+  };
+
   const renderFindHelpers = () => {
     let emptyStateMessage = "ยังไม่มีผู้เสนอตัวช่วยงานในขณะนี้";
     if (helperSearchTerm.trim() && selectedHelperCategoryFilter !== 'all') emptyStateMessage = `ไม่พบผู้ช่วยที่ตรงกับคำค้นหา "${helperSearchTerm}" ในหมวดหมู่ "${selectedHelperCategoryFilter}"`;
     else if (helperSearchTerm.trim()) emptyStateMessage = `ไม่พบผู้ช่วยที่ตรงกับคำค้นหา "${helperSearchTerm}"`;
     else if (selectedHelperCategoryFilter !== 'all') emptyStateMessage = `ไม่พบผู้ช่วยในหมวดหมู่ "${selectedHelperCategoryFilter}"`;
 
-    const activeHelperProfiles = helperProfilesList.filter(p => !isDateInPast(p.expiresAt) && !p.isExpired);
+    const activeAndAvailableHelperProfiles = helperProfilesList.filter(p =>
+      !p.isUnavailable &&
+      !(p.isExpired || (p.expiresAt ? isDateInPast(p.expiresAt) : false))
+    );
 
-    const enrichedHelperProfilesList: EnrichedHelperProfile[] = activeHelperProfiles.map(hp => {
+    const enrichedHelperProfilesList: EnrichedHelperProfile[] = activeAndAvailableHelperProfiles.map(hp => {
       const user = users.find(u => u.id === hp.userId);
       return { ...hp, userPhoto: user?.photo, userAddress: user?.address, verifiedExperienceBadge: hp.adminVerifiedExperience || false, profileCompleteBadge: user?.profileComplete || false, warningBadge: hp.isSuspicious || false, interestedCount: hp.interestedCount || 0, };
     });
@@ -1772,7 +1787,19 @@ const App: React.FC = () => {
             )}
             {enrichedHelperProfilesList.length > 0 && (
                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {enrichedHelperProfilesList.map(profile => (<HelperCard key={profile.id} profile={profile} onNavigateToPublicProfile={handleNavigateToPublicProfile} navigateTo={navigateTo} onLogHelperContact={() => handleLogHelperContactInteraction(profile.id)} currentUser={currentUser} requestLoginForAction={requestLoginForAction} onBumpProfile={(id) => handleBumpHelperProfile(id, loadHelpers)} />))}
+                    {enrichedHelperProfilesList.map(profile => (
+                        <HelperCard
+                            key={profile.id}
+                            profile={profile}
+                            onNavigateToPublicProfile={handleNavigateToPublicProfile}
+                            navigateTo={navigateTo}
+                            onLogHelperContact={() => handleLogHelperContactInteraction(profile.id)}
+                            currentUser={currentUser}
+                            requestLoginForAction={requestLoginForAction}
+                            onBumpProfile={(id) => handleBumpHelperProfile(id, loadHelpers)}
+                            onEditProfileFromFindView={currentUser?.id === profile.userId ? handleEditOwnHelperProfileFromFindView : undefined}
+                        />
+                    ))}
                  </div>
             )}
             <div ref={helpersLoaderRef} className="h-10 flex justify-center items-center">
