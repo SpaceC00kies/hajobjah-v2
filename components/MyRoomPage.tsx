@@ -357,7 +357,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
                 <Button 
                   onClick={() => onBumpProfile(profile.id)} 
                   variant="outline" 
-                  colorScheme="primary" 
+                  colorScheme="neutral" // Changed to neutral
                   size="sm" 
                   disabled={!canBumpProfile || profile.isSuspicious} 
                   title={canBumpProfile ? "Bump โปรไฟล์ของคุณขึ้นไปบนสุด" : profile.isSuspicious ? "ไม่สามารถ Bump โปรไฟล์ที่ถูกระงับ" : `รออีก ${bumpDaysLeft} วัน`}
@@ -378,7 +378,12 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
       {userWebboardPosts.length === 0 ? (
         <div className="text-center py-8">
           <p className="text-neutral-medium dark:text-dark-textMuted mb-4">คุณยังไม่ได้สร้างกระทู้</p>
-          <Button onClick={() => navigateTo(View.Webboard, 'create')} variant="accent" size="sm">
+          <Button 
+            onClick={() => navigateTo(View.Webboard, 'create')} 
+            variant="outline" // Changed variant
+            colorScheme="neutral" // Changed colorScheme
+            size="sm"
+          >
             + สร้างกระทู้ใหม่
           </Button>
         </div>
