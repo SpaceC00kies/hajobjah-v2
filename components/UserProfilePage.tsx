@@ -255,7 +255,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             placeholder="เช่น Puuna V."
           />
            <p className="text-xs font-sans text-neutral-medium dark:text-dark-textMuted mt-1">
-              ชื่อนี้จะแสดงบนเว็บไซต์ (ไทย/อังกฤษ, 2-30 ตัวอักษร, อนุญาต เว้นวรรค, จุด) เช่น Puuna V.
+              ชื่อนี้จะแสดงบนเว็บไซต์ (ไทย/อังกฤษ, 2-30 ตัวอักษร, อนุญาต เว้นวรรค, จุด) เช่น 'Sunny Y.'
             </p>
           {errors.publicDisplayName && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.publicDisplayName}</p>}
         </div>
@@ -286,7 +286,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
 
         <div className="pt-4 border-t border-neutral-DEFAULT/50 dark:border-dark-border/30">
             <label htmlFor="profile-introSentence" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
-                💬 เกี่ยวกับฉันสั้นๆ
+                💬 เกี่ยวกับฉัน
             </label>
             <textarea
                 id="profile-introSentence"
@@ -302,7 +302,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
         <details className="group pt-4 border-t border-neutral-DEFAULT/50 dark:border-dark-border/30" open>
           <summary className="flex items-center justify-between cursor-pointer list-none p-2 -ml-2 rounded-md hover:bg-neutral-light/50 dark:hover:bg-dark-inputBg/30 transition-colors">
             <h3 className="text-lg font-sans font-medium text-neutral-dark dark:text-dark-text">
-              ข้อมูลส่วนตัวพื้นฐาน
+              ข้อมูลส่วนตัว
             </h3>
             <span className="text-secondary dark:text-dark-secondary-DEFAULT transform transition-transform duration-200 group-open:rotate-90">
               ▶
