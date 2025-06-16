@@ -502,8 +502,22 @@
         .helper-card-details-box { padding: 10px 12px; margin: 10px 12px; }
         .helper-card-details-title { font-size: 14px; }
         .helper-card-details-box li { font-size: 12px; }
-        .helper-card-footer { padding: 10px 12px; flex-direction: column; gap: 8px; }
-        .helper-card-action-buttons { width: 100%; justify-content: space-around; }
+        
+        .helper-card-footer { 
+          padding: 10px 12px; 
+          flex-direction: column; 
+          gap: 8px; 
+        }
+        .helper-card-action-buttons { 
+          order: 1; /* Action buttons appear first */
+          width: 100%; 
+          justify-content: space-around; 
+        }
+        .helper-card-posted-time {
+          order: 2; /* Timestamp appears second */
+          width: 100%;
+          text-align: center;
+        }
         .helper-card-button { width: 100%; } 
         .helper-card-button-secondary { width: 100%; }
       }
