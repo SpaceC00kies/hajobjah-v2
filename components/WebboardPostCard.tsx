@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react'; // Added useEffect, useRef
 import type { EnrichedWebboardPost, User } from '../types';
 import { UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES } 
 from '../types';
@@ -24,13 +24,12 @@ const Icon = ({ path, className = "w-4 h-4" }: { path: string; className?: strin
   </svg>
 );
 
-const LikeIcon = () => <Icon path="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" />;
-const LikedIcon = () => <Icon path="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" className="w-4 h-4 text-red-500 dark:text-red-400" />; // Specific color for liked
-const CommentIcon = () => <Icon path="M18 10c0 3.866-3.582 7-8 7a8.839 8.839 0 01-4.083-.98L2 17l1.338-3.121A8.005 8.005 0 012 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" />;
-const SaveIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" />;
+const LikeIcon = () => <Icon path="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />;
+const LikedIcon = () => <Icon path="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" className="w-4 h-4 text-red-500 dark:text-red-400" />;
+const CommentIcon = () => <Icon path="M18 10c0 3.866-3.582 7-8 7a8.839 8.839 0 01-4.083-.98L2 17l1.338-3.121A8.005 8.005 0 012 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />;
+const SaveIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />;
 const SavedIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" className="w-4 h-4 text-blue-500 dark:text-blue-400"/>;
-const ShareIcon = () => <Icon path="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />;
-// EditIcon, DeleteIcon, PinIconAdmin removed as they are no longer used on the card
+const ShareIcon = () => <Icon path="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />;
 
 
 export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
@@ -45,6 +44,19 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
 }) => {
   const hasLiked = currentUser && post.likes.includes(currentUser.id);
   const isSaved = currentUser?.savedWebboardPosts?.includes(post.id) || false;
+  
+  const [isAnimatingLike, setIsAnimatingLike] = useState(false);
+  const prevHasLikedRef = useRef(hasLiked);
+
+  useEffect(() => {
+    if (hasLiked && !prevHasLikedRef.current) {
+      setIsAnimatingLike(true);
+      const timer = setTimeout(() => setIsAnimatingLike(false), 300); // Duration of animation CSS
+      return () => clearTimeout(timer);
+    }
+    prevHasLikedRef.current = hasLiked;
+  }, [hasLiked]);
+
 
   const timeSince = (dateInput: string | Date | null | undefined): string => {
     if (dateInput === null || dateInput === undefined) return "just now";
@@ -66,12 +78,12 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
   };
 
   const handleLikeClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click
+    e.stopPropagation(); 
     if (!currentUser) {
       requestLoginForAction(View.Webboard, { action: 'like', postId: post.id });
     } else {
       onToggleLike(post.id);
-      triggerHapticFeedback(15); // Add haptic feedback
+      triggerHapticFeedback(15); 
     }
   };
   
@@ -86,11 +98,8 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
     onSharePost(post.id, post.title);
   };
   
-  // handleEditClick, handleDeleteClick, handlePinClick removed
-
   const categoryStyle = WEBBOARD_CATEGORY_STYLES[post.category] || WEBBOARD_CATEGORY_STYLES[WebboardCategory.General];
   const actionButtonClass = "flex items-center gap-1 p-1.5 rounded-md hover:bg-neutral-light dark:hover:bg-dark-inputBg focus:outline-none focus:ring-1 focus:ring-neutral-DEFAULT dark:focus:ring-dark-border";
-  // const actionIconClass = "w-4 h-4 text-neutral-medium dark:text-dark-textMuted"; // No longer needed if icons are styled directly
 
 
   return (
@@ -144,24 +153,25 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
         </div>
 
         <div className="flex items-center justify-start text-xs text-neutral-medium dark:text-dark-textMuted mt-2 space-x-2 sm:space-x-3 flex-wrap">
-          <button onClick={handleLikeClick} className={`${actionButtonClass} ${hasLiked ? 'text-red-500 dark:text-red-400' : ''}`} aria-pressed={hasLiked} aria-label={hasLiked ? "Unlike" : "Like"}>
-            {hasLiked ? <LikedIcon /> : <LikeIcon />} <span>{post.likes.length}</span>
+          <button onClick={handleLikeClick} className={`${actionButtonClass}`} aria-pressed={hasLiked} aria-label={hasLiked ? "Unlike" : "Like"}>
+            <span className={`${isAnimatingLike ? 'animate-like-heart' : ''} inline-block`}>
+              {hasLiked ? <LikedIcon /> : <LikeIcon />}
+            </span>
+            <span className={`${hasLiked ? 'text-red-500 dark:text-red-400' : 'text-neutral-500 dark:text-neutral-400'}`}>{post.likes.length}</span>
           </button>
-          <span className={actionButtonClass}> {/* Not a button if just for display */}
+          <button onClick={() => onViewPost(post.id)} className={`${actionButtonClass} text-neutral-500 dark:text-neutral-400`} aria-label="View comments"> {/* Make comment icon clickable as well */}
             <CommentIcon /> <span>{post.commentCount}</span>
-          </span>
+          </button>
           {currentUser && (
             <>
-              <button onClick={handleSaveClick} className={`${actionButtonClass} ${isSaved ? 'text-blue-500 dark:text-blue-400' : ''}`} aria-pressed={isSaved} aria-label={isSaved ? "Unsave" : "Save"}>
-                {isSaved ? <SavedIcon/> : <SaveIcon />} <span className="hidden sm:inline">{isSaved ? 'Saved' : 'Save'}</span>
+              <button onClick={handleSaveClick} className={`${actionButtonClass}`} aria-pressed={isSaved} aria-label={isSaved ? "Unsave" : "Save"}>
+                {isSaved ? <SavedIcon/> : <SaveIcon />} <span className={`hidden sm:inline ${isSaved ? 'text-blue-500 dark:text-blue-400' : 'text-neutral-500 dark:text-neutral-400'}`}>{isSaved ? 'Saved' : 'Save'}</span>
               </button>
-              <button onClick={handleShareClick} className={actionButtonClass} aria-label="Share">
+              <button onClick={handleShareClick} className={`${actionButtonClass} text-neutral-500 dark:text-neutral-400`} aria-label="Share">
                 <ShareIcon /> <span className="hidden sm:inline">Share</span>
               </button>
             </>
           )}
-          
-          {/* Admin/Author actions (Edit, Delete, Pin) removed from here */}
         </div>
       </div>
     </div>

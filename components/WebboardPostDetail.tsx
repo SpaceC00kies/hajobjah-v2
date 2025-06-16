@@ -1,4 +1,4 @@
-import React, { useState } from 'react'; // Added useState
+import React, { useState, useEffect, useRef } from 'react'; // Added useState, useEffect, useRef
 import type { EnrichedWebboardPost, EnrichedWebboardComment, User } from '../types';
 import { USER_LEVELS, UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES } 
 from '../types';
@@ -14,8 +14,8 @@ interface WebboardPostDetailProps {
   currentUser: User | null;
   users: User[]; 
   onToggleLike: (postId: string) => void;
-  onSavePost: (postId: string) => void; // New prop
-  onSharePost: (postId: string, postTitle: string) => void; // New prop
+  onSavePost: (postId: string) => void; 
+  onSharePost: (postId: string, postTitle: string) => void; 
   onAddComment: (postId:string, text: string) => void;
   onDeletePost: (postId: string) => void;
   onPinPost: (postId: string) => void;
@@ -45,11 +45,11 @@ const Icon = ({ path, className = "w-5 h-5" }: { path: string; className?: strin
     <path fillRule="evenodd" d={path} clipRule="evenodd" />
   </svg>
 );
-const LikeIcon = () => <Icon path="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" />;
+const LikeIcon = () => <Icon path="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" className="w-5 h-5 text-neutral-500 dark:text-neutral-400" />;
 const LikedIcon = () => <Icon path="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" className="w-5 h-5 text-red-500 dark:text-red-400" />;
-const SaveIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" />;
+const SaveIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" className="w-5 h-5 text-neutral-500 dark:text-neutral-400" />;
 const SavedIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" className="w-5 h-5 text-blue-500 dark:text-blue-400"/>;
-const ShareIcon = () => <Icon path="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />;
+const ShareIcon = () => <Icon path="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" className="w-5 h-5 text-neutral-500 dark:text-neutral-400" />;
 
 
 export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
@@ -70,7 +70,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
   onNavigateToPublicProfile,
   checkWebboardCommentLimits,
 }) => {
-  const [copiedLink, setCopiedLink] = useState(false); // For share feedback
+  const [copiedLink, setCopiedLink] = useState(false); 
 
   const isAuthor = currentUser?.id === post.userId;
   const isAdmin = currentUser?.role === UserRole.Admin;
@@ -81,6 +81,18 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
   const canModeratorDeletePost = isModerator && !post.isAuthorAdmin;
   const canEditPost = isAuthor || isAdmin || (isModerator && !post.isAuthorAdmin);
   const canDeletePost = isAuthor || isAdmin || canModeratorDeletePost;
+
+  const [isAnimatingLike, setIsAnimatingLike] = useState(false);
+  const prevHasLikedRef = useRef(hasLiked);
+
+  useEffect(() => {
+    if (hasLiked && !prevHasLikedRef.current) {
+      setIsAnimatingLike(true);
+      const timer = setTimeout(() => setIsAnimatingLike(false), 300); // Duration of animation CSS
+      return () => clearTimeout(timer);
+    }
+    prevHasLikedRef.current = hasLiked;
+  }, [hasLiked]);
 
 
   const timeSince = (dateInput: string | Date | null | undefined): string => {
@@ -109,7 +121,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
       requestLoginForAction(View.Webboard, { action: 'like', postId: post.id });
     } else {
       onToggleLike(post.id);
-      triggerHapticFeedback(15); // Add haptic feedback
+      triggerHapticFeedback(15); 
     }
   };
 
@@ -149,7 +161,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
       <div className="flex items-center mb-4 pb-3 border-b border-neutral-DEFAULT/30 dark:border-dark-border/30">
         <FallbackAvatarLarge name={post.authorDisplayName} photo={postAuthor?.photo || post.authorPhoto} className="mr-3 flex-shrink-0" />
         <div className="font-sans">
-          <div className="flex items-baseline"> {/* Use baseline for better alignment if font sizes differ */}
+          <div className="flex items-baseline"> 
             <span 
               className="text-sm font-semibold text-gray-800 dark:text-gray-200 hover:underline cursor-pointer"
               onClick={() => onNavigateToPublicProfile(post.userId)}
@@ -157,7 +169,6 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
             >
               @{post.authorDisplayName}
             </span>
-            {/* UserLevelBadge removed from here */}
             <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
               · {timeSince(post.createdAt)}
               {post.updatedAt && new Date(post.updatedAt).getTime() !== new Date(post.createdAt).getTime() && 
@@ -182,16 +193,20 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
         <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={handleLikeClick}
-            className={`${actionButtonClass} ${hasLiked ? 'text-red-500 dark:text-red-400' : 'text-neutral-500 dark:text-neutral-400'}`}
+            className={`${actionButtonClass}`}
             aria-pressed={hasLiked}
             aria-label={hasLiked ? "Unlike post" : "Like post"}
           >
-            {hasLiked ? <LikedIcon /> : <LikeIcon />} <span className="font-medium">{post.likes.length}</span>
+            <span className={`${isAnimatingLike ? 'animate-like-heart' : ''} inline-block`}>
+              {hasLiked ? <LikedIcon /> : <LikeIcon />}
+            </span>
+            <span className={`font-medium ${hasLiked ? 'text-red-500 dark:text-red-400' : 'text-neutral-500 dark:text-neutral-400'}`}>{post.likes.length}</span>
           </button>
           {currentUser && (
             <>
-            <button onClick={handleSaveClick} className={`${actionButtonClass} ${isSaved ? 'text-blue-500 dark:text-blue-400' : 'text-neutral-500 dark:text-neutral-400'}`} aria-pressed={isSaved} aria-label={isSaved ? "Unsave post" : "Save post"}>
-              {isSaved ? <SavedIcon/> : <SaveIcon />} <span className="hidden sm:inline">{isSaved ? 'Saved' : 'Save'}</span>
+            <button onClick={handleSaveClick} className={`${actionButtonClass}`} aria-pressed={isSaved} aria-label={isSaved ? "Unsave post" : "Save post"}>
+              {isSaved ? <SavedIcon/> : <SaveIcon />} 
+              <span className={`hidden sm:inline ${isSaved ? 'text-blue-500 dark:text-blue-400' : 'text-neutral-500 dark:text-neutral-400'}`}>{isSaved ? 'Saved' : 'Save'}</span>
             </button>
             <div className="relative">
                 <button onClick={handleShareClick} className={`${actionButtonClass} text-neutral-500 dark:text-neutral-400`} aria-label="Share post">
@@ -242,7 +257,6 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
                     const commenter = users.find(u => u.id === comment.userId);
                     const enrichedComment: EnrichedWebboardComment = {
                         ...comment,
-                        // authorLevel: comment.authorLevel, // Badge removed
                         authorPhoto: commenter?.photo || comment.authorPhoto,
                         isAuthorAdmin: commenter?.role === UserRole.Admin,
                     };
