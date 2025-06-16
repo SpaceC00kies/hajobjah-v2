@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import type { EnrichedHelperProfile, User } from '../types';
 import { View, Province, ACTIVITY_BADGE_DETAILS } from '../types';
 import { Modal } from './Modal';
-import { Button } from './Button'; // Added import
+import { Button } from './Button'; 
 import { isDateInPast, calculateDaysRemaining } from '../App';
-import { UserLevelBadge } from './UserLevelBadge'; // Re-added for activity badge
+import { UserLevelBadge } from './UserLevelBadge'; 
 
 interface HelperCardProps {
   profile: EnrichedHelperProfile;
@@ -68,7 +67,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
   const [showFullDetails, setShowFullDetails] = useState(false);
   
-  const userForBadges = profile.userId === currentUser?.id ? currentUser : undefined; // Simplified for badges, needs full user data if not current user
+  const userForBadges = profile.userId === currentUser?.id ? currentUser : undefined;
 
   const handleContact = () => {
     if (!currentUser) {
@@ -100,7 +99,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
   const displayDetails = showFullDetails || !detailsNeedsTruncation || (currentUser && !profileIsTrulyExpired) ? profile.details : `${profile.details.substring(0, 120)}...`;
 
   const toggleShowFullDetails = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click if "read more" is clicked
+    e.stopPropagation(); 
     if (!currentUser && (detailsNeedsTruncation || profileIsTrulyExpired)) {
       requestLoginForAction(View.FindHelpers, { focusOnPostId: profile.id, type: 'helper' });
     } else {
@@ -118,12 +117,14 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
         availabilityParts.push(`ถึง ${formatDateDisplay(profile.availabilityDateTo)}`);
     }
     if(profile.availabilityTimeDetails) availabilityParts.push(profile.availabilityTimeDetails);
-    if(profile.availability && availabilityParts.length === 0) availabilityParts.push(profile.availability); // Fallback to old availability
+    if(profile.availability && availabilityParts.length === 0) availabilityParts.push(profile.availability);
     
     let combined = availabilityParts.join(', ');
     if (combined.length > 50) combined = combined.substring(0, 47) + "...";
     return combined || "ตามตกลง";
   };
+
+  const categoryDisplayString = profile.category + (profile.subCategory ? ` - ${profile.subCategory}` : '');
 
   return (
     <>
@@ -142,56 +143,69 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
         )}
 
         <div className="helper-card-header">
-          <img
-            src={profile.userPhoto || ''}
-            alt={profile.authorDisplayName}
-            className="helper-card-avatar"
-            onClick={() => onNavigateToPublicProfile(profile.userId)}
-            onError={(e) => (e.currentTarget.style.display = 'none')} // Hide img if error
-          />
-          {!profile.userPhoto && <FallbackAvatarDisplay name={profile.authorDisplayName} className="helper-card-avatar" />}
-
-          <h3 className="helper-card-name" onClick={() => onNavigateToPublicProfile(profile.userId)}>
-            {profile.authorDisplayName}
-            <span className="name-arrow">→</span>
-          </h3>
+          {categoryDisplayString && (
+            <div className="helper-card-top-category" title={categoryDisplayString}>
+              {categoryDisplayString}
+            </div>
+          )}
+          <div className="helper-card-avatar-container">
+            {profile.userPhoto ? (
+                <img
+                    src={profile.userPhoto}
+                    alt={profile.authorDisplayName}
+                    className="helper-card-avatar"
+                    onClick={() => onNavigateToPublicProfile(profile.userId)}
+                    onError={(e) => (e.currentTarget.style.display = 'none')} 
+                />
+            ) : (
+                 <FallbackAvatarDisplay name={profile.authorDisplayName} className="helper-card-avatar" />
+            )}
+            {/* Conditional rendering for fallback if image fails to load and was initially present */}
+            {profile.userPhoto && (
+                <img src="" alt="" style={{display: 'none'}} onError={() => {
+                    // This is a bit of a hack. If the primary image fails, we render the fallback.
+                    // Ideally, this logic would be cleaner, perhaps state-driven if more complex error handling is needed.
+                    const avatarImg = document.querySelector(`.helper-card-avatar[src="${profile.userPhoto}"]`);
+                    if (avatarImg && !avatarImg.nextElementSibling?.classList.contains('fallback-avatar-rendered')) {
+                        const fallbackNode = document.createElement('div');
+                        fallbackNode.className = 'helper-card-avatar fallback-avatar-rendered'; // Add a class to prevent multiple fallbacks
+                        const initial = profile.authorDisplayName ? profile.authorDisplayName.charAt(0).toUpperCase() : '👤';
+                        fallbackNode.innerHTML = `<div class="w-full h-full rounded-full bg-neutral dark:bg-dark-inputBg flex items-center justify-center text-3xl font-sans text-white dark:text-dark-text">${initial}</div>`;
+                        avatarImg.parentNode?.insertBefore(fallbackNode, avatarImg.nextSibling);
+                    }
+                }} />
+            )}
+          </div>
+          
+          <div className="helper-card-name-container">
+            <h3 className="helper-card-name" onClick={() => onNavigateToPublicProfile(profile.userId)}>
+              {profile.authorDisplayName}
+              <span className="name-arrow">→</span>
+            </h3>
+          </div>
           <p className="helper-card-header-location">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-              <path fillRule="evenodd" d="M9.69 18.933l.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 00.281-.145l.005-.002.007-.003.017-.006a6.093 6.093 0 00.271-.137l.002-.001.018-.008.004-.002a6.535 6.535 0 00.257-.141l.007-.004.002-.001.015-.007a6.833 6.833 0 00.247-.143l.002-.001a7.261 7.261 0 00.42-.263l.003-.002.003-.002a7.26 7.26 0 00.222-.138l.003-.002.002-.001.005-.003.002-.001a7.52 7.52 0 00.204-.131l.003-.002.002-.001.002-.001a8.056 8.056 0 00.352-.256l.003-.002.002-.001.003-.002a8.058 8.058 0 00.191-.137l.002-.001.002-.001.002-.001.002-.001.002-.001.002-.001a8.806 8.806 0 00.16-.116l.002-.001.002-.001a9.116 9.116 0 00.151-.111l.002-.001a9.84 9.84 0 00.284-.223l.002-.002.002-.001.003-.002a11.53 11.53 0 00.38-.322l.002-.002.002-.002.002-.002a12.068 12.068 0 00.33-.314l.002-.002.002-.002C10 2.5 5.5 7.5 5.5 11.438 5.5 15.094 7.434 18 10 18s4.5-2.906 4.5-6.562c0-2.332-1.556-4.643-2.25-5.654A.75.75 0 0012 6.06v-.003Z" clipRule="evenodd" />
-              <path d="M10 12.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3Z" />
-            </svg>
+            <span className="location-pin-emoji" role="img" aria-label="Location pin">📍</span>
             {profile.province || Province.ChiangMai}
           </p>
           <h4 className="helper-card-main-title" title={profile.profileTitle}>{profile.profileTitle}</h4>
-          {profile.category && <p className="helper-card-subtitle">{profile.category}</p>}
-          <TrustBadgesCompact profile={profile} user={userForBadges || currentUser /* fallback to current user if specific user not found for badges */} />
+          {/* Category removed from subtitle, now in top corner */}
+          <TrustBadgesCompact profile={profile} user={userForBadges || currentUser} />
         </div>
-
-        { (profile.subCategory || profile.category) &&
-          <div className="helper-card-categories">
-            {profile.category && <span className="helper-card-category-pill">{profile.category}</span>}
-            {profile.subCategory && <span className="helper-card-category-pill">{profile.subCategory}</span>}
-          </div>
-        }
         
         <div className="helper-card-info-grid">
+          {/* จังหวัด removed from here */}
           <div className="helper-card-info-item">
-            <span className="info-icon">🏠</span> จังหวัด: {profile.province || Province.ChiangMai}
+            <span className="info-icon" role="img" aria-label="Work area">🌐</span> พื้นที่: {profile.area.length > 30 ? profile.area.substring(0,27) + "..." : profile.area}
           </div>
           <div className="helper-card-info-item">
-            <span className="info-icon">🌐</span> พื้นที่: {profile.area.length > 25 ? profile.area.substring(0,22) + "..." : profile.area}
+            <span className="info-icon" role="img" aria-label="Availability">⏰</span> ความพร้อม: {getAvailabilityText()}
           </div>
-          <div className="helper-card-info-item">
-            <span className="info-icon">⏰</span> ความพร้อม: {getAvailabilityText()}
-          </div>
-          <div className="helper-card-info-item">
-            <span className="info-icon">👥</span> สนใจ: {profile.interestedCount || 0} คน
-          </div>
+          {/* ผู้สนใจ removed from here */}
         </div>
 
         <div className="helper-card-details-box">
           <h5 className="helper-card-details-title">
-            <span className="details-icon">📝</span>เกี่ยวกับฉัน / รายละเอียดงาน
+            เกี่ยวกับฉัน / รายละเอียดงาน
           </h5>
           <ul>
             <li className={detailsNeedsTruncation && !showFullDetails && !(currentUser && !profileIsTrulyExpired) ? "details-line-clamp" : ""}>
@@ -209,9 +223,9 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
           )}
         </div>
         
-        <div className="helper-card-footer mt-auto"> {/* Ensure footer is at bottom if card has fixed height */}
+        <div className="helper-card-footer mt-auto">
           <div className="helper-card-posted-time">
-            <span className="time-icon">🕒</span> โพสต์: {formattedPostedAt}
+            {formattedPostedAt}
           </div>
           <div className="helper-card-action-buttons">
             {currentUser?.id === profile.userId && !profile.isUnavailable && !profileIsTrulyExpired && (

@@ -146,23 +146,34 @@
         background: linear-gradient(to bottom, #FFF4D6, #FFE8A3);
         padding: 16px; /* Reduced padding */
         text-align: center;
-        position: relative;
+        position: relative; /* For absolute positioning of category */
       }
       .dark .helper-card-header {
         background: linear-gradient(to bottom, #4a4230, #413927); /* Darker yellow gradient */
+      }
+      .helper-card-avatar-container { /* New wrapper for avatar */
+        display: flex;
+        justify-content: center;
+        margin-bottom: 8px;
       }
       .helper-card-avatar {
         width: 70px;
         height: 70px;
         border-radius: 50%;
         object-fit: cover;
-        margin: 0 auto 8px;
+        /* margin: 0 auto 8px; Removed auto margin, handled by container */
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         transition: transform 0.3s ease;
         cursor: pointer;
       }
       .helper-card-avatar:hover {
         transform: scale(1.05);
+      }
+      .helper-card-name-container { /* New wrapper for name */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        /* margin-bottom: 4px; */ /* Adjust as needed if header-location is too far */
       }
       .helper-card-name {
         font-size: 20px;
@@ -199,11 +210,14 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 4px;
-        margin-top: 2px;
+        gap: 4px; /* Gap for emoji and text */
+        margin-top: 2px; /* Spacing from name */
       }
       .dark .helper-card-header-location {
         color: #BBBBBB; /* dark.textMuted */
+      }
+      .helper-card-header-location .location-pin-emoji {
+        font-size: 1em; /* Ensure emoji scales with text */
       }
       .helper-card-main-title {
         font-size: 22px;
@@ -215,8 +229,8 @@
       .dark .helper-card-main-title {
         color: #EEEEEE; /* dark.text */
       }
-      .helper-card-subtitle {
-        font-size: 16px; /* Adjusted from 18px to save space */
+      .helper-card-subtitle { /* Now only for actual subtitle, category removed */
+        font-size: 16px; 
         color: #444444;
         margin-bottom: 8px;
         line-height: 1.3;
@@ -224,61 +238,68 @@
       .dark .helper-card-subtitle {
         color: #DDDDDD;
       }
-      .helper-card-categories {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 6px; /* Reduced gap */
-        padding: 10px 16px; /* Adjusted padding */
-      }
-      .helper-card-category-pill {
-        background-color: rgba(138, 43, 226, 0.1);
-        color: rgb(138, 43, 226);
-        padding: 4px 10px; /* Reduced padding */
-        border-radius: 16px;
-        font-size: 12px; /* Reduced font size */
+      /* Removed .helper-card-categories and .helper-card-category-pill */
+      .helper-card-top-category {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background-color: rgba(255, 255, 255, 0.5); /* Semi-transparent white */
+        color: #333;
+        padding: 3px 8px;
+        border-radius: 10px;
+        font-size: 11px;
         font-weight: 500;
+        line-height: 1.2;
+        max-width: 150px; /* Limit width */
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
       }
-      .dark .helper-card-category-pill {
-        background-color: rgba(138, 43, 226, 0.2);
-        color: rgb(190, 130, 255);
+      .dark .helper-card-top-category {
+        background-color: rgba(0, 0, 0, 0.3); /* Semi-transparent black */
+        color: #DDD;
       }
+      
       .helper-card-info-grid {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 8px; /* Reduced gap */
-        padding: 12px 16px; /* Adjusted padding */
+        grid-template-columns: 1fr; /* Changed to 1 column for better alignment with less items */
+        gap: 6px; /* Reduced gap for 1 column layout */
+        padding: 10px 16px; /* Adjusted padding */
       }
       .helper-card-info-item {
         display: flex;
-        align-items: center;
-        font-size: 13px; /* Reduced font size */
+        align-items: flex-start; /* Align items to the start of the flex container */
+        font-size: 13px; 
         color: #555555;
       }
       .dark .helper-card-info-item {
         color: #BBBBBB; /* dark.textMuted */
       }
-      .helper-card-info-item svg, .helper-card-info-item .info-icon {
-        width: 14px;
-        height: 14px;
-        margin-right: 6px;
+      .helper-card-info-item .info-icon {
+        width: 1.2em; /* Relative width for icon */
+        height: 1.2em; /* Relative height for icon */
+        margin-right: 8px; /* Increased margin for better spacing */
         color: #777777;
         flex-shrink: 0;
+        display: inline-flex; /* To center emoji if it's text */
+        align-items: center;
+        justify-content: center;
       }
-      .dark .helper-card-info-item svg, .dark .helper-card-info-item .info-icon {
+      .dark .helper-card-info-item .info-icon {
         color: #999999;
       }
       .helper-card-details-box {
         background-color: #F8F8F8;
-        padding: 12px 16px; /* Adjusted padding */
-        margin: 12px 16px; /* Add margin */
+        padding: 12px 16px; 
+        margin: 12px 16px; 
         border-radius: 10px;
       }
       .dark .helper-card-details-box {
         background-color: #333333; /* dark.inputBg */
       }
       .helper-card-details-title {
-        font-size: 15px; /* Adjusted */
+        font-size: 15px; 
         font-weight: 600;
         color: #333333;
         display: flex;
@@ -288,26 +309,18 @@
       .dark .helper-card-details-title {
         color: #EEEEEE; /* dark.text */
       }
-      .helper-card-details-title svg, .helper-card-details-title .details-icon {
-        width: 16px;
-        height: 16px;
-        margin-right: 6px;
-        color: #777777;
-      }
-      .dark .helper-card-details-title svg, .dark .helper-card-details-title .details-icon {
-        color: #999999;
-      }
+      /* Removed icon styles for details title */
       .helper-card-details-box ul {
         list-style-type: none;
         padding-left: 0;
         margin: 0;
       }
       .helper-card-details-box li {
-        padding-left: 18px; /* Adjusted */
+        padding-left: 18px; 
         position: relative;
-        margin-bottom: 5px; /* Adjusted */
-        font-size: 13px; /* Reduced font size */
-        line-height: 1.5; /* Adjusted */
+        margin-bottom: 5px; 
+        font-size: 13px; 
+        line-height: 1.5; 
         color: #555555;
       }
       .dark .helper-card-details-box li {
@@ -316,10 +329,10 @@
       .helper-card-details-box li::before {
         content: '•';
         color: #FFB800; /* Primary button color */
-        font-size: 18px; /* Adjusted */
+        font-size: 18px; 
         position: absolute;
         left: 0;
-        top: -2px; /* Adjusted for new line-height/font-size */
+        top: -2px; 
       }
       .dark .helper-card-details-box li::before {
         color: #F0C95D; /* dark.secondary.DEFAULT */
@@ -328,36 +341,31 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 12px 16px; /* Adjusted padding */
+        padding: 12px 16px; 
         border-top: 1px solid #E0E0E0;
       }
       .dark .helper-card-footer {
         border-top-color: #555555; /* dark.border */
       }
       .helper-card-posted-time {
-        font-size: 12px; /* Reduced font size */
+        font-size: 12px; 
         color: #777777;
-        display: flex;
-        align-items: center;
+        /* display: flex; align-items: center; */ /* No longer needed for icon */
       }
       .dark .helper-card-posted-time {
         color: #999999;
       }
-      .helper-card-posted-time svg, .helper-card-posted-time .time-icon {
-        width: 12px;
-        height: 12px;
-        margin-right: 4px;
-      }
+      /* Removed icon styles for posted time */
       .helper-card-action-buttons {
         display: flex;
-        gap: 8px; /* Reduced gap */
+        gap: 8px; 
       }
 
       /* Button styles for HelperCard */
       .helper-card-button {
-        padding: 6px 12px; /* Reduced padding */
+        padding: 6px 12px; 
         border-radius: 8px;
-        font-size: 13px; /* Reduced font size */
+        font-size: 13px; 
         font-weight: 500;
         transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
         border: none;
@@ -419,8 +427,8 @@
         margin-top: 8px;
       }
       .helper-card-trust-badge {
-        font-size: 11px; /* Adjusted */
-        padding: 3px 8px; /* Adjusted */
+        font-size: 11px; 
+        padding: 3px 8px; 
         border-radius: 12px;
         font-weight: 500;
         display: inline-flex;
@@ -489,21 +497,30 @@
       /* Responsive adjustments */
       @media (max-width: 400px) {
         .helper-card-header { padding: 12px; }
-        .helper-card-avatar { width: 60px; height: 60px; margin-bottom: 6px; }
+        .helper-card-avatar { width: 60px; height: 60px; }
         .helper-card-name { font-size: 18px; }
         .helper-card-header-location { font-size: 12px; }
         .helper-card-main-title { font-size: 20px; margin: 4px 0; }
         .helper-card-subtitle { font-size: 15px; margin-bottom: 6px; }
-        .helper-card-categories { padding: 8px 12px; gap: 4px; }
-        .helper-card-category-pill { font-size: 11px; padding: 3px 8px; }
-        .helper-card-info-grid { grid-template-columns: 1fr; padding: 10px 12px; gap: 6px; } /* Stack on smallest screens */
+        .helper-card-top-category { font-size: 10px; padding: 2px 6px; top: 6px; right: 6px; }
+
+        /* .helper-card-categories { padding: 8px 12px; gap: 4px; } */ /* Removed */
+        /* .helper-card-category-pill { font-size: 11px; padding: 3px 8px; } */ /* Removed */
+        
+        .helper-card-info-grid { 
+            /* grid-template-columns: 1fr;  Already 1 column from base */
+            padding: 8px 12px; 
+            gap: 5px; 
+        }
         .helper-card-info-item { font-size: 12px; }
+        .helper-card-info-item .info-icon { margin-right: 6px; }
+
         .helper-card-details-box { padding: 10px 12px; margin: 10px 12px; }
         .helper-card-details-title { font-size: 14px; }
         .helper-card-details-box li { font-size: 12px; padding-left: 16px; }
         .helper-card-footer { padding: 10px 12px; flex-direction: column; gap: 8px; }
         .helper-card-action-buttons { width: 100%; justify-content: space-around; }
-        .helper-card-button { width: 100%; } /* Make footer buttons full width on mobile */
+        .helper-card-button { width: 100%; } 
         .helper-card-button-secondary { width: 100%; }
       }
 
