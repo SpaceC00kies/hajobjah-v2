@@ -215,7 +215,7 @@ const App: React.FC = () => {
   
   const [copiedLinkNotification, setCopiedLinkNotification] = useState<string | null>(null);
   const [showCopiedNotificationAnim, setShowCopiedNotificationAnim] = useState(false);
-  const copiedNotificationTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const copiedNotificationTimerRef = useRef<number | null>(null);
 
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -1616,7 +1616,11 @@ const App: React.FC = () => {
     else if (jobSearchTerm.trim()) emptyStateMessage = `ไม่พบงานที่ตรงกับคำค้นหา "${jobSearchTerm}"`;
     else if (selectedJobCategoryFilter !== 'all') emptyStateMessage = `ไม่พบงานในหมวดหมู่ "${selectedJobCategoryFilter}"`;
 
-    const activeUserJobs = jobsList.filter(job => !isDateInPast(job.expiresAt) && !job.isExpired);
+    const activeUserJobs = jobsList.filter(job => 
+        job.isExpired === false && 
+        job.expiresAt && !isDateInPast(job.expiresAt) &&
+        job.isHired === false
+    );
 
     return (
     <div className="p-4 sm:p-6">
@@ -1771,8 +1775,9 @@ const App: React.FC = () => {
     else if (selectedHelperCategoryFilter !== 'all') emptyStateMessage = `ไม่พบผู้ช่วยในหมวดหมู่ "${selectedHelperCategoryFilter}"`;
 
     const activeAndAvailableHelperProfiles = helperProfilesList.filter(p =>
-      !p.isUnavailable &&
-      !(p.isExpired || (p.expiresAt ? isDateInPast(p.expiresAt) : false))
+      p.isExpired === false &&
+      p.expiresAt && !isDateInPast(p.expiresAt) &&
+      p.isUnavailable === false
     );
 
     const enrichedHelperProfilesList: EnrichedHelperProfile[] = activeAndAvailableHelperProfiles.map(hp => {
