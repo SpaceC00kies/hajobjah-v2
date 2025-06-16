@@ -144,194 +144,159 @@
       }
 
       .helper-card-header {
-        background: linear-gradient(to bottom, #FEF9E7, #FDECB3); /* Softer yellow gradient */
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-        align-items: stretch; 
-        position: relative;
+        background: linear-gradient(to bottom, #FFF4D6, #FFE8A3);
+        padding: 16px;
+        display: flex; /* New: Enable flexbox */
+        align-items: flex-start; /* New: Align items to the start (top) */
+        text-align: left; /* New: Align text to the left */
+        position: relative; /* Retain for potential absolute elements if needed */
       }
       .dark .helper-card-header {
-        background: linear-gradient(to bottom, #534b37, #4a4230); /* Softer dark yellow gradient */
+        background: linear-gradient(to bottom, #4a4230, #413927); /* Darker yellow gradient */
       }
 
-      /* New container for Avatar and Name/Location block */
-      .helper-card-identity-block {
-        display: flex;
-        align-items: center;
-        width: 100%;
-        margin-bottom: 12px;
-      }
-
-      .helper-card-avatar-container { /* No longer needed for centering avatar, repurposed or removed if not used by fallback logic */
-        /* display: flex;
-        justify-content: center;
-        margin-bottom: 8px; */ 
-      }
-
-      .helper-card-avatar {
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        object-fit: cover;
-        box-shadow: 0 3px 10px rgba(0,0,0,0.12);
-        transition: transform 0.3s ease;
-        cursor: pointer;
-        margin-right: 16px; /* Space between avatar and text */
-        border: 3px solid white; 
-      }
-      .dark .helper-card-avatar {
-        border-color: #3f3f46; 
-      }
-      .helper-card-avatar:hover {
-        transform: scale(1.05) translateY(-1px);
-      }
-
-      /* Container for Name and Location stacked vertically */
-      .helper-card-name-location-group {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start; /* Align text to the left */
-        flex-grow: 1;
+      /* New: Wrapper for avatar in header */
+      .helper-card-header-avatar-wrapper {
+          flex-shrink: 0;
+          margin-right: 16px; /* Space between avatar and text block */
       }
       
-      .helper-card-name-container { /* No longer primary centering, part of name-location-group */
-       /* display: flex;
-        justify-content: center;
-        align-items: center; */
+      .helper-card-avatar { /* Adjusted */
+        width: 80px; /* Increased size */
+        height: 80px; /* Increased size */
+        border-radius: 50%;
+        object-fit: cover;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+        cursor: pointer;
+        /* margin: 0; Removed auto margins */
+      }
+      .helper-card-avatar:hover {
+        transform: scale(1.05);
       }
 
+      /* New: Wrapper for text content next to avatar */
+      .helper-card-header-content {
+          flex-grow: 1; /* Allow this section to take remaining space */
+          display: flex;
+          flex-direction: column; /* Stack name, location, title, category */
+      }
+
+      .helper-card-name-container { /* Adjusted */
+        display: flex;
+        /* justify-content: center; Removed */
+        align-items: center;
+        margin-bottom: 2px; /* Spacing between name and location */
+      }
       .helper-card-name {
-        font-size: 22px; 
-        font-weight: 700;
-        color: #2c3e50; 
+        font-size: 20px;
+        font-weight: 600;
+        color: #333333;
         cursor: pointer;
-        display: inline-flex;
+        display: inline-flex; 
         align-items: center;
         transition: color 0.3s ease;
-        margin-bottom: 2px;
       }
       .dark .helper-card-name {
-        color: #ecf0f1; 
+        color: #EEEEEE; 
       }
       .helper-card-name:hover {
-        color: #e67e22; 
+        color: #FFB800; 
       }
       .dark .helper-card-name:hover {
-        color: #f39c12; 
+        color: #F0C95D; 
       }
 
-      .helper-card-name .name-arrow {
+      .helper-card-name .name-arrow { /* Adjusted for always visible arrow */
         opacity: 1; /* Always visible */
-        transform: translateX(0); 
-        transition: transform 0.2s ease;
-        margin-left: 6px;
-        font-size: 18px;
-        color: #7f8c8d; 
+        transform: translateX(0); /* No initial movement */
+        transition: none; /* Remove transition for opacity/transform */
+        margin-left: 6px; /* Spacing from name text */
+        font-size: 18px; /* Slightly larger arrow */
+        color: #555555; /* Arrow color */
       }
       .dark .helper-card-name .name-arrow {
-          color: #95a5a6;
+          color: #BBBBBB;
       }
+      /* Remove hover effect specifically for arrow opacity/transform */
       .helper-card-name:hover .name-arrow {
-        transform: translateX(3px); 
+        /* Arrow is always visible, hover effect handled by .helper-card-name:hover color */
       }
 
       .helper-card-header-location {
-        font-size: 14px;
-        color: #7f8c8d;
+        font-size: 13px;
+        color: #555555;
         display: flex;
         align-items: center;
-        gap: 5px;
+        /* justify-content: center; Removed */
+        gap: 4px; 
+        margin-bottom: 4px; /* Spacing from location to main title */
       }
       .dark .helper-card-header-location {
-        color: #bdc3c7;
+        color: #BBBBBB; 
       }
       .helper-card-header-location .location-pin-emoji {
-        font-size: 1.1em;
+        font-size: 1em; 
       }
-      
-      /* New style for category pill in header flow */
-      .helper-card-header-category {
-        background-color: rgba(255, 255, 255, 0.7);
-        color: #34495e; 
-        padding: 5px 12px;
-        border-radius: 16px;
-        font-size: 12px;
-        font-weight: 600;
-        line-height: 1.3;
-        text-align: center;
-        margin: 0 auto 12px auto; /* Centered, with margin below */
-        max-width: fit-content;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-      }
-      .dark .helper-card-header-category {
-        background-color: rgba(0, 0, 0, 0.4);
-        color: #ecf0f1;
-      }
-      /* Remove old absolute positioned category */
-      .helper-card-top-category { display: none !important; }
-
 
       .helper-card-main-title {
-        font-size: 24px;
+        font-size: 22px;
         font-weight: 700;
-        color: #34495e;
-        margin: 0 0 8px 0;
-        line-height: 1.25;
-        text-align: center; 
+        color: #333333;
+        margin: 0 0 6px 0; /* Adjusted margin */
+        line-height: 1.2;
       }
       .dark .helper-card-main-title {
-        color: #f1f2f6;
-      }
-      
-      .helper-card-subtitle { /* Now only for actual subtitle, if any (not currently used) */
-        font-size: 16px; 
-        color: #444444;
-        margin-bottom: 8px;
-        line-height: 1.3;
-        text-align: center;
-      }
-      .dark .helper-card-subtitle {
-        color: #DDDDDD;
-      }
-      
-      .helper-card-trust-badges {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 8px;
-        margin-top: 0; /* Trust badges directly follow title */
-      }
-      .helper-card-trust-badge { /* Existing style, ensure it works with new layout */
-        font-size: 11px; 
-        padding: 3px 8px; 
-        border-radius: 12px;
-        font-weight: 500;
-        display: inline-flex;
-        align-items: center;
-        gap: 3px;
+        color: #EEEEEE;
       }
 
+      /* New: Styling for category tag within the header content */
+      .helper-card-header-category-tag {
+        background-color: rgba(255, 255, 255, 0.6); /* Semi-transparent white */
+        color: #4A5568; /* Tailwind gray-700 */
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+        line-height: 1.3;
+        display: inline-block; /* Allows it to sit nicely */
+        margin-top: 4px; /* Space from profileTitle */
+        margin-bottom: 8px; /* Space before trust badges */
+        max-width: 90%; /* Prevent overflow on narrow cards if title is long */
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        border: 1px solid rgba(0,0,0,0.05);
+      }
+      .dark .helper-card-header-category-tag {
+        background-color: rgba(0, 0, 0, 0.35); /* Semi-transparent black */
+        color: #CBD5E0; /* Tailwind gray-300 */
+        border-color: rgba(255,255,255,0.1);
+      }
+      
+      /* Removed .helper-card-top-category as category is moved */
+      /* .helper-card-top-category { ... } */
+      
       .helper-card-info-grid {
         display: grid;
         grid-template-columns: 1fr; 
-        gap: 8px; /* Increased gap slightly */
-        padding: 12px 16px; 
+        gap: 6px; 
+        padding: 10px 16px; 
       }
       .helper-card-info-item {
         display: flex;
-        align-items: center; /* Vertically center icon and text */
-        font-size: 14px; 
+        align-items: flex-start; 
+        font-size: 13px; 
         color: #555555;
-        gap: 8px; /* Gap between icon and text */
       }
       .dark .helper-card-info-item {
-        color: #BBBBBB; /* dark.textMuted */
+        color: #BBBBBB; 
       }
       .helper-card-info-item .info-icon {
-        width: 1.3em; 
-        height: 1.3em; 
-        /* margin-right: 8px; Removed, using gap on parent */
+        width: 1.2em; 
+        height: 1.2em; 
+        margin-right: 8px; 
         color: #777777;
         flex-shrink: 0;
         display: inline-flex; 
@@ -341,7 +306,6 @@
       .dark .helper-card-info-item .info-icon {
         color: #999999;
       }
-
       .helper-card-details-box {
         background-color: #F8F8F8;
         padding: 12px 16px; 
@@ -349,18 +313,18 @@
         border-radius: 10px;
       }
       .dark .helper-card-details-box {
-        background-color: #333333; /* dark.inputBg */
+        background-color: #333333; 
       }
       .helper-card-details-title {
-        font-size: 16px; 
+        font-size: 15px; 
         font-weight: 600;
         color: #333333;
         display: flex;
         align-items: center;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
       }
       .dark .helper-card-details-title {
-        color: #EEEEEE; /* dark.text */
+        color: #EEEEEE; 
       }
       
       .helper-card-details-box ul {
@@ -369,19 +333,20 @@
         margin: 0;
       }
       .helper-card-details-box li {
-        padding-left: 0; /* Removed padding for bullet */
+        /* padding-left: 18px; Removed padding for bullet */
         position: relative;
-        margin-bottom: 6px; 
-        font-size: 14px; 
-        line-height: 1.6; 
+        margin-bottom: 5px; 
+        font-size: 13px; 
+        line-height: 1.5; 
         color: #555555;
       }
       .dark .helper-card-details-box li {
-        color: #BBBBBB; /* dark.textMuted */
+        color: #BBBBBB; 
       }
       .helper-card-details-box li::before {
-        content: none; /* Remove bullet */
+        content: none; /* Removed bullet */
       }
+      /* .dark .helper-card-details-box li::before { ... } */
 
       .helper-card-footer {
         display: flex;
@@ -391,7 +356,7 @@
         border-top: 1px solid #E0E0E0;
       }
       .dark .helper-card-footer {
-        border-top-color: #555555; /* dark.border */
+        border-top-color: #555555; 
       }
       .helper-card-posted-time {
         font-size: 12px; 
@@ -406,7 +371,6 @@
         gap: 8px; 
       }
 
-      /* Button styles for HelperCard */
       .helper-card-button {
         padding: 6px 12px; 
         border-radius: 8px;
@@ -438,11 +402,11 @@
         background-color: #FF9500;
       }
       .dark .helper-card-button-primary {
-        background-color: #F0C95D; /* dark.secondary.DEFAULT */
-        color: #2B2B2B; /* dark.textOnSecondaryDark */
+        background-color: #F0C95D; 
+        color: #2B2B2B; 
       }
       .dark .helper-card-button-primary:hover:not(:disabled) {
-        background-color: #E8BF4A; /* dark.secondary.hover */
+        background-color: #E8BF4A; 
       }
 
       .helper-card-button-secondary { 
@@ -455,12 +419,29 @@
         color: white;
       }
       .dark .helper-card-button-secondary {
-        color: #F0C95D; /* dark.secondary.DEFAULT */
+        color: #F0C95D; 
         border-color: #F0C95D;
       }
       .dark .helper-card-button-secondary:hover:not(:disabled) {
         background-color: #F0C95D;
-        color: #2B2B2B; /* dark.textOnSecondaryDark */
+        color: #2B2B2B; 
+      }
+
+      .helper-card-trust-badges {
+        display: flex;
+        flex-wrap: wrap;
+        /* justify-content: center; Removed for left-align in new layout */
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .helper-card-trust-badge {
+        font-size: 11px; 
+        padding: 3px 8px; 
+        border-radius: 12px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
       }
 
       /* Status Banners */
@@ -522,39 +503,29 @@
       }
 
       /* Responsive adjustments */
-      @media (max-width: 480px) { /* Updated breakpoint */
-        .helper-card-header { padding: 16px; }
-        
-        .helper-card-identity-block {
-          flex-direction: column;
-          align-items: center;
-          text-align: center;
-          margin-bottom: 10px;
+      @media (max-width: 480px) { /* Increased breakpoint for better layout on slightly larger small screens */
+        .helper-card-header { 
+            padding: 12px; 
+            /* flex-direction: column; Consider this if avatar + text becomes too cramped */
+            /* align-items: center; If column direction */
         }
-        .helper-card-avatar {
-          width: 70px;
-          height: 70px;
-          margin-right: 0;
-          margin-bottom: 8px;
-        }
-        .helper-card-name-location-group {
-          align-items: center; 
-        }
-        .helper-card-name { font-size: 20px; }
-        .helper-card-header-location { font-size: 13px; justify-content: center; }
-        .helper-card-header-category { font-size: 11px; padding: 4px 10px; margin-bottom: 10px; }
-        .helper-card-main-title { font-size: 20px; margin-bottom: 6px; }
+        /* .helper-card-header-avatar-wrapper { margin-right: 0; margin-bottom: 10px; } If column direction */
+        .helper-card-avatar { width: 60px; height: 60px; }
+        .helper-card-name { font-size: 18px; }
+        .helper-card-header-location { font-size: 12px; }
+        .helper-card-main-title { font-size: 19px; margin: 2px 0 6px; } /* Slightly smaller title for mobile */
+        .helper-card-header-category-tag { font-size: 10px; padding: 2px 7px; margin-top: 2px; margin-bottom: 6px;}
         
         .helper-card-info-grid { 
             padding: 8px 12px; 
-            gap: 6px; 
+            gap: 5px; 
         }
-        .helper-card-info-item { font-size: 13px; }
+        .helper-card-info-item { font-size: 12px; }
         .helper-card-info-item .info-icon { margin-right: 6px; }
 
         .helper-card-details-box { padding: 10px 12px; margin: 10px 12px; }
-        .helper-card-details-title { font-size: 15px; }
-        .helper-card-details-box li { font-size: 13px; }
+        .helper-card-details-title { font-size: 14px; }
+        .helper-card-details-box li { font-size: 12px; }
         .helper-card-footer { padding: 10px 12px; flex-direction: column; gap: 8px; }
         .helper-card-action-buttons { width: 100%; justify-content: space-around; }
         .helper-card-button { width: 100%; } 

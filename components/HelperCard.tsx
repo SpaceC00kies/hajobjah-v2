@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import type { EnrichedHelperProfile, User } from '../types';
 import { View, Province, ACTIVITY_BADGE_DETAILS } from '../types';
@@ -17,11 +16,10 @@ interface HelperCardProps {
   onBumpProfile: (profileId: string) => void;
 }
 
-const FallbackAvatarDisplay: React.FC<{ name?: string, className?: string }> = ({ name, className = "" }) => {
+const FallbackAvatarDisplay: React.FC<{ name?: string, size?: string, className?: string }> = ({ name, size = "w-[80px] h-[80px]", className = "" }) => { // Default size increased
   const initial = name ? name.charAt(0).toUpperCase() : '👤';
-  // Size is now controlled by the .helper-card-avatar class
   return (
-    <div className={`rounded-full bg-neutral dark:bg-dark-inputBg flex items-center justify-center text-3xl font-sans text-white dark:text-dark-text ${className}`}>
+    <div className={`${size} rounded-full bg-neutral dark:bg-dark-inputBg flex items-center justify-center text-3xl font-sans text-white dark:text-dark-text ${className}`}>
       {initial}
     </div>
   );
@@ -38,31 +36,43 @@ const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
   return dateObject.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-const TrustBadgesCompact: React.FC<{ profile: EnrichedHelperProfile, user: User | undefined | null }> = ({ profile, user }) => {
-  if (!user && !profile.adminVerifiedExperience && (profile.interestedCount || 0) === 0 && !profile.isSuspicious) return null;
-  
-  // Determine if user-specific badges should be shown (e.g., profile complete, activity badge)
-  const showUserSpecificBadges = !!user;
+const TrustBadgesCompact: React.FC<{ profile: EnrichedHelperProfile, user: User | undefined }> = ({ profile, user }) => {
+  if (!user && !profile.adminVerifiedExperience && !(profile.interestedCount && profile.interestedCount > 0)) return null; // Check all possible badges before returning null
+
+  const badges = [];
+  if (profile.adminVerifiedExperience) {
+    badges.push(
+      <span key="verified" className="helper-card-trust-badge bg-yellow-200 text-yellow-800 dark:bg-yellow-600/30 dark:text-yellow-200">⭐ ผ่านงาน</span>
+    );
+  }
+  if (user?.profileComplete) {
+     badges.push(
+      <span key="complete" className="helper-card-trust-badge bg-green-100 text-green-700 dark:bg-green-700/30 dark:text-green-200">🟢 โปรไฟล์ครบ</span>
+    );
+  }
+  if ((profile.interestedCount || 0) > 0) {
+     badges.push(
+       <span key="interested" className="helper-card-trust-badge bg-sky-100 text-sky-700 dark:bg-sky-700/30 dark:text-sky-200">
+        👀 สนใจ {profile.interestedCount}
+      </span>
+    );
+  }
+   if (user?.activityBadge?.isActive) {
+     badges.push(
+       <span key="activity" className="helper-card-trust-badge bg-orange-100 text-orange-700 dark:bg-orange-600/30 dark:text-orange-200">🔥 ขยันใช้เว็บ</span>
+    );
+  }
+  if (profile.isSuspicious) {
+     badges.push(
+      <span key="suspicious" className="helper-card-trust-badge bg-red-100 text-red-700 dark:bg-red-700/30 dark:text-red-200">🔺 ระวัง</span>
+    );
+  }
+
+  if (badges.length === 0) return null;
 
   return (
     <div className="helper-card-trust-badges">
-      {profile.adminVerifiedExperience && (
-        <span className="helper-card-trust-badge bg-yellow-200 text-yellow-800 dark:bg-yellow-600/30 dark:text-yellow-200">⭐ ผ่านงาน</span>
-      )}
-      {showUserSpecificBadges && user?.profileComplete && (
-        <span className="helper-card-trust-badge bg-green-100 text-green-700 dark:bg-green-700/30 dark:text-green-200">🟢 โปรไฟล์ครบ</span>
-      )}
-      {(profile.interestedCount || 0) > 0 && (
-         <span className="helper-card-trust-badge bg-sky-100 text-sky-700 dark:bg-sky-700/30 dark:text-sky-200">
-          👀 สนใจ {profile.interestedCount}
-        </span>
-      )}
-       {showUserSpecificBadges && user?.activityBadge?.isActive && (
-         <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm"/>
-      )}
-      {profile.isSuspicious && (
-        <span className="helper-card-trust-badge bg-red-100 text-red-700 dark:bg-red-700/30 dark:text-red-200">🔺 ระวัง</span>
-      )}
+      {badges}
     </div>
   );
 };
@@ -73,7 +83,11 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
   const [showFullDetails, setShowFullDetails] = useState(false);
   
-  const userForBadges = users.find(u => u.id === profile.userId); // Get user from global list for badges
+  // Determine which user object to use for badges (current user if it's their own profile, otherwise the profile's author)
+  // This requires fetching the author's full User object if not already available via currentUser.
+  // For simplicity now, if not currentUser, we assume badges related to 'user' (like profileComplete) are derived from enrichedProfile or might not show.
+  // Ideally, the enrichedProfile would contain all necessary badge-related user flags if not currentUser.
+  const userForBadges = profile.userId === currentUser?.id ? currentUser : undefined; // Simplified for now
 
   const handleContact = () => {
     if (!currentUser) {
@@ -102,15 +116,11 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
   const canBump = bumpDaysRemaining === 0 && !profileIsTrulyExpired && !profile.isUnavailable;
 
   const detailsNeedsTruncation = profile.details.length > 120;
-  // Show full details if user is logged in OR if not truncated OR if editing.
-  // For public view, if truncated, it will show "..." and a login prompt.
-  const shouldShowFullDetails = showFullDetails || !detailsNeedsTruncation || (currentUser && !profileIsTrulyExpired);
-  const displayDetails = shouldShowFullDetails ? profile.details : `${profile.details.substring(0, 120)}...`;
-
+  const displayDetails = showFullDetails || !detailsNeedsTruncation || (currentUser && !profileIsTrulyExpired) ? profile.details : `${profile.details.substring(0, 120)}...`;
 
   const toggleShowFullDetails = (e: React.MouseEvent) => {
     e.stopPropagation(); 
-    if (!currentUser && detailsNeedsTruncation && !profileIsTrulyExpired) { // Only request login if details are truncated and user is not logged in
+    if (!currentUser && (detailsNeedsTruncation || profileIsTrulyExpired)) {
       requestLoginForAction(View.FindHelpers, { focusOnPostId: profile.id, type: 'helper' });
     } else {
       setShowFullDetails(!showFullDetails);
@@ -153,57 +163,59 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
         )}
 
         <div className="helper-card-header">
-          <div className="helper-card-identity-block">
+          <div className="helper-card-header-avatar-wrapper">
             {profile.userPhoto ? (
               <img
                 src={profile.userPhoto}
                 alt={profile.authorDisplayName}
                 className="helper-card-avatar"
                 onClick={() => onNavigateToPublicProfile(profile.userId)}
-                onError={(e) => {
-                    // Simple fallback: hide broken image, browser will show alt text or nothing
-                    e.currentTarget.style.display = 'none';
-                    // Create and append a fallback element if it doesn't exist
-                    if (!e.currentTarget.nextElementSibling?.classList.contains('js-fallback-avatar')) {
-                        const fallbackDiv = document.createElement('div');
-                        const initial = profile.authorDisplayName ? profile.authorDisplayName.charAt(0).toUpperCase() : '👤';
-                        fallbackDiv.className = 'helper-card-avatar js-fallback-avatar flex items-center justify-center text-3xl font-sans text-white dark:text-dark-text bg-neutral dark:bg-dark-inputBg';
-                        fallbackDiv.textContent = initial;
-                        e.currentTarget.parentNode?.insertBefore(fallbackDiv, e.currentTarget.nextSibling);
-                    }
-                }}
+                onError={(e) => (e.currentTarget.style.display = 'none')}
               />
             ) : (
-              <FallbackAvatarDisplay name={profile.authorDisplayName} className="helper-card-avatar js-fallback-avatar" />
+              <FallbackAvatarDisplay name={profile.authorDisplayName} className="helper-card-avatar" />
             )}
-            <div className="helper-card-name-location-group">
+            {profile.userPhoto && (
+                <img src="" alt="" style={{display: 'none'}} onError={() => {
+                    const avatarImg = document.querySelector(`.helper-card-avatar[src="${profile.userPhoto}"]`);
+                    if (avatarImg && !avatarImg.nextElementSibling?.classList.contains('fallback-avatar-rendered')) {
+                        const fallbackNode = document.createElement('div');
+                        fallbackNode.className = 'helper-card-avatar fallback-avatar-rendered'; 
+                        const initial = profile.authorDisplayName ? profile.authorDisplayName.charAt(0).toUpperCase() : '👤';
+                        fallbackNode.innerHTML = `<div class="w-full h-full rounded-full bg-neutral dark:bg-dark-inputBg flex items-center justify-center text-3xl font-sans text-white dark:text-dark-text">${initial}</div>`;
+                        avatarImg.parentNode?.insertBefore(fallbackNode, avatarImg.nextSibling);
+                    }
+                }} />
+            )}
+          </div>
+          
+          <div className="helper-card-header-content">
+            <div className="helper-card-name-container">
               <h3 className="helper-card-name" onClick={() => onNavigateToPublicProfile(profile.userId)}>
                 {profile.authorDisplayName}
-                <span className="name-arrow" aria-hidden="true">→</span>
+                <span className="name-arrow">→</span>
               </h3>
-              <p className="helper-card-header-location">
-                <span className="location-pin-emoji" role="img" aria-label="Location pin">📍</span>
-                {profile.province || Province.ChiangMai}
-              </p>
             </div>
+            <p className="helper-card-header-location">
+              <span className="location-pin-emoji" role="img" aria-label="Location pin">📍</span>
+              {profile.province || Province.ChiangMai}
+            </p>
+            <h4 className="helper-card-main-title" title={profile.profileTitle}>{profile.profileTitle}</h4>
+            {categoryDisplayString && (
+              <div className="helper-card-header-category-tag" title={categoryDisplayString}>
+                {categoryDisplayString}
+              </div>
+            )}
+            <TrustBadgesCompact profile={profile} user={userForBadges || currentUser} />
           </div>
-
-          {categoryDisplayString && (
-            <div className="helper-card-header-category" title={categoryDisplayString}>
-              {categoryDisplayString}
-            </div>
-          )}
-
-          <h4 className="helper-card-main-title" title={profile.profileTitle}>{profile.profileTitle}</h4>
-          <TrustBadgesCompact profile={profile} user={userForBadges} />
         </div>
         
         <div className="helper-card-info-grid">
           <div className="helper-card-info-item">
-            <span className="info-icon" role="img" aria-label="Work area">🌐</span> {profile.area.length > 30 ? profile.area.substring(0,27) + "..." : profile.area}
+            <span className="info-icon" role="img" aria-label="Work area">🌐</span> พื้นที่: {profile.area.length > 30 ? profile.area.substring(0,27) + "..." : profile.area}
           </div>
           <div className="helper-card-info-item">
-            <span className="info-icon" role="img" aria-label="Availability">⏰</span> {getAvailabilityText()}
+            <span className="info-icon" role="img" aria-label="Availability">⏰</span> ความพร้อม: {getAvailabilityText()}
           </div>
         </div>
 
@@ -212,17 +224,17 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
             เกี่ยวกับฉัน / รายละเอียดงาน
           </h5>
           <ul>
-            <li className={!shouldShowFullDetails ? "details-line-clamp" : ""}>
+            <li className={detailsNeedsTruncation && !showFullDetails && !(currentUser && !profileIsTrulyExpired) ? "details-line-clamp" : ""}>
               {displayDetails}
             </li>
           </ul>
-          {detailsNeedsTruncation && (
+          {detailsNeedsTruncation && !(currentUser && !profileIsTrulyExpired) && (
              <button
                 onClick={toggleShowFullDetails}
                 className="text-xs text-yellow-600 dark:text-yellow-400 hover:underline mt-1 font-medium"
                 aria-expanded={showFullDetails}
               >
-                {showFullDetails ? "แสดงน้อยลง" : (!currentUser ? "เข้าสู่ระบบเพื่อดูเพิ่มเติม" : "ดูเพิ่มเติม")}
+                {showFullDetails ? "แสดงน้อยลง" : "ดูเพิ่มเติม"}
               </button>
           )}
         </div>
