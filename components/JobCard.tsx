@@ -11,6 +11,7 @@ interface JobCardProps {
   navigateTo: (view: View) => void;
   currentUser: User | null;
   requestLoginForAction: (view: View, payload?: any) => void;
+  onEditJobFromFindView?: (jobId: string) => void; // New prop
 }
 
 const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
@@ -43,7 +44,7 @@ const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
   }
 };
 
-export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, requestLoginForAction }) => {
+export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, requestLoginForAction, onEditJobFromFindView }) => {
   const [isInterestModalOpen, setIsInterestModalOpen] = useState(false);
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
   const [showFullDetails, setShowFullDetails] = useState(false);
@@ -195,14 +196,25 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
             {formattedPostedAt}
           </div>
           <div className="job-card-action-buttons">
-            <button
-              onClick={currentUser ? handleInterest : () => requestLoginForAction(View.FindJobs, { intent: 'contactJob', postId: job.id })}
-              className="job-card-button job-card-button-primary"
-              disabled={job.isHired || jobIsTrulyExpired}
-              aria-label={job.isHired ? "งานนี้มีคนทำแล้ว" : jobIsTrulyExpired ? "งานหมดอายุแล้ว" : (currentUser ? "ติดต่อ" : "เข้าสู่ระบบเพื่อติดต่อ")}
-            >
-              {job.isHired ? '✅ มีคนทำแล้ว' : jobIsTrulyExpired ? '⛔ หมดอายุ' : (currentUser ? 'ติดต่อ' : 'เข้าสู่ระบบ')}
-            </button>
+            {onEditJobFromFindView && currentUser?.id === job.userId ? (
+              <button
+                onClick={() => onEditJobFromFindView(job.id)}
+                className="job-card-button job-card-button-primary"
+                disabled={jobIsTrulyExpired}
+                aria-label={jobIsTrulyExpired ? "งานหมดอายุแล้ว ไม่สามารถแก้ไข" : "แก้ไขงาน"}
+              >
+                ✏️ แก้ไข
+              </button>
+            ) : (
+              <button
+                onClick={currentUser ? handleInterest : () => requestLoginForAction(View.FindJobs, { intent: 'contactJob', postId: job.id })}
+                className="job-card-button job-card-button-primary"
+                disabled={job.isHired || jobIsTrulyExpired}
+                aria-label={job.isHired ? "งานนี้มีคนทำแล้ว" : jobIsTrulyExpired ? "งานหมดอายุแล้ว" : (currentUser ? "ติดต่อ" : "เข้าสู่ระบบเพื่อติดต่อ")}
+              >
+                {job.isHired ? '✅ มีคนทำแล้ว' : jobIsTrulyExpired ? '⛔ หมดอายุ' : (currentUser ? 'ติดต่อ' : 'เข้าสู่ระบบ')}
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -215,7 +215,7 @@ const App: React.FC = () => {
   
   const [copiedLinkNotification, setCopiedLinkNotification] = useState<string | null>(null);
   const [showCopiedNotificationAnim, setShowCopiedNotificationAnim] = useState(false);
-  const copiedNotificationTimerRef = useRef<number | null>(null);
+  const copiedNotificationTimerRef = useRef<NodeJS.Timeout | null>(null);
 
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -1559,7 +1559,7 @@ const App: React.FC = () => {
     if (currentView === View.FindJobs) {
       loadJobs(true);
     }
-  }, [currentView, selectedJobCategoryFilter, jobSearchTerm]);
+  }, [currentView, selectedJobCategoryFilter, jobSearchTerm]); // Removed loadJobs from here, direct call is enough
 
   useEffect(() => {
     if (currentView !== View.FindJobs || !initialJobsLoaded) return;
@@ -1594,6 +1594,18 @@ const App: React.FC = () => {
         handleUpdateJob(formDataFromForm as JobFormData & { id: string }, loadJobs);
     } else {
         handleAddJob(formDataFromForm, loadJobs);
+    }
+  };
+
+  const handleEditOwnJobFromFindView = (jobId: string) => {
+    const jobToEdit = allJobsForAdmin.find(j => j.id === jobId);
+    if (jobToEdit && currentUser && jobToEdit.userId === currentUser.id) {
+        setItemToEdit(jobToEdit);
+        setEditingItemType('job');
+        setSourceViewForForm(View.FindJobs); // Set source view
+        navigateTo(View.PostJob);
+    } else {
+        alert("ไม่สามารถแก้ไขงานนี้ได้");
     }
   };
 
@@ -1636,7 +1648,16 @@ const App: React.FC = () => {
           )}
           {activeUserJobs.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                 {activeUserJobs.map(job => (<JobCard key={job.id} job={job} navigateTo={navigateTo} currentUser={currentUser} requestLoginForAction={requestLoginForAction} />))}
+                 {activeUserJobs.map(job => (
+                    <JobCard 
+                        key={job.id} 
+                        job={job} 
+                        navigateTo={navigateTo} 
+                        currentUser={currentUser} 
+                        requestLoginForAction={requestLoginForAction} 
+                        onEditJobFromFindView={currentUser?.id === job.userId ? handleEditOwnJobFromFindView : undefined}
+                    />
+                ))}
             </div>
           )}
           <div ref={jobsLoaderRef} className="h-10 flex justify-center items-center">
@@ -1693,7 +1714,7 @@ const App: React.FC = () => {
     if (currentView === View.FindHelpers) {
       loadHelpers(true);
     }
-  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm]);
+  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm]); // Removed loadHelpers from here
 
   useEffect(() => {
     if (currentView !== View.FindHelpers || !initialHelpersLoaded) return;
