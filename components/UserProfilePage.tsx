@@ -204,7 +204,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     { name: 'hobbies', label: '🧶 งานอดิเรก', value: hobbies, setter: setHobbies, placeholder: 'เช่น อ่านหนังสือ, เล่นเกม, วาดรูป, ทำอาหาร', type: 'textarea' },
     { name: 'favoriteFood', label: '🍜 อาหารที่ชอบ', value: favoriteFood, setter: setFavoriteFood, placeholder: 'เช่น ส้มตำ, พิซซ่า, ซูชิ, ก๋วยเตี๋ยว', type: 'text' },
     { name: 'dislikedThing', label: '🚫 สิ่งที่ไม่ชอบที่สุด', value: dislikedThing, setter: setDislikedThing, placeholder: 'เช่น ความไม่ซื่อสัตย์, แมลงสาบ', type: 'text' },
-    { name: 'introSentence', label: '💬 เกี่ยวกับฉันสั้นๆ', value: introSentence, setter: setIntroSentence, placeholder: 'เช่น เป็นคนง่ายๆ สบายๆ ชอบเรียนรู้สิ่งใหม่', type: 'textarea' },
+    // introSentence is moved out
   ];
 
 
@@ -252,10 +252,10 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             value={publicDisplayName}
             onChange={(e) => setPublicDisplayName(e.target.value)}
             className={`${inputBaseStyle} ${errors.publicDisplayName ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
-            placeholder="เช่น Sunny Y., ช่างภาพใจดี123"
+            placeholder="เช่น Puuna V."
           />
            <p className="text-xs font-sans text-neutral-medium dark:text-dark-textMuted mt-1">
-              ชื่อนี้จะแสดงบนที่สาธารณะ เช่น ประกาศงาน, โปรไฟล์และกระทู้ โปรดตั้งอย่างเหมาะสม (เช่น ชื่อจริงและนามสกุลย่อ Sunny J., หรือเกี่ยวกับตัวเรา นักการตลาดมือฉมัง1993) ห้ามใช้คำหยาบหรือสื่ออะไรที่ไม่เหมาะสม
+              ชื่อนี้จะแสดงบนเว็บไซต์ (ไทย/อังกฤษ, 2-30 ตัวอักษร, อนุญาต เว้นวรรค, จุด) เช่น Puuna V.
             </p>
           {errors.publicDisplayName && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.publicDisplayName}</p>}
         </div>
@@ -284,6 +284,21 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
           />
         </div>
 
+        <div className="pt-4 border-t border-neutral-DEFAULT/50 dark:border-dark-border/30">
+            <label htmlFor="profile-introSentence" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
+                💬 เกี่ยวกับฉันสั้นๆ
+            </label>
+            <textarea
+                id="profile-introSentence"
+                value={introSentence}
+                onChange={(e) => setIntroSentence(e.target.value)}
+                rows={3}
+                className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
+                placeholder="เช่น เป็นคนง่ายๆ สบายๆ ชอบเรียนรู้สิ่งใหม่"
+            />
+        </div>
+
+
         <details className="group pt-4 border-t border-neutral-DEFAULT/50 dark:border-dark-border/30" open>
           <summary className="flex items-center justify-between cursor-pointer list-none p-2 -ml-2 rounded-md hover:bg-neutral-light/50 dark:hover:bg-dark-inputBg/30 transition-colors">
             <h3 className="text-lg font-sans font-medium text-neutral-dark dark:text-dark-text">
@@ -294,9 +309,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             </span>
           </summary>
           <div className="mt-3 space-y-4">
-            <p className="text-xs font-sans text-neutral-medium dark:text-dark-textMuted mb-3">
-              ข้อมูลส่วนนี้ <strong className="text-red-500 dark:text-red-400">จำเป็นต้องกรอก</strong> และจะแสดงในโปรไฟล์สาธารณะของคุณ (ยกเว้นชื่อจริง-นามสกุล อาจแสดงบางส่วน หรือตามความเหมาะสม)
-            </p>
+            {/* Removed hint text: "ข้อมูลส่วนนี้ จำเป็นต้องกรอก..." */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4">
                 <div>
                     <label className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">เพศ <span className="text-red-500 dark:text-red-400">*</span></label>
@@ -333,19 +346,19 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                  {errors.educationLevel && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.educationLevel}</p>}
             </div>
             <div className="mt-4">
-                <label htmlFor="profileNickname" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ชื่อเล่น (ไม่บังคับ)</label>
+                <label htmlFor="profileNickname" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ชื่อเล่น</label>
                 <input type="text" id="profileNickname" value={nickname} onChange={(e) => setNickname(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} placeholder="เช่น ซันนี่, จอห์น"/>
             </div>
             <div className="mt-4">
-                <label htmlFor="profileFirstName" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ชื่อจริง (ไม่บังคับ)</label>
+                <label htmlFor="profileFirstName" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ชื่อจริง</label>
                 <input type="text" id="profileFirstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} placeholder="เช่น ยาทิดา, สมชาย"/>
             </div>
             <div className="mt-4">
-                <label htmlFor="profileLastName" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">นามสกุล (ไม่บังคับ)</label>
+                <label htmlFor="profileLastName" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">นามสกุล</label>
                 <input type="text" id="profileLastName" value={lastName} onChange={(e) => setLastName(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} placeholder="เช่น แสงอรุณ, ใจดี"/>
             </div>
             <div>
-              <label htmlFor="profileAddress" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ที่อยู่ (ไม่บังคับ - จะแสดงในโปรไฟล์สาธารณะของคุณ)</label>
+              <label htmlFor="profileAddress" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ที่อยู่ (จะแสดงในโปรไฟล์สาธารณะของคุณ)</label>
               <textarea
                 id="profileAddress"
                 value={address}
@@ -361,7 +374,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
         <details className="group pt-4 border-t border-neutral-DEFAULT/50 dark:border-dark-border/30">
           <summary className="flex items-center justify-between cursor-pointer list-none p-2 -ml-2 rounded-md hover:bg-neutral-light/50 dark:hover:bg-dark-inputBg/30 transition-colors">
             <h3 className="text-lg font-sans font-medium text-neutral-dark dark:text-dark-text">
-              👤 เพิ่มเติมเกี่ยวกับตัวตน
+              👤 เพิ่มเติมเกี่ยวกับฉัน
             </h3>
             <span className="text-secondary dark:text-dark-secondary-DEFAULT transform transition-transform duration-200 group-open:rotate-90">
               ▶
@@ -369,7 +382,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
           </summary>
           <div className="mt-3 space-y-4">
             <p className="text-xs font-sans text-neutral-medium dark:text-dark-textMuted mb-3">
-              ข้อมูลส่วนนี้ไม่บังคับ แต่จะช่วยให้โปรไฟล์สาธารณะของคุณน่าสนใจยิ่งขึ้น
+              ข้อมูลส่วนนี้จะช่วยให้โปรไฟล์สาธารณะของคุณน่าสนใจยิ่งขึ้น
             </p>
             {personalityFields.map(field => (
               <div key={field.name} className="mb-4">
@@ -419,7 +432,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             </div>
 
             <div className="mt-4">
-            <label htmlFor="profileLineId" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">LINE ID (ถ้ามี)</label>
+            <label htmlFor="profileLineId" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">LINE ID</label>
             <input
                 type="text"
                 id="profileLineId"
@@ -431,7 +444,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             </div>
 
             <div className="mt-4">
-            <label htmlFor="profileFacebook" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">Facebook (ถ้ามี)</label>
+            <label htmlFor="profileFacebook" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">Facebook</label>
             <input
                 type="text"
                 id="profileFacebook"
