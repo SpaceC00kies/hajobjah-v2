@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   onAuthChangeService,
@@ -1772,7 +1773,7 @@ const App: React.FC = () => {
             )}
             {enrichedHelperProfilesList.length > 0 && (
                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {enrichedHelperProfilesList.map(profile => (<HelperCard key={profile.id} profile={profile} onNavigateToPublicProfile={handleNavigateToPublicProfile} navigateTo={navigateTo} onLogHelperContact={() => handleLogHelperContactInteraction(profile.id)} currentUser={currentUser} requestLoginForAction={requestLoginForAction} onBumpProfile={(id) => handleBumpHelperProfile(id, loadHelpers)} />))}
+                    {enrichedHelperProfilesList.map(profile => (<HelperCard key={profile.id} profile={profile} onNavigateToPublicProfile={handleNavigateToPublicProfile} navigateTo={navigateTo} onLogHelperContact={() => handleLogHelperContactInteraction(profile.id)} currentUser={currentUser} users={users} requestLoginForAction={requestLoginForAction} onBumpProfile={(id) => handleBumpHelperProfile(id, loadHelpers)} />))}
                  </div>
             )}
             <div ref={helpersLoaderRef} className="h-10 flex justify-center items-center">

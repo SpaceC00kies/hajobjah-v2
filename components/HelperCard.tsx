@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import type { EnrichedHelperProfile, User } from '../types';
 import { View, Province, ACTIVITY_BADGE_DETAILS } from '../types';
@@ -16,10 +17,11 @@ interface HelperCardProps {
   onBumpProfile: (profileId: string) => void;
 }
 
-const FallbackAvatarDisplay: React.FC<{ name?: string, size?: string, className?: string }> = ({ name, size = "w-[70px] h-[70px]", className = "" }) => {
+const FallbackAvatarDisplay: React.FC<{ name?: string, className?: string }> = ({ name, className = "" }) => {
   const initial = name ? name.charAt(0).toUpperCase() : '👤';
+  // Size is now controlled by the .helper-card-avatar class
   return (
-    <div className={`${size} rounded-full bg-neutral dark:bg-dark-inputBg flex items-center justify-center text-3xl font-sans text-white dark:text-dark-text ${className}`}>
+    <div className={`rounded-full bg-neutral dark:bg-dark-inputBg flex items-center justify-center text-3xl font-sans text-white dark:text-dark-text ${className}`}>
       {initial}
     </div>
   );
@@ -36,14 +38,18 @@ const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
   return dateObject.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-const TrustBadgesCompact: React.FC<{ profile: EnrichedHelperProfile, user: User | undefined }> = ({ profile, user }) => {
-  if (!user) return null;
+const TrustBadgesCompact: React.FC<{ profile: EnrichedHelperProfile, user: User | undefined | null }> = ({ profile, user }) => {
+  if (!user && !profile.adminVerifiedExperience && (profile.interestedCount || 0) === 0 && !profile.isSuspicious) return null;
+  
+  // Determine if user-specific badges should be shown (e.g., profile complete, activity badge)
+  const showUserSpecificBadges = !!user;
+
   return (
     <div className="helper-card-trust-badges">
       {profile.adminVerifiedExperience && (
         <span className="helper-card-trust-badge bg-yellow-200 text-yellow-800 dark:bg-yellow-600/30 dark:text-yellow-200">⭐ ผ่านงาน</span>
       )}
-      {user.profileComplete && (
+      {showUserSpecificBadges && user?.profileComplete && (
         <span className="helper-card-trust-badge bg-green-100 text-green-700 dark:bg-green-700/30 dark:text-green-200">🟢 โปรไฟล์ครบ</span>
       )}
       {(profile.interestedCount || 0) > 0 && (
@@ -51,8 +57,8 @@ const TrustBadgesCompact: React.FC<{ profile: EnrichedHelperProfile, user: User 
           👀 สนใจ {profile.interestedCount}
         </span>
       )}
-       {user.activityBadge?.isActive && (
-         <span className="helper-card-trust-badge bg-orange-100 text-orange-700 dark:bg-orange-600/30 dark:text-orange-200">🔥 ขยันใช้เว็บ</span>
+       {showUserSpecificBadges && user?.activityBadge?.isActive && (
+         <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm"/>
       )}
       {profile.isSuspicious && (
         <span className="helper-card-trust-badge bg-red-100 text-red-700 dark:bg-red-700/30 dark:text-red-200">🔺 ระวัง</span>
@@ -67,7 +73,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
   const [showFullDetails, setShowFullDetails] = useState(false);
   
-  const userForBadges = profile.userId === currentUser?.id ? currentUser : undefined;
+  const userForBadges = users.find(u => u.id === profile.userId); // Get user from global list for badges
 
   const handleContact = () => {
     if (!currentUser) {
@@ -96,11 +102,15 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
   const canBump = bumpDaysRemaining === 0 && !profileIsTrulyExpired && !profile.isUnavailable;
 
   const detailsNeedsTruncation = profile.details.length > 120;
-  const displayDetails = showFullDetails || !detailsNeedsTruncation || (currentUser && !profileIsTrulyExpired) ? profile.details : `${profile.details.substring(0, 120)}...`;
+  // Show full details if user is logged in OR if not truncated OR if editing.
+  // For public view, if truncated, it will show "..." and a login prompt.
+  const shouldShowFullDetails = showFullDetails || !detailsNeedsTruncation || (currentUser && !profileIsTrulyExpired);
+  const displayDetails = shouldShowFullDetails ? profile.details : `${profile.details.substring(0, 120)}...`;
+
 
   const toggleShowFullDetails = (e: React.MouseEvent) => {
     e.stopPropagation(); 
-    if (!currentUser && (detailsNeedsTruncation || profileIsTrulyExpired)) {
+    if (!currentUser && detailsNeedsTruncation && !profileIsTrulyExpired) { // Only request login if details are truncated and user is not logged in
       requestLoginForAction(View.FindHelpers, { focusOnPostId: profile.id, type: 'helper' });
     } else {
       setShowFullDetails(!showFullDetails);
@@ -143,64 +153,58 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
         )}
 
         <div className="helper-card-header">
+          <div className="helper-card-identity-block">
+            {profile.userPhoto ? (
+              <img
+                src={profile.userPhoto}
+                alt={profile.authorDisplayName}
+                className="helper-card-avatar"
+                onClick={() => onNavigateToPublicProfile(profile.userId)}
+                onError={(e) => {
+                    // Simple fallback: hide broken image, browser will show alt text or nothing
+                    e.currentTarget.style.display = 'none';
+                    // Create and append a fallback element if it doesn't exist
+                    if (!e.currentTarget.nextElementSibling?.classList.contains('js-fallback-avatar')) {
+                        const fallbackDiv = document.createElement('div');
+                        const initial = profile.authorDisplayName ? profile.authorDisplayName.charAt(0).toUpperCase() : '👤';
+                        fallbackDiv.className = 'helper-card-avatar js-fallback-avatar flex items-center justify-center text-3xl font-sans text-white dark:text-dark-text bg-neutral dark:bg-dark-inputBg';
+                        fallbackDiv.textContent = initial;
+                        e.currentTarget.parentNode?.insertBefore(fallbackDiv, e.currentTarget.nextSibling);
+                    }
+                }}
+              />
+            ) : (
+              <FallbackAvatarDisplay name={profile.authorDisplayName} className="helper-card-avatar js-fallback-avatar" />
+            )}
+            <div className="helper-card-name-location-group">
+              <h3 className="helper-card-name" onClick={() => onNavigateToPublicProfile(profile.userId)}>
+                {profile.authorDisplayName}
+                <span className="name-arrow" aria-hidden="true">→</span>
+              </h3>
+              <p className="helper-card-header-location">
+                <span className="location-pin-emoji" role="img" aria-label="Location pin">📍</span>
+                {profile.province || Province.ChiangMai}
+              </p>
+            </div>
+          </div>
+
           {categoryDisplayString && (
-            <div className="helper-card-top-category" title={categoryDisplayString}>
+            <div className="helper-card-header-category" title={categoryDisplayString}>
               {categoryDisplayString}
             </div>
           )}
-          <div className="helper-card-avatar-container">
-            {profile.userPhoto ? (
-                <img
-                    src={profile.userPhoto}
-                    alt={profile.authorDisplayName}
-                    className="helper-card-avatar"
-                    onClick={() => onNavigateToPublicProfile(profile.userId)}
-                    onError={(e) => (e.currentTarget.style.display = 'none')} 
-                />
-            ) : (
-                 <FallbackAvatarDisplay name={profile.authorDisplayName} className="helper-card-avatar" />
-            )}
-            {/* Conditional rendering for fallback if image fails to load and was initially present */}
-            {profile.userPhoto && (
-                <img src="" alt="" style={{display: 'none'}} onError={() => {
-                    // This is a bit of a hack. If the primary image fails, we render the fallback.
-                    // Ideally, this logic would be cleaner, perhaps state-driven if more complex error handling is needed.
-                    const avatarImg = document.querySelector(`.helper-card-avatar[src="${profile.userPhoto}"]`);
-                    if (avatarImg && !avatarImg.nextElementSibling?.classList.contains('fallback-avatar-rendered')) {
-                        const fallbackNode = document.createElement('div');
-                        fallbackNode.className = 'helper-card-avatar fallback-avatar-rendered'; // Add a class to prevent multiple fallbacks
-                        const initial = profile.authorDisplayName ? profile.authorDisplayName.charAt(0).toUpperCase() : '👤';
-                        fallbackNode.innerHTML = `<div class="w-full h-full rounded-full bg-neutral dark:bg-dark-inputBg flex items-center justify-center text-3xl font-sans text-white dark:text-dark-text">${initial}</div>`;
-                        avatarImg.parentNode?.insertBefore(fallbackNode, avatarImg.nextSibling);
-                    }
-                }} />
-            )}
-          </div>
-          
-          <div className="helper-card-name-container">
-            <h3 className="helper-card-name" onClick={() => onNavigateToPublicProfile(profile.userId)}>
-              {profile.authorDisplayName}
-              <span className="name-arrow">→</span>
-            </h3>
-          </div>
-          <p className="helper-card-header-location">
-            <span className="location-pin-emoji" role="img" aria-label="Location pin">📍</span>
-            {profile.province || Province.ChiangMai}
-          </p>
+
           <h4 className="helper-card-main-title" title={profile.profileTitle}>{profile.profileTitle}</h4>
-          {/* Category removed from subtitle, now in top corner */}
-          <TrustBadgesCompact profile={profile} user={userForBadges || currentUser} />
+          <TrustBadgesCompact profile={profile} user={userForBadges} />
         </div>
         
         <div className="helper-card-info-grid">
-          {/* จังหวัด removed from here */}
           <div className="helper-card-info-item">
-            <span className="info-icon" role="img" aria-label="Work area">🌐</span> พื้นที่: {profile.area.length > 30 ? profile.area.substring(0,27) + "..." : profile.area}
+            <span className="info-icon" role="img" aria-label="Work area">🌐</span> {profile.area.length > 30 ? profile.area.substring(0,27) + "..." : profile.area}
           </div>
           <div className="helper-card-info-item">
-            <span className="info-icon" role="img" aria-label="Availability">⏰</span> ความพร้อม: {getAvailabilityText()}
+            <span className="info-icon" role="img" aria-label="Availability">⏰</span> {getAvailabilityText()}
           </div>
-          {/* ผู้สนใจ removed from here */}
         </div>
 
         <div className="helper-card-details-box">
@@ -208,17 +212,17 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
             เกี่ยวกับฉัน / รายละเอียดงาน
           </h5>
           <ul>
-            <li className={detailsNeedsTruncation && !showFullDetails && !(currentUser && !profileIsTrulyExpired) ? "details-line-clamp" : ""}>
+            <li className={!shouldShowFullDetails ? "details-line-clamp" : ""}>
               {displayDetails}
             </li>
           </ul>
-          {detailsNeedsTruncation && !(currentUser && !profileIsTrulyExpired) && (
+          {detailsNeedsTruncation && (
              <button
                 onClick={toggleShowFullDetails}
                 className="text-xs text-yellow-600 dark:text-yellow-400 hover:underline mt-1 font-medium"
                 aria-expanded={showFullDetails}
               >
-                {showFullDetails ? "แสดงน้อยลง" : "ดูเพิ่มเติม"}
+                {showFullDetails ? "แสดงน้อยลง" : (!currentUser ? "เข้าสู่ระบบเพื่อดูเพิ่มเติม" : "ดูเพิ่มเติม")}
               </button>
           )}
         </div>
