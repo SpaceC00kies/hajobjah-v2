@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   onAuthChangeService,
@@ -955,12 +956,33 @@ const App: React.FC = () => {
   };
 
   const handleCancelEditOrPost = () => {
-    const targetView = sourceViewForForm || View.Home;
-    setItemToEdit(null); setEditingItemType(null); setSourceViewForForm(null); setSelectedPostId(null);
-    setMyRoomInitialTabOverride(editOriginMyRoomTab); // Prepare tab override if returning to MyRoom
+    let targetView: View;
+
+    if (sourceViewForForm) {
+      targetView = sourceViewForForm;
+    } else if (editingItemType === null && currentView === View.Webboard) {
+      // This specifically handles cancelling a NEW webboard post that was opened from WebboardPage
+      targetView = View.Webboard;
+    } else {
+      targetView = View.Home; // Default fallback
+    }
+
+    setItemToEdit(null);
+    setEditingItemType(null);
+    setSourceViewForForm(null);
+    setSelectedPostId(null); // Ensure this is cleared, especially for Webboard
+    
+    // Handle MyRoom tab restoration
+    if (targetView === View.MyRoom && editOriginMyRoomTab) {
+        setMyRoomInitialTabOverride(editOriginMyRoomTab);
+    } else {
+        setMyRoomInitialTabOverride(null); // Clear if not returning to MyRoom or no specific tab
+    }
+    
     navigateTo(targetView);
-    setEditOriginMyRoomTab(null); // Clear after navigation
+    setEditOriginMyRoomTab(null); // Clear after navigation attempt
   };
+
 
   const openConfirmModal = (title: string, message: string, onConfirm: () => void) => {
     setConfirmModalTitle(title); setConfirmModalMessage(message); setOnConfirmAction(() => onConfirm); setIsConfirmModalOpen(true);
