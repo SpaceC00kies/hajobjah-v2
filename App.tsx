@@ -70,6 +70,8 @@ import { SearchInputWithRecent } from './components/SearchInputWithRecent';
 import { PasswordResetPage } from './components/PasswordResetPage';
 
 import { logFirebaseError } from './firebase/logging';
+import { AnimatePresence, motion } from "framer-motion";
+
 
 export const THAI_PROFANITY_BLACKLIST: string[] = [ /* Populate this if needed */ ];
 
@@ -1425,23 +1427,52 @@ const App: React.FC = () => {
       </header>
     );
   };
+
   const renderMobileMenu = () => {
-    if (!isMobileMenuOpen) return null;
     return (
-      <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true">
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} aria-hidden="true"></div>
-        <div className={`fixed top-0 right-0 h-full w-4/5 max-w-xs bg-white shadow-xl p-5 z-50 transform transition-transform duration-300 ease-in-out overflow-y-auto ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-sans font-semibold text-neutral-medium">เมนู</h2>
-            <button onClick={() => setIsMobileMenuOpen(false)} className="p-1 rounded-md text-neutral-dark hover:bg-neutral-light/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-400 dark:focus:ring-gray-500" aria-label="Close menu">
-              <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
+      <AnimatePresence initial={false}>
+        {isMobileMenuOpen && (
+          <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true">
+            <motion.div
+              key="backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => setIsMobileMenuOpen(false)}
+              aria-hidden="true"
+            />
+            <motion.div
+              key="menuPanel"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "tween", ease: "easeInOut", duration: 0.3 }}
+              className="fixed top-0 right-0 h-full w-4/5 max-w-xs bg-white dark:bg-dark-cardBg shadow-xl p-5 z-50 overflow-y-auto"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-lg font-sans font-semibold text-neutral-medium dark:text-dark-textMuted">เมนู</h2>
+                <button 
+                  onClick={() => setIsMobileMenuOpen(false)} 
+                  className="p-1 rounded-md text-neutral-dark dark:text-dark-text hover:bg-neutral-light/50 dark:hover:bg-dark-inputBg/30 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-400 dark:focus:ring-gray-500" 
+                  aria-label="Close menu"
+                >
+                  <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <nav className="flex flex-col space-y-2">
+                {renderNavLinks(true)}
+              </nav>
+            </motion.div>
           </div>
-          <nav className="flex flex-col space-y-2">{renderNavLinks(true)}</nav>
-        </div>
-      </div>
+        )}
+      </AnimatePresence>
     );
   };
+
   const renderHome = () => {
     return (
     <div className="flex flex-col items-center justify-center pt-6 sm:pt-8 lg:pt-10 pb-6 px-6 sm:pb-8 sm:px-8 text-center">
