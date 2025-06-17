@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { motion } from 'framer-motion';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'accent' | 'outline' | 'login';
@@ -13,10 +14,10 @@ export const Button: React.FC<ButtonProps> = ({
   variant = 'primary',
   size = 'md',
   className = '',
-  colorScheme = 'primary', 
+  colorScheme = 'primary',
   ...props
 }) => {
-  const baseStyle = 'font-sans font-medium rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-150 ease-out hover:-translate-y-px hover:shadow-md active:translate-y-px active:shadow-sm';
+  const baseStyle = 'font-sans font-medium rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-opacity-50 active:shadow-sm'; // Removed: transition-all duration-150 ease-out
 
   let variantStyle = '';
   switch (variant) {
@@ -32,7 +33,7 @@ export const Button: React.FC<ButtonProps> = ({
       variantStyle = `bg-accent text-neutral-dark hover:bg-accent-hover focus:ring-accent
                       dark:bg-dark-accent dark:text-dark-textOnAccentDark dark:hover:bg-dark-accent-hover dark:focus:ring-dark-accent`;
       break;
-    case 'login': 
+    case 'login':
       variantStyle = `bg-brandGreen text-neutral-dark hover:bg-brandGreen-hover focus:ring-brandGreen
                       dark:bg-dark-brandGreen dark:text-dark-textOnBrandGreenDark dark:hover:bg-dark-brandGreen-hover dark:focus:ring-dark-brandGreen`;
       break;
@@ -83,11 +84,15 @@ export const Button: React.FC<ButtonProps> = ({
   }
 
   return (
-    <button
+    <motion.button
       className={`${baseStyle} ${variantStyle} ${sizeStyle} ${className}`}
+      whileHover={{ scale: 1.03, transition: { duration: 0.15, ease: "easeOut" } }}
+      whileTap={{ scale: 0.97, y: 1, transition: { duration: 0.1, ease: "easeOut" } }}
+      // General transition for other animatable properties (like manual opacity changes if any)
+      transition={{ duration: 0.15, ease: "easeOut" }}
       {...props}
     >
       {children}
-    </button>
+    </motion.button>
   );
 };

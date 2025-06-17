@@ -5,6 +5,7 @@ import { View, JobCategory, JOB_CATEGORY_STYLES, JOB_CATEGORY_EMOJIS_MAP, JobDes
 import { Button } from './Button'; // Button is not used in the new design directly in footer, but kept for modals.
 import { Modal } from './Modal';
 import { isDateInPast } from '../App';
+import { motion } from 'framer-motion';
 
 interface JobCardProps {
   job: Job;
@@ -31,7 +32,7 @@ const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
     }
   }
   if (isNaN(dateObject.getTime())) {
-    return null; 
+    return null;
   }
   try {
     return dateObject.toLocaleDateString('th-TH', {
@@ -66,24 +67,24 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
     setIsWarningModalOpen(false);
     setIsInterestModalOpen(true);
   };
-  
+
   const postedAtDate = job.postedAt ? (job.postedAt instanceof Date ? job.postedAt : new Date(job.postedAt as string)) : null;
   const formattedPostedAt = postedAtDate && !isNaN(postedAtDate.getTime()) ? formatDateDisplay(postedAtDate) : "N/A";
-  
+
   const jobIsTrulyExpired = job.isExpired || (job.expiresAt ? isDateInPast(job.expiresAt) : false);
 
   const detailsNeedsTruncation = job.description.length > 120;
   const displayDetails = showFullDetails || !detailsNeedsTruncation || (currentUser && !jobIsTrulyExpired) ? job.description : `${job.description.substring(0, 120)}...`;
 
   const toggleShowFullDetails = (e: React.MouseEvent) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
     if (!currentUser && (detailsNeedsTruncation || jobIsTrulyExpired)) {
       requestLoginForAction(View.FindJobs, { focusOnPostId: job.id, type: 'job' });
     } else {
       setShowFullDetails(!showFullDetails);
     }
   };
-  
+
   const formatAgeRange = () => {
     const { desiredAgeStart, desiredAgeEnd } = job;
     if (desiredAgeStart && desiredAgeEnd) {
@@ -113,7 +114,15 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
 
   return (
     <>
-      <div className="job-card-redesigned font-sans h-full">
+      <motion.div
+        className="job-card-redesigned font-sans h-full"
+        whileHover={{
+          y: -5,
+          boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
+          rotate: 0.3,
+          transition: { duration: 0.2, ease: "easeOut" }
+        }}
+      >
         {job.isPinned && (
           <div className="job-card-status-banner status-banner-pinned">📌 ปักหมุดโดยแอดมิน</div>
         )}
@@ -142,7 +151,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
               </div>
             )}
         </div>
-        
+
         <div className="job-card-info-grid">
           <div className="job-card-info-item">
             <span className="info-icon" role="img" aria-label="Location">📍</span> {job.location} ({job.province || Province.ChiangMai})
@@ -190,7 +199,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
             </div>
           )}
         </div>
-        
+
         <div className="job-card-footer mt-auto">
           <div className="job-card-posted-time">
             {formattedPostedAt}
@@ -217,7 +226,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {currentUser && !jobIsTrulyExpired && (
         <>

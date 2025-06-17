@@ -3,9 +3,10 @@ import React, { useState } from 'react';
 import type { EnrichedHelperProfile, User } from '../types';
 import { View, Province, ACTIVITY_BADGE_DETAILS } from '../types';
 import { Modal } from './Modal';
-import { Button } from './Button'; 
+import { Button } from './Button';
 import { isDateInPast, calculateDaysRemaining } from '../App';
-import { UserLevelBadge } from './UserLevelBadge'; 
+import { UserLevelBadge } from './UserLevelBadge';
+import { motion } from 'framer-motion';
 
 interface HelperCardProps {
   profile: EnrichedHelperProfile;
@@ -18,7 +19,7 @@ interface HelperCardProps {
   onEditProfileFromFindView?: (profileId: string) => void; // New prop for editing from FindHelpers
 }
 
-const FallbackAvatarDisplay: React.FC<{ name?: string, size?: string, className?: string }> = ({ name, size = "w-[80px] h-[80px]", className = "" }) => { 
+const FallbackAvatarDisplay: React.FC<{ name?: string, size?: string, className?: string }> = ({ name, size = "w-[80px] h-[80px]", className = "" }) => {
   const initial = name ? name.charAt(0).toUpperCase() : '👤';
   return (
     <div className={`${size} rounded-full bg-neutral dark:bg-dark-inputBg flex items-center justify-center text-3xl font-sans text-white dark:text-dark-text ${className}`}>
@@ -80,21 +81,21 @@ const TrustBadgesCompact: React.FC<{ profile: EnrichedHelperProfile, user: User 
 };
 
 
-export const HelperCard: React.FC<HelperCardProps> = ({ 
-    profile, 
-    onNavigateToPublicProfile, 
-    navigateTo, 
-    onLogHelperContact, 
-    currentUser, 
-    requestLoginForAction, 
+export const HelperCard: React.FC<HelperCardProps> = ({
+    profile,
+    onNavigateToPublicProfile,
+    navigateTo,
+    onLogHelperContact,
+    currentUser,
+    requestLoginForAction,
     onBumpProfile,
-    onEditProfileFromFindView 
+    onEditProfileFromFindView
 }) => {
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
   const [showFullDetails, setShowFullDetails] = useState(false);
-  
-  const userForBadges = profile.userId === currentUser?.id ? currentUser : undefined; 
+
+  const userForBadges = profile.userId === currentUser?.id ? currentUser : undefined;
 
   const handleContact = () => {
     if (!currentUser) {
@@ -126,14 +127,14 @@ export const HelperCard: React.FC<HelperCardProps> = ({
   const displayDetails = showFullDetails || !detailsNeedsTruncation || (currentUser && !profileIsTrulyExpired) ? profile.details : `${profile.details.substring(0, 120)}...`;
 
   const toggleShowFullDetails = (e: React.MouseEvent) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
     if (!currentUser && (detailsNeedsTruncation || profileIsTrulyExpired)) {
       requestLoginForAction(View.FindHelpers, { focusOnPostId: profile.id, type: 'helper' });
     } else {
       setShowFullDetails(!showFullDetails);
     }
   };
-  
+
   const getAvailabilityText = () => {
     const availabilityParts = [];
     if (profile.availabilityDateFrom && profile.availabilityDateTo) {
@@ -145,7 +146,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({
     }
     if(profile.availabilityTimeDetails) availabilityParts.push(profile.availabilityTimeDetails);
     if(profile.availability && availabilityParts.length === 0) availabilityParts.push(profile.availability);
-    
+
     let combined = availabilityParts.join(', ');
     if (combined.length > 50) combined = combined.substring(0, 47) + "...";
     return combined || "ตามตกลง";
@@ -153,7 +154,15 @@ export const HelperCard: React.FC<HelperCardProps> = ({
 
   return (
     <>
-      <div className="helper-card-redesigned font-sans h-full">
+      <motion.div
+        className="helper-card-redesigned font-sans h-full"
+        whileHover={{
+          y: -5,
+          boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
+          rotate: 0.3,
+          transition: { duration: 0.2, ease: "easeOut" }
+        }}
+      >
         {profile.isPinned && (
           <div className="helper-card-status-banner status-banner-pinned">📌 ปักหมุดโดยแอดมิน</div>
         )}
@@ -185,7 +194,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({
                     const avatarImg = document.querySelector(`.helper-card-avatar[src="${profile.userPhoto}"]`);
                     if (avatarImg && !avatarImg.nextElementSibling?.classList.contains('fallback-avatar-rendered')) {
                         const fallbackNode = document.createElement('div');
-                        fallbackNode.className = 'helper-card-avatar fallback-avatar-rendered'; 
+                        fallbackNode.className = 'helper-card-avatar fallback-avatar-rendered';
                         const initial = profile.authorDisplayName ? profile.authorDisplayName.charAt(0).toUpperCase() : '👤';
                         fallbackNode.innerHTML = `<div class="w-full h-full rounded-full bg-neutral dark:bg-dark-inputBg flex items-center justify-center text-3xl font-sans text-white dark:text-dark-text">${initial}</div>`;
                         avatarImg.parentNode?.insertBefore(fallbackNode, avatarImg.nextSibling);
@@ -193,7 +202,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({
                 }} />
             )}
           </div>
-          
+
           <div className="helper-card-header-content">
             <h4 className="helper-card-main-title" title={profile.profileTitle}>{profile.profileTitle}</h4>
             <div className="helper-card-name-container">
@@ -219,7 +228,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({
             <TrustBadgesCompact profile={profile} user={userForBadges || currentUser} />
           </div>
         </div>
-        
+
         <div className="helper-card-info-grid">
           <div className="helper-card-info-item">
             <span className="info-icon" role="img" aria-label="Work area">🌐</span> {profile.area.length > 40 ? profile.area.substring(0,37) + "..." : profile.area}
@@ -248,7 +257,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({
               </button>
           )}
         </div>
-        
+
         <div className="helper-card-footer mt-auto">
           <div className="helper-card-posted-time">
             {formattedPostedAt}
@@ -283,7 +292,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {currentUser && !profileIsTrulyExpired && (
         <>
