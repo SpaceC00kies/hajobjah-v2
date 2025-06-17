@@ -1079,8 +1079,9 @@ export const toggleWebboardPostLikeService = async (postId: string, userId: stri
     } else {
       newLikes = [...likes, userId];
     }
-    const dataToUpdate = { likes: newLikes, updatedAt: serverTimestamp() as any };
-    await updateDoc(postRef, cleanDataForFirestore(dataToUpdate));
+    // Only update the likes array, not the updatedAt timestamp for the post itself
+    const dataToUpdate = { likes: newLikes }; 
+    await updateDoc(postRef, cleanDataForFirestore(dataToUpdate as Record<string, any>));
     return true;
   } catch (error: any) {
     logFirebaseError("toggleWebboardPostLikeService", error);
