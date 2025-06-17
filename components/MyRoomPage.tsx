@@ -6,7 +6,7 @@ import { Button } from './Button';
 import { UserProfilePage } from './UserProfilePage';
 import { WebboardPostCard } from './WebboardPostCard'; // For Saved Posts
 import { isDateInPast, calculateDaysRemaining } from '../App'; // Import utilities
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, type Variants, type Transition } from 'framer-motion';
 
 // Import icons (simple text for now, can be replaced with SVGs)
 const ProfileIcon = () => <span role="img" aria-label="Profile" className="mr-1.5 sm:mr-2">👤</span>;
@@ -39,7 +39,7 @@ interface MyRoomPageProps {
 }
 
 // Animation Variants
-const listVariants = {
+const listVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -47,11 +47,11 @@ const listVariants = {
       when: "beforeChildren",
       staggerChildren: 0.07,
       delayChildren: 0.1,
-    },
+    } as Transition,
   },
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { y: 15, opacity: 0 },
   visible: {
     y: 0,
@@ -60,14 +60,14 @@ const itemVariants = {
       type: "spring",
       stiffness: 100,
       damping: 12,
-    },
+    } as Transition,
   },
   exit: {
     opacity: 0,
     y: -10,
     transition: {
       duration: 0.2,
-    },
+    } as Transition,
   },
 };
 

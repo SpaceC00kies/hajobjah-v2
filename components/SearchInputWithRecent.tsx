@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, type Transition } from 'framer-motion'; // Added Transition
 
 interface SearchInputWithRecentProps {
   searchTerm: string;
@@ -18,15 +19,15 @@ export const SearchInputWithRecent: React.FC<SearchInputWithRecentProps> = ({
   onRecentSearchSelect,
   ariaLabel = "Search",
 }) => {
-  const [isFocused, setIsFocused] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false); // Renamed for clarity
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const showRecentSearches = isFocused && searchTerm.trim() === '' && recentSearches.length > 0;
+  const showRecentSearches = isInputFocused && searchTerm.trim() === '' && recentSearches.length > 0;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
-        setIsFocused(false);
+        setIsInputFocused(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -43,11 +44,22 @@ export const SearchInputWithRecent: React.FC<SearchInputWithRecentProps> = ({
         type="search"
         value={searchTerm}
         onChange={(e) => onSearchTermChange(e.target.value)}
-        onFocus={() => setIsFocused(true)}
+        onFocus={() => setIsInputFocused(true)}
+        onBlur={() => setIsInputFocused(false)} // Handle blur to hide underline
         placeholder={placeholder}
-        className="w-full p-3 bg-white dark:bg-dark-inputBg border border-neutral-DEFAULT dark:border-dark-border rounded-lg text-neutral-dark dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-neutral-dark dark:focus:ring-dark-text placeholder-neutral-medium dark:placeholder-dark-textMuted text-base font-serif transition-colors duration-150 ease-in-out focus:bg-gray-50 dark:focus:bg-[#383838]"
+        className="w-full p-3 bg-white dark:bg-dark-inputBg border border-neutral-DEFAULT dark:border-dark-border rounded-lg text-neutral-dark dark:text-dark-text placeholder-neutral-medium dark:placeholder-dark-textMuted text-base font-serif transition-colors duration-150 ease-in-out focus:outline-none focus:bg-gray-50 dark:focus:bg-[#383838]" // Removed focus:ring styles
         aria-label={ariaLabel}
         autoComplete="off"
+      />
+      {/* Animated underline */}
+      <motion.div
+        className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary dark:bg-dark-primary"
+        initial={{ scaleX: 0, opacity: 0 }}
+        animate={{
+          scaleX: isInputFocused ? 1 : 0,
+          opacity: isInputFocused ? 1 : 0,
+        }}
+        transition={{ duration: 0.2, ease: "easeOut" } as Transition}
       />
       {showRecentSearches && (
         <ul
@@ -60,7 +72,7 @@ export const SearchInputWithRecent: React.FC<SearchInputWithRecentProps> = ({
               key={`${recentTerm}-${index}`}
               onClick={() => {
                 onRecentSearchSelect(recentTerm);
-                setIsFocused(false); 
+                setIsInputFocused(false); 
               }}
               className="px-4 py-2 text-sm text-neutral-dark dark:text-dark-text hover:bg-neutral-light dark:hover:bg-dark-inputBg cursor-pointer font-serif"
               role="option"
@@ -69,7 +81,7 @@ export const SearchInputWithRecent: React.FC<SearchInputWithRecentProps> = ({
               onKeyPress={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   onRecentSearchSelect(recentTerm);
-                  setIsFocused(false);
+                  setIsInputFocused(false);
                 }
               }}
             >

@@ -6,7 +6,7 @@ import { Modal } from './Modal';
 import { Button } from './Button';
 import { isDateInPast, calculateDaysRemaining } from '../App';
 import { UserLevelBadge } from './UserLevelBadge';
-import { motion } from 'framer-motion';
+import { motion, type Transition } from 'framer-motion';
 
 interface HelperCardProps {
   profile: EnrichedHelperProfile;
@@ -160,11 +160,11 @@ export const HelperCard: React.FC<HelperCardProps> = ({
           y: -5,
           boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
           rotate: 0.3,
-          transition: { duration: 0.2, ease: "easeOut" }
+          transition: { duration: 0.2, ease: "easeOut" } as Transition
         }}
         initial={{ scale: 0.97, filter: 'brightness(0.95)' }}
         whileInView={{ scale: 1, filter: 'brightness(1)' }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        transition={{ duration: 0.4, ease: "easeOut" } as Transition}
         viewport={{ once: true, amount: 0.2 }}
       >
         {profile.isPinned && (

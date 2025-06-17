@@ -5,7 +5,7 @@ import { View, JobCategory, JOB_CATEGORY_STYLES, JOB_CATEGORY_EMOJIS_MAP, JobDes
 import { Button } from './Button'; // Button is not used in the new design directly in footer, but kept for modals.
 import { Modal } from './Modal';
 import { isDateInPast } from '../App';
-import { motion } from 'framer-motion';
+import { motion, type Transition } from 'framer-motion';
 
 interface JobCardProps {
   job: Job;
@@ -120,11 +120,11 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
           y: -5,
           boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
           rotate: 0.3,
-          transition: { duration: 0.2, ease: "easeOut" }
+          transition: { duration: 0.2, ease: "easeOut" } as Transition
         }}
         initial={{ scale: 0.97, filter: 'brightness(0.95)' }}
         whileInView={{ scale: 1, filter: 'brightness(1)' }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        transition={{ duration: 0.4, ease: "easeOut" } as Transition}
         viewport={{ once: true, amount: 0.2 }}
       >
         {job.isPinned && (

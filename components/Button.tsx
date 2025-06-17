@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, type Transition, type HTMLMotionProps } from 'framer-motion';
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonProps extends HTMLMotionProps<"button"> {
   variant?: 'primary' | 'secondary' | 'accent' | 'outline' | 'login';
   size?: 'sm' | 'md' | 'lg';
   children: React.ReactNode;
@@ -86,10 +86,10 @@ export const Button: React.FC<ButtonProps> = ({
   return (
     <motion.button
       className={`${baseStyle} ${variantStyle} ${sizeStyle} ${className}`}
-      whileHover={{ scale: 1.03, transition: { duration: 0.15, ease: "easeOut" } }}
-      whileTap={{ scale: 0.97, y: 1, transition: { duration: 0.1, ease: "easeOut" } }}
+      whileHover={{ scale: 1.03, transition: { duration: 0.15, ease: "easeOut" } as Transition }}
+      whileTap={{ scale: 0.97, y: 1, transition: { duration: 0.1, ease: "easeOut" } as Transition }}
       // General transition for other animatable properties (like manual opacity changes if any)
-      transition={{ duration: 0.15, ease: "easeOut" }}
+      transition={{ duration: 0.15, ease: "easeOut" } as Transition}
       {...props}
     >
       {children}

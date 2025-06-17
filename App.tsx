@@ -70,7 +70,7 @@ import { SearchInputWithRecent } from './components/SearchInputWithRecent';
 import { PasswordResetPage } from './components/PasswordResetPage';
 
 import { logFirebaseError } from './firebase/logging';
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, type Variants, type Transition } from "framer-motion";
 
 
 export const THAI_PROFANITY_BLACKLIST: string[] = [ /* Populate this if needed */ ];
@@ -195,7 +195,7 @@ const addRecentSearch = (key: string, term: string) => {
 type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts'> & { password: string };
 
 // Animation Variants
-const listVariants = {
+const listVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -203,11 +203,11 @@ const listVariants = {
       when: "beforeChildren",
       staggerChildren: 0.07,
       delayChildren: 0.1,
-    },
+    } as Transition,
   },
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { y: 15, opacity: 0 },
   visible: {
     y: 0,
@@ -216,14 +216,14 @@ const itemVariants = {
       type: "spring",
       stiffness: 100,
       damping: 12,
-    },
+    } as Transition,
   },
   exit: {
     opacity: 0,
     y: -10,
     transition: {
       duration: 0.2,
-    },
+    } as Transition,
   },
 };
 
@@ -1239,14 +1239,17 @@ const App: React.FC = () => {
       }
       setCopiedLinkNotification(`คัดลอกลิงก์แล้ว: ${postTitle.substring(0, 30)}${postTitle.length > 30 ? '...' : ''}`);
       
-      copiedNotificationTimerRef.current = setTimeout(() => {
+      copiedNotificationTimerRef.current = window.setTimeout(() => {
         setCopiedLinkNotification(null); 
       }, 2500);
 
     } catch (err) {
       console.error('Failed to copy: ', err);
       setCopiedLinkNotification('ไม่สามารถคัดลอกลิงก์ได้');
-      copiedNotificationTimerRef.current = setTimeout(() => {
+      if (copiedNotificationTimerRef.current) {
+        clearTimeout(copiedNotificationTimerRef.current);
+      }
+      copiedNotificationTimerRef.current = window.setTimeout(() => {
         setCopiedLinkNotification(null);
       }, 2500);
     }
@@ -1412,15 +1415,15 @@ const App: React.FC = () => {
   };
 
   const AnimatedHamburgerIcon = () => {
-    const topVariants = {
+    const topVariants: Variants = {
       closed: { rotate: 0, y: 0 },
       open: { rotate: 45, y: 5.5 }, // Adjusted y for centering rotation
     };
-    const middleVariants = {
+    const middleVariants: Variants = {
       closed: { opacity: 1 },
       open: { opacity: 0 },
     };
-    const bottomVariants = {
+    const bottomVariants: Variants = {
       closed: { rotate: 0, y: 0 },
       open: { rotate: -45, y: -5.5 }, // Adjusted y for centering rotation
     };
@@ -1446,17 +1449,17 @@ const App: React.FC = () => {
         <motion.div
           style={{ ...lineStyle, top: '5px' }} // y=6 center
           variants={topVariants}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
+          transition={{ duration: 0.3, ease: "easeInOut" } as Transition}
         />
         <motion.div
           style={{ ...lineStyle, top: '11px' }} // y=12 center
           variants={middleVariants}
-          transition={{ duration: 0.15, ease: "easeInOut" }}
+          transition={{ duration: 0.15, ease: "easeInOut" } as Transition}
         />
         <motion.div
           style={{ ...lineStyle, top: '17px' }} // y=18 center
           variants={bottomVariants}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
+          transition={{ duration: 0.3, ease: "easeInOut" } as Transition}
         />
       </motion.button>
     );
@@ -1506,7 +1509,7 @@ const App: React.FC = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.3 } as Transition}
               className="fixed inset-0 bg-black/40 backdrop-blur-sm"
               onClick={() => setIsMobileMenuOpen(false)}
               aria-hidden="true"
@@ -1516,7 +1519,7 @@ const App: React.FC = () => {
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
-              transition={{ type: "tween", ease: "easeInOut", duration: 0.3 }}
+              transition={{ type: "tween", ease: "easeInOut", duration: 0.3 } as Transition}
               className="fixed top-0 right-0 h-full w-4/5 max-w-xs bg-white dark:bg-dark-cardBg shadow-xl p-5 z-50 overflow-y-auto"
             >
               <div className="flex justify-between items-center mb-6">
@@ -2207,7 +2210,7 @@ const App: React.FC = () => {
           initial={{ opacity: 0, y: 20, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.9 }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 } as Transition}
           className="fixed bottom-5 left-1/2 -translate-x-1/2 bg-neutral-dark text-white px-4 py-2 rounded-md shadow-lg text-sm z-50"
         >
           {copiedLinkNotification}

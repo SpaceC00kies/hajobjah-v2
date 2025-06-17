@@ -10,7 +10,7 @@ import { WebboardPostCreateForm } from './WebboardPostCreateForm';
 import { getWebboardPostsPaginated as getWebboardPostsPaginatedService } from '../services/firebaseService'; // Import paginated fetch
 import type { DocumentSnapshot } from 'firebase/firestore'; // For pagination
 import { logFirebaseError } from '../firebase/logging';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, type Variants, type Transition } from 'framer-motion';
 
 
 interface WebboardPageProps {
@@ -42,7 +42,7 @@ interface WebboardPageProps {
 }
 
 // Animation Variants
-const listVariants = {
+const listVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -50,11 +50,11 @@ const listVariants = {
       when: "beforeChildren",
       staggerChildren: 0.07,
       delayChildren: 0.1,
-    },
+    } as Transition,
   },
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { y: 15, opacity: 0 },
   visible: {
     y: 0,
@@ -63,14 +63,14 @@ const itemVariants = {
       type: "spring",
       stiffness: 100,
       damping: 12,
-    },
+    } as Transition,
   },
   exit: {
     opacity: 0,
     y: -10,
     transition: {
       duration: 0.2,
-    },
+    } as Transition,
   },
 };
 
