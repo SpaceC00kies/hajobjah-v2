@@ -8,6 +8,8 @@ import { Button } from './Button';
 import { WebboardCommentItem } from './WebboardCommentItem';
 import { WebboardCommentForm } from './WebboardCommentForm';
 import { triggerHapticFeedback } from '@/utils/haptics'; // Import haptic utility
+import { motion, AnimatePresence, type AnimationControls, useAnimation, type Transition } from 'framer-motion';
+
 
 interface WebboardPostDetailProps {
   post: EnrichedWebboardPost;
@@ -83,17 +85,8 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
   const canEditPost = isAuthor || isAdmin || (isModerator && !post.isAuthorAdmin);
   const canDeletePost = isAuthor || isAdmin || canModeratorDeletePost;
 
-  const [isAnimatingLike, setIsAnimatingLike] = useState(false);
-  const prevHasLikedRef = useRef(hasLiked);
-
-  useEffect(() => {
-    if (hasLiked && !prevHasLikedRef.current) {
-      setIsAnimatingLike(true);
-      const timer = setTimeout(() => setIsAnimatingLike(false), 300); // Duration of animation CSS
-      return () => clearTimeout(timer);
-    }
-    prevHasLikedRef.current = hasLiked;
-  }, [hasLiked]);
+  // Removed isAnimatingLike and prevHasLikedRef
+  const shareIconControls: AnimationControls = useAnimation();
 
 
   const timeSince = (dateInput: string | Date | null | undefined): string => {
@@ -134,11 +127,12 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
   const handleShareClick = () => {
     onSharePost(post.id, post.title);
     setCopiedLink(true);
+    shareIconControls.start({ scale: [1, 1.2, 1], transition: { duration: 0.3 } });
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
   const categoryStyle = WEBBOARD_CATEGORY_STYLES[post.category] || WEBBOARD_CATEGORY_STYLES[WebboardCategory.General];
-  const actionButtonClass = "flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-neutral-light dark:hover:bg-dark-inputBg focus:outline-none focus:ring-1 focus:ring-neutral-DEFAULT dark:focus:ring-dark-border text-xs sm:text-sm";
+  const actionButtonBaseClass = "flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-neutral-light dark:hover:bg-dark-inputBg focus:outline-none focus:ring-1 focus:ring-neutral-DEFAULT dark:focus:ring-dark-border text-xs sm:text-sm transition-colors duration-150";
 
 
   return (
@@ -192,27 +186,62 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
 
       <div className="flex flex-wrap items-center justify-between gap-2 mt-6 pt-4 border-t border-neutral-DEFAULT/30 dark:border-dark-border/30">
         <div className="flex items-center gap-2 sm:gap-3">
-          <button
+           <motion.button
             onClick={handleLikeClick}
-            className={`${actionButtonClass}`}
+            className={`${actionButtonBaseClass}`}
             aria-pressed={hasLiked}
             aria-label={hasLiked ? "Unlike post" : "Like post"}
+            whileTap={{ scale: 0.9 }}
           >
-            <span className={`${isAnimatingLike ? 'animate-like-heart' : ''} inline-block`}>
+            <motion.span
+              key={hasLiked ? "liked-detail" : "unliked-detail"} // Ensure key is unique if icon component changes
+              initial={{ scale: 1 }}
+              animate={hasLiked ? { scale: [1, 1.3, 1], transition: { type: "spring", stiffness: 400, damping: 10 } } : { scale: [1, 0.8, 1], transition: { type: "spring", stiffness: 300, damping: 15 } }}
+              className="inline-block"
+            >
               {hasLiked ? <LikedIcon /> : <LikeIcon />}
-            </span>
-            <span className={`font-medium ${hasLiked ? 'text-red-500 dark:text-red-400' : 'text-neutral-500 dark:text-neutral-400'}`}>{post.likes.length}</span>
-          </button>
+            </motion.span>
+             <AnimatePresence mode="popLayout">
+                <motion.span
+                    key={`likes-${post.likes.length}`}
+                    initial={{ opacity: 0, y: -3 }}
+                    animate={{ opacity: 1, y: 0, transition: { duration: 0.15 } }}
+                    exit={{ opacity: 0, y: 3, transition: { duration: 0.15 } }}
+                    className={`font-medium ${hasLiked ? 'text-red-500 dark:text-red-400' : 'text-neutral-500 dark:text-neutral-400'}`}
+                >
+                    {post.likes.length}
+                </motion.span>
+            </AnimatePresence>
+          </motion.button>
           {currentUser && (
             <>
-            <button onClick={handleSaveClick} className={`${actionButtonClass}`} aria-pressed={isSaved} aria-label={isSaved ? "Unsave post" : "Save post"}>
-              {isSaved ? <SavedIcon/> : <SaveIcon />} 
+            <motion.button 
+                onClick={handleSaveClick} 
+                className={`${actionButtonBaseClass}`} 
+                aria-pressed={isSaved} 
+                aria-label={isSaved ? "Unsave post" : "Save post"}
+                whileTap={{ scale: 0.9 }}
+            >
+              <motion.span
+                key={isSaved ? "saved-detail" : "unsaved-detail"}
+                initial={{ scale: 1 }}
+                animate={{ scale: [1, 0.8, 1.1, 1], transition: { type: "spring", stiffness: 350, damping: 12 } }}
+                className="inline-block"
+              >
+                {isSaved ? <SavedIcon/> : <SaveIcon />} 
+              </motion.span>
               <span className={`hidden sm:inline ${isSaved ? 'text-blue-500 dark:text-blue-400' : 'text-neutral-500 dark:text-neutral-400'}`}>{isSaved ? 'Saved' : 'Save'}</span>
-            </button>
+            </motion.button>
             <div className="relative">
-                <button onClick={handleShareClick} className={`${actionButtonClass} text-neutral-500 dark:text-neutral-400`} aria-label="Share post">
-                <ShareIcon /> <span className="hidden sm:inline">Share</span>
-                </button>
+                <motion.button 
+                    onClick={handleShareClick} 
+                    className={`${actionButtonBaseClass} text-neutral-500 dark:text-neutral-400`} 
+                    aria-label="Share post"
+                    whileTap={{ scale: 0.9 }}
+                    animate={shareIconControls}
+                >
+                  <ShareIcon /> <span className="hidden sm:inline">Share</span>
+                </motion.button>
                 {copiedLink && (
                 <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-0.5 bg-neutral-dark text-white text-xs rounded-md shadow-lg whitespace-nowrap">
                     Link Copied!

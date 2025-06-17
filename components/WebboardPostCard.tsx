@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react'; // Added useEffect, useRef
 import type { EnrichedWebboardPost, User } from '../types';
 import { UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES } 
@@ -5,6 +6,8 @@ from '../types';
 // Button component might be used for consistency if styled appropriately, or use raw <button> for icons
 // import { Button } from './Button'; 
 import { triggerHapticFeedback } from '@/utils/haptics'; // Import haptic utility
+import { motion, AnimatePresence, type Transition } from 'framer-motion';
+
 
 interface WebboardPostCardProps {
   post: EnrichedWebboardPost;
@@ -45,18 +48,7 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
   const hasLiked = currentUser && post.likes.includes(currentUser.id);
   const isSaved = currentUser?.savedWebboardPosts?.includes(post.id) || false;
   
-  const [isAnimatingLike, setIsAnimatingLike] = useState(false);
-  const prevHasLikedRef = useRef(hasLiked);
-
-  useEffect(() => {
-    if (hasLiked && !prevHasLikedRef.current) {
-      setIsAnimatingLike(true);
-      const timer = setTimeout(() => setIsAnimatingLike(false), 300); // Duration of animation CSS
-      return () => clearTimeout(timer);
-    }
-    prevHasLikedRef.current = hasLiked;
-  }, [hasLiked]);
-
+  // Removed isAnimatingLike and prevHasLikedRef as Framer Motion handles animation state internally more effectively for this type of icon switch.
 
   const timeSince = (dateInput: string | Date | null | undefined): string => {
     if (dateInput === null || dateInput === undefined) return "just now";
@@ -99,15 +91,16 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
   };
   
   const categoryStyle = WEBBOARD_CATEGORY_STYLES[post.category] || WEBBOARD_CATEGORY_STYLES[WebboardCategory.General];
-  const actionButtonClass = "flex items-center gap-1 p-1.5 rounded-md hover:bg-neutral-light dark:hover:bg-dark-inputBg focus:outline-none focus:ring-1 focus:ring-neutral-DEFAULT dark:focus:ring-dark-border";
+  const actionButtonBaseClass = "flex items-center gap-1 p-1.5 rounded-md hover:bg-neutral-light dark:hover:bg-dark-inputBg focus:outline-none focus:ring-1 focus:ring-neutral-DEFAULT dark:focus:ring-dark-border transition-colors duration-150";
 
 
   return (
-    <div 
+    <motion.div 
       className="font-sans bg-white dark:bg-dark-cardBg shadow rounded-lg border border-neutral-DEFAULT/50 dark:border-dark-border/50 hover:border-neutral-DEFAULT dark:hover:border-dark-border/70 transition-all duration-200 flex cursor-pointer"
       onClick={() => onViewPost(post.id)}
       role="article"
       aria-labelledby={`post-title-${post.id}`}
+      whileHover={{ y: -2, transition: { duration: 0.15 } as Transition }}
     >
       {/* Thumbnail Section */}
       <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 bg-neutral-light dark:bg-dark-inputBg rounded-l-lg overflow-hidden m-3">
@@ -153,27 +146,76 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
         </div>
 
         <div className="flex items-center justify-start text-xs text-neutral-medium dark:text-dark-textMuted mt-2 space-x-2 sm:space-x-3 flex-wrap">
-          <button onClick={handleLikeClick} className={`${actionButtonClass}`} aria-pressed={hasLiked} aria-label={hasLiked ? "Unlike" : "Like"}>
-            <span className={`${isAnimatingLike ? 'animate-like-heart' : ''} inline-block`}>
+          <motion.button 
+            onClick={handleLikeClick} 
+            className={`${actionButtonBaseClass}`} 
+            aria-pressed={hasLiked} 
+            aria-label={hasLiked ? "Unlike" : "Like"}
+            whileTap={{ scale: 0.9 }}
+          >
+            <motion.span
+              key={hasLiked ? "liked" : "unliked"}
+              initial={{ scale: 1 }}
+              animate={hasLiked ? { scale: [1, 1.3, 1], transition: { type: "spring", stiffness: 400, damping: 10 } } : { scale: [1, 0.8, 1], transition: { type: "spring", stiffness: 300, damping: 15 } }}
+              className="inline-block"
+            >
               {hasLiked ? <LikedIcon /> : <LikeIcon />}
-            </span>
-            <span className={`${hasLiked ? 'text-red-500 dark:text-red-400' : 'text-neutral-500 dark:text-neutral-400'}`}>{post.likes.length}</span>
-          </button>
-          <button onClick={() => onViewPost(post.id)} className={`${actionButtonClass} text-neutral-500 dark:text-neutral-400`} aria-label="View comments"> {/* Make comment icon clickable as well */}
+            </motion.span>
+            <AnimatePresence mode="popLayout">
+              <motion.span
+                key={post.likes.length}
+                initial={{ opacity: 0, y: -3 }}
+                animate={{ opacity: 1, y: 0, transition: { duration: 0.15 } }}
+                exit={{ opacity: 0, y: 3, transition: { duration: 0.15 } }}
+                className={`${hasLiked ? 'text-red-500 dark:text-red-400' : 'text-neutral-500 dark:text-neutral-400'}`}
+              >
+                {post.likes.length}
+              </motion.span>
+            </AnimatePresence>
+          </motion.button>
+
+          <motion.button 
+            onClick={() => onViewPost(post.id)} 
+            className={`${actionButtonBaseClass} text-neutral-500 dark:text-neutral-400`} 
+            aria-label="View comments"
+            whileTap={{ scale: 0.9 }}
+          >
             <CommentIcon /> <span>{post.commentCount}</span>
-          </button>
+          </motion.button>
+
           {currentUser && (
             <>
-              <button onClick={handleSaveClick} className={`${actionButtonClass}`} aria-pressed={isSaved} aria-label={isSaved ? "Unsave" : "Save"}>
-                {isSaved ? <SavedIcon/> : <SaveIcon />} <span className={`hidden sm:inline ${isSaved ? 'text-blue-500 dark:text-blue-400' : 'text-neutral-500 dark:text-neutral-400'}`}>{isSaved ? 'Saved' : 'Save'}</span>
-              </button>
-              <button onClick={handleShareClick} className={`${actionButtonClass} text-neutral-500 dark:text-neutral-400`} aria-label="Share">
+              <motion.button 
+                onClick={handleSaveClick} 
+                className={`${actionButtonBaseClass}`} 
+                aria-pressed={isSaved} 
+                aria-label={isSaved ? "Unsave" : "Save"}
+                whileTap={{ scale: 0.9 }}
+              >
+                <motion.span
+                  key={isSaved ? "saved" : "unsaved"}
+                  initial={{ scale: 1 }}
+                  animate={{ scale: [1, 0.8, 1.1, 1], transition: { type: "spring", stiffness: 350, damping: 12 } }}
+                  className="inline-block"
+                >
+                  {isSaved ? <SavedIcon/> : <SaveIcon />} 
+                </motion.span>
+                <span className={`hidden sm:inline ${isSaved ? 'text-blue-500 dark:text-blue-400' : 'text-neutral-500 dark:text-neutral-400'}`}>{isSaved ? 'Saved' : 'Save'}</span>
+              </motion.button>
+
+              <motion.button 
+                onClick={handleShareClick} 
+                className={`${actionButtonBaseClass} text-neutral-500 dark:text-neutral-400`} 
+                aria-label="Share"
+                whileTap={{ scale: 0.9 }}
+                animate={{ scale: 1 }} // Base state for programmatic animation
+              >
                 <ShareIcon /> <span className="hidden sm:inline">Share</span>
-              </button>
+              </motion.button>
             </>
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
