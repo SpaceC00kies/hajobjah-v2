@@ -122,6 +122,10 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
           rotate: 0.3,
           transition: { duration: 0.2, ease: "easeOut" }
         }}
+        initial={{ scale: 0.97, filter: 'brightness(0.95)' }}
+        whileInView={{ scale: 1, filter: 'brightness(1)' }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        viewport={{ once: true, amount: 0.2 }}
       >
         {job.isPinned && (
           <div className="job-card-status-banner status-banner-pinned">📌 ปักหมุดโดยแอดมิน</div>
