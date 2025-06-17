@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react'; // Added useState, useEffect, useRef
 import type { EnrichedWebboardPost, EnrichedWebboardComment, User } from '../types';
 import { USER_LEVELS, UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES } 
@@ -23,7 +24,7 @@ interface WebboardPostDetailProps {
   onDeleteComment?: (commentId: string) => void;
   onUpdateComment?: (commentId: string, newText: string) => void;
   requestLoginForAction: (view: View, payload?: any) => void; 
-  onNavigateToPublicProfile: (userId: string) => void;
+  onNavigateToPublicProfile: (profileInfo: { userId: string; helperProfileId?: string }) => void;
   checkWebboardCommentLimits: (user: User) => { canPost: boolean; message?: string };
 }
 
@@ -164,8 +165,8 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
           <div className="flex items-baseline"> 
             <span 
               className="text-sm font-semibold text-gray-800 dark:text-gray-200 hover:underline cursor-pointer"
-              onClick={() => onNavigateToPublicProfile(post.userId)}
-              role="link" tabIndex={0} onKeyPress={(e) => e.key === 'Enter' && onNavigateToPublicProfile(post.userId)}
+              onClick={() => onNavigateToPublicProfile({userId: post.userId})}
+              role="link" tabIndex={0} onKeyPress={(e) => e.key === 'Enter' && onNavigateToPublicProfile({userId: post.userId})}
             >
               @{post.authorDisplayName}
             </span>
@@ -267,7 +268,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
                             currentUser={currentUser} 
                             onDeleteComment={onDeleteComment}
                             onUpdateComment={onUpdateComment}
-                            onNavigateToPublicProfile={onNavigateToPublicProfile}
+                            onNavigateToPublicProfile={(userId) => onNavigateToPublicProfile({ userId })}
                         />
                     );
             })}

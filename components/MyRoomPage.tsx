@@ -33,7 +33,7 @@ interface MyRoomPageProps {
   getUserDisplayBadge: (user: User | null | undefined) => UserLevel;
   onSavePost: (postId: string) => void; // For un-saving
   onBumpProfile: (profileId: string) => void;
-  onNavigateToPublicProfile: (userId: string) => void; // Added for linking helper profile titles
+  onNavigateToPublicProfile: (profileInfo: { userId: string; helperProfileId?: string }) => void; 
   initialTab?: ActiveTab | null; // New prop for initial tab
   onInitialTabProcessed?: () => void; // New prop to signal consumption
 }
@@ -391,7 +391,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
             <div key={profile.id} className="bg-white dark:bg-dark-cardBg p-4 rounded-lg shadow border dark:border-dark-border/70">
               <h4 
                 className="font-semibold text-lg text-secondary dark:text-dark-secondary mb-1 cursor-pointer hover:underline"
-                onClick={() => onNavigateToPublicProfile(profile.userId)}
+                onClick={() => onNavigateToPublicProfile({ userId: profile.userId, helperProfileId: profile.id })}
                 title="ดูโปรไฟล์สาธารณะ"
                 aria-label={`ดูโปรไฟล์สาธารณะของ ${profile.profileTitle}`}
               >
@@ -485,7 +485,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
                       onSavePost={onSavePost} // This will trigger un-save
                       onSharePost={() => { /* Not primary action here */ }}
                       requestLoginForAction={() => {}} // User is logged in
-                      onNavigateToPublicProfile={(userId) => navigateTo(View.PublicProfile, userId)}
+                      onNavigateToPublicProfile={(userId) => onNavigateToPublicProfile({userId})}
                   />
                 </div>
               </motion.div>

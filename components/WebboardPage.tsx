@@ -35,7 +35,7 @@ interface WebboardPageProps {
   onCancelEdit: () => void;
   getUserDisplayBadge: (user: User | null | undefined) => UserLevel;
   requestLoginForAction: (view: View, payload?: any) => void;
-  onNavigateToPublicProfile: (userId: string) => void;
+  onNavigateToPublicProfile: (profileInfo: { userId: string; helperProfileId?: string }) => void;
   checkWebboardPostLimits: (user: User) => { canPost: boolean; message?: string | null };
   checkWebboardCommentLimits: (user: User) => { canPost: boolean; message?: string };
   pageSize: number; // For infinite scroll
@@ -423,7 +423,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
                   onSavePost={onSavePost}
                   onSharePost={onSharePost}
                   requestLoginForAction={requestLoginForAction}
-                  onNavigateToPublicProfile={onNavigateToPublicProfile}
+                  onNavigateToPublicProfile={(userId) => onNavigateToPublicProfile({userId})}
                 />
               </motion.div>
             ))}

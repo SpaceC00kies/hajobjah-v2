@@ -1,5 +1,4 @@
 
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   onAuthChangeService,
@@ -231,7 +230,8 @@ const itemVariants: Variants = {
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>(View.Home);
-  const [viewingProfileId, setViewingProfileId] = useState<string | null>(null);
+  // Renamed viewingProfileId to viewingProfileInfo
+  const [viewingProfileInfo, setViewingProfileInfo] = useState<{ userId: string; helperProfileId?: string } | null>(null);
   const [sourceViewForPublicProfile, setSourceViewForPublicProfile] = useState<View>(View.FindHelpers);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [confirmModalMessage, setConfirmModalMessage] = useState('');
@@ -295,14 +295,13 @@ const App: React.FC = () => {
     const mode = params.get('mode');
     const oobCode = params.get('oobCode');
     const viewFromUrl = params.get('view') as View | null;
-    const idFromUrl = params.get('id'); // Generic ID from URL (postId, userId)
+    const idFromUrl = params.get('id'); // Generic ID from URL (postId, userId for PublicProfile)
 
     if (window.location.pathname.endsWith('/reset-password') && mode === 'resetPassword' && oobCode) {
       setCurrentView(View.PasswordReset);
-      // Clear other params from URL to avoid conflicts if user navigates away and back
       const newUrl = `${window.location.pathname}?mode=resetPassword&oobCode=${oobCode}`;
       window.history.replaceState({}, '', newUrl);
-      return; // Prioritize password reset
+      return;
     }
 
     if (viewFromUrl && Object.values(View).includes(viewFromUrl)) {
@@ -310,22 +309,21 @@ const App: React.FC = () => {
       if (viewFromUrl === View.Webboard && idFromUrl) {
         setSelectedPostId(idFromUrl);
       } else if (viewFromUrl === View.PublicProfile && idFromUrl) {
-        setViewingProfileId(idFromUrl);
-        // Determine a sensible default for sourceView if coming directly to public profile
+        setViewingProfileInfo({ userId: idFromUrl }); // Only userId from URL
         const referrerView = params.get('from') as View | null;
         if(referrerView && Object.values(View).includes(referrerView)) {
             setSourceViewForPublicProfile(referrerView);
         } else {
-            setSourceViewForPublicProfile(View.FindHelpers); // Default source
+            setSourceViewForPublicProfile(View.FindHelpers); 
         }
       } else {
         setSelectedPostId(null);
-        setViewingProfileId(null);
+        setViewingProfileInfo(null);
       }
     } else {
-      setCurrentView(View.Home); // Default to Home
+      setCurrentView(View.Home); 
       setSelectedPostId(null);
-      setViewingProfileId(null);
+      setViewingProfileInfo(null);
     }
   }, []);
 
@@ -335,7 +333,7 @@ const App: React.FC = () => {
     setRecentJobSearches(getRecentSearches('recentJobSearches'));
     setRecentHelperSearches(getRecentSearches('recentHelperSearches'));
     
-    parseUrlAndSetInitialState(); // Parse URL on initial load
+    parseUrlAndSetInitialState(); 
 
     const unsubscribeAuth = onAuthChangeService((user) => {
       setCurrentUser(user);
@@ -517,20 +515,35 @@ const App: React.FC = () => {
     setIsMobileMenuOpen(false); window.scrollTo(0, 0);
     const protectedViews: View[] = [View.PostJob, View.OfferHelp, View.UserProfile, View.MyPosts, View.AdminDashboard, View.MyRoom];
 
-    if (view === View.PublicProfile && typeof payload === 'string') {
-      const targetUser = users.find(u => u.id === payload);
-      if (targetUser && targetUser.role === UserRole.Admin && currentUser?.id !== targetUser.id) {
-        alert("โปรไฟล์ของแอดมินไม่สามารถดูในหน้านี้ได้");
+    if (view === View.PublicProfile) {
+      let profileInfo: { userId: string; helperProfileId?: string } | null = null;
+      if (typeof payload === 'string') { // Legacy or general user link
+        profileInfo = { userId: payload };
+      } else if (payload && typeof payload === 'object' && payload.userId) {
+        profileInfo = { userId: payload.userId, helperProfileId: payload.helperProfileId };
+      }
+
+      if (profileInfo) {
+        const targetUser = users.find(u => u.id === profileInfo!.userId);
+        if (targetUser && targetUser.role === UserRole.Admin && currentUser?.id !== targetUser.id) {
+          alert("โปรไฟล์ของแอดมินไม่สามารถดูในหน้านี้ได้");
+          return;
+        }
+        setViewingProfileInfo(profileInfo);
+        if (fromView !== View.PublicProfile) {
+          setSourceViewForPublicProfile(fromView);
+        }
+      } else {
+        // Invalid payload for PublicProfile, perhaps navigate home or show error
+        setCurrentView(View.Home);
+        setViewingProfileInfo(null);
+        window.history.pushState({ view: View.Home }, '', `?view=${View.Home}`);
         return;
       }
-      setViewingProfileId(payload);
-      if (fromView !== View.PublicProfile) {
-        // Store the true 'fromView' when navigating TO public profile for the first time from another view
-        setSourceViewForPublicProfile(fromView);
-      }
-    } else if (view !== View.PublicProfile) {
-      if (viewingProfileId !== null) setViewingProfileId(null);
+    } else if (viewingProfileInfo !== null) { // Clear viewingProfileInfo if navigating away from PublicProfile
+      setViewingProfileInfo(null);
     }
+
 
     if (!currentUser && protectedViews.includes(view)) {
       requestLoginForAction(view, payload);
@@ -559,9 +572,12 @@ const App: React.FC = () => {
 
     if (view === View.Webboard && newSelectedPostId && newSelectedPostId !== 'create') {
       idForUrl = newSelectedPostId;
-    } else if (view === View.PublicProfile && typeof payload === 'string') {
-      idForUrl = payload; // This is the userId
+    } else if (view === View.PublicProfile) {
+        // URL only contains userId for simplicity and direct linking
+        if (typeof payload === 'string') idForUrl = payload;
+        else if (payload && typeof payload === 'object' && payload.userId) idForUrl = payload.userId;
     }
+    
 
     if (idForUrl) {
       params.set('id', idForUrl);
@@ -578,7 +594,7 @@ const App: React.FC = () => {
   };
 
 
-  const handleNavigateToPublicProfile = (userId: string) => navigateTo(View.PublicProfile, userId);
+  const handleNavigateToPublicProfile = (profileInfo: { userId: string; helperProfileId?: string }) => navigateTo(View.PublicProfile, profileInfo);
 
   const handleRegister = async (userData: RegistrationDataType): Promise<boolean> => {
     try {
@@ -666,7 +682,7 @@ const App: React.FC = () => {
     try {
       await signOutUserService();
       setLoginRedirectInfo(null); setItemToEdit(null); setEditingItemType(null);
-      setSourceViewForForm(null); setViewingProfileId(null); setSelectedPostId(null);
+      setSourceViewForForm(null); setViewingProfileInfo(null); setSelectedPostId(null);
       setSourceViewForPublicProfile(View.FindHelpers);
       setMyRoomInitialTabOverride(null); setEditOriginMyRoomTab(null);
       setIsMobileMenuOpen(false);
@@ -960,17 +976,24 @@ const App: React.FC = () => {
 
     if (sourceViewForForm) {
       targetView = sourceViewForForm;
-    } else if (editingItemType === null && currentView === View.Webboard) {
-      // This specifically handles cancelling a NEW webboard post that was opened from WebboardPage
+    } else if (editingItemType === null && currentView === View.Webboard && selectedPostId === 'create') {
+      // Handle cancelling a NEW webboard post (modal was opened from WebboardPage)
       targetView = View.Webboard;
-    } else {
+    } else if (currentView === View.Webboard && selectedPostId && selectedPostId !== 'create') {
+      // If editing an existing post on Webboard detail view, return to that detail view
+      targetView = View.Webboard; // Payload (selectedPostId) for detail view is handled by navigateTo if needed
+    }
+    else {
       targetView = View.Home; // Default fallback
     }
 
     setItemToEdit(null);
     setEditingItemType(null);
     setSourceViewForForm(null);
-    setSelectedPostId(null); // Ensure this is cleared, especially for Webboard
+    // Only clear selectedPostId if we are not intending to return to a detail view or the main webboard list
+    if (!(targetView === View.Webboard && selectedPostId && selectedPostId !== 'create')) {
+      setSelectedPostId(null); 
+    }
     
     // Handle MyRoom tab restoration
     if (targetView === View.MyRoom && editOriginMyRoomTab) {
@@ -979,7 +1002,7 @@ const App: React.FC = () => {
         setMyRoomInitialTabOverride(null); // Clear if not returning to MyRoom or no specific tab
     }
     
-    navigateTo(targetView);
+    navigateTo(targetView, selectedPostId && targetView === View.Webboard ? selectedPostId : undefined); // Pass postId if returning to detail
     setEditOriginMyRoomTab(null); // Clear after navigation attempt
   };
 
@@ -2147,14 +2170,33 @@ const App: React.FC = () => {
   };
 
   const renderPublicProfile = () => {
-    if (!viewingProfileId) { navigateTo(View.Home); return <p className="text-center p-8 font-serif">ไม่พบ ID โปรไฟล์...</p>; }
-    const profileUser = users.find(u => u.id === viewingProfileId);
+    if (!viewingProfileInfo || !viewingProfileInfo.userId) {
+      navigateTo(View.Home);
+      return <p className="text-center p-8 font-serif">ไม่พบ ID โปรไฟล์...</p>;
+    }
+    const profileUser = users.find(u => u.id === viewingProfileInfo.userId);
     if (!profileUser) return <p className="text-center p-8 font-serif text-red-500">ไม่พบโปรไฟล์ผู้ใช้</p>;
-    if (profileUser.role === UserRole.Admin && currentUser?.id !== viewingProfileId) return <div className="text-center p-8 font-serif text-red-500">โปรไฟล์ของแอดมินไม่สามารถดูในหน้านี้ได้</div>;
-    const helperProfileForBio = allHelperProfilesForAdmin.find(hp => hp.userId === viewingProfileId && !isDateInPast(hp.expiresAt) && !hp.isExpired);
+    if (profileUser.role === UserRole.Admin && currentUser?.id !== viewingProfileInfo.userId) {
+      return <div className="text-center p-8 font-serif text-red-500">โปรไฟล์ของแอดมินไม่สามารถดูในหน้านี้ได้</div>;
+    }
+
+    let helperProfileForBio: HelperProfile | undefined = undefined;
+    if (viewingProfileInfo.helperProfileId) {
+        // Find specific helper profile if ID is provided
+        helperProfileForBio = allHelperProfilesForAdmin.find(hp => 
+            hp.id === viewingProfileInfo.helperProfileId && 
+            hp.userId === viewingProfileInfo.userId && // Ensure it belongs to the user
+            !isDateInPast(hp.expiresAt) && 
+            !hp.isExpired
+        );
+    }
+    // If viewingProfileInfo.helperProfileId is not set, helperProfileForBio remains undefined.
+    // The previous logic of finding *any* active profile is removed for general profile views.
+
     const displayBadgeForProfile = getUserDisplayBadge(profileUser);
     return <PublicProfilePage currentUser={currentUser} user={{...profileUser, userLevel: displayBadgeForProfile}} helperProfile={helperProfileForBio} onBack={handleBackFromPublicProfile} />;
   };
+
   const renderWebboardPage = () => {
     return (<WebboardPage
       currentUser={currentUser} users={users}

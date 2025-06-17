@@ -10,7 +10,7 @@ import { motion, type Transition } from 'framer-motion';
 
 interface HelperCardProps {
   profile: EnrichedHelperProfile;
-  onNavigateToPublicProfile: (userId: string) => void;
+  onNavigateToPublicProfile: (profileInfo: { userId: string; helperProfileId?: string }) => void;
   navigateTo: (view: View, payload?: any) => void;
   onLogHelperContact: (helperProfileId: string) => void;
   currentUser: User | null;
@@ -187,7 +187,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({
                 src={profile.userPhoto}
                 alt={profile.authorDisplayName}
                 className="helper-card-avatar"
-                onClick={() => onNavigateToPublicProfile(profile.userId)}
+                onClick={() => onNavigateToPublicProfile({ userId: profile.userId, helperProfileId: profile.id })}
                 onError={(e) => (e.currentTarget.style.display = 'none')}
               />
             ) : (
@@ -210,7 +210,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({
           <div className="helper-card-header-content">
             <h4 className="helper-card-main-title" title={profile.profileTitle}>{profile.profileTitle}</h4>
             <div className="helper-card-name-container">
-              <h3 className="helper-card-name" onClick={() => onNavigateToPublicProfile(profile.userId)}>
+              <h3 className="helper-card-name" onClick={() => onNavigateToPublicProfile({ userId: profile.userId, helperProfileId: profile.id })}>
                 {profile.authorDisplayName}
                 <span className="name-arrow">→</span>
               </h3>
