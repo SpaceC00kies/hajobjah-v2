@@ -70,7 +70,7 @@ import { SearchInputWithRecent } from './components/SearchInputWithRecent';
 import { PasswordResetPage } from './components/PasswordResetPage';
 
 import { logFirebaseError } from './firebase/logging';
-import { AnimatePresence, motion, type Variants, type Transition } from "framer-motion";
+import { AnimatePresence, motion, type Variants, type Transition, type HTMLMotionProps } from "framer-motion";
 
 
 export const THAI_PROFANITY_BLACKLIST: string[] = [ /* Populate this if needed */ ];
@@ -1351,27 +1351,27 @@ const App: React.FC = () => {
               </Button>
             ) : (currentView !== View.PostJob || (currentView === View.PostJob && itemToEdit)) && (
               <Button onClick={() => navigateAndCloseMenu(View.FindJobs)} variant="primary" {...commonButtonPropsBase}>
-                <span className={navItemSpanClass}><span>👀</span><span>หางาน</span></span>
+                <span className={navItemSpanClass}><span>📢</span><span>ประกาศงาน</span></span>
               </Button>
             )}
             {isMobile && currentView === View.PostJob && !itemToEdit && (
                 <Button onClick={() => navigateAndCloseMenu(View.FindJobs)} variant="primary" {...commonButtonPropsBase}>
-                  <span className={navItemSpanClass}><span>👀</span><span>หางาน</span></span>
+                  <span className={navItemSpanClass}><span>📢</span><span>ประกาศงาน</span></span>
                 </Button>
             )}
 
             {currentView === View.FindHelpers ? (
               <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateAndCloseMenu(View.OfferHelp);}} variant="outline" colorScheme="secondary" {...commonButtonPropsBase}>
-                + เสนอช่วยงาน
+                + สร้างโปรไฟล์
               </Button>
             ) : (currentView !== View.OfferHelp || (currentView === View.OfferHelp && itemToEdit )) && (
               <Button onClick={() => navigateAndCloseMenu(View.FindHelpers)} variant="secondary" {...commonButtonPropsBase}>
-                <span className={navItemSpanClass}><span>🫂</span><span>ค้นหาผู้ช่วย</span></span>
+                <span className={navItemSpanClass}><span>👥</span><span>โปรไฟล์ผู้ช่วย</span></span>
               </Button>
             )}
             {isMobile && currentView === View.OfferHelp && !itemToEdit && (
                 <Button onClick={() => navigateAndCloseMenu(View.FindHelpers)} variant="secondary" {...commonButtonPropsBase}>
-                  <span className={navItemSpanClass}><span>🫂</span><span>ค้นหาผู้ช่วย</span></span>
+                  <span className={navItemSpanClass}><span>👥</span><span>โปรไฟล์ผู้ช่วย</span></span>
                 </Button>
             )}
 
@@ -1571,7 +1571,7 @@ const App: React.FC = () => {
           <h3 className="text-lg font-sans font-semibold text-secondary-hover mb-4">โปรไฟล์ผู้ช่วยและบริการ</h3>
           <div className="space-y-4">
              <Button onClick={() => currentUser ? navigateTo(View.FindHelpers) : requestLoginForAction(View.FindHelpers)} variant="secondary" size="md" className="w-full">
-              <span className="flex items-center justify-center gap-2"><span>🫂</span><span>ดูโปรไฟล์ทั้งหมด</span></span>
+              <span className="flex items-center justify-center gap-2"><span>👥</span><span>ดูโปรไฟล์ทั้งหมด</span></span>
             </Button>
             <Button
                onClick={() => { setSourceViewForForm(View.Home); navigateTo(View.OfferHelp); }}
@@ -1742,8 +1742,8 @@ const App: React.FC = () => {
     return (
     <div className="p-4 sm:p-6">
       <div className="text-center mb-6 lg:mb-8">
-        <h2 className="text-3xl font-sans font-semibold text-primary mb-3">👀 ประกาศงาน</h2>
-        <p className="text-md font-serif text-neutral-dark mb-6 max-w-xl mx-auto font-normal"> งานด่วน งานเร่ง งานจิปาถะ โพสต์หาคนดูนะ! </p>
+        <h2 className="text-3xl font-sans font-semibold text-primary mb-3">📢 ประกาศงาน</h2>
+        <p className="text-md font-serif text-neutral-dark mb-6 max-w-xl mx-auto font-normal">เวลาและทักษะตรงกับอะไร แล้วทำเลย!</p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-x-8">
         <aside className="lg:col-span-3 mb-8 lg:mb-0">
@@ -1790,7 +1790,7 @@ const App: React.FC = () => {
             <SearchInputWithRecent searchTerm={jobSearchTerm} onSearchTermChange={handleJobSearch} placeholder="ค้นหางาน, รายละเอียด..." recentSearches={recentJobSearches} onRecentSearchSelect={(term) => { setJobSearchTerm(term); addRecentSearch('recentJobSearches', term); setRecentJobSearches(getRecentSearches('recentJobSearches')); }} ariaLabel="ค้นหางาน" />
             
             {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="w-full sm:px-4 sm:text-sm">
-              <span className="flex items-center justify-center gap-2"><span>📣</span><span>ฝากงานกดตรงนี้</span></span>
+              <span className="flex items-center justify-center gap-2">สร้างประกาศงาน</span>
             </Button> )}
           </div>
         </aside>
@@ -1964,7 +1964,7 @@ const App: React.FC = () => {
     return (
     <div className="p-4 sm:p-6">
       <div className="text-center mb-6 lg:mb-8">
-        <h2 className="text-3xl font-sans font-semibold text-secondary-hover mb-3">🧑‍🔧 คนขยันอยู่ตรงนี้</h2>
+        <h2 className="text-3xl font-sans font-semibold text-secondary-hover mb-3">👥 โปรไฟล์ผู้ช่วยและบริการ</h2>
         <p className="text-md font-serif text-neutral-dark mb-6 max-w-xl mx-auto font-normal"> เลือกคนที่ตรงกับความต้องการ แล้วติดต่อได้เลย! </p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-x-8">
@@ -2011,7 +2011,7 @@ const App: React.FC = () => {
                 
                 <SearchInputWithRecent searchTerm={helperSearchTerm} onSearchTermChange={handleHelperSearch} placeholder="ค้นหาผู้ช่วย, ทักษะ, พื้นที่..." recentSearches={recentHelperSearches} onRecentSearchSelect={(term) => { setHelperSearchTerm(term); addRecentSearch('recentHelperSearches', term); setRecentHelperSearches(getRecentSearches('recentHelperSearches')); }} ariaLabel="ค้นหาผู้ช่วย" />
                 
-                {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateTo(View.OfferHelp); }} variant="secondary" size="md" className="w-full"> <span className="flex items-center justify-center gap-2"><span>🙋</span><span>เสนอช่วยงาน</span></span> </Button> )}
+                {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateTo(View.OfferHelp); }} variant="secondary" size="md" className="w-full"> <span className="flex items-center justify-center gap-2">สร้างโปรไฟล์บริการ</span> </Button> )}
             </div>
         </aside>
         <section className="lg:col-span-9">
