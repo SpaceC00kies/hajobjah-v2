@@ -248,7 +248,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
   return (
     <div className="bg-white dark:bg-dark-cardBg p-8 rounded-xl shadow-2xl w-full max-w-2xl mx-auto my-8 border border-neutral-DEFAULT dark:border-dark-border">
       <h2 className="text-3xl font-sans font-semibold text-primary dark:text-dark-primary-DEFAULT mb-2 text-center">
-        {isEditing ? '📝 แก้ไขประกาศงาน' : '📢 มีงานด่วน? รีบประกาศเลย!'}
+        {isEditing ? '📝 แก้ไขประกาศงาน' : '📝 ลงประกาศงาน'}
       </h2>
       <p className="text-md font-serif text-neutral-dark dark:text-dark-textMuted mb-6 text-center font-normal">
         {isEditing ? 'แก้ไขรายละเอียดประกาศงานของคุณด้านล่าง (ข้อมูลติดต่อจะใช้จากโปรไฟล์ของคุณ)' : 'กรอกรายละเอียดงานที่ต้องการความช่วยเหลือ (ข้อมูลติดต่อจะดึงมาจากโปรไฟล์ของคุณโดยอัตโนมัติ)'}

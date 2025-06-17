@@ -152,9 +152,9 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
 
   const validateForm = () => {
     const errors: FormErrorsType = {};
-    if (!formData.profileTitle.trim()) errors.profileTitle = 'กรุณากรอกหัวข้อโปรไฟล์';
-    else if (containsBlacklistedWords(formData.profileTitle)) errors.profileTitle = 'หัวข้อโปรไฟล์มีคำที่ไม่เหมาะสม โปรดแก้ไข';
-    if (!formData.details.trim()) errors.details = 'กรุณากรอกรายละเอียดเกี่ยวกับตัวเอง';
+    if (!formData.profileTitle.trim()) errors.profileTitle = 'กรุณากรอกหัวข้อโปรไฟล์/บริการ';
+    else if (containsBlacklistedWords(formData.profileTitle)) errors.profileTitle = 'หัวข้อโปรไฟล์/บริการมีคำที่ไม่เหมาะสม โปรดแก้ไข';
+    if (!formData.details.trim()) errors.details = 'กรุณากรอกรายละเอียดเกี่ยวกับทักษะ/ประสบการณ์';
     else if (containsBlacklistedWords(formData.details)) errors.details = 'รายละเอียดมีคำที่ไม่เหมาะสม โปรดแก้ไข';
     if (!formData.area.trim()) errors.area = 'กรุณากรอกพื้นที่ที่สะดวก';
     if (!formData.province) errors.province = 'กรุณาเลือกจังหวัด';
@@ -188,7 +188,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
   };
 
   const baseProfileFields = [
-    { name: 'profileTitle', label: 'หัวข้อโปรไฟล์', placeholder: 'เช่น รับจ้างขนของ, ช่วยสอนพิเศษคณิต', type: 'text', required: true },
+    { name: 'profileTitle', label: 'หัวข้อโปรไฟล์/บริการ', placeholder: 'เช่น รับจ้างขนของ, ช่วยสอนพิเศษคณิต', type: 'text', required: true },
     { name: 'area', label: 'พื้นที่ที่สะดวก (เช่น เขต, ถนน, ย่าน)', placeholder: 'เช่น ในตัวเมืองเชียงใหม่, ย่านนิมมานเหมินท์', type: 'text', required: true },
   ] as const;
 
@@ -206,7 +206,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
   return (
     <div className="bg-white dark:bg-dark-cardBg p-8 rounded-xl shadow-2xl w-full max-w-2xl mx-auto my-8 border border-neutral-DEFAULT dark:border-dark-border">
       <h2 className="text-3xl font-sans font-semibold text-secondary-hover dark:text-dark-secondary-hover mb-2 text-center">
-        {isEditing ? '📝 แก้ไขโปรไฟล์ผู้ช่วย' : '🙋‍♀️ ฝากโปรไฟล์ไว้ เผื่อมีใครต้องการคนช่วย'}
+        {isEditing ? '📝 แก้ไขโปรไฟล์' : '🙋 สร้างโปรไฟล์'}
       </h2>
       <p className="text-md font-serif text-neutral-dark dark:text-dark-textMuted mb-6 text-center font-normal">
         {isEditing
@@ -222,7 +222,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="pt-4 border-t border-neutral-DEFAULT dark:border-dark-border/50 mt-6">
-            <h3 className="text-xl font-sans font-semibold text-neutral-dark dark:text-dark-text mb-4">ข้อมูลโปรไฟล์และเกี่ยวกับฉัน</h3>
+            <h3 className="text-xl font-sans font-semibold text-neutral-dark dark:text-dark-text mb-4">ข้อมูลโปรไฟล์และรายละเอียดบริการ</h3>
             {baseProfileFields.map(field => (
             <div key={field.name} className="mb-6 last:mb-0">
                 <label htmlFor={field.name} className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
@@ -234,7 +234,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
                   name={field.name}
                   value={(formData[field.name as keyof typeof formData] as string) ?? ''}
                   onChange={handleChange}
-                  placeholder={field.placeholder}
+                  placeholder={field.name === 'profileTitle' ? 'เช่น รับจ้างทำบัญชี, ช่วยสอนพิเศษคณิตศาสตร์, รับตัดต่อวิดีโอ' : field.placeholder}
                   className={`${inputBaseStyle} ${formErrors[field.name as keyof FormErrorsType] ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
                   disabled={!canSubmit && !isEditing}
                 />
@@ -284,7 +284,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
             )}
 
             <div>
-            <label htmlFor="details" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">รายละเอียดเกี่ยวกับตัวเอง (ทักษะ, ประสบการณ์) <span className="text-red-500 dark:text-red-400">*</span></label>
+            <label htmlFor="details" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">รายละเอียดทักษะ/ประสบการณ์ที่เกี่ยวข้อง <span className="text-red-500 dark:text-red-400">*</span></label>
             <textarea id="details" name="details" value={formData.details} onChange={handleChange} rows={5} placeholder="เช่น สามารถยกของหนักได้, มีประสบการณ์ดูแลเด็ก 2 ปี, ทำอาหารคลีนได้..." className={`${inputBaseStyle} ${formErrors.details ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} disabled={!canSubmit && !isEditing}/>
             {formErrors.details && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 font-normal">{formErrors.details}</p>}
             </div>
