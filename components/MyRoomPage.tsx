@@ -6,6 +6,7 @@ import { Button } from './Button';
 import { UserProfilePage } from './UserProfilePage';
 import { WebboardPostCard } from './WebboardPostCard'; // For Saved Posts
 import { isDateInPast, calculateDaysRemaining } from '../App'; // Import utilities
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Import icons (simple text for now, can be replaced with SVGs)
 const ProfileIcon = () => <span role="img" aria-label="Profile" className="mr-1.5 sm:mr-2">👤</span>;
@@ -36,6 +37,39 @@ interface MyRoomPageProps {
   initialTab?: ActiveTab | null; // New prop for initial tab
   onInitialTabProcessed?: () => void; // New prop to signal consumption
 }
+
+// Animation Variants
+const listVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      when: "beforeChildren",
+      staggerChildren: 0.07,
+      delayChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { y: 15, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 12,
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -10,
+    transition: {
+      duration: 0.2,
+    },
+  },
+};
 
 
 const formatDateDisplay = (dateInput?: string | Date | null): string => {
@@ -284,13 +318,23 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
       ) : (
         userJobs.map(job => {
           const jobExpiryWarning = getExpiryWarning(job.expiresAt, job.isHired, job.isSuspicious);
+          const isTrulyActiveAndNotExpiringSoon = !job.isHired && !job.isSuspicious && job.expiresAt && !isDateInPast(job.expiresAt) && !jobExpiryWarning;
+          let daysRemainingText = null;
+          if (isTrulyActiveAndNotExpiringSoon) {
+            const daysLeft = calculateDaysRemaining(job.expiresAt);
+            if (daysLeft > 0) {
+              daysRemainingText = `(เหลือ ${daysLeft} วัน)`;
+            }
+          }
           return (
             <div key={job.id} className="bg-white dark:bg-dark-cardBg p-4 rounded-lg shadow border dark:border-dark-border/70">
               <h4 className="font-semibold text-lg text-primary dark:text-dark-primary mb-1">{job.title}</h4>
               <p className="text-xs text-neutral-medium dark:text-dark-textMuted mb-1">หมวดหมู่: {job.category} {job.subCategory && `(${job.subCategory})`}</p>
               <p className="text-xs text-neutral-medium dark:text-dark-textMuted mb-2">ลงประกาศเมื่อ: {formatDateDisplay(job.postedAt)}</p>
-              <div className="mb-1 flex items-center gap-2">{renderItemStatus(job)}
+              <div className="mb-1 flex items-center gap-2 flex-wrap">
+                {renderItemStatus(job)}
                 {jobExpiryWarning && <span className="text-xs text-amber-600 dark:text-amber-400">{jobExpiryWarning}</span>}
+                {!jobExpiryWarning && daysRemainingText && <span className="text-xs text-sky-600 dark:text-sky-400">{daysRemainingText}</span>}
               </div>
               <div className="flex flex-wrap gap-2 mt-2">
                 <Button onClick={() => onEditItem(job.id, 'job', activeTab)} variant="outline" colorScheme="neutral" size="sm" disabled={job.isSuspicious}>✏️ แก้ไข</Button>
@@ -335,7 +379,14 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
           const bumpDaysLeft = lastBump ? calculateDaysRemaining(new Date(new Date(lastBump as string).getTime() + BUMP_COOLDOWN_DAYS_MY_ROOM * 24 * 60 * 60 * 1000)) : 0;
           const canBumpProfile = bumpDaysLeft === 0 && !profile.isExpired && !profile.isUnavailable && (profile.expiresAt ? !isDateInPast(profile.expiresAt) : true);
           const profileExpiryWarning = getExpiryWarning(profile.expiresAt, profile.isUnavailable, profile.isSuspicious);
-
+          const isTrulyActiveAndNotExpiringSoon = !profile.isUnavailable && !profile.isSuspicious && profile.expiresAt && !isDateInPast(profile.expiresAt) && !profileExpiryWarning;
+          let daysRemainingText = null;
+          if (isTrulyActiveAndNotExpiringSoon) {
+            const daysLeft = calculateDaysRemaining(profile.expiresAt);
+            if (daysLeft > 0) {
+              daysRemainingText = `(เหลือ ${daysLeft} วัน)`;
+            }
+          }
           return (
             <div key={profile.id} className="bg-white dark:bg-dark-cardBg p-4 rounded-lg shadow border dark:border-dark-border/70">
               <h4 
@@ -348,8 +399,10 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
               </h4>
               <p className="text-xs text-neutral-medium dark:text-dark-textMuted mb-1">หมวดหมู่: {profile.category} {profile.subCategory && `(${profile.subCategory})`}</p>
               <p className="text-xs text-neutral-medium dark:text-dark-textMuted mb-2">ลงประกาศเมื่อ: {formatDateDisplay(profile.postedAt)} (อัปเดตล่าสุด: {formatDateDisplay(profile.updatedAt)})</p>
-              <div className="mb-1 flex items-center gap-2">{renderItemStatus(profile)}
+              <div className="mb-1 flex items-center gap-2 flex-wrap">
+                {renderItemStatus(profile)}
                 {profileExpiryWarning && <span className="text-xs text-amber-600 dark:text-amber-400">{profileExpiryWarning}</span>}
+                {!profileExpiryWarning && daysRemainingText && <span className="text-xs text-sky-600 dark:text-sky-400">{daysRemainingText}</span>}
               </div>
               <div className="flex flex-wrap gap-2 mt-2">
                 <Button onClick={() => onEditItem(profile.id, 'profile', activeTab)} variant="outline" colorScheme="neutral" size="sm" disabled={profile.isSuspicious}>✏️ แก้ไข</Button>
@@ -414,20 +467,31 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
           </Button>
         </div>
       ) : (
-        savedWebboardPosts.map(post => (
-           <div key={post.id} className="bg-white dark:bg-dark-cardBg p-0.5 rounded-lg shadow border dark:border-dark-border/70">
-            <WebboardPostCard
-                post={post}
-                currentUser={currentUser}
-                onViewPost={(postId) => navigateTo(View.Webboard, postId)}
-                onToggleLike={() => { /* Not primary action here */ }}
-                onSavePost={onSavePost} // This will trigger un-save
-                onSharePost={() => { /* Not primary action here */ }}
-                requestLoginForAction={() => {}} // User is logged in
-                onNavigateToPublicProfile={(userId) => navigateTo(View.PublicProfile, userId)}
-            />
-          </div>
-        ))
+        <AnimatePresence>
+          <motion.div
+            className="space-y-4" // Use space-y-4 instead of grid for a single column list
+            variants={listVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            {savedWebboardPosts.map(post => (
+              <motion.div key={post.id} variants={itemVariants}>
+                <div className="bg-white dark:bg-dark-cardBg p-0.5 rounded-lg shadow border dark:border-dark-border/70">
+                  <WebboardPostCard
+                      post={post}
+                      currentUser={currentUser}
+                      onViewPost={(postId) => navigateTo(View.Webboard, postId)}
+                      onToggleLike={() => { /* Not primary action here */ }}
+                      onSavePost={onSavePost} // This will trigger un-save
+                      onSharePost={() => { /* Not primary action here */ }}
+                      requestLoginForAction={() => {}} // User is logged in
+                      onNavigateToPublicProfile={(userId) => navigateTo(View.PublicProfile, userId)}
+                  />
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </AnimatePresence>
       )}
     </div>
   );
@@ -457,7 +521,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
                 font-sans font-medium text-xs sm:text-sm transition-colors duration-150
                 focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-dark-pageBg
                 ${activeTab === tab.id
-                  ? 'border-b-2 border-neutral-700 text-neutral-800 dark:border-dark-text dark:text-dark-text bg-neutral-DEFAULT/20 dark:bg-dark-border/20 focus:ring-neutral-700 dark:focus:ring-dark-text'
+                  ? 'border-b-2 border-neutral-700 text-neutral-800 dark:border-dark-text dark:text-dark-text bg-neutral-light/20 dark:bg-dark-border/20 focus:ring-neutral-700 dark:focus:ring-dark-text'
                   : 'border-b-2 border-transparent text-neutral-medium hover:text-neutral-dark hover:border-neutral-DEFAULT/80 dark:text-dark-textMuted dark:hover:text-dark-text dark:hover:border-dark-border focus:ring-neutral-DEFAULT dark:focus:ring-dark-border'
                 }
               `}

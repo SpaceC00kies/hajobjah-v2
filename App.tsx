@@ -194,6 +194,39 @@ const addRecentSearch = (key: string, term: string) => {
 
 type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts'> & { password: string };
 
+// Animation Variants
+const listVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      when: "beforeChildren",
+      staggerChildren: 0.07,
+      delayChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { y: 15, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 12,
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -10,
+    transition: {
+      duration: 0.2,
+    },
+  },
+};
+
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>(View.Home);
@@ -211,7 +244,6 @@ const App: React.FC = () => {
   const [loginRedirectInfo, setLoginRedirectInfo] = useState<{ view: View; payload?: any } | null>(null);
   
   const [copiedLinkNotification, setCopiedLinkNotification] = useState<string | null>(null);
-  const [showCopiedNotificationAnim, setShowCopiedNotificationAnim] = useState(false);
   const copiedNotificationTimerRef = useRef<number | null>(null);
 
 
@@ -1206,25 +1238,17 @@ const App: React.FC = () => {
         clearTimeout(copiedNotificationTimerRef.current);
       }
       setCopiedLinkNotification(`คัดลอกลิงก์แล้ว: ${postTitle.substring(0, 30)}${postTitle.length > 30 ? '...' : ''}`);
-      setShowCopiedNotificationAnim(true);
-
+      
       copiedNotificationTimerRef.current = setTimeout(() => {
-        setShowCopiedNotificationAnim(false); // Start fade out
-        copiedNotificationTimerRef.current = setTimeout(() => {
-          setCopiedLinkNotification(null); // Remove from DOM after fade out
-        }, 300); // Match animation duration
-      }, 2200); // Visible time before starting fade out (2500 - 300)
+        setCopiedLinkNotification(null); 
+      }, 2500);
 
     } catch (err) {
       console.error('Failed to copy: ', err);
       setCopiedLinkNotification('ไม่สามารถคัดลอกลิงก์ได้');
-      setShowCopiedNotificationAnim(true);
       copiedNotificationTimerRef.current = setTimeout(() => {
-        setShowCopiedNotificationAnim(false);
-         copiedNotificationTimerRef.current = setTimeout(() => {
-          setCopiedLinkNotification(null);
-        }, 300);
-      }, 2200);
+        setCopiedLinkNotification(null);
+      }, 2500);
     }
   };
 
@@ -1386,6 +1410,59 @@ const App: React.FC = () => {
         );
     }
   };
+
+  const AnimatedHamburgerIcon = () => {
+    const topVariants = {
+      closed: { rotate: 0, y: 0 },
+      open: { rotate: 45, y: 5.5 }, // Adjusted y for centering rotation
+    };
+    const middleVariants = {
+      closed: { opacity: 1 },
+      open: { opacity: 0 },
+    };
+    const bottomVariants = {
+      closed: { rotate: 0, y: 0 },
+      open: { rotate: -45, y: -5.5 }, // Adjusted y for centering rotation
+    };
+    const lineStyle: React.CSSProperties = {
+      width: '16px',
+      height: '2px',
+      backgroundColor: 'currentColor',
+      borderRadius: '1px',
+      position: 'absolute',
+      left: '4px', // (24 - 16) / 2
+      transformOrigin: 'center',
+    };
+
+    return (
+      <motion.button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="relative w-6 h-6 focus:outline-none"
+        aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+        aria-expanded={isMobileMenuOpen}
+        animate={isMobileMenuOpen ? "open" : "closed"}
+        initial={false}
+      >
+        <motion.div
+          style={{ ...lineStyle, top: '5px' }} // y=6 center
+          variants={topVariants}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+        />
+        <motion.div
+          style={{ ...lineStyle, top: '11px' }} // y=12 center
+          variants={middleVariants}
+          transition={{ duration: 0.15, ease: "easeInOut" }}
+        />
+        <motion.div
+          style={{ ...lineStyle, top: '17px' }} // y=18 center
+          variants={bottomVariants}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+        />
+      </motion.button>
+    );
+  };
+
+
   const renderHeader = () => {
       if ((currentView === View.PasswordReset && !currentUser) || isLoadingAuth) {
         return null;
@@ -1410,17 +1487,8 @@ const App: React.FC = () => {
                 {renderNavLinks(false)}
               </nav>
 
-              <div className="lg:hidden ml-2">
-                <button
-                    onClick={() => setIsMobileMenuOpen(true)}
-                    className="p-2 rounded-md text-neutral-dark hover:bg-neutral/20 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-400 dark:focus:ring-gray-500"
-                    aria-label="Open menu"
-                    aria-expanded={isMobileMenuOpen}
-                >
-                    <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                </button>
+              <div className="lg:hidden ml-2 p-2 rounded-md text-neutral-dark hover:bg-neutral/20 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-400 dark:focus:ring-gray-500">
+                <AnimatedHamburgerIcon />
               </div>
           </div>
         </div>
@@ -1736,18 +1804,26 @@ const App: React.FC = () => {
             </div>
           )}
           {activeUserJobs.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <AnimatePresence>
+              <motion.div
+                className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+                variants={listVariants}
+                initial="hidden"
+                animate="visible"
+              >
                  {activeUserJobs.map(job => (
+                  <motion.div key={job.id} variants={itemVariants}>
                     <JobCard 
-                        key={job.id} 
                         job={job} 
                         navigateTo={navigateTo} 
                         currentUser={currentUser} 
                         requestLoginForAction={requestLoginForAction} 
                         onEditJobFromFindView={currentUser?.id === job.userId ? handleEditOwnJobFromFindView : undefined}
                     />
+                  </motion.div>
                 ))}
-            </div>
+              </motion.div>
+            </AnimatePresence>
           )}
           <div ref={jobsLoaderRef} className="h-10 flex justify-center items-center">
             {isLoadingJobs && initialJobsLoaded && jobsList.length > 0 && <p className="text-sm font-sans text-neutral-medium">✨ กำลังโหลดเพิ่มเติม...</p>}
@@ -1948,10 +2024,16 @@ const App: React.FC = () => {
             </div>
             )}
             {enrichedHelperProfilesList.length > 0 && (
-                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <AnimatePresence>
+                  <motion.div
+                    className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+                    variants={listVariants}
+                    initial="hidden"
+                    animate="visible"
+                  >
                     {enrichedHelperProfilesList.map(profile => (
+                      <motion.div key={profile.id} variants={itemVariants}>
                         <HelperCard
-                            key={profile.id}
                             profile={profile}
                             onNavigateToPublicProfile={handleNavigateToPublicProfile}
                             navigateTo={navigateTo}
@@ -1961,8 +2043,10 @@ const App: React.FC = () => {
                             onBumpProfile={(id) => handleBumpHelperProfile(id, loadHelpers)}
                             onEditProfileFromFindView={currentUser?.id === profile.userId ? handleEditOwnHelperProfileFromFindView : undefined}
                         />
+                      </motion.div>
                     ))}
-                 </div>
+                  </motion.div>
+                </AnimatePresence>
             )}
             <div ref={helpersLoaderRef} className="h-10 flex justify-center items-center">
                 {isLoadingHelpers && initialHelpersLoaded && helperProfilesList.length > 0 && <p className="text-sm font-sans text-neutral-medium">✨ กำลังโหลดเพิ่มเติม...</p>}
@@ -2100,10 +2184,6 @@ const App: React.FC = () => {
     }
   }
 
-  const copiedNotificationBaseClass = "fixed bottom-5 left-1/2 -translate-x-1/2 bg-neutral-dark text-white px-4 py-2 rounded-md shadow-lg text-sm z-50 transform transition-all duration-300 ease-out";
-  const copiedNotificationHiddenClass = "opacity-0 translate-y-10";
-  const copiedNotificationVisibleClass = "opacity-100 translate-y-0";
-
   return (
     <div className="flex flex-col min-h-screen bg-neutral-light dark:bg-dark-pageBg font-serif text-neutral-dark dark:text-dark-text">
       {!(currentView === View.PasswordReset && !currentUser) && renderHeader()}
@@ -2121,11 +2201,19 @@ const App: React.FC = () => {
           </div>
         </footer>
       )}
+      <AnimatePresence>
        {copiedLinkNotification && (
-        <div className={`${copiedNotificationBaseClass} ${showCopiedNotificationAnim ? copiedNotificationVisibleClass : copiedNotificationHiddenClass}`}>
+        <motion.div
+          initial={{ opacity: 0, y: 20, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 20, scale: 0.9 }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          className="fixed bottom-5 left-1/2 -translate-x-1/2 bg-neutral-dark text-white px-4 py-2 rounded-md shadow-lg text-sm z-50"
+        >
           {copiedLinkNotification}
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
       <ConfirmModal isOpen={isConfirmModalOpen} onClose={closeConfirmModal} onConfirm={handleConfirmDeletion} title={confirmModalTitle} message={confirmModalMessage} />
       <FeedbackForm
         isOpen={isFeedbackModalOpen}

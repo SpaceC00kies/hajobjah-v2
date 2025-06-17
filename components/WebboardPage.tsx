@@ -10,6 +10,7 @@ import { WebboardPostCreateForm } from './WebboardPostCreateForm';
 import { getWebboardPostsPaginated as getWebboardPostsPaginatedService } from '../services/firebaseService'; // Import paginated fetch
 import type { DocumentSnapshot } from 'firebase/firestore'; // For pagination
 import { logFirebaseError } from '../firebase/logging';
+import { motion, AnimatePresence } from 'framer-motion';
 
 
 interface WebboardPageProps {
@@ -39,6 +40,40 @@ interface WebboardPageProps {
   checkWebboardCommentLimits: (user: User) => { canPost: boolean; message?: string };
   pageSize: number; // For infinite scroll
 }
+
+// Animation Variants
+const listVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      when: "beforeChildren",
+      staggerChildren: 0.07,
+      delayChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { y: 15, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 12,
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -10,
+    transition: {
+      duration: 0.2,
+    },
+  },
+};
+
 
 export const WebboardPage: React.FC<WebboardPageProps> = ({
   currentUser,
@@ -371,21 +406,29 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
       )}
 
       {enrichedPosts.length > 0 && (
-        <div className="space-y-4">
-          {enrichedPosts.map(post => (
-            <WebboardPostCard
-              key={post.id}
-              post={post}
-              currentUser={currentUser}
-              onViewPost={setSelectedPostId}
-              onToggleLike={handleToggleLikeForPage}
-              onSavePost={onSavePost}
-              onSharePost={onSharePost}
-              requestLoginForAction={requestLoginForAction}
-              onNavigateToPublicProfile={onNavigateToPublicProfile}
-            />
-          ))}
-        </div>
+        <AnimatePresence>
+          <motion.div
+            className="space-y-4"
+            variants={listVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            {enrichedPosts.map(post => (
+              <motion.div key={post.id} variants={itemVariants}>
+                <WebboardPostCard
+                  post={post}
+                  currentUser={currentUser}
+                  onViewPost={setSelectedPostId}
+                  onToggleLike={handleToggleLikeForPage}
+                  onSavePost={onSavePost}
+                  onSharePost={onSharePost}
+                  requestLoginForAction={requestLoginForAction}
+                  onNavigateToPublicProfile={onNavigateToPublicProfile}
+                />
+              </motion.div>
+            ))}
+          </motion.div>
+        </AnimatePresence>
       )}
 
       <div ref={webboardLoaderRef} className="h-10 flex justify-center items-center">
