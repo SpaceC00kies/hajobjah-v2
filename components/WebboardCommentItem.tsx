@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import type { EnrichedWebboardComment, User, View } from '../types'; // Added View
 import { UserRole } from '../types';
 // UserLevelBadge removed as it's no longer displayed here
 import { Button } from './Button';
 import { containsBlacklistedWords } from '../App';
+import { motion, type Variants, type Transition } from 'framer-motion'; // Import motion
 
 interface WebboardCommentItemProps {
   comment: EnrichedWebboardComment;
@@ -24,6 +24,24 @@ const FallbackAvatarComment: React.FC<{ name?: string, photo?: string, size?: st
       {initial}
     </div>
   );
+};
+
+const commentItemVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 150,
+      damping: 20,
+    } as Transition,
+  },
+  exit: { // For future use, e.g., when deleting a comment
+    opacity: 0,
+    y: -15, // Or some other exit animation
+    transition: { duration: 0.2 } as Transition,
+  }
 };
 
 export const WebboardCommentItem: React.FC<WebboardCommentItemProps> = ({ comment, currentUser, onDeleteComment, onUpdateComment, onNavigateToPublicProfile }) => {
@@ -97,7 +115,15 @@ export const WebboardCommentItem: React.FC<WebboardCommentItemProps> = ({ commen
   const wasEdited = comment.updatedAt && comment.createdAt && new Date(comment.updatedAt).getTime() !== new Date(comment.createdAt).getTime();
 
   return (
-    <div className="flex items-start space-x-3 py-3 border-b border-neutral-DEFAULT/50 dark:border-dark-border/50 last:border-b-0">
+    <motion.div 
+      className="flex items-start space-x-3 py-3 border-b border-neutral-DEFAULT/50 dark:border-dark-border/50 last:border-b-0"
+      variants={commentItemVariants}
+      // `initial`, `animate`, and `exit` will be controlled by AnimatePresence in the parent (WebboardPostDetail)
+      // if this component is directly mapped within AnimatePresence.
+      // If WebboardPostDetail's motion.div (list container) uses variants,
+      // these items will inherit the `animate` state (e.g., "visible")
+      // and animate according to their own defined `commentItemVariants`.
+    >
       <FallbackAvatarComment name={comment.authorDisplayName} photo={comment.authorPhoto} className="mt-1" />
       <div className="flex-1">
         <div className="flex items-center justify-between">
@@ -166,6 +192,6 @@ export const WebboardCommentItem: React.FC<WebboardCommentItemProps> = ({ commen
           <p className="text-sm text-neutral-dark dark:text-dark-textMuted whitespace-pre-wrap font-normal py-1">{comment.text}</p>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };

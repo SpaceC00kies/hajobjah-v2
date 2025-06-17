@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react'; // Added useState, useEffect, useRef
 import type { EnrichedWebboardPost, EnrichedWebboardComment, User } from '../types';
 import { USER_LEVELS, UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES } 
@@ -8,7 +7,7 @@ import { Button } from './Button';
 import { WebboardCommentItem } from './WebboardCommentItem';
 import { WebboardCommentForm } from './WebboardCommentForm';
 import { triggerHapticFeedback } from '@/utils/haptics'; // Import haptic utility
-import { motion, AnimatePresence, type AnimationControls, useAnimation, type Transition } from 'framer-motion';
+import { motion, AnimatePresence, type AnimationControls, useAnimation, type Transition, type Variants } from 'framer-motion';
 
 
 interface WebboardPostDetailProps {
@@ -53,6 +52,17 @@ const LikedIcon = () => <Icon path="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-
 const SaveIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" className="w-5 h-5 text-neutral-500 dark:text-neutral-400" />;
 const SavedIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" className="w-5 h-5 text-blue-500 dark:text-blue-400"/>;
 const ShareIcon = () => <Icon path="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" className="w-5 h-5 text-neutral-500 dark:text-neutral-400" />;
+
+const commentListVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.06, // Delay between each comment item animation
+      delayChildren: 0.1,   // Initial delay before the first comment starts animating
+    } as Transition,
+  },
+};
 
 
 export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
@@ -280,28 +290,36 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
             {comments.length} ความคิดเห็น
         </h4>
         {comments.length > 0 ? (
-          <div className="space-y-1">
-            {comments
-                .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) 
-                .map(comment => {
-                    const commenter = users.find(u => u.id === comment.userId);
-                    const enrichedComment: EnrichedWebboardComment = {
-                        ...comment,
-                        authorPhoto: commenter?.photo || comment.authorPhoto,
-                        isAuthorAdmin: commenter?.role === UserRole.Admin,
-                    };
-                    return (
-                        <WebboardCommentItem 
-                            key={comment.id} 
-                            comment={enrichedComment} 
-                            currentUser={currentUser} 
-                            onDeleteComment={onDeleteComment}
-                            onUpdateComment={onUpdateComment}
-                            onNavigateToPublicProfile={(userId) => onNavigateToPublicProfile({ userId })}
-                        />
-                    );
-            })}
-          </div>
+          <AnimatePresence>
+            <motion.div 
+              className="space-y-1"
+              variants={commentListVariants}
+              initial="hidden"
+              animate="visible"
+              exit="hidden" // Optional: define exit for the list container if needed
+            >
+              {comments
+                  .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) 
+                  .map(comment => {
+                      const commenter = users.find(u => u.id === comment.userId);
+                      const enrichedComment: EnrichedWebboardComment = {
+                          ...comment,
+                          authorPhoto: commenter?.photo || comment.authorPhoto,
+                          isAuthorAdmin: commenter?.role === UserRole.Admin,
+                      };
+                      return (
+                          <WebboardCommentItem 
+                              key={comment.id} // Ensure key is on the direct child of AnimatePresence/motion.div list
+                              comment={enrichedComment} 
+                              currentUser={currentUser} 
+                              onDeleteComment={onDeleteComment}
+                              onUpdateComment={onUpdateComment}
+                              onNavigateToPublicProfile={(userId) => onNavigateToPublicProfile({ userId })}
+                          />
+                      );
+              })}
+            </motion.div>
+          </AnimatePresence>
         ) : (
           <p className="text-sm text-neutral-medium dark:text-dark-textMuted">ยังไม่มีความคิดเห็น...</p>
         )}
