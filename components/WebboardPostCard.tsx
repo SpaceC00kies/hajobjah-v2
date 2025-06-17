@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react'; // Added useEffect, useRef
 import type { EnrichedWebboardPost, User } from '../types';
 import { UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES } 
@@ -6,7 +5,6 @@ from '../types';
 // Button component might be used for consistency if styled appropriately, or use raw <button> for icons
 // import { Button } from './Button'; 
 import { triggerHapticFeedback } from '@/utils/haptics'; // Import haptic utility
-import { motion, type Transition } from 'framer-motion'; // Import motion and Transition
 
 interface WebboardPostCardProps {
   post: EnrichedWebboardPost;
@@ -105,12 +103,11 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
 
 
   return (
-    <motion.div 
-      className="font-sans bg-white dark:bg-dark-cardBg shadow rounded-lg border border-neutral-DEFAULT/50 dark:border-dark-border/50 flex cursor-pointer"
+    <div 
+      className="font-sans bg-white dark:bg-dark-cardBg shadow rounded-lg border border-neutral-DEFAULT/50 dark:border-dark-border/50 hover:border-neutral-DEFAULT dark:hover:border-dark-border/70 transition-all duration-200 flex cursor-pointer"
       onClick={() => onViewPost(post.id)}
       role="article"
       aria-labelledby={`post-title-${post.id}`}
-      whileHover={{ y: -4, boxShadow: "0 6px 25px rgba(0,0,0,0.12)", rotate: 0.2, transition: { duration: 0.2, ease: "easeOut" } as Transition }}
     >
       {/* Thumbnail Section */}
       <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 bg-neutral-light dark:bg-dark-inputBg rounded-l-lg overflow-hidden m-3">
@@ -177,6 +174,6 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
           )}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
