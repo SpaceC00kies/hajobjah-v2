@@ -42,16 +42,23 @@ interface WebboardPageProps {
 }
 
 // Animation Variants
-const listVariants: Variants = {
+const listContainerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
+      duration: 0.3,
       when: "beforeChildren",
       staggerChildren: 0.07,
       delayChildren: 0.1,
     } as Transition,
   },
+  exit: {
+    opacity: 0,
+    transition: {
+      duration: 0.2,
+    }
+  }
 };
 
 const itemVariants: Variants = {
@@ -65,12 +72,26 @@ const itemVariants: Variants = {
       damping: 12,
     } as Transition,
   },
-  exit: {
+  exit: { // Not typically used if parent listContainerVariants handles exit opacity
     opacity: 0,
     y: -10,
     transition: {
       duration: 0.2,
     } as Transition,
+  },
+};
+
+const detailViewVariants: Variants = {
+  initial: { x: '100%', opacity: 0 },
+  animate: { 
+    x: 0, 
+    opacity: 1, 
+    transition: { type: "spring", stiffness: 260, damping: 25, duration: 0.4 } as Transition 
+  },
+  exit: { 
+    x: '-100%', 
+    opacity: 0, 
+    transition: { type: "spring", stiffness: 260, damping: 25, duration: 0.3 } as Transition
   },
 };
 
@@ -134,15 +155,15 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
 
     if (isInitialLoad) {
       setWebboardPostsList([]);
-      setLastVisibleWebboardPost(null); // This will update lastVisibleRef.current via useEffect
-      setHasMoreWebboardPosts(true);    // This will update hasMoreRef.current via useEffect
+      setLastVisibleWebboardPost(null); 
+      setHasMoreWebboardPosts(true);    
       setInitialWebboardPostsLoaded(false);
     }
 
     try {
       const result = await getWebboardPostsPaginatedService(
         pageSize,
-        isInitialLoad ? null : lastVisibleRef.current, // Use ref for the actual fetch
+        isInitialLoad ? null : lastVisibleRef.current, 
         selectedCategoryFilter === 'all' ? null : selectedCategoryFilter,
         searchTerm
       );
@@ -160,7 +181,6 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
     }
   }, [
     pageSize, selectedCategoryFilter, searchTerm,
-    // Setters are stable and fine in useCallback deps
     setIsLoadingWebboardPosts, setWebboardPostsList, setLastVisibleWebboardPost, setHasMoreWebboardPosts, setInitialWebboardPostsLoaded
   ]);
 
@@ -187,14 +207,18 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
     return () => {
       if (currentLoaderRef) observer.unobserve(currentLoaderRef);
     };
-  }, [selectedPostId, initialWebboardPostsLoaded, loadWebboardPosts]); // Dependencies use state values that control the observer logic
+  }, [selectedPostId, initialWebboardPostsLoaded, loadWebboardPosts]); 
 
 
   useEffect(() => {
     if (selectedPostId !== null && selectedPostId !== 'create' && initialWebboardPostsLoaded) {
       const postExists = webboardPostsList.some(p => p.id === selectedPostId);
       if (!postExists) {
-        loadWebboardPosts(true);
+        // If the selected post is not in the current list (e.g., direct URL navigation),
+        // reload the posts. This might not place the selected post on the first page,
+        // but it ensures the data context is refreshed. For a more robust solution,
+        // one might fetch the specific post directly if not found.
+        loadWebboardPosts(true); 
       }
     }
   }, [selectedPostId, webboardPostsList, initialWebboardPostsLoaded, loadWebboardPosts]);
@@ -218,21 +242,17 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
 
   const handleCloseCreateModal = () => {
     setIsCreateModalOpen(false);
-    // Signal to App.tsx to reset its editing/creation states
-    // This will ensure App.selectedPostId becomes null and App.editingPost becomes null via App.handleCancelEditOrPost
     onCancelEdit();
   };
 
   const handleSubmitPostForm = async (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => {
     await onAddOrUpdatePost(postData, postIdToUpdate);
-    await loadWebboardPosts(true);
-    if (postIdToUpdate) { // If editing, close modal after submit
-        handleCloseCreateModal(); // This will also call onCancelEdit to reset App state
-    } else { // If creating new, App state (selectedPostId) should be reset by onAddOrUpdatePost or navigateTo
-        // Potentially navigate to the new post or clear 'create' state
-        // For now, assume onAddOrUpdatePost handles App state or a subsequent navigateTo does.
-        // If modal needs to close here too:
-        // handleCloseCreateModal(); // But this might be redundant if onAddOrUpdatePost navigates.
+    await loadWebboardPosts(true); 
+    if (postIdToUpdate) { 
+        handleCloseCreateModal(); 
+    } else {
+      // New post created, App.tsx's onAddOrUpdatePost will handle navigation/state.
+      // Modal closure for new post is handled by App.tsx logic or its own effects.
     }
   };
 
@@ -293,158 +313,167 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
         })
     : [];
 
-  // Render post detail view if a post is selected
-  if (currentDetailedPost) {
-    return (
-      <div className="p-2 sm:p-4 md:max-w-3xl md:mx-auto">
-        <Button
-          onClick={() => setSelectedPostId(null)}
-          variant="outline"
-          colorScheme="neutral"
-          size="sm"
-          className="mb-4 rounded-full"
-        >
-          &larr; กลับไปหน้ารวมกระทู้
-        </Button>
-        <WebboardPostDetail
-          post={currentDetailedPost}
-          comments={commentsForDetailView}
-          currentUser={currentUser}
-          users={users}
-          onToggleLike={handleToggleLikeForPage} // Use wrapped handler
-          onSavePost={onSavePost}
-          onSharePost={onSharePost}
-          onAddComment={onAddComment}
-          onDeletePost={(id) => { onDeletePost(id); loadWebboardPosts(true); setSelectedPostId(null); }}
-          onPinPost={(id) => { onPinPost(id); loadWebboardPosts(true); }}
-          onEditPost={onEditPost}
-          onDeleteComment={onDeleteComment}
-          onUpdateComment={onUpdateComment}
-          requestLoginForAction={requestLoginForAction}
-          onNavigateToPublicProfile={onNavigateToPublicProfile}
-          checkWebboardCommentLimits={checkWebboardCommentLimits}
-        />
-      </div>
-    );
-  }
-
   const inputBaseStyle = "p-2 sm:p-2.5 bg-white dark:bg-dark-inputBg border border-neutral-DEFAULT dark:border-dark-border rounded-lg text-neutral-dark dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-neutral-DEFAULT dark:focus:ring-dark-border text-sm sm:text-base";
   const selectBaseStyle = `${inputBaseStyle} appearance-none`;
 
-  // Main list view rendering
   return (
-    <div className="p-2 sm:p-4 md:max-w-3xl md:mx-auto">
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-        <h2 className="text-2xl sm:text-3xl font-sans font-semibold text-neutral-700 dark:text-neutral-300 text-center sm:text-left">
-          💬 กระทู้พูดคุย
-        </h2>
-
-        <Button
-          onClick={handleOpenCreateModal}
-          variant="login"
-          size="sm"
-          className="rounded-full font-semibold flex-shrink-0"
-        >
-          + สร้างกระทู้ใหม่
-        </Button>
-      </div>
-
-      <div className="mb-6 p-3 sm:p-4 bg-white dark:bg-dark-cardBg rounded-lg shadow-sm border border-neutral-DEFAULT/30 dark:border-dark-border/30 flex flex-col sm:flex-row gap-3 sm:gap-4 items-center">
-        <div className="w-full sm:w-auto sm:flex-1">
-          <label htmlFor="categoryFilter" className="sr-only">กรองตามหมวดหมู่</label>
-          <select
-            id="categoryFilter"
-            value={selectedCategoryFilter}
-            onChange={(e) => setSelectedCategoryFilter(e.target.value as WebboardCategory | 'all')}
-            className={`${selectBaseStyle} w-full font-sans`}
-          >
-            <option value="all">หมวดหมู่ทั้งหมด</option>
-            {Object.values(WebboardCategory).map((cat: string) => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
-        </div>
-        <div className="w-full sm:w-auto sm:flex-1">
-          <label htmlFor="searchWebboard" className="sr-only">ค้นหากระทู้</label>
-          <input
-            type="search"
-            id="searchWebboard"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="ค้นหาหัวข้อ, เนื้อหา, ผู้เขียน..."
-            className={`${inputBaseStyle} w-full font-serif`}
-          />
-        </div>
-      </div>
-
-      {!initialWebboardPostsLoaded && isLoadingWebboardPosts && webboardPostsList.length === 0 && (
-        <div className="text-center py-20"><p className="text-xl font-sans text-neutral-dark dark:text-dark-text">✨ กำลังโหลดกระทู้…</p></div>
-      )}
-
-      {initialWebboardPostsLoaded && enrichedPosts.length === 0 && !hasMoreWebboardPosts && (
-        <div className="text-center py-10 bg-white dark:bg-dark-cardBg p-6 rounded-lg shadow">
-          <svg className="mx-auto h-16 w-16 text-neutral-DEFAULT dark:text-dark-border mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-          </svg>
-          <p className="text-xl font-serif text-neutral-dark dark:text-dark-textMuted mb-4 font-normal">
-             {(searchTerm || selectedCategoryFilter !== 'all')
-                ? 'ไม่พบกระทู้ที่ตรงกับการค้นหาหรือตัวกรองของคุณ'
-                : 'ยังไม่มีกระทู้ในขณะนี้'}
-          </p>
-          {!currentUser && !(searchTerm || selectedCategoryFilter !== 'all') && (
-             <p className="text-md font-serif text-neutral-dark dark:text-dark-textMuted mb-4 font-normal">
-                <button onClick={() => navigateTo(View.Login)} className="font-sans text-primary dark:text-dark-primary-DEFAULT hover:underline">เข้าสู่ระบบ</button> หรือ <button onClick={() => navigateTo(View.Register)} className="font-sans text-primary dark:text-dark-primary-DEFAULT hover:underline">ลงทะเบียน</button> เพื่อเริ่มสร้างกระทู้
-            </p>
-          )}
-          {currentUser && !(searchTerm || selectedCategoryFilter !== 'all') && (
-            <Button
-              onClick={handleOpenCreateModal}
-              variant="login"
-              size="sm"
-              className="rounded-full font-semibold"
-            >
-              เป็นคนแรกที่สร้างกระทู้!
-            </Button>
-          )}
-        </div>
-      )}
-
-      {enrichedPosts.length > 0 && (
-        <AnimatePresence>
+    <div className="p-2 sm:p-4 md:max-w-3xl md:mx-auto" style={{ position: 'relative', overflowX: 'hidden' }}>
+      <AnimatePresence mode="wait">
+        {currentDetailedPost ? (
           <motion.div
-            className="space-y-4"
-            variants={listVariants}
+            key={`detail-${currentDetailedPost.id}`}
+            variants={detailViewVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="w-full" // Ensure it takes full width for proper positioning
+          >
+            <Button
+              onClick={() => setSelectedPostId(null)}
+              variant="outline"
+              colorScheme="neutral"
+              size="sm"
+              className="mb-4 rounded-full"
+            >
+              &larr; กลับไปหน้ารวมกระทู้
+            </Button>
+            <WebboardPostDetail
+              post={currentDetailedPost}
+              comments={commentsForDetailView}
+              currentUser={currentUser}
+              users={users}
+              onToggleLike={handleToggleLikeForPage}
+              onSavePost={onSavePost}
+              onSharePost={onSharePost}
+              onAddComment={onAddComment}
+              onDeletePost={(id) => { onDeletePost(id); loadWebboardPosts(true); setSelectedPostId(null); }}
+              onPinPost={(id) => { onPinPost(id); loadWebboardPosts(true); }}
+              onEditPost={onEditPost}
+              onDeleteComment={onDeleteComment}
+              onUpdateComment={onUpdateComment}
+              requestLoginForAction={requestLoginForAction}
+              onNavigateToPublicProfile={onNavigateToPublicProfile}
+              checkWebboardCommentLimits={checkWebboardCommentLimits}
+            />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="list-view"
+            variants={listContainerVariants}
             initial="hidden"
             animate="visible"
+            exit="exit"
           >
-            {enrichedPosts.map(post => (
-              <motion.div key={post.id} variants={itemVariants}>
-                <WebboardPostCard
-                  post={post}
-                  currentUser={currentUser}
-                  onViewPost={setSelectedPostId}
-                  onToggleLike={handleToggleLikeForPage}
-                  onSavePost={onSavePost}
-                  onSharePost={onSharePost}
-                  requestLoginForAction={requestLoginForAction}
-                  onNavigateToPublicProfile={(userId) => onNavigateToPublicProfile({userId})}
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+              <h2 className="text-2xl sm:text-3xl font-sans font-semibold text-neutral-700 dark:text-neutral-300 text-center sm:text-left">
+                💬 กระทู้พูดคุย
+              </h2>
+              <Button
+                onClick={handleOpenCreateModal}
+                variant="login"
+                size="sm"
+                className="rounded-full font-semibold flex-shrink-0"
+              >
+                + สร้างกระทู้ใหม่
+              </Button>
+            </div>
+
+            <div className="mb-6 p-3 sm:p-4 bg-white dark:bg-dark-cardBg rounded-lg shadow-sm border border-neutral-DEFAULT/30 dark:border-dark-border/30 flex flex-col sm:flex-row gap-3 sm:gap-4 items-center">
+              <div className="w-full sm:w-auto sm:flex-1">
+                <label htmlFor="categoryFilter" className="sr-only">กรองตามหมวดหมู่</label>
+                <select
+                  id="categoryFilter"
+                  value={selectedCategoryFilter}
+                  onChange={(e) => setSelectedCategoryFilter(e.target.value as WebboardCategory | 'all')}
+                  className={`${selectBaseStyle} w-full font-sans`}
+                >
+                  <option value="all">หมวดหมู่ทั้งหมด</option>
+                  {Object.values(WebboardCategory).map((cat: string) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="w-full sm:w-auto sm:flex-1">
+                <label htmlFor="searchWebboard" className="sr-only">ค้นหากระทู้</label>
+                <input
+                  type="search"
+                  id="searchWebboard"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="ค้นหาหัวข้อ, เนื้อหา, ผู้เขียน..."
+                  className={`${inputBaseStyle} w-full font-serif`}
                 />
+              </div>
+            </div>
+
+            {!initialWebboardPostsLoaded && isLoadingWebboardPosts && webboardPostsList.length === 0 && (
+              <div className="text-center py-20"><p className="text-xl font-sans text-neutral-dark dark:text-dark-text">✨ กำลังโหลดกระทู้…</p></div>
+            )}
+
+            {initialWebboardPostsLoaded && enrichedPosts.length === 0 && !hasMoreWebboardPosts && (
+              <div className="text-center py-10 bg-white dark:bg-dark-cardBg p-6 rounded-lg shadow">
+                <svg className="mx-auto h-16 w-16 text-neutral-DEFAULT dark:text-dark-border mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+                <p className="text-xl font-serif text-neutral-dark dark:text-dark-textMuted mb-4 font-normal">
+                  {(searchTerm || selectedCategoryFilter !== 'all')
+                      ? 'ไม่พบกระทู้ที่ตรงกับการค้นหาหรือตัวกรองของคุณ'
+                      : 'ยังไม่มีกระทู้ในขณะนี้'}
+                </p>
+                {!currentUser && !(searchTerm || selectedCategoryFilter !== 'all') && (
+                  <p className="text-md font-serif text-neutral-dark dark:text-dark-textMuted mb-4 font-normal">
+                      <button onClick={() => navigateTo(View.Login)} className="font-sans text-primary dark:text-dark-primary-DEFAULT hover:underline">เข้าสู่ระบบ</button> หรือ <button onClick={() => navigateTo(View.Register)} className="font-sans text-primary dark:text-dark-primary-DEFAULT hover:underline">ลงทะเบียน</button> เพื่อเริ่มสร้างกระทู้
+                  </p>
+                )}
+                {currentUser && !(searchTerm || selectedCategoryFilter !== 'all') && (
+                  <Button
+                    onClick={handleOpenCreateModal}
+                    variant="login"
+                    size="sm"
+                    className="rounded-full font-semibold"
+                  >
+                    เป็นคนแรกที่สร้างกระทู้!
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {enrichedPosts.length > 0 && (
+              <motion.div
+                className="space-y-4"
+                variants={listContainerVariants} // Using the list container variants here for the list items' parent
+                initial="hidden"
+                animate="visible"
+              >
+                {enrichedPosts.map(post => (
+                  <motion.div key={post.id} variants={itemVariants}>
+                    <WebboardPostCard
+                      post={post}
+                      currentUser={currentUser}
+                      onViewPost={setSelectedPostId}
+                      onToggleLike={handleToggleLikeForPage}
+                      onSavePost={onSavePost}
+                      onSharePost={onSharePost}
+                      requestLoginForAction={requestLoginForAction}
+                      onNavigateToPublicProfile={(userId) => onNavigateToPublicProfile({userId})}
+                    />
+                  </motion.div>
+                ))}
               </motion.div>
-            ))}
+            )}
+
+            <div ref={webboardLoaderRef} className="h-10 flex justify-center items-center">
+              {isLoadingWebboardPosts && initialWebboardPostsLoaded && webboardPostsList.length > 0 && (
+                <p className="text-sm font-sans text-neutral-medium dark:text-dark-textMuted">กำลังโหลดเพิ่มเติม…</p>
+              )}
+            </div>
+
+            {initialWebboardPostsLoaded && !hasMoreWebboardPosts && webboardPostsList.length > 0 && (
+              <p className="text-center text-sm font-sans text-neutral-medium dark:text-dark-textMuted py-4">🎉 คุณดูครบทุกกระทู้แล้ว</p>
+            )}
           </motion.div>
-        </AnimatePresence>
-      )}
-
-      <div ref={webboardLoaderRef} className="h-10 flex justify-center items-center">
-        {isLoadingWebboardPosts && initialWebboardPostsLoaded && webboardPostsList.length > 0 && (
-           <p className="text-sm font-sans text-neutral-medium dark:text-dark-textMuted">กำลังโหลดเพิ่มเติม…</p>
         )}
-      </div>
-
-      {initialWebboardPostsLoaded && !hasMoreWebboardPosts && webboardPostsList.length > 0 && (
-        <p className="text-center text-sm font-sans text-neutral-medium dark:text-dark-textMuted py-4">🎉 คุณดูครบทุกกระทู้แล้ว</p>
-      )}
-
+      </AnimatePresence>
       <WebboardPostCreateForm
         isOpen={isCreateModalOpen}
         onClose={handleCloseCreateModal}
