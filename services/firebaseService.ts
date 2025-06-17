@@ -42,7 +42,7 @@ import {
 } from 'firebase/storage';
 
 import { auth, db, storage } from '../firebase';
-import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier, UserSavedWebboardPostEntry, Province } from '../types'; // Added Province
+import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier, UserSavedWebboardPostEntry, Province, JobSubCategory } from '../types'; // Added JobSubCategory
 import { UserRole, WebboardCategory, USER_LEVELS, GenderOption, HelperEducationLevelOption } from '../types';
 import { logFirebaseError } from '../firebase/logging';
 
@@ -421,8 +421,8 @@ export const getJobsPaginated = async (
   startAfterDoc: DocumentSnapshot<DocumentData> | null = null,
   categoryFilter: string | null = null,
   searchTerm: string | null = null,
-  subCategorySearchTerm: string | null = null, // New
-  provinceSearchTerm: string | null = null    // New
+  subCategoryFilter: JobSubCategory | 'all' = 'all', // Updated
+  provinceFilter: Province | 'all' = 'all'        // Updated
 ): Promise<PaginatedDocsResponse<Job>> => {
   try {
     const constraints: QueryConstraint[] = [
@@ -434,6 +434,9 @@ export const getJobsPaginated = async (
     if (categoryFilter && categoryFilter !== 'all') {
       constraints.unshift(where("category", "==", categoryFilter));
     }
+    // Firestore does not support multiple inequality filters on different fields
+    // or combining array-contains with range/inequality.
+    // So, subCategory and province will be filtered client-side after initial fetch.
 
     if (startAfterDoc) {
       constraints.push(startAfter(startAfterDoc));
@@ -447,36 +450,28 @@ export const getJobsPaginated = async (
       ...convertTimestamps(docSnap.data()),
     } as Job));
 
-    // Client-side filtering for search terms
+    // Client-side filtering for search term
     if (searchTerm && searchTerm.trim() !== '') {
       const termLower = searchTerm.toLowerCase();
       jobsData = jobsData.filter(job =>
         job.title.toLowerCase().includes(termLower) ||
         job.description.toLowerCase().includes(termLower) ||
-        job.category.toLowerCase().includes(termLower) ||
-        (job.subCategory && job.subCategory.toLowerCase().includes(termLower)) ||
-        job.location.toLowerCase().includes(termLower) || // Added location to main search
-        job.province.toLowerCase().includes(termLower) // Added province to main search
+        // job.category.toLowerCase().includes(termLower) || // Covered by Firestore query if selected
+        // (job.subCategory && job.subCategory.toLowerCase().includes(termLower)) || // Handled by subCategoryFilter
+        job.location.toLowerCase().includes(termLower)
+        // (job.province && job.province.toLowerCase().includes(termLower)) // Handled by provinceFilter
       );
     }
     
-    // Client-side filtering for subCategory
-    if (subCategorySearchTerm && subCategorySearchTerm.trim() !== '') {
-      const subCatTermLower = subCategorySearchTerm.toLowerCase();
-      jobsData = jobsData.filter(job =>
-        job.subCategory && job.subCategory.toLowerCase().includes(subCatTermLower)
-      );
+    // Client-side filtering for subCategory dropdown
+    if (subCategoryFilter !== 'all') {
+      jobsData = jobsData.filter(job => job.subCategory === subCategoryFilter);
     }
 
-    // Client-side filtering for province
-    if (provinceSearchTerm && provinceSearchTerm.trim() !== '') {
-      const provTermLower = provinceSearchTerm.toLowerCase();
-      // Assuming job.province is a string from Province enum
-      jobsData = jobsData.filter(job =>
-         job.province && job.province.toLowerCase().includes(provTermLower)
-      );
+    // Client-side filtering for province dropdown
+    if (provinceFilter !== 'all') {
+      jobsData = jobsData.filter(job => job.province === provinceFilter);
     }
-
 
     const lastVisible = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
 
@@ -585,13 +580,13 @@ export const getHelperProfilesPaginated = async (
   startAfterDoc: DocumentSnapshot<DocumentData> | null = null,
   categoryFilter: string | null = null,
   searchTerm: string | null = null,
-  subCategorySearchTerm: string | null = null, // New
-  provinceSearchTerm: string | null = null    // New
+  subCategoryFilter: JobSubCategory | 'all' = 'all', // Updated
+  provinceFilter: Province | 'all' = 'all'        // Updated
 ): Promise<PaginatedDocsResponse<HelperProfile>> => {
   try {
     const constraints: QueryConstraint[] = [
       orderBy("isPinned", "desc"),
-      orderBy("updatedAt", "desc"),
+      orderBy("updatedAt", "desc"), // Keep updatedAt for bump logic
       limit(pageSize)
     ];
 
@@ -611,33 +606,27 @@ export const getHelperProfilesPaginated = async (
       ...convertTimestamps(docSnap.data()),
     } as HelperProfile));
 
-    // Client-side filtering for search terms
+    // Client-side filtering for search term
     if (searchTerm && searchTerm.trim() !== '') {
       const termLower = searchTerm.toLowerCase();
       profilesData = profilesData.filter(profile =>
         profile.profileTitle.toLowerCase().includes(termLower) ||
         profile.details.toLowerCase().includes(termLower) ||
-        profile.category.toLowerCase().includes(termLower) ||
-        (profile.subCategory && profile.subCategory.toLowerCase().includes(termLower)) ||
-        profile.area.toLowerCase().includes(termLower) || // Added area to main search
-        profile.province.toLowerCase().includes(termLower) // Added province to main search
+        // profile.category.toLowerCase().includes(termLower) || // Covered by Firestore
+        // (profile.subCategory && profile.subCategory.toLowerCase().includes(termLower)) || // Handled by filter
+        profile.area.toLowerCase().includes(termLower)
+        // (profile.province && profile.province.toLowerCase().includes(termLower)) // Handled by filter
       );
     }
 
-    // Client-side filtering for subCategory
-    if (subCategorySearchTerm && subCategorySearchTerm.trim() !== '') {
-      const subCatTermLower = subCategorySearchTerm.toLowerCase();
-      profilesData = profilesData.filter(profile =>
-        profile.subCategory && profile.subCategory.toLowerCase().includes(subCatTermLower)
-      );
+    // Client-side filtering for subCategory dropdown
+    if (subCategoryFilter !== 'all') {
+      profilesData = profilesData.filter(profile => profile.subCategory === subCategoryFilter);
     }
 
-    // Client-side filtering for province
-    if (provinceSearchTerm && provinceSearchTerm.trim() !== '') {
-      const provTermLower = provinceSearchTerm.toLowerCase();
-      profilesData = profilesData.filter(profile =>
-        profile.province && profile.province.toLowerCase().includes(provTermLower)
-      );
+    // Client-side filtering for province dropdown
+    if (provinceFilter !== 'all') {
+      profilesData = profilesData.filter(profile => profile.province === provinceFilter);
     }
 
     const lastVisible = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;

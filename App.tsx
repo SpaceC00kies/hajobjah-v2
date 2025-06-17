@@ -42,7 +42,7 @@ import {
 import type { DocumentSnapshot, DocumentData } from 'firebase/firestore';
 import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier } from './types';
 import type { AdminItem as AdminItemType } from './components/AdminDashboard';
-import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP, ACTIVITY_BADGE_DETAILS, Province } from './types';
+import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP, ACTIVITY_BADGE_DETAILS, Province, JOB_SUBCATEGORIES_MAP } from './types';
 import { PostJobForm } from './components/PostJobForm';
 import { JobCard } from './components/JobCard';
 import { Button } from './components/Button';
@@ -190,11 +190,6 @@ const addRecentSearch = (key: string, term: string) => {
   }
 };
 
-const searchMappings: Record<string, string[]> = {
-  'tutor': ['สอนพิเศษ', 'ติว'], 'teacher': ['ครู', 'สอน'], 'driver': ['คนขับ', 'ขับรถ'],
-  'clean': ['ทำความสะอาด', 'แม่บ้าน'], 'cook': ['ทำอาหาร', 'ครัว', 'เชฟ']
-};
-
 type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts'> & { password: string };
 
 
@@ -245,16 +240,11 @@ const App: React.FC = () => {
   const [recentJobSearches, setRecentJobSearches] = useState<string[]>([]);
   const [recentHelperSearches, setRecentHelperSearches] = useState<string[]>([]);
 
-  // New search terms and recent searches
-  const [jobSubCategorySearchTerm, setJobSubCategorySearchTerm] = useState('');
-  const [jobProvinceSearchTerm, setJobProvinceSearchTerm] = useState('');
-  const [recentJobSubCategorySearches, setRecentJobSubCategorySearches] = useState<string[]>([]);
-  const [recentJobProvinceSearches, setRecentJobProvinceSearches] = useState<string[]>([]);
-
-  const [helperSubCategorySearchTerm, setHelperSubCategorySearchTerm] = useState('');
-  const [helperProvinceSearchTerm, setHelperProvinceSearchTerm] = useState('');
-  const [recentHelperSubCategorySearches, setRecentHelperSubCategorySearches] = useState<string[]>([]);
-  const [recentHelperProvinceSearches, setRecentHelperProvinceSearches] = useState<string[]>([]);
+  // New dropdown filters
+  const [selectedJobSubCategoryFilter, setSelectedJobSubCategoryFilter] = useState<JobSubCategory | 'all'>('all');
+  const [selectedJobProvinceFilter, setSelectedJobProvinceFilter] = useState<Province | 'all'>('all');
+  const [selectedHelperSubCategoryFilter, setSelectedHelperSubCategoryFilter] = useState<JobSubCategory | 'all'>('all');
+  const [selectedHelperProvinceFilter, setSelectedHelperProvinceFilter] = useState<Province | 'all'>('all');
 
 
   // State for MyRoomPage tab management
@@ -309,12 +299,7 @@ const App: React.FC = () => {
     document.documentElement.classList.remove('dark');
     setRecentJobSearches(getRecentSearches('recentJobSearches'));
     setRecentHelperSearches(getRecentSearches('recentHelperSearches'));
-    setRecentJobSubCategorySearches(getRecentSearches('recentJobSubCategorySearches'));
-    setRecentJobProvinceSearches(getRecentSearches('recentJobProvinceSearches'));
-    setRecentHelperSubCategorySearches(getRecentSearches('recentHelperSubCategorySearches'));
-    setRecentHelperProvinceSearches(getRecentSearches('recentHelperProvinceSearches'));
-
-
+    
     parseUrlAndSetInitialState(); // Parse URL on initial load
 
     const unsubscribeAuth = onAuthChangeService((user) => {
@@ -1557,8 +1542,8 @@ const App: React.FC = () => {
         isInitialLoad ? null : lastVisibleJob,
         selectedJobCategoryFilter === 'all' ? null : selectedJobCategoryFilter,
         jobSearchTerm,
-        jobSubCategorySearchTerm, // New
-        jobProvinceSearchTerm     // New
+        selectedJobSubCategoryFilter, 
+        selectedJobProvinceFilter    
       );
       setJobsList(prevJobs => isInitialLoad ? result.items : [...prevJobs, ...result.items]);
       setLastVisibleJob(result.lastVisibleDoc);
@@ -1572,13 +1557,13 @@ const App: React.FC = () => {
     } finally {
       setIsLoadingJobs(false);
     }
-  }, [isLoadingJobs, hasMoreJobs, lastVisibleJob, selectedJobCategoryFilter, jobSearchTerm, jobSubCategorySearchTerm, jobProvinceSearchTerm]);
+  }, [isLoadingJobs, hasMoreJobs, lastVisibleJob, selectedJobCategoryFilter, jobSearchTerm, selectedJobSubCategoryFilter, selectedJobProvinceFilter]);
 
   useEffect(() => {
     if (currentView === View.FindJobs) {
       loadJobs(true);
     }
-  }, [currentView, selectedJobCategoryFilter, jobSearchTerm, jobSubCategorySearchTerm, jobProvinceSearchTerm]); 
+  }, [currentView, selectedJobCategoryFilter, jobSearchTerm, selectedJobSubCategoryFilter, selectedJobProvinceFilter]); 
 
   useEffect(() => {
     if (currentView !== View.FindJobs || !initialJobsLoaded) return;
@@ -1606,23 +1591,9 @@ const App: React.FC = () => {
   };
   const handleJobCategoryFilterChange = (category: FilterableCategory) => {
     setSelectedJobCategoryFilter(category);
+    setSelectedJobSubCategoryFilter('all'); // Reset subcategory when main category changes
   };
-  const handleJobSubCategorySearch = (term: string) => {
-    setJobSubCategorySearchTerm(term);
-    if (term.trim()) {
-      addRecentSearch('recentJobSubCategorySearches', term.trim());
-      setRecentJobSubCategorySearches(getRecentSearches('recentJobSubCategorySearches'));
-    }
-  };
-  const handleJobProvinceSearch = (term: string) => {
-    setJobProvinceSearchTerm(term);
-    if (term.trim()) {
-      addRecentSearch('recentJobProvinceSearches', term.trim());
-      setRecentJobProvinceSearches(getRecentSearches('recentJobProvinceSearches'));
-    }
-  };
-
-
+  
   const handleSubmitJobForm = (formDataFromForm: JobFormData & { id?: string }) => {
     if (formDataFromForm.id && itemToEdit && editingItemType === 'job') {
         handleUpdateJob(formDataFromForm as JobFormData & { id: string }, loadJobs);
@@ -1646,7 +1617,7 @@ const App: React.FC = () => {
 
   const renderFindJobs = () => {
     let emptyStateMessage = "ยังไม่มีงานประกาศในขณะนี้";
-    if (jobSearchTerm.trim() || selectedJobCategoryFilter !== 'all' || jobSubCategorySearchTerm.trim() || jobProvinceSearchTerm.trim()) {
+    if (jobSearchTerm.trim() || selectedJobCategoryFilter !== 'all' || selectedJobSubCategoryFilter !== 'all' || selectedJobProvinceFilter !== 'all') {
       emptyStateMessage = "ไม่พบงานที่ตรงกับเกณฑ์การค้นหาของคุณ";
     }
 
@@ -1656,6 +1627,15 @@ const App: React.FC = () => {
         job.expiresAt && !isDateInPast(job.expiresAt) &&
         job.isHired === false
     );
+    
+    const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border border-[#CCCCCC] dark:border-dark-border rounded-[10px] text-neutral-dark dark:text-dark-text font-serif font-normal focus:outline-none transition-colors duration-150 ease-in-out";
+    const selectBaseStyle = `${inputBaseStyle} appearance-none`;
+    const inputFocusStyle = "focus:border-neutral-dark dark:focus:border-dark-text focus:ring-1 focus:ring-neutral-dark dark:focus:ring-dark-text focus:ring-opacity-50";
+
+    const jobSubCategoryOptions = selectedJobCategoryFilter !== 'all' && JOB_SUBCATEGORIES_MAP[selectedJobCategoryFilter]
+      ? JOB_SUBCATEGORIES_MAP[selectedJobCategoryFilter]
+      : [];
+
 
     return (
     <div className="p-4 sm:p-6">
@@ -1667,9 +1647,46 @@ const App: React.FC = () => {
         <aside className="lg:col-span-3 mb-8 lg:mb-0">
           <div className="sticky top-24 space-y-6 p-4 bg-white dark:bg-dark-cardBg rounded-xl shadow-lg border dark:border-dark-border">
             <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedJobCategoryFilter} onSelectCategory={handleJobCategoryFilterChange} />
+            
+            <div>
+              <label htmlFor="job-subcategory-filter" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
+                เลือกหมวดหมู่ย่อย:
+              </label>
+              <select
+                id="job-subcategory-filter"
+                value={selectedJobSubCategoryFilter}
+                onChange={(e) => setSelectedJobSubCategoryFilter(e.target.value as JobSubCategory | 'all')}
+                className={`${selectBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
+                disabled={selectedJobCategoryFilter === 'all' || jobSubCategoryOptions.length === 0}
+                aria-label="กรองตามหมวดหมู่ย่อยงาน"
+              >
+                <option value="all">หมวดหมู่ย่อยทั้งหมด</option>
+                {jobSubCategoryOptions.map(subCat => (
+                  <option key={subCat} value={subCat}>{subCat}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="job-province-filter" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
+                เลือกจังหวัด:
+              </label>
+              <select
+                id="job-province-filter"
+                value={selectedJobProvinceFilter}
+                onChange={(e) => setSelectedJobProvinceFilter(e.target.value as Province | 'all')}
+                className={`${selectBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
+                aria-label="กรองตามจังหวัดสำหรับงาน"
+              >
+                <option value="all">ทุกจังหวัด</option>
+                {Object.values(Province).map(prov => (
+                  <option key={prov} value={prov}>{prov}</option>
+                ))}
+              </select>
+            </div>
+            
             <SearchInputWithRecent searchTerm={jobSearchTerm} onSearchTermChange={handleJobSearch} placeholder="ค้นหางาน, รายละเอียด..." recentSearches={recentJobSearches} onRecentSearchSelect={(term) => { setJobSearchTerm(term); addRecentSearch('recentJobSearches', term); setRecentJobSearches(getRecentSearches('recentJobSearches')); }} ariaLabel="ค้นหางาน" />
-            <SearchInputWithRecent searchTerm={jobSubCategorySearchTerm} onSearchTermChange={handleJobSubCategorySearch} placeholder="ค้นหาหมวดหมู่ย่อย..." recentSearches={recentJobSubCategorySearches} onRecentSearchSelect={(term) => { setJobSubCategorySearchTerm(term); addRecentSearch('recentJobSubCategorySearches', term); setRecentJobSubCategorySearches(getRecentSearches('recentJobSubCategorySearches')); }} ariaLabel="ค้นหาหมวดหมู่ย่อยงาน" />
-            <SearchInputWithRecent searchTerm={jobProvinceSearchTerm} onSearchTermChange={handleJobProvinceSearch} placeholder="ค้นหาจังหวัด..." recentSearches={recentJobProvinceSearches} onRecentSearchSelect={(term) => { setJobProvinceSearchTerm(term); addRecentSearch('recentJobProvinceSearches', term); setRecentJobProvinceSearches(getRecentSearches('recentJobProvinceSearches')); }} ariaLabel="ค้นหาจังหวัดสำหรับงาน" />
+            
             {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="w-full sm:px-4 sm:text-sm">
               <span className="flex items-center justify-center gap-2"><span>📣</span><span>ฝากงานกดตรงนี้</span></span>
             </Button> )}
@@ -1683,8 +1700,8 @@ const App: React.FC = () => {
             <div className="text-center py-10 bg-white dark:bg-dark-cardBg p-6 rounded-lg shadow-md border dark:border-dark-border">
               <svg className="mx-auto h-24 w-24 text-neutral-DEFAULT" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
               <p className="mt-3 text-xl font-serif text-neutral-dark font-normal"> {emptyStateMessage} </p>
-              {currentUser && jobsList.length === 0 && !jobSearchTerm.trim() && selectedJobCategoryFilter === 'all' && !jobSubCategorySearchTerm.trim() && !jobProvinceSearchTerm.trim() && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="mt-6 font-medium"> เป็นคนแรกที่ลงประกาศงาน! </Button> )}
-              {!currentUser && jobsList.length === 0 && !jobSearchTerm.trim() && selectedJobCategoryFilter === 'all' && !jobSubCategorySearchTerm.trim() && !jobProvinceSearchTerm.trim() && (<Button onClick={() => requestLoginForAction(View.PostJob)} variant="primary" size="md" className="mt-6 font-medium"> เข้าสู่ระบบเพื่อลงประกาศงาน </Button>)}
+              {currentUser && jobsList.length === 0 && !jobSearchTerm.trim() && selectedJobCategoryFilter === 'all' && selectedJobSubCategoryFilter === 'all' && selectedJobProvinceFilter === 'all' && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="mt-6 font-medium"> เป็นคนแรกที่ลงประกาศงาน! </Button> )}
+              {!currentUser && jobsList.length === 0 && !jobSearchTerm.trim() && selectedJobCategoryFilter === 'all' && selectedJobSubCategoryFilter === 'all' && selectedJobProvinceFilter === 'all' && (<Button onClick={() => requestLoginForAction(View.PostJob)} variant="primary" size="md" className="mt-6 font-medium"> เข้าสู่ระบบเพื่อลงประกาศงาน </Button>)}
             </div>
           )}
           {activeUserJobs.length > 0 && (
@@ -1736,8 +1753,8 @@ const App: React.FC = () => {
         isInitialLoad ? null : lastVisibleHelper,
         selectedHelperCategoryFilter === 'all' ? null : selectedHelperCategoryFilter,
         helperSearchTerm,
-        helperSubCategorySearchTerm, // New
-        helperProvinceSearchTerm     // New
+        selectedHelperSubCategoryFilter, 
+        selectedHelperProvinceFilter    
       );
       setHelperProfilesList(prev => isInitialLoad ? result.items : [...prev, ...result.items]);
       setLastVisibleHelper(result.lastVisibleDoc);
@@ -1751,13 +1768,13 @@ const App: React.FC = () => {
     } finally {
       setIsLoadingHelpers(false);
     }
-  }, [isLoadingHelpers, hasMoreHelpers, lastVisibleHelper, selectedHelperCategoryFilter, helperSearchTerm, helperSubCategorySearchTerm, helperProvinceSearchTerm]);
+  }, [isLoadingHelpers, hasMoreHelpers, lastVisibleHelper, selectedHelperCategoryFilter, helperSearchTerm, selectedHelperSubCategoryFilter, selectedHelperProvinceFilter]);
 
   useEffect(() => {
     if (currentView === View.FindHelpers) {
       loadHelpers(true);
     }
-  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm, helperSubCategorySearchTerm, helperProvinceSearchTerm]); 
+  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm, selectedHelperSubCategoryFilter, selectedHelperProvinceFilter]); 
 
   useEffect(() => {
     if (currentView !== View.FindHelpers || !initialHelpersLoaded) return;
@@ -1785,22 +1802,9 @@ const App: React.FC = () => {
   };
   const handleHelperCategoryFilterChange = (category: FilterableCategory) => {
     setSelectedHelperCategoryFilter(category);
+    setSelectedHelperSubCategoryFilter('all'); // Reset subcategory when main category changes
   };
-  const handleHelperSubCategorySearch = (term: string) => {
-    setHelperSubCategorySearchTerm(term);
-    if (term.trim()) {
-      addRecentSearch('recentHelperSubCategorySearches', term.trim());
-      setRecentHelperSubCategorySearches(getRecentSearches('recentHelperSubCategorySearches'));
-    }
-  };
-  const handleHelperProvinceSearch = (term: string) => {
-    setHelperProvinceSearchTerm(term);
-    if (term.trim()) {
-      addRecentSearch('recentHelperProvinceSearches', term.trim());
-      setRecentHelperProvinceSearches(getRecentSearches('recentHelperProvinceSearches'));
-    }
-  };
-
+  
   const handleSubmitHelperProfileForm = (formDataFromForm: HelperProfileFormData & { id?: string }) => {
     if (formDataFromForm.id && itemToEdit && editingItemType === 'profile') {
         handleUpdateHelperProfile(formDataFromForm as HelperProfileFormData & { id: string }, loadHelpers);
@@ -1823,7 +1827,7 @@ const App: React.FC = () => {
 
   const renderFindHelpers = () => {
     let emptyStateMessage = "ยังไม่มีผู้เสนอตัวช่วยงานในขณะนี้";
-    if (helperSearchTerm.trim() || selectedHelperCategoryFilter !== 'all' || helperSubCategorySearchTerm.trim() || helperProvinceSearchTerm.trim()) {
+    if (helperSearchTerm.trim() || selectedHelperCategoryFilter !== 'all' || selectedHelperSubCategoryFilter !== 'all' || selectedHelperProvinceFilter !== 'all') {
       emptyStateMessage = "ไม่พบผู้ช่วยที่ตรงกับเกณฑ์การค้นหาของคุณ";
     }
 
@@ -1839,6 +1843,14 @@ const App: React.FC = () => {
       return { ...hp, userPhoto: user?.photo, userAddress: user?.address, verifiedExperienceBadge: hp.adminVerifiedExperience || false, profileCompleteBadge: user?.profileComplete || false, warningBadge: hp.isSuspicious || false, interestedCount: hp.interestedCount || 0, };
     });
 
+    const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border border-[#CCCCCC] dark:border-dark-border rounded-[10px] text-neutral-dark dark:text-dark-text font-serif font-normal focus:outline-none transition-colors duration-150 ease-in-out";
+    const selectBaseStyle = `${inputBaseStyle} appearance-none`;
+    const inputFocusStyle = "focus:border-neutral-dark dark:focus:border-dark-text focus:ring-1 focus:ring-neutral-dark dark:focus:ring-dark-text focus:ring-opacity-50";
+
+    const helperSubCategoryOptions = selectedHelperCategoryFilter !== 'all' && JOB_SUBCATEGORIES_MAP[selectedHelperCategoryFilter]
+      ? JOB_SUBCATEGORIES_MAP[selectedHelperCategoryFilter]
+      : [];
+
     return (
     <div className="p-4 sm:p-6">
       <div className="text-center mb-6 lg:mb-8">
@@ -1849,9 +1861,46 @@ const App: React.FC = () => {
         <aside className="lg:col-span-3 mb-8 lg:mb-0">
             <div className="sticky top-24 space-y-6 p-4 bg-white dark:bg-dark-cardBg rounded-xl shadow-lg border dark:border-dark-border">
                 <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedHelperCategoryFilter} onSelectCategory={handleHelperCategoryFilterChange} />
+                
+                <div>
+                  <label htmlFor="helper-subcategory-filter" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
+                    เลือกหมวดหมู่ย่อย:
+                  </label>
+                  <select
+                    id="helper-subcategory-filter"
+                    value={selectedHelperSubCategoryFilter}
+                    onChange={(e) => setSelectedHelperSubCategoryFilter(e.target.value as JobSubCategory | 'all')}
+                    className={`${selectBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
+                    disabled={selectedHelperCategoryFilter === 'all' || helperSubCategoryOptions.length === 0}
+                    aria-label="กรองตามหมวดหมู่ย่อยผู้ช่วย"
+                  >
+                    <option value="all">หมวดหมู่ย่อยทั้งหมด</option>
+                    {helperSubCategoryOptions.map(subCat => (
+                      <option key={subCat} value={subCat}>{subCat}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="helper-province-filter" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
+                    เลือกจังหวัด:
+                  </label>
+                  <select
+                    id="helper-province-filter"
+                    value={selectedHelperProvinceFilter}
+                    onChange={(e) => setSelectedHelperProvinceFilter(e.target.value as Province | 'all')}
+                    className={`${selectBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
+                    aria-label="กรองตามจังหวัดสำหรับผู้ช่วย"
+                  >
+                    <option value="all">ทุกจังหวัด</option>
+                    {Object.values(Province).map(prov => (
+                      <option key={prov} value={prov}>{prov}</option>
+                    ))}
+                  </select>
+                </div>
+                
                 <SearchInputWithRecent searchTerm={helperSearchTerm} onSearchTermChange={handleHelperSearch} placeholder="ค้นหาผู้ช่วย, ทักษะ, พื้นที่..." recentSearches={recentHelperSearches} onRecentSearchSelect={(term) => { setHelperSearchTerm(term); addRecentSearch('recentHelperSearches', term); setRecentHelperSearches(getRecentSearches('recentHelperSearches')); }} ariaLabel="ค้นหาผู้ช่วย" />
-                <SearchInputWithRecent searchTerm={helperSubCategorySearchTerm} onSearchTermChange={handleHelperSubCategorySearch} placeholder="ค้นหาหมวดหมู่ย่อย..." recentSearches={recentHelperSubCategorySearches} onRecentSearchSelect={(term) => { setHelperSubCategorySearchTerm(term); addRecentSearch('recentHelperSubCategorySearches', term); setRecentHelperSubCategorySearches(getRecentSearches('recentHelperSubCategorySearches')); }} ariaLabel="ค้นหาหมวดหมู่ย่อยผู้ช่วย" />
-                <SearchInputWithRecent searchTerm={helperProvinceSearchTerm} onSearchTermChange={handleHelperProvinceSearch} placeholder="ค้นหาจังหวัด..." recentSearches={recentHelperProvinceSearches} onRecentSearchSelect={(term) => { setHelperProvinceSearchTerm(term); addRecentSearch('recentHelperProvinceSearches', term); setRecentHelperProvinceSearches(getRecentSearches('recentHelperProvinceSearches')); }} ariaLabel="ค้นหาจังหวัดสำหรับผู้ช่วย" />
+                
                 {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateTo(View.OfferHelp); }} variant="secondary" size="md" className="w-full"> <span className="flex items-center justify-center gap-2"><span>🙋</span><span>เสนอช่วยงาน</span></span> </Button> )}
             </div>
         </aside>
@@ -1863,8 +1912,8 @@ const App: React.FC = () => {
             <div className="text-center py-10 bg-white dark:bg-dark-cardBg p-6 rounded-lg shadow-md border dark:border-dark-border">
                 <svg className="mx-auto h-24 w-24 text-neutral-DEFAULT" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-2.144M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
                 <p className="mt-3 text-xl font-serif text-neutral-dark font-normal"> {emptyStateMessage} </p>
-                {currentUser && helperProfilesList.length === 0 && !helperSearchTerm.trim() && selectedHelperCategoryFilter === 'all' && !helperSubCategorySearchTerm.trim() && !helperProvinceSearchTerm.trim() && ( <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateTo(View.OfferHelp);}} variant="secondary" size="md" className="mt-6 font-medium"> เป็นคนแรกที่เสนอตัวช่วยงาน! </Button> )}
-                {!currentUser && helperProfilesList.length === 0 && !helperSearchTerm.trim() && selectedHelperCategoryFilter === 'all' && !helperSubCategorySearchTerm.trim() && !helperProvinceSearchTerm.trim() && (<Button onClick={() => requestLoginForAction(View.OfferHelp)} variant="secondary" size="md" className="mt-6 font-medium"> เข้าสู่ระบบเพื่อเสนอตัวช่วยงาน </Button>)}
+                {currentUser && helperProfilesList.length === 0 && !helperSearchTerm.trim() && selectedHelperCategoryFilter === 'all' && selectedHelperSubCategoryFilter === 'all' && selectedHelperProvinceFilter === 'all' && ( <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateTo(View.OfferHelp);}} variant="secondary" size="md" className="mt-6 font-medium"> เป็นคนแรกที่เสนอตัวช่วยงาน! </Button> )}
+                {!currentUser && helperProfilesList.length === 0 && !helperSearchTerm.trim() && selectedHelperCategoryFilter === 'all' && selectedHelperSubCategoryFilter === 'all' && selectedHelperProvinceFilter === 'all' && (<Button onClick={() => requestLoginForAction(View.OfferHelp)} variant="secondary" size="md" className="mt-6 font-medium"> เข้าสู่ระบบเพื่อเสนอตัวช่วยงาน </Button>)}
             </div>
             )}
             {enrichedHelperProfilesList.length > 0 && (
