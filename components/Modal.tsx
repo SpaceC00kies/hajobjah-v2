@@ -1,5 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
+import { motion, type Transition } from 'framer-motion';
 
 interface ModalProps {
   isOpen: boolean;
@@ -8,63 +9,75 @@ interface ModalProps {
   children: React.ReactNode;
 }
 
-export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
-  const [isMounted, setIsMounted] = useState(isOpen);
-  const [animationState, setAnimationState] = useState<'closed' | 'open'>('closed');
+const backdropVariants = {
+  open: { opacity: 1 },
+  closed: { opacity: 0 },
+};
 
+const modalVariants = {
+  open: {
+    opacity: 1,
+    scale: 1,
+    transition: { type: "spring", stiffness: 350, damping: 25 } as Transition,
+  },
+  closed: {
+    opacity: 0,
+    scale: 0.9,
+    transition: { duration: 0.2, ease: "easeOut" } as Transition,
+  },
+};
+
+export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
+  // Effect to handle body scroll lock
   useEffect(() => {
     if (isOpen) {
-      setIsMounted(true);
-      // Request animation frame to ensure initial classes are applied before transition starts
-      requestAnimationFrame(() => {
-        setAnimationState('open');
-      });
-    } else if (isMounted && !isOpen) {
-      // Start exit animation
-      setAnimationState('closed');
-      // Wait for animation to finish before unmounting
-      const timer = setTimeout(() => {
-        setIsMounted(false);
-        // Ensure onClose (which might set parent's isOpen to false) is called after unmount state is set,
-        // though parent likely already set isOpen to false to trigger this.
-        // The primary role of onClose here is for any cleanup in parent if needed beyond visibility.
-      }, 300); // Must match animation duration
-      return () => clearTimeout(timer);
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
     }
-  }, [isOpen, isMounted]);
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
 
-  if (!isMounted) {
-    return null;
-  }
+  // isOpen prop is used by AnimatePresence in the parent to control mounting/unmounting
+  // No internal isMounted or animationState needed here anymore
 
-  const backdropBaseClasses = "fixed inset-0 bg-neutral-dark dark:bg-black backdrop-blur-sm transition-opacity duration-300 ease-out";
-  const backdropOpenClasses = "bg-opacity-50 dark:bg-opacity-70 opacity-100";
-  const backdropClosedClasses = "bg-opacity-0 dark:bg-opacity-0 opacity-0";
-
-  const contentBaseClasses = "bg-white dark:bg-dark-cardBg px-6 pt-6 pb-24 rounded-lg shadow-xl w-full max-w-lg transform transition-all duration-300 ease-out max-h-[90vh] overflow-y-auto";
-  const contentOpenClasses = "opacity-100 scale-100";
-  const contentClosedClasses = "opacity-0 scale-95";
+  // Base classes without Tailwind transitions for elements animated by Framer Motion
+  const backdropBaseClasses = "fixed inset-0 bg-neutral-dark dark:bg-black backdrop-blur-sm flex justify-center items-center z-50 p-4";
+  const contentBaseClasses = "bg-white dark:bg-dark-cardBg px-6 pt-6 pb-8 sm:pb-12 rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"; // Increased pb for buttons
 
   return (
-    <div
-      className={`${backdropBaseClasses} ${animationState === 'open' ? backdropOpenClasses : backdropClosedClasses} flex justify-center items-center z-50 p-4`}
+    <motion.div
+      className={backdropBaseClasses}
+      onClick={onClose} // Click on backdrop closes modal
+      variants={backdropVariants}
+      initial="closed"
+      animate="open"
+      exit="closed"
+      transition={{ duration: 0.3, ease: "easeOut" }}
       role="dialog"
       aria-modal="true"
       aria-labelledby={`modal-title-${title.replace(/\s+/g, '-').toLowerCase()}`}
     >
-      <div className={`${contentBaseClasses} ${animationState === 'open' ? contentOpenClasses : contentClosedClasses}`}>
+      <motion.div
+        className={contentBaseClasses}
+        onClick={(e) => e.stopPropagation()} // Prevent modal close when clicking content
+        variants={modalVariants}
+        // initial, animate, exit are inherited from AnimatePresence context or defined here
+      >
         <div className="flex justify-between items-center mb-4">
           <h2 id={`modal-title-${title.replace(/\s+/g, '-').toLowerCase()}`} className="text-2xl font-sans font-semibold text-neutral-dark dark:text-dark-text">{title}</h2>
           <button
-            onClick={onClose} // This triggers parent's isOpen to false, then useEffect handles animation
-            className="text-neutral-dark dark:text-dark-textMuted hover:text-neutral-medium dark:hover:text-dark-text text-2xl font-bold font-sans"
+            onClick={onClose}
+            className="text-neutral-dark dark:text-dark-textMuted hover:text-neutral-medium dark:hover:text-dark-text text-2xl font-bold font-sans p-1 -mr-1 rounded-md focus:outline-none focus:ring-2 focus:ring-neutral-DEFAULT dark:focus:ring-dark-border"
             aria-label="ปิด"
           >
             &times;
           </button>
         </div>
         <div className="font-serif font-normal text-neutral-dark dark:text-dark-textMuted">{children}</div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
