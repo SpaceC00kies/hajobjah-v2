@@ -2,26 +2,22 @@
 import React from 'react';
 import { motion, type Transition, type HTMLMotionProps } from 'framer-motion';
 
-// Define the component's own specific props
-interface ButtonOwnProps {
+interface ButtonProps extends HTMLMotionProps<"button"> {
   variant?: 'primary' | 'secondary' | 'accent' | 'outline' | 'login';
   size?: 'sm' | 'md' | 'lg';
-  children: React.ReactNode; // Children is required by this component
+  children: React.ReactNode;
   colorScheme?: 'primary' | 'secondary' | 'accent' | 'neutral' | 'brandGreen';
 }
-
-// Combine own props with all valid HTMLButtonAttributes and MotionProps
-type ButtonProps = ButtonOwnProps & HTMLMotionProps<"button">;
 
 export const Button: React.FC<ButtonProps> = ({
   children,
   variant = 'primary',
   size = 'md',
-  className: consumerClassName, // Destructure className, it's from HTMLMotionProps
+  className = '',
   colorScheme = 'primary',
-  ...restOfProps // Contains onClick, type, disabled, and other motion props
+  ...props
 }) => {
-  const baseStyle = 'font-sans font-medium rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-opacity-50 active:shadow-sm';
+  const baseStyle = 'font-sans font-medium rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-opacity-50 active:shadow-sm'; // Removed: transition-all duration-150 ease-out
 
   let variantStyle = '';
   switch (variant) {
@@ -50,16 +46,20 @@ export const Button: React.FC<ButtonProps> = ({
           dark:border-dark-neutral dark:text-dark-textMuted dark:hover:bg-dark-neutral-hover dark:hover:text-dark-text dark:focus:ring-dark-neutral
         `;
       } else {
-        let lightHoverTextColor = 'hover:text-neutral-dark'; 
-        let darkHoverTextColor = 'dark:hover:text-dark-textOnPrimaryDark'; 
+        // For primary, secondary, accent, brandGreen
+        let lightHoverTextColor = 'hover:text-neutral-dark'; // Default for light mode hover on colored bg
+        let darkHoverTextColor = 'dark:hover:text-dark-textOnPrimaryDark'; // Default for dark primary hover
 
         if (scheme === 'secondary') {
           darkHoverTextColor = 'dark:hover:text-dark-textOnSecondaryDark';
         } else if (scheme === 'accent') {
           darkHoverTextColor = 'dark:hover:text-dark-textOnAccentDark';
         } else if (scheme === 'brandGreen') {
+          // lightHoverTextColor remains 'hover:text-neutral-dark'
           darkHoverTextColor = 'dark:hover:text-dark-textOnBrandGreenDark';
         }
+        // For 'primary', lightHoverTextColor and darkHoverTextColor use their default assignments.
+
         variantStyle = `
           bg-transparent border-2
           border-${scheme} text-${scheme} ${lightHoverTextColor} hover:bg-${scheme} focus:ring-${scheme}
@@ -76,23 +76,21 @@ export const Button: React.FC<ButtonProps> = ({
       sizeStyle = 'py-1.5 px-4 text-xs sm:py-2 sm:px-4 sm:text-sm';
       break;
     case 'md':
-      sizeStyle = 'py-2 px-4 text-sm sm:py-2.5 sm:px-6 sm:text-base';
+      sizeStyle = 'py-2 px-4 text-sm sm:py-2.5 sm:px-6 sm:text-base'; // Adjusted for responsiveness
       break;
     case 'lg':
       sizeStyle = 'py-3 px-6 text-lg';
       break;
   }
 
-  // Combine generated styles with any className passed by the consumer
-  const finalClassName = `${baseStyle} ${variantStyle} ${sizeStyle} ${consumerClassName || ''}`;
-
   return (
     <motion.button
-      className={finalClassName}
+      className={`${baseStyle} ${variantStyle} ${sizeStyle} ${className}`}
       whileHover={{ scale: 1.03, transition: { duration: 0.15, ease: "easeOut" } as Transition }}
       whileTap={{ scale: 0.97, y: 1, transition: { duration: 0.1, ease: "easeOut" } as Transition }}
+      // General transition for other animatable properties (like manual opacity changes if any)
       transition={{ duration: 0.15, ease: "easeOut" } as Transition}
-      {...restOfProps} // Spread the rest of the HTMLButtonAttributes and MotionProps
+      {...props}
     >
       {children}
     </motion.button>

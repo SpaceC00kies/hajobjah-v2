@@ -2281,35 +2281,17 @@ const App: React.FC = () => {
         </motion.div>
       )}
       </AnimatePresence>
-      <AnimatePresence>
-        {isConfirmModalOpen && (
-          <ConfirmModal
-            isOpen={isConfirmModalOpen} // Prop still passed for internal logic if any, but AnimatePresence controls mount
-            onClose={closeConfirmModal}
-            onConfirm={handleConfirmDeletion}
-            title={confirmModalTitle}
-            message={confirmModalMessage}
-          />
-        )}
-      </AnimatePresence>
-      <AnimatePresence>
-        {isFeedbackModalOpen && (
-          <FeedbackForm
-            isOpen={isFeedbackModalOpen}
-            onClose={() => setIsFeedbackModalOpen(false)}
-            currentUserEmail={currentUser?.email}
-          />
-        )}
-      </AnimatePresence>
-      <AnimatePresence>
-        {isForgotPasswordModalOpen && (
-          <ForgotPasswordModal
-            isOpen={isForgotPasswordModalOpen}
-            onClose={() => setIsForgotPasswordModalOpen(false)}
-            onSendResetEmail={handleSendPasswordResetEmail}
-          />
-        )}
-      </AnimatePresence>
+      <ConfirmModal isOpen={isConfirmModalOpen} onClose={closeConfirmModal} onConfirm={handleConfirmDeletion} title={confirmModalTitle} message={confirmModalMessage} />
+      <FeedbackForm
+        isOpen={isFeedbackModalOpen}
+        onClose={() => setIsFeedbackModalOpen(false)}
+        currentUserEmail={currentUser?.email}
+      />
+      <ForgotPasswordModal
+        isOpen={isForgotPasswordModalOpen}
+        onClose={() => setIsForgotPasswordModalOpen(false)}
+        onSendResetEmail={handleSendPasswordResetEmail}
+      />
     </div>
   );
 };
