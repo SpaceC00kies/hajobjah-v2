@@ -263,8 +263,12 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
     }
 
     try {
+      // Call the main like toggle function from App.tsx (passed as onToggleLike prop)
+      // This ensures backend and global state (allWebboardPostsForAdmin) are updated correctly.
       await onToggleLike(postId);
 
+      // Update local webboardPostsList state for immediate UI feedback
+      // WITHOUT modifying updatedAt
       setWebboardPostsList(prevList =>
         prevList.map(p => {
           if (p.id === postId) {
@@ -273,13 +277,15 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
               userIndex > -1
                 ? p.likes.filter(id => id !== currentUser!.id)
                 : [...p.likes, currentUser!.id];
-            return { ...p, likes: newLikes, updatedAt: new Date().toISOString() };
+            // Crucially, do NOT update p.updatedAt here
+            return { ...p, likes: newLikes };
           }
           return p;
         })
       );
     } catch (error) {
       console.error("Error during onToggleLike prop call in WebboardPage:", error);
+      // Handle error if necessary, e.g., show a notification
     }
   };
 
