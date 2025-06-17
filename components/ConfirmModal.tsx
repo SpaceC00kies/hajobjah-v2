@@ -1,84 +1,101 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Button } from './Button';
+import { motion, AnimatePresence, type Transition } from 'framer-motion';
 
 interface ConfirmModalProps {
   isOpen: boolean;
-  onClose: () => void; // Called on cancel or close
-  onConfirm: () => void; // Called on confirm
+  onClose: () => void;
+  onConfirm: () => void;
   title: string;
   message: string;
 }
 
+const backdropVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1 },
+};
+
+const panelVariants = {
+  hidden: { opacity: 0, scale: 0.95, y: 20 },
+  visible: { opacity: 1, scale: 1, y: 0 },
+  exit: { opacity: 0, scale: 0.95, y: 20, transition: { duration: 0.2, ease: "easeIn" } },
+};
+
+const modalTransition: Transition = {
+  duration: 0.3,
+  ease: [0.08, 0.82, 0.17, 1] // A more refined ease-out cubic bezier
+};
+
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({ isOpen, onClose, onConfirm, title, message }) => {
-  const [isMounted, setIsMounted] = useState(isOpen);
-  const [animationState, setAnimationState] = useState<'closed' | 'open'>('closed');
-
   useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
     if (isOpen) {
-      setIsMounted(true);
-      requestAnimationFrame(() => {
-        setAnimationState('open');
-      });
-    } else if (isMounted && !isOpen) {
-      setAnimationState('closed');
-      const timer = setTimeout(() => {
-        setIsMounted(false);
-      }, 300); // Match animation duration
-      return () => clearTimeout(timer);
+      document.addEventListener('keydown', handleEscapeKey);
     }
-  }, [isOpen, isMounted]);
 
-  if (!isMounted) {
-    return null;
-  }
-
-  const backdropBaseClasses = "fixed inset-0 bg-neutral-dark dark:bg-black backdrop-blur-md transition-opacity duration-300 ease-out";
-  const backdropOpenClasses = "bg-opacity-60 dark:bg-opacity-80 opacity-100";
-  const backdropClosedClasses = "bg-opacity-0 dark:bg-opacity-0 opacity-0";
-
-  const contentBaseClasses = "bg-white dark:bg-dark-cardBg px-6 pt-6 pb-12 rounded-lg shadow-xl w-full max-w-md transform transition-all duration-300 ease-out max-h-[90vh] overflow-y-auto";
-  const contentOpenClasses = "opacity-100 scale-100";
-  const contentClosedClasses = "opacity-0 scale-95";
-
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [isOpen, onClose]);
+  
   const handleActualConfirm = () => {
     onConfirm();
-    // onClose(); // No need to call onClose here, parent's state change will handle it.
-                 // Confirming should also close the modal, handled by parent logic that onConfirm triggers.
+    // Parent will typically close the modal by setting isOpen to false
   };
-  
-  const handleActualClose = () => {
-    onClose(); // This will trigger the parent's isOpen state to false, initiating animation.
-  };
-
 
   return (
-    <div
-      className={`${backdropBaseClasses} ${animationState === 'open' ? backdropOpenClasses : backdropClosedClasses} flex justify-center items-center z-50 p-4`}
-      role="alertdialog"
-      aria-modal="true"
-      aria-labelledby="confirm-modal-title"
-      aria-describedby="confirm-modal-message"
-    >
-      <div className={`${contentBaseClasses} ${animationState === 'open' ? contentOpenClasses : contentClosedClasses}`}>
-        <h2 id="confirm-modal-title" className="text-xl font-semibold text-neutral-dark dark:text-dark-text mb-4">{title}</h2>
-        <p id="confirm-modal-message" className="text-neutral-dark dark:text-dark-textMuted mb-6 font-normal">{message}</p>
-        <div className="flex justify-end gap-3">
-          <Button onClick={handleActualClose} variant="outline" colorScheme="neutral" size="md">
-            ยกเลิก
-          </Button>
-          <Button 
-            onClick={handleActualConfirm} 
-            size="md"
-            className="bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-opacity-50 transition-colors duration-150 ease-in-out"
+    <AnimatePresence initial={false}>
+      {isOpen && (
+        <motion.div
+          key="confirm-modal-backdrop"
+          className="fixed inset-0 bg-neutral-dark dark:bg-black backdrop-blur-md flex justify-center items-center z-50 p-4"
+          variants={backdropVariants}
+          initial="hidden"
+          animate="visible"
+          exit="hidden"
+          transition={modalTransition}
+          onClick={onClose}
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="confirm-modal-title"
+          aria-describedby="confirm-modal-message"
+        >
+          <motion.div
+            key="confirm-modal-content"
+            className="bg-white dark:bg-dark-cardBg px-6 pt-6 pb-8 sm:pb-10 rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+            variants={panelVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            transition={modalTransition}
+            onClick={(e) => e.stopPropagation()}
           >
-            <span className="flex items-center justify-center gap-1.5">
-              <span>🗑️</span>
-              <span>ยืนยันการลบ</span>
-            </span>
-          </Button>
-        </div>
-      </div>
-    </div>
+            <h2 id="confirm-modal-title" className="text-xl font-semibold text-neutral-dark dark:text-dark-text mb-4">{title}</h2>
+            <p id="confirm-modal-message" className="text-neutral-dark dark:text-dark-textMuted mb-6 font-normal whitespace-pre-wrap">{message}</p>
+            <div className="flex flex-col sm:flex-row justify-end gap-3">
+              <Button onClick={onClose} variant="outline" colorScheme="neutral" size="md" className="w-full sm:w-auto">
+                ยกเลิก
+              </Button>
+              <Button 
+                onClick={handleActualConfirm} 
+                size="md"
+                className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-semibold focus:ring-red-500/50 dark:bg-red-500 dark:hover:bg-red-600 dark:focus:ring-red-400"
+              >
+                <span className="flex items-center justify-center gap-1.5">
+                  <span>🗑️</span>
+                  <span>ยืนยัน</span>
+                </span>
+              </Button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };

@@ -5,6 +5,7 @@ import { WebboardCategory } from '../types';
 import { Button } from './Button';
 import { Modal } from './Modal';
 import { containsBlacklistedWords } from '../App'; 
+import { motion, type Transition } from 'framer-motion'; // Import motion
 
 interface WebboardPostCreateFormProps {
   isOpen: boolean;
@@ -30,7 +31,12 @@ const MAX_POST_CHARS = 5000; // Increased to 5000
 
 const WebboardRules: React.FC = () => {
   return (
-    <div className="my-6 p-3 sm:p-4 bg-amber-50 dark:bg-amber-800/20 border border-amber-300 dark:border-amber-600/40 rounded-lg shadow-sm">
+    <motion.div 
+      className="my-6 p-3 sm:p-4 bg-amber-50 dark:bg-amber-800/20 border border-amber-300 dark:border-amber-600/40 rounded-lg shadow-sm"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.2, duration: 0.4, ease: "easeOut" } as Transition}
+    >
       <h4 className="text-md sm:text-lg font-sans font-semibold text-amber-700 dark:text-amber-300 mb-2 text-center">
         📝 กฎพื้นฐานของกระดานพูดคุย
       </h4>
@@ -47,7 +53,7 @@ const WebboardRules: React.FC = () => {
       <p className="mt-3 text-xs font-sans text-red-600 dark:text-red-400 text-center font-medium">
         โพสต์ที่ละเมิดกฎจะถูกลบ อาจถูกระงับการใช้งานโดยไม่แจ้งล่วงหน้า หรือดำเนินคดีตามกฏหมาย
       </p>
-    </div>
+    </motion.div>
   );
 };
 
