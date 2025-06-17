@@ -191,7 +191,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
 
 
   useEffect(() => {
-    if (selectedPostId && selectedPostId !== 'create' && initialWebboardPostsLoaded) {
+    if (selectedPostId !== null && selectedPostId !== 'create' && initialWebboardPostsLoaded) {
       const postExists = webboardPostsList.some(p => p.id === selectedPostId);
       if (!postExists) {
         loadWebboardPosts(true);
@@ -218,17 +218,21 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
 
   const handleCloseCreateModal = () => {
     setIsCreateModalOpen(false);
-    if (selectedPostId === 'create' || editingPost) {
-      setSelectedPostId(null);
-      onCancelEdit();
-    }
+    // Signal to App.tsx to reset its editing/creation states
+    // This will ensure App.selectedPostId becomes null and App.editingPost becomes null via App.handleCancelEditOrPost
+    onCancelEdit();
   };
 
   const handleSubmitPostForm = async (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => {
     await onAddOrUpdatePost(postData, postIdToUpdate);
     await loadWebboardPosts(true);
-    if (postIdToUpdate) {
-        handleCloseCreateModal();
+    if (postIdToUpdate) { // If editing, close modal after submit
+        handleCloseCreateModal(); // This will also call onCancelEdit to reset App state
+    } else { // If creating new, App state (selectedPostId) should be reset by onAddOrUpdatePost or navigateTo
+        // Potentially navigate to the new post or clear 'create' state
+        // For now, assume onAddOrUpdatePost handles App state or a subsequent navigateTo does.
+        // If modal needs to close here too:
+        // handleCloseCreateModal(); // But this might be redundant if onAddOrUpdatePost navigates.
     }
   };
 

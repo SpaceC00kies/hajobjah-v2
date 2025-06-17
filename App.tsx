@@ -972,38 +972,36 @@ const App: React.FC = () => {
   };
 
   const handleCancelEditOrPost = () => {
+    const currentSelectedPostIdForNav = selectedPostId; // Capture for navigation decision
     let targetView: View;
 
     if (sourceViewForForm) {
       targetView = sourceViewForForm;
-    } else if (editingItemType === null && currentView === View.Webboard && selectedPostId === 'create') {
-      // Handle cancelling a NEW webboard post (modal was opened from WebboardPage)
+    } else if (editingItemType === null && currentView === View.Webboard && currentSelectedPostIdForNav === 'create') {
       targetView = View.Webboard;
-    } else if (currentView === View.Webboard && selectedPostId && selectedPostId !== 'create') {
-      // If editing an existing post on Webboard detail view, return to that detail view
-      targetView = View.Webboard; // Payload (selectedPostId) for detail view is handled by navigateTo if needed
-    }
-    else {
+    } else if (currentView === View.Webboard && currentSelectedPostIdForNav && currentSelectedPostIdForNav !== 'create') {
+      targetView = View.Webboard;
+    } else {
       targetView = View.Home; // Default fallback
     }
 
+    // Reset App-level states
     setItemToEdit(null);
     setEditingItemType(null);
     setSourceViewForForm(null);
-    // Only clear selectedPostId if we are not intending to return to a detail view or the main webboard list
-    if (!(targetView === View.Webboard && selectedPostId && selectedPostId !== 'create')) {
-      setSelectedPostId(null); 
-    }
-    
+    setSelectedPostId(null); // Ensure selectedPostId is reset
+
     // Handle MyRoom tab restoration
     if (targetView === View.MyRoom && editOriginMyRoomTab) {
         setMyRoomInitialTabOverride(editOriginMyRoomTab);
     } else {
-        setMyRoomInitialTabOverride(null); // Clear if not returning to MyRoom or no specific tab
+        setMyRoomInitialTabOverride(null);
     }
     
-    navigateTo(targetView, selectedPostId && targetView === View.Webboard ? selectedPostId : undefined); // Pass postId if returning to detail
-    setEditOriginMyRoomTab(null); // Clear after navigation attempt
+    // Navigate. If targetView is Webboard and we were viewing a specific post (not creating),
+    // payload should be that post's ID. Otherwise, undefined.
+    navigateTo(targetView, (targetView === View.Webboard && currentSelectedPostIdForNav && currentSelectedPostIdForNav !== 'create') ? currentSelectedPostIdForNav : undefined);
+    setEditOriginMyRoomTab(null);
   };
 
 
