@@ -1241,7 +1241,8 @@ const App: React.FC = () => {
             if (p.id === postId) {
                 const userIndex = p.likes.indexOf(currentUser!.id);
                 const newLikes = userIndex > -1 ? p.likes.filter(id => id !== currentUser!.id) : [...p.likes, currentUser!.id];
-                return { ...p, likes: newLikes, updatedAt: new Date().toISOString() };
+                // Do NOT update p.updatedAt here to prevent showing "(แก้ไข)"
+                return { ...p, likes: newLikes };
             }
             return p;
         }));
