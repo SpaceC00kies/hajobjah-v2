@@ -42,7 +42,7 @@ import {
 import type { DocumentSnapshot, DocumentData } from 'firebase/firestore';
 import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier } from './types';
 import type { AdminItem as AdminItemType } from './components/AdminDashboard';
-import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP, ACTIVITY_BADGE_DETAILS } from './types';
+import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP, ACTIVITY_BADGE_DETAILS, Province } from './types';
 import { PostJobForm } from './components/PostJobForm';
 import { JobCard } from './components/JobCard';
 import { Button } from './components/Button';
@@ -237,13 +237,25 @@ const App: React.FC = () => {
   const [editingItemType, setEditingItemType] = useState<'job' | 'profile' | 'webboardPost' | null>(null);
   const [sourceViewForForm, setSourceViewForForm] = useState<View | null>(null);
 
-  // Filters and search terms remain global for now, triggering re-fetch in view-specific logic
+  // Filters and search terms
   const [selectedJobCategoryFilter, setSelectedJobCategoryFilter] = useState<FilterableCategory>('all');
   const [selectedHelperCategoryFilter, setSelectedHelperCategoryFilter] = useState<FilterableCategory>('all');
   const [jobSearchTerm, setJobSearchTerm] = useState('');
   const [helperSearchTerm, setHelperSearchTerm] = useState('');
   const [recentJobSearches, setRecentJobSearches] = useState<string[]>([]);
   const [recentHelperSearches, setRecentHelperSearches] = useState<string[]>([]);
+
+  // New search terms and recent searches
+  const [jobSubCategorySearchTerm, setJobSubCategorySearchTerm] = useState('');
+  const [jobProvinceSearchTerm, setJobProvinceSearchTerm] = useState('');
+  const [recentJobSubCategorySearches, setRecentJobSubCategorySearches] = useState<string[]>([]);
+  const [recentJobProvinceSearches, setRecentJobProvinceSearches] = useState<string[]>([]);
+
+  const [helperSubCategorySearchTerm, setHelperSubCategorySearchTerm] = useState('');
+  const [helperProvinceSearchTerm, setHelperProvinceSearchTerm] = useState('');
+  const [recentHelperSubCategorySearches, setRecentHelperSubCategorySearches] = useState<string[]>([]);
+  const [recentHelperProvinceSearches, setRecentHelperProvinceSearches] = useState<string[]>([]);
+
 
   // State for MyRoomPage tab management
   const [editOriginMyRoomTab, setEditOriginMyRoomTab] = useState<MyRoomActiveTab | null>(null);
@@ -297,6 +309,11 @@ const App: React.FC = () => {
     document.documentElement.classList.remove('dark');
     setRecentJobSearches(getRecentSearches('recentJobSearches'));
     setRecentHelperSearches(getRecentSearches('recentHelperSearches'));
+    setRecentJobSubCategorySearches(getRecentSearches('recentJobSubCategorySearches'));
+    setRecentJobProvinceSearches(getRecentSearches('recentJobProvinceSearches'));
+    setRecentHelperSubCategorySearches(getRecentSearches('recentHelperSubCategorySearches'));
+    setRecentHelperProvinceSearches(getRecentSearches('recentHelperProvinceSearches'));
+
 
     parseUrlAndSetInitialState(); // Parse URL on initial load
 
@@ -1539,7 +1556,9 @@ const App: React.FC = () => {
         JOBS_PAGE_SIZE,
         isInitialLoad ? null : lastVisibleJob,
         selectedJobCategoryFilter === 'all' ? null : selectedJobCategoryFilter,
-        jobSearchTerm
+        jobSearchTerm,
+        jobSubCategorySearchTerm, // New
+        jobProvinceSearchTerm     // New
       );
       setJobsList(prevJobs => isInitialLoad ? result.items : [...prevJobs, ...result.items]);
       setLastVisibleJob(result.lastVisibleDoc);
@@ -1553,13 +1572,13 @@ const App: React.FC = () => {
     } finally {
       setIsLoadingJobs(false);
     }
-  }, [isLoadingJobs, hasMoreJobs, lastVisibleJob, selectedJobCategoryFilter, jobSearchTerm]);
+  }, [isLoadingJobs, hasMoreJobs, lastVisibleJob, selectedJobCategoryFilter, jobSearchTerm, jobSubCategorySearchTerm, jobProvinceSearchTerm]);
 
   useEffect(() => {
     if (currentView === View.FindJobs) {
       loadJobs(true);
     }
-  }, [currentView, selectedJobCategoryFilter, jobSearchTerm]); // Removed loadJobs from here, direct call is enough
+  }, [currentView, selectedJobCategoryFilter, jobSearchTerm, jobSubCategorySearchTerm, jobProvinceSearchTerm]); 
 
   useEffect(() => {
     if (currentView !== View.FindJobs || !initialJobsLoaded) return;
@@ -1588,6 +1607,21 @@ const App: React.FC = () => {
   const handleJobCategoryFilterChange = (category: FilterableCategory) => {
     setSelectedJobCategoryFilter(category);
   };
+  const handleJobSubCategorySearch = (term: string) => {
+    setJobSubCategorySearchTerm(term);
+    if (term.trim()) {
+      addRecentSearch('recentJobSubCategorySearches', term.trim());
+      setRecentJobSubCategorySearches(getRecentSearches('recentJobSubCategorySearches'));
+    }
+  };
+  const handleJobProvinceSearch = (term: string) => {
+    setJobProvinceSearchTerm(term);
+    if (term.trim()) {
+      addRecentSearch('recentJobProvinceSearches', term.trim());
+      setRecentJobProvinceSearches(getRecentSearches('recentJobProvinceSearches'));
+    }
+  };
+
 
   const handleSubmitJobForm = (formDataFromForm: JobFormData & { id?: string }) => {
     if (formDataFromForm.id && itemToEdit && editingItemType === 'job') {
@@ -1612,9 +1646,10 @@ const App: React.FC = () => {
 
   const renderFindJobs = () => {
     let emptyStateMessage = "ยังไม่มีงานประกาศในขณะนี้";
-    if (jobSearchTerm.trim() && selectedJobCategoryFilter !== 'all') emptyStateMessage = `ไม่พบงานที่ตรงกับคำค้นหา "${jobSearchTerm}" ในหมวดหมู่ "${selectedJobCategoryFilter}"`;
-    else if (jobSearchTerm.trim()) emptyStateMessage = `ไม่พบงานที่ตรงกับคำค้นหา "${jobSearchTerm}"`;
-    else if (selectedJobCategoryFilter !== 'all') emptyStateMessage = `ไม่พบงานในหมวดหมู่ "${selectedJobCategoryFilter}"`;
+    if (jobSearchTerm.trim() || selectedJobCategoryFilter !== 'all' || jobSubCategorySearchTerm.trim() || jobProvinceSearchTerm.trim()) {
+      emptyStateMessage = "ไม่พบงานที่ตรงกับเกณฑ์การค้นหาของคุณ";
+    }
+
 
     const activeUserJobs = jobsList.filter(job => 
         job.isExpired === false && 
@@ -1633,6 +1668,8 @@ const App: React.FC = () => {
           <div className="sticky top-24 space-y-6 p-4 bg-white dark:bg-dark-cardBg rounded-xl shadow-lg border dark:border-dark-border">
             <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedJobCategoryFilter} onSelectCategory={handleJobCategoryFilterChange} />
             <SearchInputWithRecent searchTerm={jobSearchTerm} onSearchTermChange={handleJobSearch} placeholder="ค้นหางาน, รายละเอียด..." recentSearches={recentJobSearches} onRecentSearchSelect={(term) => { setJobSearchTerm(term); addRecentSearch('recentJobSearches', term); setRecentJobSearches(getRecentSearches('recentJobSearches')); }} ariaLabel="ค้นหางาน" />
+            <SearchInputWithRecent searchTerm={jobSubCategorySearchTerm} onSearchTermChange={handleJobSubCategorySearch} placeholder="ค้นหาหมวดหมู่ย่อย..." recentSearches={recentJobSubCategorySearches} onRecentSearchSelect={(term) => { setJobSubCategorySearchTerm(term); addRecentSearch('recentJobSubCategorySearches', term); setRecentJobSubCategorySearches(getRecentSearches('recentJobSubCategorySearches')); }} ariaLabel="ค้นหาหมวดหมู่ย่อยงาน" />
+            <SearchInputWithRecent searchTerm={jobProvinceSearchTerm} onSearchTermChange={handleJobProvinceSearch} placeholder="ค้นหาจังหวัด..." recentSearches={recentJobProvinceSearches} onRecentSearchSelect={(term) => { setJobProvinceSearchTerm(term); addRecentSearch('recentJobProvinceSearches', term); setRecentJobProvinceSearches(getRecentSearches('recentJobProvinceSearches')); }} ariaLabel="ค้นหาจังหวัดสำหรับงาน" />
             {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="w-full sm:px-4 sm:text-sm">
               <span className="flex items-center justify-center gap-2"><span>📣</span><span>ฝากงานกดตรงนี้</span></span>
             </Button> )}
@@ -1646,8 +1683,8 @@ const App: React.FC = () => {
             <div className="text-center py-10 bg-white dark:bg-dark-cardBg p-6 rounded-lg shadow-md border dark:border-dark-border">
               <svg className="mx-auto h-24 w-24 text-neutral-DEFAULT" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
               <p className="mt-3 text-xl font-serif text-neutral-dark font-normal"> {emptyStateMessage} </p>
-              {currentUser && jobsList.length === 0 && !jobSearchTerm.trim() && selectedJobCategoryFilter === 'all' && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="mt-6 font-medium"> เป็นคนแรกที่ลงประกาศงาน! </Button> )}
-              {!currentUser && jobsList.length === 0 && !jobSearchTerm.trim() && selectedJobCategoryFilter === 'all' && (<Button onClick={() => requestLoginForAction(View.PostJob)} variant="primary" size="md" className="mt-6 font-medium"> เข้าสู่ระบบเพื่อลงประกาศงาน </Button>)}
+              {currentUser && jobsList.length === 0 && !jobSearchTerm.trim() && selectedJobCategoryFilter === 'all' && !jobSubCategorySearchTerm.trim() && !jobProvinceSearchTerm.trim() && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="mt-6 font-medium"> เป็นคนแรกที่ลงประกาศงาน! </Button> )}
+              {!currentUser && jobsList.length === 0 && !jobSearchTerm.trim() && selectedJobCategoryFilter === 'all' && !jobSubCategorySearchTerm.trim() && !jobProvinceSearchTerm.trim() && (<Button onClick={() => requestLoginForAction(View.PostJob)} variant="primary" size="md" className="mt-6 font-medium"> เข้าสู่ระบบเพื่อลงประกาศงาน </Button>)}
             </div>
           )}
           {activeUserJobs.length > 0 && (
@@ -1698,7 +1735,9 @@ const App: React.FC = () => {
         HELPERS_PAGE_SIZE,
         isInitialLoad ? null : lastVisibleHelper,
         selectedHelperCategoryFilter === 'all' ? null : selectedHelperCategoryFilter,
-        helperSearchTerm
+        helperSearchTerm,
+        helperSubCategorySearchTerm, // New
+        helperProvinceSearchTerm     // New
       );
       setHelperProfilesList(prev => isInitialLoad ? result.items : [...prev, ...result.items]);
       setLastVisibleHelper(result.lastVisibleDoc);
@@ -1712,13 +1751,13 @@ const App: React.FC = () => {
     } finally {
       setIsLoadingHelpers(false);
     }
-  }, [isLoadingHelpers, hasMoreHelpers, lastVisibleHelper, selectedHelperCategoryFilter, helperSearchTerm]);
+  }, [isLoadingHelpers, hasMoreHelpers, lastVisibleHelper, selectedHelperCategoryFilter, helperSearchTerm, helperSubCategorySearchTerm, helperProvinceSearchTerm]);
 
   useEffect(() => {
     if (currentView === View.FindHelpers) {
       loadHelpers(true);
     }
-  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm]); // Removed loadHelpers from here
+  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm, helperSubCategorySearchTerm, helperProvinceSearchTerm]); 
 
   useEffect(() => {
     if (currentView !== View.FindHelpers || !initialHelpersLoaded) return;
@@ -1747,6 +1786,20 @@ const App: React.FC = () => {
   const handleHelperCategoryFilterChange = (category: FilterableCategory) => {
     setSelectedHelperCategoryFilter(category);
   };
+  const handleHelperSubCategorySearch = (term: string) => {
+    setHelperSubCategorySearchTerm(term);
+    if (term.trim()) {
+      addRecentSearch('recentHelperSubCategorySearches', term.trim());
+      setRecentHelperSubCategorySearches(getRecentSearches('recentHelperSubCategorySearches'));
+    }
+  };
+  const handleHelperProvinceSearch = (term: string) => {
+    setHelperProvinceSearchTerm(term);
+    if (term.trim()) {
+      addRecentSearch('recentHelperProvinceSearches', term.trim());
+      setRecentHelperProvinceSearches(getRecentSearches('recentHelperProvinceSearches'));
+    }
+  };
 
   const handleSubmitHelperProfileForm = (formDataFromForm: HelperProfileFormData & { id?: string }) => {
     if (formDataFromForm.id && itemToEdit && editingItemType === 'profile') {
@@ -1770,9 +1823,10 @@ const App: React.FC = () => {
 
   const renderFindHelpers = () => {
     let emptyStateMessage = "ยังไม่มีผู้เสนอตัวช่วยงานในขณะนี้";
-    if (helperSearchTerm.trim() && selectedHelperCategoryFilter !== 'all') emptyStateMessage = `ไม่พบผู้ช่วยที่ตรงกับคำค้นหา "${helperSearchTerm}" ในหมวดหมู่ "${selectedHelperCategoryFilter}"`;
-    else if (helperSearchTerm.trim()) emptyStateMessage = `ไม่พบผู้ช่วยที่ตรงกับคำค้นหา "${helperSearchTerm}"`;
-    else if (selectedHelperCategoryFilter !== 'all') emptyStateMessage = `ไม่พบผู้ช่วยในหมวดหมู่ "${selectedHelperCategoryFilter}"`;
+    if (helperSearchTerm.trim() || selectedHelperCategoryFilter !== 'all' || helperSubCategorySearchTerm.trim() || helperProvinceSearchTerm.trim()) {
+      emptyStateMessage = "ไม่พบผู้ช่วยที่ตรงกับเกณฑ์การค้นหาของคุณ";
+    }
+
 
     const activeAndAvailableHelperProfiles = helperProfilesList.filter(p =>
       p.isExpired === false &&
@@ -1796,6 +1850,8 @@ const App: React.FC = () => {
             <div className="sticky top-24 space-y-6 p-4 bg-white dark:bg-dark-cardBg rounded-xl shadow-lg border dark:border-dark-border">
                 <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedHelperCategoryFilter} onSelectCategory={handleHelperCategoryFilterChange} />
                 <SearchInputWithRecent searchTerm={helperSearchTerm} onSearchTermChange={handleHelperSearch} placeholder="ค้นหาผู้ช่วย, ทักษะ, พื้นที่..." recentSearches={recentHelperSearches} onRecentSearchSelect={(term) => { setHelperSearchTerm(term); addRecentSearch('recentHelperSearches', term); setRecentHelperSearches(getRecentSearches('recentHelperSearches')); }} ariaLabel="ค้นหาผู้ช่วย" />
+                <SearchInputWithRecent searchTerm={helperSubCategorySearchTerm} onSearchTermChange={handleHelperSubCategorySearch} placeholder="ค้นหาหมวดหมู่ย่อย..." recentSearches={recentHelperSubCategorySearches} onRecentSearchSelect={(term) => { setHelperSubCategorySearchTerm(term); addRecentSearch('recentHelperSubCategorySearches', term); setRecentHelperSubCategorySearches(getRecentSearches('recentHelperSubCategorySearches')); }} ariaLabel="ค้นหาหมวดหมู่ย่อยผู้ช่วย" />
+                <SearchInputWithRecent searchTerm={helperProvinceSearchTerm} onSearchTermChange={handleHelperProvinceSearch} placeholder="ค้นหาจังหวัด..." recentSearches={recentHelperProvinceSearches} onRecentSearchSelect={(term) => { setHelperProvinceSearchTerm(term); addRecentSearch('recentHelperProvinceSearches', term); setRecentHelperProvinceSearches(getRecentSearches('recentHelperProvinceSearches')); }} ariaLabel="ค้นหาจังหวัดสำหรับผู้ช่วย" />
                 {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateTo(View.OfferHelp); }} variant="secondary" size="md" className="w-full"> <span className="flex items-center justify-center gap-2"><span>🙋</span><span>เสนอช่วยงาน</span></span> </Button> )}
             </div>
         </aside>
@@ -1807,8 +1863,8 @@ const App: React.FC = () => {
             <div className="text-center py-10 bg-white dark:bg-dark-cardBg p-6 rounded-lg shadow-md border dark:border-dark-border">
                 <svg className="mx-auto h-24 w-24 text-neutral-DEFAULT" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-2.144M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
                 <p className="mt-3 text-xl font-serif text-neutral-dark font-normal"> {emptyStateMessage} </p>
-                {currentUser && helperProfilesList.length === 0 && !helperSearchTerm.trim() && selectedHelperCategoryFilter === 'all' && ( <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateTo(View.OfferHelp);}} variant="secondary" size="md" className="mt-6 font-medium"> เป็นคนแรกที่เสนอตัวช่วยงาน! </Button> )}
-                {!currentUser && helperProfilesList.length === 0 && !helperSearchTerm.trim() && selectedHelperCategoryFilter === 'all' && (<Button onClick={() => requestLoginForAction(View.OfferHelp)} variant="secondary" size="md" className="mt-6 font-medium"> เข้าสู่ระบบเพื่อเสนอตัวช่วยงาน </Button>)}
+                {currentUser && helperProfilesList.length === 0 && !helperSearchTerm.trim() && selectedHelperCategoryFilter === 'all' && !helperSubCategorySearchTerm.trim() && !helperProvinceSearchTerm.trim() && ( <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateTo(View.OfferHelp);}} variant="secondary" size="md" className="mt-6 font-medium"> เป็นคนแรกที่เสนอตัวช่วยงาน! </Button> )}
+                {!currentUser && helperProfilesList.length === 0 && !helperSearchTerm.trim() && selectedHelperCategoryFilter === 'all' && !helperSubCategorySearchTerm.trim() && !helperProvinceSearchTerm.trim() && (<Button onClick={() => requestLoginForAction(View.OfferHelp)} variant="secondary" size="md" className="mt-6 font-medium"> เข้าสู่ระบบเพื่อเสนอตัวช่วยงาน </Button>)}
             </div>
             )}
             {enrichedHelperProfilesList.length > 0 && (

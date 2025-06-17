@@ -419,20 +419,22 @@ export const deleteJobService = async (jobId: string): Promise<boolean> => {
 export const getJobsPaginated = async (
   pageSize: number,
   startAfterDoc: DocumentSnapshot<DocumentData> | null = null,
-  categoryFilter: string | null = null, 
-  searchTerm: string | null = null 
+  categoryFilter: string | null = null,
+  searchTerm: string | null = null,
+  subCategorySearchTerm: string | null = null, // New
+  provinceSearchTerm: string | null = null    // New
 ): Promise<PaginatedDocsResponse<Job>> => {
   try {
     const constraints: QueryConstraint[] = [
       orderBy("isPinned", "desc"),
-      orderBy("postedAt", "desc"), 
+      orderBy("postedAt", "desc"),
       limit(pageSize)
     ];
 
     if (categoryFilter && categoryFilter !== 'all') {
-      constraints.unshift(where("category", "==", categoryFilter)); 
+      constraints.unshift(where("category", "==", categoryFilter));
     }
-    
+
     if (startAfterDoc) {
       constraints.push(startAfter(startAfterDoc));
     }
@@ -440,35 +442,51 @@ export const getJobsPaginated = async (
     const q = query(collection(db, JOBS_COLLECTION), ...constraints);
     const querySnapshot = await getDocs(q);
 
-    const jobsData = querySnapshot.docs.map(docSnap => ({
+    let jobsData = querySnapshot.docs.map(docSnap => ({
       id: docSnap.id,
       ...convertTimestamps(docSnap.data()),
     } as Job));
-    
-    let searchedJobsData = jobsData;
+
+    // Client-side filtering for search terms
     if (searchTerm && searchTerm.trim() !== '') {
-        const termLower = searchTerm.toLowerCase();
-        const termsToSearch = [termLower]; 
-        
-        searchedJobsData = jobsData.filter(job => 
-            termsToSearch.some(st =>
-                job.title.toLowerCase().includes(st) ||
-                job.description.toLowerCase().includes(st) ||
-                job.category.toLowerCase().includes(st) ||
-                (job.subCategory && job.subCategory.toLowerCase().includes(st))
-            )
-        );
+      const termLower = searchTerm.toLowerCase();
+      jobsData = jobsData.filter(job =>
+        job.title.toLowerCase().includes(termLower) ||
+        job.description.toLowerCase().includes(termLower) ||
+        job.category.toLowerCase().includes(termLower) ||
+        (job.subCategory && job.subCategory.toLowerCase().includes(termLower)) ||
+        job.location.toLowerCase().includes(termLower) || // Added location to main search
+        job.province.toLowerCase().includes(termLower) // Added province to main search
+      );
+    }
+    
+    // Client-side filtering for subCategory
+    if (subCategorySearchTerm && subCategorySearchTerm.trim() !== '') {
+      const subCatTermLower = subCategorySearchTerm.toLowerCase();
+      jobsData = jobsData.filter(job =>
+        job.subCategory && job.subCategory.toLowerCase().includes(subCatTermLower)
+      );
+    }
+
+    // Client-side filtering for province
+    if (provinceSearchTerm && provinceSearchTerm.trim() !== '') {
+      const provTermLower = provinceSearchTerm.toLowerCase();
+      // Assuming job.province is a string from Province enum
+      jobsData = jobsData.filter(job =>
+         job.province && job.province.toLowerCase().includes(provTermLower)
+      );
     }
 
 
     const lastVisible = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
-    
-    return { items: searchedJobsData, lastVisibleDoc: lastVisible };
+
+    return { items: jobsData, lastVisibleDoc: lastVisible };
   } catch (error: any) {
     logFirebaseError("getJobsPaginated", error);
     throw error;
   }
 };
+
 
 export const getJobDocument = async (jobId: string): Promise<Job | null> => {
   try {
@@ -566,15 +584,17 @@ export const getHelperProfilesPaginated = async (
   pageSize: number,
   startAfterDoc: DocumentSnapshot<DocumentData> | null = null,
   categoryFilter: string | null = null,
-  searchTerm: string | null = null
+  searchTerm: string | null = null,
+  subCategorySearchTerm: string | null = null, // New
+  provinceSearchTerm: string | null = null    // New
 ): Promise<PaginatedDocsResponse<HelperProfile>> => {
   try {
     const constraints: QueryConstraint[] = [
       orderBy("isPinned", "desc"),
-      orderBy("updatedAt", "desc"), 
+      orderBy("updatedAt", "desc"),
       limit(pageSize)
     ];
-    
+
     if (categoryFilter && categoryFilter !== 'all') {
       constraints.unshift(where("category", "==", categoryFilter));
     }
@@ -586,35 +606,49 @@ export const getHelperProfilesPaginated = async (
     const q = query(collection(db, HELPER_PROFILES_COLLECTION), ...constraints);
     const querySnapshot = await getDocs(q);
 
-    const profilesData = querySnapshot.docs.map(docSnap => ({
+    let profilesData = querySnapshot.docs.map(docSnap => ({
       id: docSnap.id,
       ...convertTimestamps(docSnap.data()),
     } as HelperProfile));
 
-    let searchedProfilesData = profilesData;
+    // Client-side filtering for search terms
     if (searchTerm && searchTerm.trim() !== '') {
-        const termLower = searchTerm.toLowerCase();
-        const termsToSearch = [termLower];
+      const termLower = searchTerm.toLowerCase();
+      profilesData = profilesData.filter(profile =>
+        profile.profileTitle.toLowerCase().includes(termLower) ||
+        profile.details.toLowerCase().includes(termLower) ||
+        profile.category.toLowerCase().includes(termLower) ||
+        (profile.subCategory && profile.subCategory.toLowerCase().includes(termLower)) ||
+        profile.area.toLowerCase().includes(termLower) || // Added area to main search
+        profile.province.toLowerCase().includes(termLower) // Added province to main search
+      );
+    }
 
-        searchedProfilesData = profilesData.filter(profile => 
-            termsToSearch.some(st =>
-                profile.profileTitle.toLowerCase().includes(st) ||
-                profile.details.toLowerCase().includes(st) ||
-                profile.category.toLowerCase().includes(st) ||
-                (profile.subCategory && profile.subCategory.toLowerCase().includes(st)) ||
-                profile.area.toLowerCase().includes(st)
-            )
-        );
+    // Client-side filtering for subCategory
+    if (subCategorySearchTerm && subCategorySearchTerm.trim() !== '') {
+      const subCatTermLower = subCategorySearchTerm.toLowerCase();
+      profilesData = profilesData.filter(profile =>
+        profile.subCategory && profile.subCategory.toLowerCase().includes(subCatTermLower)
+      );
+    }
+
+    // Client-side filtering for province
+    if (provinceSearchTerm && provinceSearchTerm.trim() !== '') {
+      const provTermLower = provinceSearchTerm.toLowerCase();
+      profilesData = profilesData.filter(profile =>
+        profile.province && profile.province.toLowerCase().includes(provTermLower)
+      );
     }
 
     const lastVisible = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
 
-    return { items: searchedProfilesData, lastVisibleDoc: lastVisible };
+    return { items: profilesData, lastVisibleDoc: lastVisible };
   } catch (error: any) {
     logFirebaseError("getHelperProfilesPaginated", error);
     throw error;
   }
 };
+
 
 export const getHelperProfileDocument = async (profileId: string): Promise<HelperProfile | null> => {
   try {
