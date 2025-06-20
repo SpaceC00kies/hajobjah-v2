@@ -2265,6 +2265,16 @@ const App: React.FC = () => {
             <button onClick={() => navigateTo(View.Safety)} className="hover:underline">ความปลอดภัย</button>
             <button onClick={() => setIsFeedbackModalOpen(true)} className="hover:underline">ส่ง Feedback</button>
           </div>
+          <div className="mt-3 text-center">
+            <p className="font-mono text-xs text-neutral-medium dark:text-dark-textMuted flex items-center justify-center">
+              <span className="mr-1.5">Made by</span>
+              <img 
+                src="https://i.postimg.cc/wxrcQPHV/449834128-122096458958403535-3024125841409891827-n-1-removebg-preview.png" 
+                alt="Blue Cat House Logo" 
+                className="inline-block h-5 w-auto align-middle" 
+              />
+            </p>
+          </div>
         </footer>
       )}
       <AnimatePresence>
