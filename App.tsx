@@ -2258,23 +2258,56 @@ const App: React.FC = () => {
         {currentViewContent}
       </main>
       {!(currentView === View.PasswordReset && !currentUser) && (
-        <footer className="bg-neutral-light dark:bg-dark-headerBg/70 text-neutral-dark dark:text-dark-textMuted p-4 text-center text-xs font-sans">
-          <p>&copy; {new Date().getFullYear()} HAJOBJA.COM - All rights reserved.</p>
-          <div className="mt-2 space-x-3">
-            <button onClick={() => navigateTo(View.AboutUs)} className="hover:underline">เกี่ยวกับเรา</button>
-            <button onClick={() => navigateTo(View.Safety)} className="hover:underline">ความปลอดภัย</button>
-            <button onClick={() => setIsFeedbackModalOpen(true)} className="hover:underline">ส่ง Feedback</button>
-          </div>
-          <div className="mt-3 text-center">
-            <p className="font-mono text-xs text-neutral-medium dark:text-dark-textMuted flex items-center justify-center">
-              <span className="mr-1.5">Made by</span>
-              <img 
-                src="https://i.postimg.cc/wxrcQPHV/449834128-122096458958403535-3024125841409891827-n-1-removebg-preview.png" 
-                alt="Blue Cat House Logo" 
-                className="inline-block h-5 w-auto align-middle" 
-              />
+        <footer className="bg-neutral-light dark:bg-dark-headerBg/70 text-neutral-dark dark:text-dark-textMuted pt-16 pb-8 px-4 text-center font-sans">
+          <motion.div
+            className="container mx-auto"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" } as Transition}
+          >
+            <nav className="mb-3 flex justify-center items-center flex-wrap gap-x-1">
+              <button 
+                onClick={() => navigateTo(View.AboutUs)} 
+                className="text-sm text-neutral-medium dark:text-dark-textMuted hover:text-neutral-dark dark:hover:text-dark-text transition-colors duration-300 ease-in-out px-3 py-1"
+              >
+                เกี่ยวกับเรา
+              </button>
+              <button 
+                onClick={() => navigateTo(View.Safety)} 
+                className="text-sm text-neutral-medium dark:text-dark-textMuted hover:text-neutral-dark dark:hover:text-dark-text transition-colors duration-300 ease-in-out px-3 py-1"
+              >
+                ความปลอดภัย
+              </button>
+              <button 
+                onClick={() => setIsFeedbackModalOpen(true)} 
+                className="text-sm text-neutral-medium dark:text-dark-textMuted hover:text-neutral-dark dark:hover:text-dark-text transition-colors duration-300 ease-in-out px-3 py-1"
+              >
+                ส่ง Feedback
+              </button>
+            </nav>
+
+            <div className="mb-5 text-sm text-neutral-dark dark:text-dark-text flex items-center justify-center">
+              <span className="mr-1.5">Created by</span>
+              <motion.div
+                className="inline-flex items-center group"
+                whileHover={{ scale: 1.02 }}
+                transition={{ duration: 0.3, ease: "easeOut" } as Transition}
+              >
+                <img 
+                  src="https://i.postimg.cc/wxrcQPHV/449834128-122096458958403535-3024125841409891827-n-1-removebg-preview.png" 
+                  alt="Blue Cat House Logo" 
+                  className="h-5 w-auto inline-block align-middle mr-1.5" 
+                />
+                <span className="text-neutral-dark dark:text-dark-text group-hover:text-[#2196F3] dark:group-hover:text-[#2196F3] transition-colors duration-300 ease-in-out">
+                  Blue Cat House
+                </span>
+              </motion.div>
+            </div>
+            
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              © {new Date().getFullYear()} HAJOBJA.COM - All rights reserved.
             </p>
-          </div>
+          </motion.div>
         </footer>
       )}
       <AnimatePresence>
