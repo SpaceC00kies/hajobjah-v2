@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import type { WebboardPost, User } from '../types'; // Added User
 import { WebboardCategory } from '../types'; 
@@ -205,7 +206,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
             name="title"
             value={formData.title}
             onChange={handleChange}
-            className={`${errors.title ? inputErrorStyle : ''}`}
+            className={`w-full ${errors.title ? inputErrorStyle : ''}`}
             placeholder="เช่น มีใครเคยลอง... / ขอคำแนะนำเรื่อง..."
             disabled={!canSubmitForm && !editingPost}
           />
@@ -227,7 +228,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
             value={formData.body}
             onChange={handleChange}
             rows={6}
-            className={`${errors.body ? inputErrorStyle : ''}`}
+            className={`w-full ${errors.body ? inputErrorStyle : ''}`}
             placeholder="เล่าเรื่องราว ถามคำถาม หรือแบ่งปันประสบการณ์ของคุณที่นี่..."
             disabled={!canSubmitForm && !editingPost}
             maxLength={MAX_POST_CHARS + 100} // Allow slight overtyping for UX, validate on submit
@@ -244,7 +245,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
             name="category"
             value={formData.category}
             onChange={handleChange}
-            className={`${errors.category ? inputErrorStyle : ''}`}
+            className={`w-full ${errors.category ? inputErrorStyle : ''}`}
             disabled={!canSubmitForm && !editingPost}
           >
             <option value="" disabled>-- กรุณาเลือกหมวดหมู่ --</option>
@@ -270,7 +271,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
                         file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border file:border-neutral-DEFAULT/70 
                         file:bg-neutral-light/30 file:text-sm file:font-semibold file:text-neutral-medium
                         hover:file:bg-neutral-light/70 hover:file:border-neutral-DEFAULT
-                        ${errors.image ? inputErrorStyle : ''}`} // Base input inherits global styles for border, focus etc.
+                        ${errors.image ? inputErrorStyle : ''}`} 
              disabled={!canSubmitForm && !editingPost}
           />
           {errors.image && <p className="text-red-500 font-sans text-xs mt-1">{errors.image}</p>}
