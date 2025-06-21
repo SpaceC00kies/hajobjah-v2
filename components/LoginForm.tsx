@@ -13,7 +13,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegiste
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const brandGreenFocusStyle = "focus:border-brandGreen focus:ring-1 focus:ring-brandGreen";
+  const brandGreenFocusStyle = "focus:!border-brandGreen focus:!ring-1 focus:!ring-brandGreen focus:!bg-gray-50/70";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +44,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegiste
             id="loginIdentifier"
             value={loginIdentifier}
             onChange={(e) => setLoginIdentifier(e.target.value)}
-            className={`w-full ${error ? 'input-error' : brandGreenFocusStyle}`}
+            className={`w-full ${error && !password ? 'input-error' : brandGreenFocusStyle}`} // Apply error only if loginIdentifier might be the cause
             placeholder="กรอกชื่อผู้ใช้หรืออีเมลของคุณ"
           />
         </div>
@@ -66,7 +66,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegiste
             id="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className={`w-full ${error ? 'input-error' : brandGreenFocusStyle}`}
+            className={`w-full ${error ? 'input-error' : brandGreenFocusStyle}`} // Apply error if any error exists
             placeholder="กรอกรหัสผ่าน"
           />
         </div>

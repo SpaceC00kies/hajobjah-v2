@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from './Button';
 import { Modal } from './Modal';
@@ -59,7 +60,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
     }
   };
 
-  const brandGreenFocusStyle = "focus:border-brandGreen focus:ring-1 focus:ring-brandGreen";
+  const brandGreenFocusStyle = "focus:!border-brandGreen focus:!ring-1 focus:!ring-brandGreen focus:!bg-gray-50/70";
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="🔑 ลืมรหัสผ่าน?">
@@ -82,7 +83,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
               if (error) setError(null);
               if (successMessage) setSuccessMessage(null);
             }}
-            className={`${error ? 'input-error' : ''} ${brandGreenFocusStyle}`} // Global styles will provide base, brandGreenFocusStyle overrides focus
+            className={`w-full ${error ? 'input-error' : brandGreenFocusStyle}`}
             placeholder="your.email@example.com"
             disabled={isLoading}
           />
@@ -99,7 +100,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
           <Button
             type="submit"
             variant="login" 
-            size="md" // Standardized size
+            size="md"
             className="w-full sm:flex-grow"
             disabled={isLoading}
           >
@@ -110,7 +111,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
             onClick={onClose}
             variant="outline"
             colorScheme="neutral" 
-            size="md" // Standardized size
+            size="md"
             className="w-full sm:w-auto"
             disabled={isLoading}
           >

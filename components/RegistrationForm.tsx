@@ -5,7 +5,7 @@ import { GenderOption, HelperEducationLevelOption } from '../types';
 import { Button } from './Button';
 
 interface RegistrationFormProps {
-  onRegister: (userData: Omit<User, 'id' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt'> & { password: string }) => Promise<boolean>;
+  onRegister: (userData: Omit<User, 'id' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts'> & { password: string }) => Promise<boolean>;
   onSwitchToLogin: () => void;
 }
 
@@ -42,7 +42,6 @@ interface PasswordCriteria {
 }
 
 const SYMBOL_REGEX = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~]/;
-// Regex for public display name: Thai, English, spaces, dots, 2-30 characters.
 const PUBLIC_DISPLAY_NAME_REGEX = /^[a-zA-Zก-๏\s.]{2,30}$/u;
 
 
@@ -69,7 +68,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
     symbol: false,
   });
 
-  const brandGreenFocusStyle = "focus:border-brandGreen focus:ring-1 focus:ring-brandGreen";
+  const brandGreenFocusStyle = "focus:!border-brandGreen focus:!ring-1 focus:!ring-brandGreen focus:!bg-gray-50/70";
 
   const handleBirthdateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newBirthdate = e.target.value;
