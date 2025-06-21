@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   onAuthChangeService,
@@ -1590,7 +1591,7 @@ const App: React.FC = () => {
 
   const renderHome = () => {
     return (
-    <div className="flex flex-col items-center justify-center pt-6 sm:pt-8 lg:pt-10 pb-6 px-6 sm:pb-8 sm:px-8 text-center">
+    <div className="flex flex-col items-center justify-center px-6 sm:px-8 text-center">
       <h2 className="text-3xl sm:text-4xl lg:text-5xl font-sans font-medium text-neutral-dark mb-2 tracking-tight leading-snug"> ✨ หาจ๊อบจ้า ✨ </h2>
       <p className="text-base sm:text-lg lg:text-xl text-neutral-dark max-w-xl leading-relaxed mb-8 font-normal font-serif"> แพลตฟอร์มที่อยู่เคียงข้างคนขยัน </p>
       <div className="w-full max-w-3xl lg:max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 lg:gap-14">
@@ -2207,7 +2208,7 @@ const App: React.FC = () => {
       onDeletePost={handleDeleteWebboardPost}
       onPinPost={handlePinWebboardPost}
       onEditPost={handleEditWebboardPostFromPage}
-      onDeleteComment={handleDeleteWebboardComment} onUpdateComment={handleUpdateWebboardComment}
+      onDeleteComment={onDeleteComment} onUpdateComment={handleUpdateWebboardComment}
       selectedPostId={selectedPostId} setSelectedPostId={setSelectedPostId}
       navigateTo={navigateTo} editingPost={editingItemType === 'webboardPost' ? itemToEdit as WebboardPost : null}
       onCancelEdit={handleCancelEditOrPost}
@@ -2268,27 +2269,30 @@ const App: React.FC = () => {
             <nav className="mb-3 flex justify-center items-center flex-wrap gap-x-1">
               <button 
                 onClick={() => navigateTo(View.AboutUs)} 
-                className="text-sm text-neutral-medium dark:text-dark-textMuted hover:text-neutral-dark dark:hover:text-dark-text transition-colors duration-300 ease-in-out px-3 py-1"
+                className="text-xs text-neutral-medium dark:text-dark-textMuted hover:text-neutral-dark dark:hover:text-dark-text transition-colors duration-300 ease-in-out px-2 py-1"
               >
                 เกี่ยวกับเรา
               </button>
               <button 
                 onClick={() => navigateTo(View.Safety)} 
-                className="text-sm text-neutral-medium dark:text-dark-textMuted hover:text-neutral-dark dark:hover:text-dark-text transition-colors duration-300 ease-in-out px-3 py-1"
+                className="text-xs text-neutral-medium dark:text-dark-textMuted hover:text-neutral-dark dark:hover:text-dark-text transition-colors duration-300 ease-in-out px-2 py-1"
               >
                 ความปลอดภัย
               </button>
               <button 
                 onClick={() => setIsFeedbackModalOpen(true)} 
-                className="text-sm text-neutral-medium dark:text-dark-textMuted hover:text-neutral-dark dark:hover:text-dark-text transition-colors duration-300 ease-in-out px-3 py-1"
+                className="text-xs text-neutral-medium dark:text-dark-textMuted hover:text-neutral-dark dark:hover:text-dark-text transition-colors duration-300 ease-in-out px-2 py-1"
               >
                 ส่ง Feedback
               </button>
             </nav>
 
-            <div className="mb-5 text-sm text-neutral-dark dark:text-dark-text flex items-center justify-center">
+            <div className="mb-3 text-xs text-neutral-medium dark:text-dark-textMuted flex items-center justify-center">
               <span className="mr-1.5">Created by</span>
-              <motion.div
+              <motion.a
+                href="https://bluecathouse.com" // Assuming you want to link it
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center group"
                 whileHover={{ scale: 1.02 }}
                 transition={{ duration: 0.3, ease: "easeOut" } as Transition}
@@ -2296,15 +2300,15 @@ const App: React.FC = () => {
                 <img 
                   src="https://i.postimg.cc/wxrcQPHV/449834128-122096458958403535-3024125841409891827-n-1-removebg-preview.png" 
                   alt="Blue Cat House Logo" 
-                  className="h-5 w-auto inline-block align-middle mr-1.5" 
+                  className="h-4 w-auto inline-block align-middle mr-1" 
                 />
-                <span className="text-neutral-dark dark:text-dark-text group-hover:text-[#2196F3] dark:group-hover:text-[#2196F3] transition-colors duration-300 ease-in-out">
+                <span className="text-neutral-medium dark:text-dark-textMuted group-hover:text-[#2196F3] dark:group-hover:text-[#2196F3] transition-colors duration-300 ease-in-out">
                   Blue Cat House
                 </span>
-              </motion.div>
+              </motion.a>
             </div>
             
-            <p className="text-xs text-gray-400 dark:text-gray-500">
+            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0">
               © {new Date().getFullYear()} HAJOBJA.COM - All rights reserved.
             </p>
           </motion.div>
