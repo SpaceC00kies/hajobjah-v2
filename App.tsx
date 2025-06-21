@@ -1,5 +1,4 @@
 
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   onAuthChangeService,
@@ -1056,6 +1055,11 @@ const App: React.FC = () => {
     const post = allWebboardPostsForAdmin.find(p => p.id === postId);
     if (post) handleDeleteItem(postId, 'webboardPost', post.title, post.userId, post.ownerId, loadWebboardFn);
   };
+  const handleDeleteWebboardComment = (commentId: string) => { // Now standalone
+    const comment = webboardComments.find(c => c.id === commentId);
+    if (comment) handleDeleteItem(commentId, 'webboardComment', `คอมเมนต์โดย ${comment.authorDisplayName}`, comment.userId, comment.ownerId);
+    else alert('ไม่พบคอมเมนต์');
+  };
   const handleDeleteItemFromMyRoom = (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => {
     if (itemType === 'job') handleDeleteJob(itemId, loadJobs);
     else if (itemType === 'profile') handleDeleteHelperProfile(itemId, loadHelpers);
@@ -1226,12 +1230,6 @@ const App: React.FC = () => {
         logFirebaseError("handleUpdateWebboardComment", error);
         alert(`เกิดข้อผิดพลาดในการแก้ไขคอมเมนต์: ${error.message}`);
     }
-  };
-
-  const handleDeleteWebboardComment = (commentId: string) => {
-    const comment = webboardComments.find(c => c.id === commentId);
-    if (comment) handleDeleteItem(commentId, 'webboardComment', `คอมเมนต์โดย ${comment.authorDisplayName}`, comment.userId, comment.ownerId);
-    else alert('ไม่พบคอมเมนต์');
   };
 
   const handleToggleWebboardPostLike = async (postId: string) => {
@@ -2208,7 +2206,8 @@ const App: React.FC = () => {
       onDeletePost={handleDeleteWebboardPost}
       onPinPost={handlePinWebboardPost}
       onEditPost={handleEditWebboardPostFromPage}
-      onDeleteComment={onDeleteComment} onUpdateComment={handleUpdateWebboardComment}
+      onDeleteComment={handleDeleteWebboardComment} // Correctly pass the handler
+      onUpdateComment={handleUpdateWebboardComment}
       selectedPostId={selectedPostId} setSelectedPostId={setSelectedPostId}
       navigateTo={navigateTo} editingPost={editingItemType === 'webboardPost' ? itemToEdit as WebboardPost : null}
       onCancelEdit={handleCancelEditOrPost}
