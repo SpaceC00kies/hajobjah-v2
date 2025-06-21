@@ -27,12 +27,12 @@ const Icon = ({ path, className = "w-4 h-4" }: { path: string; className?: strin
   </svg>
 );
 
-const LikeIcon = () => <Icon path="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />;
-const LikedIcon = () => <Icon path="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" className="w-4 h-4 text-red-500 dark:text-red-400" />;
-const CommentIcon = () => <Icon path="M18 10c0 3.866-3.582 7-8 7a8.839 8.839 0 01-4.083-.98L2 17l1.338-3.121A8.005 8.005 0 012 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />;
-const SaveIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />;
-const SavedIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" className="w-4 h-4 text-blue-500 dark:text-blue-400"/>;
-const ShareIcon = () => <Icon path="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" className="w-4 h-4 text-neutral-500 dark:text-neutral-400" />;
+const LikeIcon = () => <Icon path="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" className="w-4 h-4 text-neutral-500" />;
+const LikedIcon = () => <Icon path="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" className="w-4 h-4 text-red-500" />;
+const CommentIcon = () => <Icon path="M18 10c0 3.866-3.582 7-8 7a8.839 8.839 0 01-4.083-.98L2 17l1.338-3.121A8.005 8.005 0 012 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" className="w-4 h-4 text-neutral-500" />;
+const SaveIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" className="w-4 h-4 text-neutral-500" />;
+const SavedIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" className="w-4 h-4 text-blue-500"/>;
+const ShareIcon = () => <Icon path="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" className="w-4 h-4 text-neutral-500" />;
 
 
 export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
@@ -91,23 +91,23 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
   };
   
   const categoryStyle = WEBBOARD_CATEGORY_STYLES[post.category] || WEBBOARD_CATEGORY_STYLES[WebboardCategory.General];
-  const actionButtonBaseClass = "flex items-center gap-1 p-1.5 rounded-md hover:bg-neutral-light dark:hover:bg-dark-inputBg focus:outline-none focus:ring-1 focus:ring-neutral-DEFAULT dark:focus:ring-dark-border transition-colors duration-150";
+  const actionButtonBaseClass = "flex items-center gap-1 p-1.5 rounded-md hover:bg-neutral-light focus:outline-none focus:ring-1 focus:ring-neutral-DEFAULT transition-colors duration-150";
 
 
   return (
     <motion.div 
-      className="font-sans bg-white dark:bg-dark-cardBg shadow rounded-lg border border-neutral-DEFAULT/50 dark:border-dark-border/50 hover:border-neutral-DEFAULT dark:hover:border-dark-border/70 transition-all duration-200 flex cursor-pointer"
+      className="font-sans bg-white shadow rounded-lg border border-neutral-DEFAULT/50 hover:border-neutral-DEFAULT transition-all duration-200 flex cursor-pointer"
       onClick={() => onViewPost(post.id)}
       role="article"
       aria-labelledby={`post-title-${post.id}`}
       whileHover={{ y: -2, transition: { duration: 0.15 } as Transition }}
     >
       {/* Thumbnail Section */}
-      <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 bg-neutral-light dark:bg-dark-inputBg rounded-l-lg overflow-hidden m-3">
+      <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 bg-neutral-light rounded-l-lg overflow-hidden m-3">
         {post.image ? (
           <img src={post.image} alt="Post thumbnail" className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-neutral-DEFAULT dark:text-dark-border">
+          <div className="w-full h-full flex items-center justify-center text-neutral-DEFAULT">
             <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
           </div>
         )}
@@ -117,11 +117,11 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
       <div className="flex-1 p-3 flex flex-col justify-between min-w-0"> {/* min-w-0 for text truncation */}
         <div>
           {post.isPinned && (
-            <span className="text-xs font-semibold text-yellow-600 dark:text-yellow-400 mb-1 inline-block">📌 Pinned</span>
+            <span className="text-xs font-semibold text-yellow-600 mb-1 inline-block">📌 Pinned</span>
           )}
           <h3
             id={`post-title-${post.id}`}
-            className="text-base sm:text-lg font-semibold text-gray-800 dark:text-gray-200 hover:underline line-clamp-2 leading-tight"
+            className="text-base sm:text-lg font-semibold text-gray-800 hover:underline line-clamp-2 leading-tight"
             title={post.title}
           >
             {post.title}
@@ -132,7 +132,7 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
             {post.category}
           </span>
           
-          <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1.5">
+          <div className="text-xs text-neutral-500 mt-1.5">
             <span 
               className="hover:underline cursor-pointer" 
               onClick={(e) => { e.stopPropagation(); onNavigateToPublicProfile(post.userId);}}
@@ -145,7 +145,7 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center justify-start text-xs text-neutral-medium dark:text-dark-textMuted mt-2 space-x-2 sm:space-x-3 flex-wrap">
+        <div className="flex items-center justify-start text-xs text-neutral-medium mt-2 space-x-2 sm:space-x-3 flex-wrap">
           <motion.button 
             onClick={handleLikeClick} 
             className={`${actionButtonBaseClass}`} 
@@ -167,7 +167,7 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
                 initial={{ opacity: 0, y: -3 }}
                 animate={{ opacity: 1, y: 0, transition: { duration: 0.15 } }}
                 exit={{ opacity: 0, y: 3, transition: { duration: 0.15 } }}
-                className={`${hasLiked ? 'text-red-500 dark:text-red-400' : 'text-neutral-500 dark:text-neutral-400'}`}
+                className={`${hasLiked ? 'text-red-500' : 'text-neutral-500'}`}
               >
                 {post.likes.length}
               </motion.span>
@@ -176,7 +176,7 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
 
           <motion.button 
             onClick={() => onViewPost(post.id)} 
-            className={`${actionButtonBaseClass} text-neutral-500 dark:text-neutral-400`} 
+            className={`${actionButtonBaseClass} text-neutral-500`} 
             aria-label="View comments"
             whileTap={{ scale: 0.9 }}
           >
@@ -200,12 +200,12 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
                 >
                   {isSaved ? <SavedIcon/> : <SaveIcon />} 
                 </motion.span>
-                <span className={`hidden sm:inline ${isSaved ? 'text-blue-500 dark:text-blue-400' : 'text-neutral-500 dark:text-neutral-400'}`}>{isSaved ? 'Saved' : 'Save'}</span>
+                <span className={`hidden sm:inline ${isSaved ? 'text-blue-500' : 'text-neutral-500'}`}>{isSaved ? 'Saved' : 'Save'}</span>
               </motion.button>
 
               <motion.button 
                 onClick={handleShareClick} 
-                className={`${actionButtonBaseClass} text-neutral-500 dark:text-neutral-400`} 
+                className={`${actionButtonBaseClass} text-neutral-500`} 
                 aria-label="Share"
                 whileTap={{ scale: 0.9 }}
                 animate={{ scale: 1 }} // Base state for programmatic animation

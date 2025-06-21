@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import type { EnrichedWebboardComment, User, View } from '../types'; // Added View
 import { UserRole } from '../types';
@@ -20,7 +21,7 @@ const FallbackAvatarComment: React.FC<{ name?: string, photo?: string, size?: st
   }
   const initial = name ? name.charAt(0).toUpperCase() : '💬';
   return (
-    <div className={`${size} rounded-full bg-neutral-light dark:bg-dark-inputBg flex items-center justify-center text-md text-neutral-dark dark:text-dark-text ${className}`}>
+    <div className={`${size} rounded-full bg-neutral-light flex items-center justify-center text-md text-neutral-dark ${className}`}>
       {initial}
     </div>
   );
@@ -37,9 +38,9 @@ const commentItemVariants: Variants = {
       damping: 20,
     } as Transition,
   },
-  exit: { // For future use, e.g., when deleting a comment
+  exit: { 
     opacity: 0,
-    y: -15, // Or some other exit animation
+    y: -15, 
     transition: { duration: 0.2 } as Transition,
   }
 };
@@ -53,7 +54,6 @@ export const WebboardCommentItem: React.FC<WebboardCommentItemProps> = ({ commen
   const isAdmin = currentUser?.role === UserRole.Admin;
   const isModerator = currentUser?.role === UserRole.Moderator;
   
-  // Moderator can delete any comment not by an admin
   const canModeratorDelete = isModerator && !comment.isAuthorAdmin;
   const showDeleteButton = onDeleteComment && (isAuthor || isAdmin || canModeratorDelete);
   const showEditButton = onUpdateComment && isAuthor;
@@ -116,20 +116,19 @@ export const WebboardCommentItem: React.FC<WebboardCommentItemProps> = ({ commen
 
   return (
     <motion.div 
-      className="flex items-start space-x-3 py-3 border-b border-neutral-DEFAULT/50 dark:border-dark-border/50 last:border-b-0"
+      className="flex items-start space-x-3 py-3 border-b border-neutral-DEFAULT/50 last:border-b-0"
       variants={commentItemVariants}
-      // `initial`, `animate`, and `exit` will be controlled by AnimatePresence in the parent (WebboardPostDetail)
-      // if this component is directly mapped within AnimatePresence.
-      // If WebboardPostDetail's motion.div (list container) uses variants,
-      // these items will inherit the `animate` state (e.g., "visible")
-      // and animate according to their own defined `commentItemVariants`.
+      initial="hidden" // Animate in when first appearing
+      animate="visible"
+      exit="exit" // Animate out when removed by AnimatePresence
+      layout // Smoothly animate layout changes (e.g., when edit form appears/disappears)
     >
       <FallbackAvatarComment name={comment.authorDisplayName} photo={comment.authorPhoto} className="mt-1" />
       <div className="flex-1">
         <div className="flex items-center justify-between">
-            <div className="flex items-baseline"> {/* Use baseline for better alignment if font sizes differ */}
+            <div className="flex items-baseline"> 
                 <span 
-                    className="text-sm font-semibold text-neutral-dark dark:text-dark-text cursor-pointer hover:underline"
+                    className="text-sm font-semibold text-neutral-dark cursor-pointer hover:underline"
                     onClick={() => onNavigateToPublicProfile(comment.userId)}
                     role="link"
                     tabIndex={0}
@@ -137,8 +136,7 @@ export const WebboardCommentItem: React.FC<WebboardCommentItemProps> = ({ commen
                 >
                     @{comment.authorDisplayName}
                 </span>
-                {/* UserLevelBadge removed */}
-                <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                <span className="ml-2 text-xs text-gray-500">
                     · {timeSince(comment.createdAt)}
                     {wasEdited && !isEditing && (
                         <span className="italic"> (แก้ไข {timeSince(comment.updatedAt as Date)})</span>
@@ -149,7 +147,7 @@ export const WebboardCommentItem: React.FC<WebboardCommentItemProps> = ({ commen
                 {showEditButton && !isEditing && (
                     <button
                         onClick={handleEdit}
-                        className="text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-0.5 rounded hover:bg-blue-100 dark:hover:bg-blue-700/30"
+                        className="text-xs text-blue-500 hover:text-blue-700 p-0.5 rounded hover:bg-blue-100"
                         aria-label="แก้ไขคอมเมนต์"
                     >
                         ✏️
@@ -158,7 +156,7 @@ export const WebboardCommentItem: React.FC<WebboardCommentItemProps> = ({ commen
                 {showDeleteButton && !isEditing && (
                     <button
                         onClick={handleDelete}
-                        className="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-0.5 rounded hover:bg-red-100 dark:hover:bg-red-700/30"
+                        className="text-xs text-red-500 hover:text-red-700 p-0.5 rounded hover:bg-red-100"
                         aria-label="ลบคอมเมนต์"
                     >
                         🗑️
@@ -175,21 +173,21 @@ export const WebboardCommentItem: React.FC<WebboardCommentItemProps> = ({ commen
                 if(editError) setEditError(null);
               }}
               rows={3}
-              className={`w-full p-2 border rounded-md text-sm font-normal bg-white dark:bg-dark-inputBg text-neutral-dark dark:text-dark-text focus:outline-none focus:ring-1
-                          ${editError ? 'border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500/50' 
-                                      : 'border-neutral-DEFAULT/70 dark:border-dark-border/70 focus:border-blue-400 dark:focus:border-blue-500 focus:ring-blue-400/50 dark:focus:ring-blue-500/50'}`}
+              className={`w-full p-2.5 border rounded-md text-sm font-sans bg-white text-neutral-dark focus:outline-none focus:ring-1
+                          ${editError ? 'border-red-500 focus:border-red-500 focus:ring-red-500/50' 
+                                      : 'border-neutral-DEFAULT focus:border-blue-400 focus:ring-blue-400/50'}`}
               aria-label="แก้ไขเนื้อหาคอมเมนต์"
               aria-invalid={!!editError}
               aria-describedby={editError ? "edit-comment-error" : undefined}
             />
-            {editError && <p id="edit-comment-error" className="text-red-500 dark:text-red-400 text-xs mt-1">{editError}</p>}
+            {editError && <p id="edit-comment-error" className="text-red-500 text-xs mt-1">{editError}</p>}
             <div className="flex justify-end space-x-2 mt-2">
               <Button onClick={handleCancelEdit} variant="outline" colorScheme="neutral" size="sm" className="text-xs">ยกเลิก</Button>
               <Button onClick={handleSaveEdit} variant="primary" size="sm" className="text-xs">บันทึก</Button>
             </div>
           </div>
         ) : (
-          <p className="text-sm text-neutral-dark dark:text-dark-textMuted whitespace-pre-wrap font-normal py-1">{comment.text}</p>
+          <p className="text-sm text-neutral-dark whitespace-pre-wrap font-normal py-1">{comment.text}</p>
         )}
       </div>
     </motion.div>

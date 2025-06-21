@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import type { EnrichedHelperProfile, User } from '../types';
 import { View, Province, ACTIVITY_BADGE_DETAILS } from '../types';
 import { Modal } from './Modal';
-import { Button } from './Button';
+import { Button } from './Button'; // Import Button
 import { isDateInPast, calculateDaysRemaining } from '../App';
 import { UserLevelBadge } from './UserLevelBadge';
 import { motion, type Transition } from 'framer-motion';
@@ -16,13 +16,13 @@ interface HelperCardProps {
   currentUser: User | null;
   requestLoginForAction: (view: View, payload?: any) => void;
   onBumpProfile: (profileId: string) => void;
-  onEditProfileFromFindView?: (profileId: string) => void; // New prop for editing from FindHelpers
+  onEditProfileFromFindView?: (profileId: string) => void; 
 }
 
 const FallbackAvatarDisplay: React.FC<{ name?: string, size?: string, className?: string }> = ({ name, size = "w-[80px] h-[80px]", className = "" }) => {
   const initial = name ? name.charAt(0).toUpperCase() : '👤';
   return (
-    <div className={`${size} rounded-full bg-neutral dark:bg-dark-inputBg flex items-center justify-center text-3xl font-sans text-white dark:text-dark-text ${className}`}>
+    <div className={`${size} rounded-full bg-neutral flex items-center justify-center text-3xl font-sans text-white ${className}`}>
       {initial}
     </div>
   );
@@ -45,29 +45,29 @@ const TrustBadgesCompact: React.FC<{ profile: EnrichedHelperProfile, user: User 
   const badges = [];
   if (profile.adminVerifiedExperience) {
     badges.push(
-      <span key="verified" className="helper-card-trust-badge bg-yellow-200 text-yellow-800 dark:bg-yellow-600/30 dark:text-yellow-200">⭐ ผ่านงาน</span>
+      <span key="verified" className="helper-card-trust-badge bg-yellow-200 text-yellow-800">⭐ ผ่านงาน</span>
     );
   }
   if (user?.profileComplete) {
      badges.push(
-      <span key="complete" className="helper-card-trust-badge bg-green-100 text-green-700 dark:bg-green-700/30 dark:text-green-200">🟢 โปรไฟล์ครบ</span>
+      <span key="complete" className="helper-card-trust-badge bg-green-100 text-green-700">🟢 โปรไฟล์ครบ</span>
     );
   }
   if ((profile.interestedCount || 0) > 0) {
      badges.push(
-       <span key="interested" className="helper-card-trust-badge bg-sky-100 text-sky-700 dark:bg-sky-700/30 dark:text-sky-200">
+       <span key="interested" className="helper-card-trust-badge bg-sky-100 text-sky-700">
         👀 สนใจ {profile.interestedCount}
       </span>
     );
   }
    if (user?.activityBadge?.isActive) {
      badges.push(
-       <span key="activity" className="helper-card-trust-badge bg-orange-100 text-orange-700 dark:bg-orange-600/30 dark:text-orange-200">🔥 ขยันใช้เว็บ</span>
+       <span key="activity" className="helper-card-trust-badge bg-orange-100 text-orange-700">🔥 ขยันใช้เว็บ</span>
     );
   }
   if (profile.isSuspicious) {
      badges.push(
-      <span key="suspicious" className="helper-card-trust-badge bg-red-100 text-red-700 dark:bg-red-700/30 dark:text-red-200">🔺 ระวัง</span>
+      <span key="suspicious" className="helper-card-trust-badge bg-red-100 text-red-700">🔺 ระวัง</span>
     );
   }
 
@@ -200,7 +200,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({
                         const fallbackNode = document.createElement('div');
                         fallbackNode.className = 'helper-card-avatar fallback-avatar-rendered';
                         const initial = profile.authorDisplayName ? profile.authorDisplayName.charAt(0).toUpperCase() : '👤';
-                        fallbackNode.innerHTML = `<div class="w-full h-full rounded-full bg-neutral dark:bg-dark-inputBg flex items-center justify-center text-3xl font-sans text-white dark:text-dark-text">${initial}</div>`;
+                        fallbackNode.innerHTML = `<div class="w-full h-full rounded-full bg-neutral flex items-center justify-center text-3xl font-sans text-white">${initial}</div>`;
                         avatarImg.parentNode?.insertBefore(fallbackNode, avatarImg.nextSibling);
                     }
                 }} />
@@ -210,7 +210,10 @@ export const HelperCard: React.FC<HelperCardProps> = ({
           <div className="helper-card-header-content">
             <h4 className="helper-card-main-title" title={profile.profileTitle}>{profile.profileTitle}</h4>
             <div className="helper-card-name-container">
-              <h3 className="helper-card-name" onClick={() => onNavigateToPublicProfile({ userId: profile.userId, helperProfileId: profile.id })}>
+              <h3 
+                className="helper-card-name text-sm" // Applied text-sm
+                onClick={() => onNavigateToPublicProfile({ userId: profile.userId, helperProfileId: profile.id })}
+              >
                 {profile.authorDisplayName}
                 <span className="name-arrow">→</span>
               </h3>
@@ -243,18 +246,18 @@ export const HelperCard: React.FC<HelperCardProps> = ({
         </div>
 
         <div className="helper-card-details-box">
-          <h5 className="helper-card-details-title">
+          <h5 className="helper-card-details-title text-sm"> {/* Applied text-sm */}
             รายละเอียด
           </h5>
           <ul>
-            <li className={detailsNeedsTruncation && !showFullDetails && !(currentUser && !profileIsTrulyExpired) ? "details-line-clamp" : ""}>
+            <li className={`text-xs ${detailsNeedsTruncation && !showFullDetails && !(currentUser && !profileIsTrulyExpired) ? "details-line-clamp" : ""}`}> {/* Applied text-xs */}
               {displayDetails}
             </li>
           </ul>
           {detailsNeedsTruncation && !(currentUser && !profileIsTrulyExpired) && (
              <button
                 onClick={toggleShowFullDetails}
-                className="text-xs text-yellow-600 dark:text-yellow-400 hover:underline mt-1 font-medium"
+                className="text-xs text-yellow-600 hover:underline mt-1 font-medium"
                 aria-expanded={showFullDetails}
               >
                 {showFullDetails ? "แสดงน้อยลง" : "ดูเพิ่มเติม"}
@@ -268,31 +271,36 @@ export const HelperCard: React.FC<HelperCardProps> = ({
           </div>
           <div className="helper-card-action-buttons">
             {currentUser?.id === profile.userId && !profile.isUnavailable && !profileIsTrulyExpired && (
-              <button
+              <Button
                 onClick={() => onBumpProfile(profile.id)}
-                className="helper-card-button helper-card-button-secondary"
+                variant="outline"
+                colorScheme="secondary"
+                size="sm"
                 disabled={!canBump}
                 title={canBump ? "Bump โปรไฟล์ของคุณขึ้นไปบนสุด" : `คุณสามารถ Bump โปรไฟล์นี้ได้อีก ${bumpDaysRemaining} วัน`}
               >
                 🚀 Bump {canBump ? '' : `(${bumpDaysRemaining}d)`}
-              </button>
+              </Button>
             )}
             {onEditProfileFromFindView && currentUser?.id === profile.userId ? (
-                 <button
+                 <Button
                     onClick={() => onEditProfileFromFindView(profile.id)}
-                    className="helper-card-button helper-card-button-primary" // Or a different style for "Edit"
+                    variant="outline"
+                    colorScheme="neutral"
+                    size="sm"
                     disabled={profileIsTrulyExpired}
                 >
                     ✏️ แก้ไข
-                </button>
+                </Button>
             ) : (
-                <button
+                <Button
                   onClick={handleContact}
-                  className="helper-card-button helper-card-button-primary"
+                  variant="secondary"
+                  size="sm"
                   disabled={profile.isUnavailable || profileIsTrulyExpired || currentUser?.id === profile.userId}
                 >
                   {profile.isUnavailable ? '🚫 ไม่ว่าง' : profileIsTrulyExpired ? '⛔ หมดอายุ' : (currentUser?.id === profile.userId ? '👤 โปรไฟล์คุณ' : 'ติดต่อ')}
-                </button>
+                </Button>
             )}
           </div>
         </div>
@@ -301,13 +309,13 @@ export const HelperCard: React.FC<HelperCardProps> = ({
       {currentUser && !profileIsTrulyExpired && (
         <>
           <Modal isOpen={isWarningModalOpen} onClose={closeWarningModal} title="⚠️ โปรดระวังมิจฉาชีพ">
-            <div className="bg-amber-50 dark:bg-amber-700/20 border border-amber-300 dark:border-amber-600/40 p-4 rounded-md my-2 text-neutral-dark dark:text-dark-textMuted font-serif">
-              <p className="mb-2">โปรดใช้ความระมัดระวัง <strong className="font-bold text-red-700 dark:text-red-400">ห้ามโอนเงินก่อนเจอตัว</strong> และควรนัดเจอในที่ปลอดภัย</p>
+            <div className="bg-amber-50 border border-amber-300 p-4 rounded-md my-2 text-neutral-dark font-serif">
+              <p className="mb-2">โปรดใช้ความระมัดระวัง <strong className="font-bold text-red-700">ห้ามโอนเงินก่อนเจอตัว</strong> และควรนัดเจอในที่ปลอดภัย</p>
               <p>
                 หาจ๊อบจ้าเป็นเพียงพื้นที่ให้คนเจอกัน โปรดใช้วิจารณญาณในการติดต่อ ฉบับเต็มโปรดอ่านที่หน้า{" "}
                 <button
                   onClick={() => { closeWarningModal(); navigateTo(View.Safety); }}
-                  className="font-serif font-normal underline text-neutral-dark dark:text-dark-textMuted hover:text-secondary dark:hover:text-dark-secondary-DEFAULT"
+                  className="font-serif font-normal underline text-neutral-dark hover:text-secondary"
                 >
                   "โปรดอ่านเพื่อความปลอดภัย"
                 </button>
@@ -319,12 +327,12 @@ export const HelperCard: React.FC<HelperCardProps> = ({
           </Modal>
 
           <Modal isOpen={isContactModalOpen} onClose={closeContactModal} title="ขอบคุณที่สนใจติดต่อผู้ช่วย">
-            <div className="text-neutral-dark dark:text-dark-textMuted font-serif p-4 rounded-md">
+            <div className="text-neutral-dark font-serif p-4 rounded-md">
               <p className="mb-4">กรุณาติดต่อผู้ช่วยโดยตรงตามข้อมูลด้านล่างเพื่อนัดหมาย หรือสอบถามรายละเอียดเพิ่มเติม</p>
-              <div className="bg-neutral-light dark:bg-dark-inputBg p-4 rounded-md border border-neutral-DEFAULT dark:border-dark-border whitespace-pre-wrap font-sans">
+              <div className="bg-neutral-light p-4 rounded-md border border-neutral-DEFAULT whitespace-pre-wrap font-sans">
                 <p>{profile.contact}</p>
               </div>
-              <p className="text-xs text-neutral-medium dark:text-dark-textMuted mt-4 text-center">
+              <p className="text-xs text-neutral-medium mt-4 text-center">
                 (การคลิก "ดำเนินการต่อ" ในหน้าก่อนหน้านี้ ได้บันทึกการติดต่อของคุณแล้ว เพื่อให้ผู้ช่วยทราบว่ามีคนสนใจ)
               </p>
               <Button onClick={closeContactModal} variant="secondary" className="w-full mt-6">

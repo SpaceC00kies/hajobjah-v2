@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th">
   <head>
@@ -11,87 +12,101 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;600&family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
-        darkMode: 'class', // Enable class-based dark mode
+        // darkMode: 'class', // Removed dark mode
         theme: {
           extend: {
             fontFamily: {
               sans: ['Prompt', 'Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', '"Noto Sans"', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"'],
               serif: ['Sarabun', 'Inter', 'ui-serif', 'Georgia', 'Cambria', '"Times New Roman"', 'Times', 'serif'],
             },
+            fontSize: {
+              'xs': ['0.75rem', { lineHeight: '1rem' }],      // 12px
+              'sm': ['0.875rem', { lineHeight: '1.25rem' }], // 14px
+              'base': ['1rem', { lineHeight: '1.5rem' }],      // 16px
+              'lg': ['1.25rem', { lineHeight: '1.75rem' }],  // 20px
+              'xl': ['1.5rem', { lineHeight: '2rem' }],      // 24px
+              '2xl': ['1.75rem', { lineHeight: '2.25rem' }], // 28px
+              '3xl': ['2rem', { lineHeight: '2.5rem' }],   // 32px
+              '4xl': ['2.5rem', { lineHeight: '1.2' }],     // 40px
+              '5xl': ['3rem', { lineHeight: '1.2' }],       // 48px
+              '6xl': ['3.75rem', { lineHeight: '1.1' }],     // 60px
+            },
+            spacing: {
+              '0': '0px',
+              '1': '0.25rem', // 4px
+              '1.5': '0.375rem', // 6px
+              '2': '0.5rem',  // 8px
+              '2.5': '0.625rem', // 10px
+              '3': '0.75rem', // 12px
+              '3.5': '0.875rem', // 14px
+              '4': '1rem',    // 16px
+              '5': '1.25rem', // 20px
+              '6': '1.5rem',  // 24px
+              '7': '1.75rem', // 28px
+              '8': '2rem',    // 32px
+              '10': '2.5rem', // 40px
+              '12': '3rem',   // 48px
+              '14': '3.5rem', // 56px
+              '16': '4rem',   // 64px
+              '20': '5rem',   // 80px
+              '24': '6rem',   // 96px
+            },
+            borderRadius: {
+              'sm': '0.25rem', // 4px
+              'DEFAULT': '0.375rem', // 6px
+              'md': '0.5rem',   // 8px
+              'lg': '0.75rem',  // 12px
+              'xl': '1rem',     // 16px
+              '2xl': '1.25rem', // 20px
+              '3xl': '1.5rem',  // 24px
+            },
             colors: {
-              // Light mode colors
               primary: {
-                DEFAULT: '#A0D9E0', // Pastel Blue
+                DEFAULT: '#A0D9E0',
                 hover: '#8BCBD3',
               },
               secondary: {
-                DEFAULT: '#FADB4E', // Updated: Deeper Soft Yellow
-                hover: '#F8D43A',   // Updated: Hover for new yellow
+                DEFAULT: '#FADB4E',
+                hover: '#F8D43A',
               },
               accent: {
-                DEFAULT: '#FCD5CE', // Peach
+                DEFAULT: '#FCD5CE',
                 hover: '#FABFB5',
               },
               neutral: {
-                light: '#FAFAF4',    // Updated: Off-white (Page BG - Light)
-                DEFAULT: '#E0E0E0',  // Light Gray (Borders - Light)
-                dark: '#333333',     // Dark Gray (Main Text - Light)
-                medium: '#666666',   // Softer Secondary Text - Light / Timestamp color
-                // For section titles or specific dark text needs
-                700: '#3B3B3B', // Charcoal-like dark gray for titles
-                800: '#2D2D2D', // Even darker gray for content text
+                light: '#FAFAF4',
+                DEFAULT: '#E0E0E0',
+                dark: '#333333',
+                medium: '#666666',
+                700: '#3B3B3B',
+                800: '#2D2D2D',
               },
               headerBlue: {
-                DEFAULT: '#DFF6F3', // Pastel Mint-Blue for header - Light
+                DEFAULT: '#DFF6F3',
                 hover: '#CEEBE6'
               },
-              brandGreen: { // Renamed from loginGreen
-                DEFAULT: '#A5D6A7', // Soft Green (Similar to #A0E6B3)
-                hover: '#81C784',   // Slightly darker soft green
-                text: '#103A1B',    // Dark green text for contrast
+              brandGreen: {
+                DEFAULT: '#A5D6A7',
+                hover: '#81C784',
+                text: '#103A1B',
               },
-
-              // Dark mode specific colors
-              dark: {
-                pageBg: '#1E1E1E',    // Soft Charcoal (Page BG - Dark)
-                cardBg: '#2A2A2A',    // Dark Slate (Card BG - Dark)
-                inputBg: '#333333',   // Slightly Lighter Dark (Input BG - Dark)
-                border: '#555555',    // Dark Gray (Borders - Dark)
-                text: '#EEEEEE',      // Off-White (Main Text - Dark)
-                textMuted: '#BBBBBB', // Lighter Gray (Secondary Text - Dark)
-
-                // Specific text colors for buttons in dark mode for high contrast
-                textOnPrimaryDark: '#1A1A1A', // For blue buttons
-                textOnSecondaryDark: '#2B2B2B', // For yellow buttons
-                textOnAccentDark: '#1A1A1A',   // For peach buttons
-                textOnBrandGreenDark: '#FFFFFF', // Renamed from textOnLoginGreenDark
-
-                primary: {            // Dark Pastel Blue
-                  DEFAULT: '#78C5D1',
-                  hover: '#6AB8C4',
-                },
-                secondary: {          // Dark Muted Yellow
-                  DEFAULT: '#F0C95D', // Updated: Dark Muted Yellow
-                  hover: '#E8BF4A',   // Updated: Hover for new dark yellow
-                },
-                accent: {             // Dark Peach for Theme Toggle
-                  DEFAULT: '#F2B8AC',
-                  hover: '#EAA89F', // Derived hover for new peach
-                },
-                neutral: {            // For neutral outline buttons in dark mode
-                  DEFAULT: '#555555', // Border color (matches dark.border)
-                  hover: '#6E6E6E',   // Hover background color
-                  // For section titles or specific dark text needs in dark mode
-                  300: '#D1D5DB', // Lighter gray for dark mode titles (example)
-                  200: '#E5E7EB', // Lighter gray for dark mode content text (example)
-                },
-                headerBg: '#252525', // Specific dark header background
-                brandGreen: { // Renamed from loginGreen
-                  DEFAULT: '#4CAF50', // Medium Green
-                  hover: '#66BB6A',   // Slightly lighter medium green
-                  text: '#FFFFFF',    // White text for dark green bg
-                },
-              }
+              white: '#FFFFFF',
+              black: '#000000',
+              gray: {
+                50: '#F9FAFB',
+                200: '#E5E7EB',
+                300: '#D1D5DB',
+                400: '#9CA3AF',
+                500: '#6B7280',
+                600: '#4B5563',
+                700: '#374151',
+                800: '#1F2937',
+                900: '#111827',
+              },
+              red: {
+                400: '#F87171', 
+                500: '#EF4444'
+              },
             }
           }
         }
@@ -100,68 +115,106 @@
     <style>
       html {
         height: 100%;
-        background-color: #FAFAF4; /* neutral.light */
+        background-color: #FAFAF4; /* Default light background for html */
       }
       body {
         height: 100%;
-        background-color: #FAFAF4; /* neutral.light, ensure it overrides Tailwind defaults if needed */
-        overflow-x: hidden; /* Prevent horizontal scrollbars if any */
+        overflow-x: hidden;
       }
       #root {
         height: 100%;
         display: flex;
         flex-direction: column;
-        background-color: #FAFAF4; /* Ensure #root also has the light background */
-      }
-      /* Animation for the like button - REMOVED */
-      /* @keyframes like-pop-animation {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.3); }
-        100% { transform: scale(1); }
       }
 
-      .animate-like-heart {
-        animation: like-pop-animation 0.3s ease-out;
-        display: inline-block; 
-      } */
+      /* --- Base Form Element Styles (Light Mode Only) --- */
+      input[type="text"],
+      input[type="email"],
+      input[type="password"],
+      input[type="tel"],
+      input[type="date"],
+      input[type="time"],
+      input[type="search"],
+      input[type="number"],
+      textarea,
+      select {
+        padding: 12px; /* p-3 */
+        border: 1px solid #E0E0E0; /* neutral.DEFAULT */
+        border-radius: 8px; /* rounded-md */
+        font-family: theme('fontFamily.serif');
+        font-weight: 400; /* normal */
+        font-size: 16px; /* base */
+        color: #333333; /* neutral.dark */
+        background-color: #FFFFFF; /* white */
+        transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+      }
 
-      /* --- Helper Card Redesign Styles --- */
-      .helper-card-redesigned, .job-card-redesigned { /* Combined for common styles */
+      /* Default Focus State - Light Mode */
+      input[type="text"]:focus,
+      input[type="email"]:focus,
+      input[type="password"]:focus,
+      input[type="tel"]:focus,
+      input[type="date"]:focus,
+      input[type="time"]:focus,
+      input[type="search"]:focus,
+      input[type="number"]:focus,
+      textarea:focus,
+      select:focus {
+        outline: none;
+        border-color: #A0D9E0; /* primary.DEFAULT */
+        box-shadow: 0 0 0 1px #A0D9E0; /* primary.DEFAULT */
+        background-color: #F9FAFB; /* gray.50 */
+      }
+
+      /* Error state class - Light Mode */
+      .input-error {
+        border-color: #EF4444 !important; /* red.500 */
+      }
+      .input-error:focus {
+        border-color: #EF4444 !important; /* red.500 */
+        box-shadow: 0 0 0 1px #EF4444 !important; /* red.500 */
+      }
+
+      /* Select arrow styling - Light Mode */
+      select {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); /* gray.500 */
+        background-position: right 0.75rem center; /* right p-3 center */
+        background-repeat: no-repeat;
+        background-size: 1.25em 1.25em; /* w-5 h-5 */
+        padding-right: 2.5rem; /* p-10 for select arrow */
+      }
+
+      /* --- Helper Card Redesign Styles (Light Mode Only) --- */
+      .helper-card-redesigned, .job-card-redesigned {
         background-color: white;
-        border-radius: 20px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        /* transition: all 0.3s ease-in-out; Removed for Framer Motion */
+        border-radius: 20px; /* rounded-2xl */
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08); /* shadow-lg equivalent */
         display: flex;
         flex-direction: column;
-        overflow: hidden; /* Ensures content respects border-radius */
+        overflow: hidden;
       }
-      .dark .helper-card-redesigned, .dark .job-card-redesigned {
-        background-color: #2A2A2A; /* dark.cardBg */
-      }
-      /* Removed .helper-card-redesigned:hover, .job-card-redesigned:hover CSS block */
 
-      /* Helper Card Specific Header */
       .helper-card-header {
-        background: linear-gradient(to bottom, #FFF4D6, #FFE8A3); /* Yellowish gradient */
-        padding: 16px;
+        background: linear-gradient(to bottom, #FFF4D6, #FFE8A3);
+        padding: 16px; /* p-4 */
         display: flex;
         align-items: flex-start;
         text-align: left;
         position: relative;
       }
-      .dark .helper-card-header {
-        background: linear-gradient(to bottom, #4a4230, #413927);
-      }
       .helper-card-header-avatar-wrapper {
           flex-shrink: 0;
-          margin-right: 16px;
+          margin-right: 16px; /* mr-4 */
       }
       .helper-card-avatar {
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
+        width: 80px; /* w-20 */
+        height: 80px; /* h-20 */
+        border-radius: 50%; /* rounded-full */
         object-fit: cover;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1); /* shadow-md equivalent */
         transition: transform 0.3s ease;
         cursor: pointer;
       }
@@ -174,148 +227,107 @@
           flex-direction: column;
       }
 
-      /* Job Card Specific Header */
       .job-card-header {
-        background: linear-gradient(to bottom, #C0E9EF, #A0D9E0); /* Bluish gradient */
-        padding: 16px;
+        background: linear-gradient(to bottom, #C0E9EF, #A0D9E0);
+        padding: 16px; /* p-4 */
         text-align: left;
         position: relative;
       }
-      .dark .job-card-header {
-        background: linear-gradient(to bottom, #90D1DB, #78C5D1);
-      }
 
-      /* Main title style (shared by Helper and Job cards) */
       .helper-card-main-title, .job-card-main-title {
-        font-size: 20px;
-        font-weight: 700;
-        color: #333333;
-        margin: 0 0 2px 0;
+        font-size: 20px; /* text-lg */
+        font-weight: 700; /* font-bold */
+        color: #333333; /* text-neutral-dark */
+        margin: 0 0 2px 0; /* mb-0.5 approx */
         line-height: 1.3;
       }
-      .dark .helper-card-main-title, .dark .job-card-main-title {
-        color: #EEEEEE;
-      }
 
-      /* Helper Card Specific Name & Location */
       .helper-card-name-container {
         display: flex;
         align-items: center;
-        margin-bottom: 2px;
+        margin-bottom: 2px; /* mb-0.5 approx */
       }
       .helper-card-name {
-        font-size: 16px;
-        font-weight: 500;
+        /* font-size will be controlled by Tailwind in component */
+        font-weight: 500; /* font-medium */
         color: #454545;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
         transition: color 0.3s ease;
       }
-      .dark .helper-card-name {
-        color: #DDDDDD;
-      }
       .helper-card-name:hover {
         color: #FFB800;
-      }
-      .dark .helper-card-name:hover {
-        color: #F0C95D;
       }
       .helper-card-name .name-arrow {
         opacity: 1;
         transform: translateX(0);
         transition: none;
-        margin-left: 4px;
-        font-size: 14px;
-        color: #666666;
-      }
-      .dark .helper-card-name .name-arrow {
-          color: #AAAAAA;
+        margin-left: 4px; /* ml-1 */
+        font-size: 14px; /* text-sm */
+        color: #666666; /* text-neutral-medium */
       }
       .helper-card-header-location {
-        font-size: 13px;
+        font-size: 12px; /* text-xs */
         color: #555555;
         display: flex;
         align-items: center;
-        gap: 4px;
-        margin-bottom: 6px;
-      }
-      .dark .helper-card-header-location {
-        color: #BBBBBB;
+        gap: 4px; /* gap-1 */
+        margin-bottom: 6px; /* mb-1.5 approx */
       }
       .helper-card-header-location .location-pin-emoji {
         font-size: 1em;
       }
 
-      /* Category/Subcategory display (Shared by Helper and Job cards) */
       .helper-card-header-categories-combined, .job-card-header-categories-combined {
         color: #4A5568;
-        font-weight: 600;
+        font-weight: 600; /* font-semibold */
         font-size: 11px;
         line-height: 1.4;
-        margin-bottom: 8px;
-      }
-      .dark .helper-card-header-categories-combined, .dark .job-card-header-categories-combined {
-        color: #CBD5E0;
+        margin-bottom: 8px; /* mb-2 */
       }
       .helper-card-header-categories-combined .category-separator, .job-card-header-categories-combined .category-separator {
-        margin: 0 4px;
-        color: #666666;
-      }
-      .dark .helper-card-header-categories-combined .category-separator, .dark .job-card-header-categories-combined .category-separator {
-        color: #AAAAAA;
+        margin: 0 4px; /* mx-1 */
+        color: #666666; /* text-neutral-medium */
       }
 
-      /* Info Grid (Shared by Helper and Job cards) */
       .helper-card-info-grid, .job-card-info-grid {
         display: grid;
         grid-template-columns: 1fr;
-        gap: 6px;
-        padding: 10px 16px;
+        gap: 6px; /* gap-1.5 */
+        /* Padding moved to items */
       }
       .helper-card-info-item, .job-card-info-item {
         display: flex;
         align-items: flex-start;
-        font-size: 13px;
+        font-size: 12px; /* text-xs */
         color: #555555;
-      }
-      .dark .helper-card-info-item, .dark .job-card-info-item {
-        color: #BBBBBB;
+        padding: 8px 16px; /* py-2 px-4 */
       }
       .helper-card-info-item .info-icon, .job-card-info-item .info-icon {
         width: 1.2em;
         height: 1.2em;
-        margin-right: 8px;
+        margin-right: 8px; /* mr-2 */
         color: #777777;
         flex-shrink: 0;
         display: inline-flex;
         align-items: center;
         justify-content: center;
       }
-      .dark .helper-card-info-item .info-icon, .dark .job-card-info-item .info-icon {
-        color: #999999;
-      }
 
-      /* Details Box (Shared by Helper and Job cards) */
       .helper-card-details-box, .job-card-details-box {
-        background-color: #F8F8F8;
-        padding: 12px 16px;
-        margin: 12px 16px;
-        border-radius: 10px;
-      }
-      .dark .helper-card-details-box, .dark .job-card-details-box {
-        background-color: #333333;
+        background-color: #F9FAFB; /* theme('colors.gray.50') */
+        padding: 12px 16px; /* px-4 py-3 */
+        margin: 12px 16px; /* mx-4 my-3 */
+        border-radius: 12px; /* theme('borderRadius.lg') */
       }
       .helper-card-details-title, .job-card-details-title {
-        font-size: 15px;
-        font-weight: 600;
-        color: #333333;
+        /* font-size will be controlled by Tailwind in component */
+        font-weight: 600; /* font-semibold */
+        color: #333333; /* text-neutral-dark */
         display: flex;
         align-items: center;
-        margin-bottom: 8px;
-      }
-      .dark .helper-card-details-title, .dark .job-card-details-title {
-        color: #EEEEEE;
+        margin-bottom: 8px; /* mb-2 */
       }
       .helper-card-details-box ul, .job-card-details-box ul {
         list-style-type: none;
@@ -325,148 +337,73 @@
       .helper-card-details-box li, .job-card-details-box li {
         position: relative;
         margin-bottom: 5px;
-        font-size: 13px;
+        /* font-size will be controlled by Tailwind in component */
         line-height: 1.5;
         color: #555555;
-      }
-      .dark .helper-card-details-box li, .dark .job-card-details-box li {
-        color: #BBBBBB;
       }
       .helper-card-details-box li::before, .job-card-details-box li::before {
         content: none;
       }
       .job-card-details-box .qualifications-list {
         list-style-type: '✓  ';
-        padding-left: 1.5em; /* Adjust for checkmark */
-        margin-top: 4px;
+        padding-left: 1.5em;
+        margin-top: 4px; /* mt-1 */
       }
       .job-card-details-box .qualifications-list li {
-         padding-left: 0.2em; /* Space after checkmark */
+         padding-left: 0.2em;
       }
 
-
-      /* Footer (Shared by Helper and Job cards) */
       .helper-card-footer, .job-card-footer {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 12px 16px;
+        padding: 12px 16px; /* px-4 py-3 */
         border-top: 1px solid #E0E0E0;
-        margin-top: auto; /* Pushes footer to bottom */
-      }
-      .dark .helper-card-footer, .dark .job-card-footer {
-        border-top-color: #555555;
+        margin-top: auto;
       }
       .helper-card-posted-time, .job-card-posted-time {
-        font-size: 12px;
+        font-size: 12px; /* text-xs */
         color: #777777;
-      }
-      .dark .helper-card-posted-time, .dark .job-card-posted-time {
-        color: #999999;
       }
 
       .helper-card-action-buttons, .job-card-action-buttons {
         display: flex;
-        gap: 8px;
+        gap: 8px; /* gap-2 */
       }
 
-      /* Generic Button (Shared by Helper and Job cards) */
+      /* Simplified button styles - most styling comes from Button component */
       .helper-card-button, .job-card-button {
-        padding: 6px 12px;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 500;
-        transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
         border: none;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 4px;
+        gap: 4px; /* gap-1 */
+        /* Remove specific color, background, padding etc. Let Button component handle it. */
       }
-      .helper-card-button:hover, .job-card-button:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      }
-      .helper-card-button:disabled, .job-card-button:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: translateY(0);
-        box-shadow: none;
-      }
+      /* Hover, active, disabled states are also handled by Button component */
 
-      /* Helper Card Specific Button Styles */
-      .helper-card-button-primary {
-        background-color: #FFB800; /* Yellow */
-        color: white;
-      }
-      .helper-card-button-primary:hover:not(:disabled) {
-        background-color: #FF9500;
-      }
-      .dark .helper-card-button-primary {
-        background-color: #F0C95D;
-        color: #2B2B2B;
-      }
-      .dark .helper-card-button-primary:hover:not(:disabled) {
-        background-color: #E8BF4A;
-      }
-      .helper-card-button-secondary {
-        background-color: transparent;
-        color: #FFB800;
-        border: 1.5px solid #FFB800;
-      }
-      .helper-card-button-secondary:hover:not(:disabled) {
-        background-color: #FFB800;
-        color: white;
-      }
-      .dark .helper-card-button-secondary {
-        color: #F0C95D;
-        border-color: #F0C95D;
-      }
-      .dark .helper-card-button-secondary:hover:not(:disabled) {
-        background-color: #F0C95D;
-        color: #2B2B2B;
-      }
-
-      /* Job Card Specific Button Styles */
-      .job-card-button-primary {
-        background-color: #8BCBD3; /* More vivid blue - was primary.hover */
-        color: #333333;
-      }
-      .job-card-button-primary:hover:not(:disabled) {
-        background-color: #6FBAC5; /* Brighter vivid blue for hover */
-      }
-      .dark .job-card-button-primary {
-        background-color: #6AB8C4; /* More vivid dark blue - was dark.primary.hover */
-        color: #1A1A1A;
-      }
-      .dark .job-card-button-primary:hover:not(:disabled) {
-        background-color: #5AAEC1; /* Brighter vivid dark blue for hover */
-      }
-
-
-      /* Helper Card Trust Badges */
       .helper-card-trust-badges {
         display: flex;
         flex-wrap: wrap;
         gap: 6px;
-        margin-top: 8px;
+        margin-top: 8px; /* mt-2 */
       }
       .helper-card-trust-badge {
         font-size: 11px;
         padding: 3px 8px;
-        border-radius: 12px;
-        font-weight: 500;
+        border-radius: 12px; /* rounded-xl */
+        font-weight: 500; /* font-medium */
         display: inline-flex;
         align-items: center;
         gap: 3px;
       }
 
-      /* Status Banners (Shared by Helper and Job Cards) */
-      .helper-card-status-banner, .job-card-status-banner { /* Combined for reuse */
+      .helper-card-status-banner, .job-card-status-banner {
         padding: 6px 12px;
         font-size: 13px;
-        font-weight: 500;
+        font-weight: 500; /* font-medium */
         text-align: center;
         border-bottom: 1px solid;
       }
@@ -475,53 +412,27 @@
         color: #D4A017;
         border-color: #FCEBC5;
       }
-      .dark .status-banner-pinned {
-        background-color: #4A4230;
-        color: #F0D27F;
-        border-color: #6F5F3E;
-      }
-      .status-banner-unavailable { /* Helper specific */
+      .status-banner-unavailable {
         background-color: #FFF0F0;
         color: #D9534F;
         border-color: #F9D4D4;
       }
-      .dark .status-banner-unavailable {
-        background-color: #4D3232;
-        color: #F08080;
-        border-color: #7C5050;
-      }
-      .status-banner-hired { /* Job specific */
+      .status-banner-hired {
         background-color: #E6FFFA;
         color: #2C7A7B;
         border-color: #B2F5EA;
-      }
-      .dark .status-banner-hired {
-        background-color: #234E52; /* Darker green */
-        color: #81E6D9;
-        border-color: #38B2AC;
       }
       .status-banner-expired {
         background-color: #F5F5F5;
         color: #777777;
         border-color: #E0E0E0;
       }
-      .dark .status-banner-expired {
-        background-color: #3E3E3E;
-        color: #AAAAAA;
-        border-color: #555555;
-      }
       .status-banner-suspicious {
         background-color: #FFEBEB;
         color: #E53E3E;
         border-color: #FED7D7;
       }
-      .dark .status-banner-suspicious {
-        background-color: #522A2A;
-        color: #FC8181;
-        border-color: #8C4343;
-      }
 
-      /* Line clamp for details (Shared by Helper and Job Cards) */
       .details-line-clamp {
         display: -webkit-box;
         -webkit-box-orient: vertical;
@@ -530,50 +441,42 @@
         text-overflow: ellipsis;
       }
 
-      /* Responsive adjustments */
       @media (max-width: 480px) {
-        /* Helper Card specific mobile */
-        .helper-card-header { padding: 12px; }
+        .helper-card-header { padding: 12px; } /* p-3 */
         .helper-card-avatar { width: 60px; height: 60px; }
-        .helper-card-name { font-size: 14px; }
-        .helper-card-name .name-arrow { font-size: 12px; }
-        .helper-card-header-location { font-size: 12px; }
+        /* .helper-card-name { font-size: 14px; } - Tailwind handles this in component */
+        .helper-card-name .name-arrow { font-size: 12px; } /* text-xs */
+        .helper-card-header-location { font-size: 12px; } /* text-xs */
 
-        /* Job Card specific mobile */
-        .job-card-header { padding: 12px; }
-        /* .job-card-header-icon { width: 40px; height: 40px; } */ /* If an icon is used */
+        .job-card-header { padding: 12px; } /* p-3 */
 
-        /* Shared mobile adjustments */
         .helper-card-main-title, .job-card-main-title { font-size: 18px; }
         .helper-card-header-categories-combined, .job-card-header-categories-combined { font-size: 10px; }
 
-        .helper-card-info-grid, .job-card-info-grid { padding: 8px 12px; gap: 5px; }
-        .helper-card-info-item, .job-card-info-item { font-size: 12px; }
+        .helper-card-info-grid, .job-card-info-grid { padding: 0; /* Padding now on items */ gap: 5px; } /* Remove padding from grid */
+        .helper-card-info-item, .job-card-info-item { font-size: 12px; padding: 6px 10px; /* Adjust padding for mobile */ }
         .helper-card-info-item .info-icon, .job-card-info-item .info-icon { margin-right: 6px; }
 
         .helper-card-details-box, .job-card-details-box { padding: 10px 12px; margin: 10px 12px; }
-        .helper-card-details-title, .job-card-details-title { font-size: 14px; }
-        .helper-card-details-box li, .job-card-details-box li { font-size: 12px; }
+        /* .helper-card-details-title, .job-card-details-title { font-size: 14px; } - Tailwind handles this */
+        /* .helper-card-details-box li, .job-card-details-box li { font-size: 12px; } - Tailwind handles this */
 
         .helper-card-footer, .job-card-footer {
           padding: 10px 12px;
           flex-direction: column;
-          gap: 8px;
+          gap: 8px; /* gap-2 */
         }
         .helper-card-action-buttons, .job-card-action-buttons {
-          order: 1; /* Action buttons appear first */
+          order: 1;
           width: 100%;
           justify-content: space-around;
         }
         .helper-card-posted-time, .job-card-posted-time {
-          order: 2; /* Timestamp appears second */
+          order: 2;
           width: 100%;
           text-align: center;
         }
-        .helper-card-button, .job-card-button { width: 100%; }
-        .helper-card-button-secondary { width: 100%; } /* Helper specific button type */
       }
-
     </style>
   <script type="importmap">
 {
@@ -588,11 +491,10 @@
   }
 }
 </script>
-<!-- Removed link to non-existent /index.css -->
+<link rel="stylesheet" href="/index.css">
 </head>
   <body class="bg-neutral-light font-serif text-neutral-dark">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>
-<!-- Removed link to non-existent index.css and duplicate script import -->

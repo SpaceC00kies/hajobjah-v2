@@ -201,20 +201,20 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
     const isJob = 'payment' in item;
     const isTrulyExpired = item.isExpired || (item.expiresAt ? isDateInPast(item.expiresAt) : false);
     let statusText = 'กำลังแสดง';
-    let statusColor = 'text-green-600 dark:text-green-400';
+    let statusColor = 'text-green-600';
 
     if (isJob && item.isHired) {
       statusText = 'มีคนทำแล้ว';
-      statusColor = 'text-blue-600 dark:text-blue-400';
+      statusColor = 'text-blue-600';
     } else if (!isJob && item.isUnavailable) {
       statusText = 'ไม่ว่าง';
-      statusColor = 'text-orange-600 dark:text-orange-400';
+      statusColor = 'text-orange-600';
     } else if (item.isSuspicious) {
       statusText = 'ถูกระงับชั่วคราว';
-      statusColor = 'text-red-600 dark:text-red-400';
+      statusColor = 'text-red-600';
     } else if (isTrulyExpired) {
       statusText = 'หมดอายุ';
-      statusColor = 'text-neutral-500 dark:text-neutral-400';
+      statusColor = 'text-neutral-500';
     }
     return <span className={`text-xs font-medium ${statusColor}`}>{statusText}</span>;
   };
@@ -292,17 +292,17 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
 
   const renderMyJobsTab = () => (
     <div className="space-y-4">
-       <div className="mb-6 p-3 bg-neutral-light/50 dark:bg-dark-inputBg/30 shadow-sm rounded-lg border border-neutral-DEFAULT/30 dark:border-dark-border/30">
-        <h3 className="text-md font-sans font-semibold text-neutral-700 dark:text-dark-text mb-2 text-center">
+       <div className="mb-6 p-3 bg-neutral-light/50 shadow-sm rounded-lg border border-neutral-DEFAULT/30">
+        <h3 className="text-md font-sans font-semibold text-neutral-700 mb-2 text-center">
          📊 สถานะประกาศงาน
         </h3>
-        <div className="space-y-1 text-xs sm:text-sm font-sans text-neutral-dark dark:text-dark-textMuted">
-          <div className="flex justify-between items-center p-1.5 bg-white/50 dark:bg-dark-cardBg/20 rounded">
+        <div className="space-y-1 text-xs sm:text-sm font-sans text-neutral-dark">
+          <div className="flex justify-between items-center p-1.5 bg-white/50 rounded">
             <span>จำนวนประกาศ: {userActiveJobsCount}/{maxJobsAllowed}</span>
             {jobCanCreate ? (
-              <span className="text-green-600 dark:text-green-400">✅ พร้อมสร้าง</span>
+              <span className="text-green-600">✅ พร้อมสร้าง</span>
             ) : (
-              <span className="text-orange-600 dark:text-orange-400">⏳ รออีก {jobCooldownHoursRemaining} ชั่วโมง</span>
+              <span className="text-orange-600">⏳ รออีก {jobCooldownHoursRemaining} ชั่วโมง</span>
             )}
           </div>
         </div>
@@ -310,7 +310,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
 
       {userJobs.length === 0 ? (
         <div className="text-center py-8">
-          <p className="text-neutral-medium dark:text-dark-textMuted mb-4">คุณยังไม่ได้ลงประกาศงาน</p>
+          <p className="text-neutral-medium mb-4">คุณยังไม่ได้ลงประกาศงาน</p>
           <Button onClick={() => navigateTo(View.PostJob)} variant="primary" size="sm" disabled={!jobCanCreate && userActiveJobsCount >= maxJobsAllowed}>
             {jobCanCreate && userActiveJobsCount < maxJobsAllowed ? '+ สร้างประกาศงานใหม่' : 'ไม่สามารถสร้างได้ตอนนี้'}
           </Button>
@@ -327,14 +327,14 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
             }
           }
           return (
-            <div key={job.id} className="bg-white dark:bg-dark-cardBg p-4 rounded-lg shadow border dark:border-dark-border/70">
-              <h4 className="font-semibold text-lg text-primary dark:text-dark-primary mb-1">{job.title}</h4>
-              <p className="text-xs text-neutral-medium dark:text-dark-textMuted mb-1">หมวดหมู่: {job.category} {job.subCategory && `(${job.subCategory})`}</p>
-              <p className="text-xs text-neutral-medium dark:text-dark-textMuted mb-2">ลงประกาศเมื่อ: {formatDateDisplay(job.postedAt)}</p>
+            <div key={job.id} className="bg-white p-4 rounded-lg shadow border">
+              <h4 className="font-semibold text-lg text-primary mb-1">{job.title}</h4>
+              <p className="text-xs text-neutral-medium mb-1">หมวดหมู่: {job.category} {job.subCategory && `(${job.subCategory})`}</p>
+              <p className="text-xs text-neutral-medium mb-2">ลงประกาศเมื่อ: {formatDateDisplay(job.postedAt)}</p>
               <div className="mb-1 flex items-center gap-2 flex-wrap">
                 {renderItemStatus(job)}
-                {jobExpiryWarning && <span className="text-xs text-amber-600 dark:text-amber-400">{jobExpiryWarning}</span>}
-                {!jobExpiryWarning && daysRemainingText && <span className="text-xs text-sky-600 dark:text-sky-400">{daysRemainingText}</span>}
+                {jobExpiryWarning && <span className="text-xs text-amber-600">{jobExpiryWarning}</span>}
+                {!jobExpiryWarning && daysRemainingText && <span className="text-xs text-sky-600">{daysRemainingText}</span>}
               </div>
               <div className="flex flex-wrap gap-2 mt-2">
                 <Button onClick={() => onEditItem(job.id, 'job', activeTab)} variant="outline" colorScheme="neutral" size="sm" disabled={job.isSuspicious}>✏️ แก้ไข</Button>
@@ -350,17 +350,17 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
 
   const renderMyHelperServicesTab = () => (
     <div className="space-y-4">
-      <div className="mb-6 p-3 bg-neutral-light/50 dark:bg-dark-inputBg/30 shadow-sm rounded-lg border border-neutral-DEFAULT/30 dark:border-dark-border/30">
-        <h3 className="text-md font-sans font-semibold text-neutral-700 dark:text-dark-text mb-2 text-center">
+      <div className="mb-6 p-3 bg-neutral-light/50 shadow-sm rounded-lg border border-neutral-DEFAULT/30">
+        <h3 className="text-md font-sans font-semibold text-neutral-700 mb-2 text-center">
          📊 สถานะโปรไฟล์ผู้ช่วย
         </h3>
-        <div className="space-y-1 text-xs sm:text-sm font-sans text-neutral-dark dark:text-dark-textMuted">
-          <div className="flex justify-between items-center p-1.5 bg-white/50 dark:bg-dark-cardBg/20 rounded">
+        <div className="space-y-1 text-xs sm:text-sm font-sans text-neutral-dark">
+          <div className="flex justify-between items-center p-1.5 bg-white/50 rounded">
             <span>จำนวนโปรไฟล์: {userActiveHelperProfilesCount}/{maxHelperProfilesAllowed}</span>
              {profileCanCreate ? (
-              <span className="text-green-600 dark:text-green-400">✅ พร้อมสร้าง</span>
+              <span className="text-green-600">✅ พร้อมสร้าง</span>
             ) : (
-              <span className="text-orange-600 dark:text-orange-400">⏳ รออีก {helperProfileCooldownHoursRemaining} ชั่วโมง</span>
+              <span className="text-orange-600">⏳ รออีก {helperProfileCooldownHoursRemaining} ชั่วโมง</span>
             )}
           </div>
         </div>
@@ -368,7 +368,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
 
       {userHelperProfiles.length === 0 ? (
         <div className="text-center py-8">
-          <p className="text-neutral-medium dark:text-dark-textMuted mb-4">คุณยังไม่ได้สร้างโปรไฟล์ผู้ช่วย/บริการ</p>
+          <p className="text-neutral-medium mb-4">คุณยังไม่ได้สร้างโปรไฟล์ผู้ช่วย/บริการ</p>
           <Button onClick={() => navigateTo(View.OfferHelp)} variant="secondary" size="sm" disabled={!profileCanCreate && userActiveHelperProfilesCount >= maxHelperProfilesAllowed}>
              {profileCanCreate && userActiveHelperProfilesCount < maxHelperProfilesAllowed ? '+ สร้างโปรไฟล์ใหม่' : 'ไม่สามารถสร้างได้ตอนนี้'}
           </Button>
@@ -388,21 +388,21 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
             }
           }
           return (
-            <div key={profile.id} className="bg-white dark:bg-dark-cardBg p-4 rounded-lg shadow border dark:border-dark-border/70">
+            <div key={profile.id} className="bg-white p-4 rounded-lg shadow border">
               <h4 
-                className="font-semibold text-lg text-secondary dark:text-dark-secondary mb-1 cursor-pointer hover:underline"
+                className="font-semibold text-lg text-secondary mb-1 cursor-pointer hover:underline"
                 onClick={() => onNavigateToPublicProfile({ userId: profile.userId, helperProfileId: profile.id })}
                 title="ดูโปรไฟล์สาธารณะ"
                 aria-label={`ดูโปรไฟล์สาธารณะของ ${profile.profileTitle}`}
               >
                 {profile.profileTitle}
               </h4>
-              <p className="text-xs text-neutral-medium dark:text-dark-textMuted mb-1">หมวดหมู่: {profile.category} {profile.subCategory && `(${profile.subCategory})`}</p>
-              <p className="text-xs text-neutral-medium dark:text-dark-textMuted mb-2">ลงประกาศเมื่อ: {formatDateDisplay(profile.postedAt)} (อัปเดตล่าสุด: {formatDateDisplay(profile.updatedAt)})</p>
+              <p className="text-xs text-neutral-medium mb-1">หมวดหมู่: {profile.category} {profile.subCategory && `(${profile.subCategory})`}</p>
+              <p className="text-xs text-neutral-medium mb-2">ลงประกาศเมื่อ: {formatDateDisplay(profile.postedAt)} (อัปเดตล่าสุด: {formatDateDisplay(profile.updatedAt)})</p>
               <div className="mb-1 flex items-center gap-2 flex-wrap">
                 {renderItemStatus(profile)}
-                {profileExpiryWarning && <span className="text-xs text-amber-600 dark:text-amber-400">{profileExpiryWarning}</span>}
-                {!profileExpiryWarning && daysRemainingText && <span className="text-xs text-sky-600 dark:text-sky-400">{daysRemainingText}</span>}
+                {profileExpiryWarning && <span className="text-xs text-amber-600">{profileExpiryWarning}</span>}
+                {!profileExpiryWarning && daysRemainingText && <span className="text-xs text-sky-600">{daysRemainingText}</span>}
               </div>
               <div className="flex flex-wrap gap-2 mt-2">
                 <Button onClick={() => onEditItem(profile.id, 'profile', activeTab)} variant="outline" colorScheme="neutral" size="sm" disabled={profile.isSuspicious}>✏️ แก้ไข</Button>
@@ -430,7 +430,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
     <div className="space-y-4">
       {userWebboardPosts.length === 0 ? (
         <div className="text-center py-8">
-          <p className="text-neutral-medium dark:text-dark-textMuted mb-4">คุณยังไม่ได้สร้างกระทู้</p>
+          <p className="text-neutral-medium mb-4">คุณยังไม่ได้สร้างกระทู้</p>
           <Button 
             onClick={() => navigateTo(View.Webboard, 'create')} 
             variant="outline" // Changed variant
@@ -442,10 +442,10 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
         </div>
       ) : (
         userWebboardPosts.map(post => (
-          <div key={post.id} className="bg-white dark:bg-dark-cardBg p-4 rounded-lg shadow border dark:border-dark-border/70">
-            <h4 className="font-semibold text-lg text-accent dark:text-dark-accent mb-1">{post.title}</h4>
-            <p className="text-xs text-neutral-medium dark:text-dark-textMuted mb-1">หมวดหมู่: {post.category}</p>
-            <p className="text-xs text-neutral-medium dark:text-dark-textMuted mb-2">สร้างเมื่อ: {formatDateDisplay(post.createdAt)} | {post.likes.length} ไลค์, {post.commentCount} คอมเมนต์</p>
+          <div key={post.id} className="bg-white p-4 rounded-lg shadow border">
+            <h4 className="font-semibold text-lg text-accent mb-1">{post.title}</h4>
+            <p className="text-xs text-neutral-medium mb-1">หมวดหมู่: {post.category}</p>
+            <p className="text-xs text-neutral-medium mb-2">สร้างเมื่อ: {formatDateDisplay(post.createdAt)} | {post.likes.length} ไลค์, {post.commentCount} คอมเมนต์</p>
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => navigateTo(View.Webboard, post.id)} variant="outline" colorScheme="neutral" size="sm">👁️ ดูกระทู้</Button>
               <Button onClick={() => onEditItem(post.id, 'webboardPost', activeTab)} variant="outline" colorScheme="neutral" size="sm">✏️ แก้ไข</Button>
@@ -461,7 +461,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
     <div className="space-y-4">
       {savedWebboardPosts.length === 0 ? (
         <div className="text-center py-8">
-          <p className="text-neutral-medium dark:text-dark-textMuted mb-4">คุณยังไม่มีกระทู้ที่บันทึกไว้</p>
+          <p className="text-neutral-medium mb-4">คุณยังไม่มีกระทู้ที่บันทึกไว้</p>
           <Button onClick={() => navigateTo(View.Webboard)} variant="outline" colorScheme="neutral" size="sm">
             ไปที่กระดานสนทนา
           </Button>
@@ -476,7 +476,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
           >
             {savedWebboardPosts.map(post => (
               <motion.div key={post.id} variants={itemVariants}>
-                <div className="bg-white dark:bg-dark-cardBg p-0.5 rounded-lg shadow border dark:border-dark-border/70">
+                <div className="bg-white p-0.5 rounded-lg shadow border">
                   <WebboardPostCard
                       post={post}
                       currentUser={currentUser}
@@ -500,16 +500,16 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
       <div className="mb-6 sm:mb-8 text-center">
-        <h2 className="text-2xl sm:text-3xl font-sans font-semibold text-neutral-800 dark:text-dark-text">
+        <h2 className="text-2xl sm:text-3xl font-sans font-semibold text-neutral-800">
           🛋️ ห้องของฉัน
         </h2>
-        <p className="text-sm text-neutral-medium dark:text-dark-textMuted">
+        <p className="text-sm text-neutral-medium">
           จัดการโปรไฟล์และกิจกรรมทั้งหมดของคุณได้ที่นี่
         </p>
       </div>
 
       {/* Tab Navigation */}
-      <div className="mb-6 sm:mb-8 border-b border-neutral-DEFAULT/70 dark:border-dark-border/70">
+      <div className="mb-6 sm:mb-8 border-b border-neutral-DEFAULT/70">
         <nav className="flex overflow-x-auto space-x-1 sm:space-x-2 -mb-px" aria-label="Tabs">
           {tabs.map(tab => (
             <button
@@ -519,10 +519,10 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
                 whitespace-nowrap flex items-center rounded-t-md
                 py-2.5 px-3 sm:py-3 sm:px-4 
                 font-sans font-medium text-xs sm:text-sm transition-colors duration-150
-                focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-dark-pageBg
+                focus:outline-none focus:ring-2 focus:ring-offset-1
                 ${activeTab === tab.id
-                  ? 'border-b-2 border-neutral-700 text-neutral-800 dark:border-dark-text dark:text-dark-text bg-neutral-light/20 dark:bg-dark-border/20 focus:ring-neutral-700 dark:focus:ring-dark-text'
-                  : 'border-b-2 border-transparent text-neutral-medium hover:text-neutral-dark hover:border-neutral-DEFAULT/80 dark:text-dark-textMuted dark:hover:text-dark-text dark:hover:border-dark-border focus:ring-neutral-DEFAULT dark:focus:ring-dark-border'
+                  ? 'border-b-2 border-neutral-700 text-neutral-800 bg-neutral-light/20 focus:ring-neutral-700'
+                  : 'border-b-2 border-transparent text-neutral-medium hover:text-neutral-dark hover:border-neutral-DEFAULT/80 focus:ring-neutral-DEFAULT'
                 }
               `}
               role="tab"

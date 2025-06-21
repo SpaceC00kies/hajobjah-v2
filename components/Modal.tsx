@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence, type Transition } from 'framer-motion';
 
@@ -48,7 +47,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
       {isOpen && (
         <motion.div
           key="modal-backdrop"
-          className="fixed inset-0 bg-neutral-dark dark:bg-black backdrop-blur-sm flex justify-center items-center z-50 p-4"
+          className="fixed inset-0 bg-neutral-dark/70 backdrop-blur-sm flex justify-center items-center z-50 p-4"
           variants={backdropVariants}
           initial="hidden"
           animate="visible"
@@ -61,25 +60,25 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
         >
           <motion.div
             key="modal-content"
-            className="bg-white dark:bg-dark-cardBg px-6 pt-6 pb-8 sm:pb-12 rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            className="bg-white px-6 pt-6 pb-8 sm:pb-12 rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
             variants={panelVariants}
             initial="hidden"
             animate="visible"
-            exit="exit" // Use custom exit variant if needed, or defaults to reversing animate
+            exit="exit" 
             transition={modalTransition}
             onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside content
           >
             <div className="flex justify-between items-center mb-4">
-              <h2 id={`modal-title-${title.replace(/\s+/g, '-').toLowerCase()}`} className="text-2xl font-sans font-semibold text-neutral-dark dark:text-dark-text">{title}</h2>
+              <h2 id={`modal-title-${title.replace(/\s+/g, '-').toLowerCase()}`} className="text-2xl font-sans font-semibold text-neutral-dark">{title}</h2>
               <button
                 onClick={onClose}
-                className="text-neutral-dark dark:text-dark-textMuted hover:text-neutral-medium dark:hover:text-dark-text text-2xl font-bold font-sans p-1 rounded-full hover:bg-neutral-light/50 dark:hover:bg-dark-inputBg/30 transition-colors"
+                className="text-neutral-dark hover:text-neutral-medium text-2xl font-bold font-sans p-1 rounded-full hover:bg-neutral-light/50 transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-DEFAULT/50 focus:ring-offset-1"
                 aria-label="ปิด"
               >
                 &times;
               </button>
             </div>
-            <div className="font-serif font-normal text-neutral-dark dark:text-dark-textMuted">
+            <div className="font-serif font-normal text-neutral-dark">
               {children}
             </div>
           </motion.div>

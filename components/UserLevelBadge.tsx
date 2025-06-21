@@ -15,9 +15,14 @@ export const UserLevelBadge: React.FC<UserLevelBadgeProps> = ({ level, size = 's
     sizeClasses = 'text-sm px-2.5 py-0.5'; // Reduced vertical padding for md
   }
 
+  // Now directly use the classes from types.ts as they are pre-cleaned
+  const colorClass = level.colorClass.trim();
+  const textColorClass = level.textColorClass ? level.textColorClass.trim() : '';
+
+
   return (
     <span
-      className={`${sizeClasses} font-sans font-normal rounded-full inline-block ml-2.5 ${level.colorClass} ${level.textColorClass || ''}`}
+      className={`${sizeClasses} font-sans font-normal rounded-full inline-block ml-2.5 ${colorClass} ${textColorClass}`}
       aria-label={`Badge: ${level.name}`} // More generic aria-label
     >
       {level.name}

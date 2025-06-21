@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import type { Job, User } from '../types';
 import { View, JobCategory, JOB_CATEGORY_STYLES, JOB_CATEGORY_EMOJIS_MAP, JobDesiredEducationLevelOption, Province } from '../types';
-import { Button } from './Button'; // Button is not used in the new design directly in footer, but kept for modals.
+import { Button } from './Button'; // Import Button
 import { Modal } from './Modal';
 import { isDateInPast } from '../App';
 import { motion, type Transition } from 'framer-motion';
@@ -12,7 +12,7 @@ interface JobCardProps {
   navigateTo: (view: View) => void;
   currentUser: User | null;
   requestLoginForAction: (view: View, payload?: any) => void;
-  onEditJobFromFindView?: (jobId: string) => void; // New prop
+  onEditJobFromFindView?: (jobId: string) => void; 
 }
 
 const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
@@ -62,8 +62,6 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
   const closeWarningModal = () => setIsWarningModalOpen(false);
 
   const handleProceedToContact = () => {
-    // In a real app, you might log this interaction before showing contact info.
-    // logHelperContactInteractionService(job.id, currentUser.id, job.userId); // If jobs also had owners/interactions
     setIsWarningModalOpen(false);
     setIsInterestModalOpen(true);
   };
@@ -102,7 +100,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
   if (dateNeededFromText && dateNeededToText) dateNeededDisplay = `${dateNeededFromText} - ${dateNeededToText}`;
   else if (dateNeededFromText) dateNeededDisplay = `ตั้งแต่ ${dateNeededFromText}`;
   else if (dateNeededToText) dateNeededDisplay = `ถึง ${dateNeededToText}`;
-  else if (job.dateTime) dateNeededDisplay = job.dateTime; // Fallback to original dateTime string if specific dates aren't set
+  else if (job.dateTime) dateNeededDisplay = job.dateTime; 
 
   let timeNeededDisplay = '';
   if (job.timeNeededStart && job.timeNeededEnd) timeNeededDisplay = `${job.timeNeededStart} - ${job.timeNeededEnd} น.`;
@@ -172,16 +170,18 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
         </div>
 
         <div className="job-card-details-box">
-          <h5 className="job-card-details-title">รายละเอียดงาน</h5>
+          <h5 className="job-card-details-title text-sm"> {/* Applied text-sm */}
+            รายละเอียดงาน
+          </h5>
           <ul>
-            <li className={detailsNeedsTruncation && !showFullDetails && !(currentUser && !jobIsTrulyExpired) ? "details-line-clamp" : ""}>
+            <li className={`text-xs ${detailsNeedsTruncation && !showFullDetails && !(currentUser && !jobIsTrulyExpired) ? "details-line-clamp" : ""}`}> {/* Applied text-xs */}
               {displayDetails}
             </li>
           </ul>
           {detailsNeedsTruncation && !(currentUser && !jobIsTrulyExpired) && (
              <button
                 onClick={toggleShowFullDetails}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 font-medium"
+                className="text-xs text-blue-600 hover:underline mt-1 font-medium"
                 aria-expanded={showFullDetails}
               >
                 {showFullDetails ? "แสดงน้อยลง" : "ดูเพิ่มเติม"}
@@ -189,11 +189,11 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
           )}
 
           {(ageRangeText || job.preferredGender || (job.desiredEducationLevel && job.desiredEducationLevel !== JobDesiredEducationLevelOption.Any)) && (
-            <div className="mt-3 pt-3 border-t border-neutral-DEFAULT/30 dark:border-dark-border/30">
-              <h6 className="text-sm font-semibold text-neutral-dark dark:text-dark-text mb-1">
+            <div className="mt-3 pt-3 border-t border-neutral-DEFAULT/30">
+              <h6 className="text-sm font-semibold text-neutral-dark mb-1">
                 คุณสมบัติผู้ช่วยที่ต้องการ:
               </h6>
-              <ul className="qualifications-list text-xs text-neutral-medium dark:text-dark-textMuted">
+              <ul className="qualifications-list text-xs text-neutral-medium"> {/* Applied text-xs */}
                 {ageRangeText && <li>{ageRangeText}</li>}
                 {job.preferredGender && <li>เพศ: {job.preferredGender}</li>}
                 {job.desiredEducationLevel && job.desiredEducationLevel !== JobDesiredEducationLevelOption.Any && (
@@ -210,23 +210,24 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
           </div>
           <div className="job-card-action-buttons">
             {onEditJobFromFindView && currentUser?.id === job.userId ? (
-              <button
+              <Button
                 onClick={() => onEditJobFromFindView(job.id)}
-                className="job-card-button job-card-button-primary"
+                variant="outline"
+                colorScheme="neutral"
+                size="sm"
                 disabled={jobIsTrulyExpired}
-                aria-label={jobIsTrulyExpired ? "งานหมดอายุแล้ว ไม่สามารถแก้ไข" : "แก้ไขงาน"}
               >
                 ✏️ แก้ไข
-              </button>
+              </Button>
             ) : (
-              <button
+              <Button
                 onClick={currentUser ? handleInterest : () => requestLoginForAction(View.FindJobs, { intent: 'contactJob', postId: job.id })}
-                className="job-card-button job-card-button-primary"
+                variant="primary"
+                size="sm"
                 disabled={job.isHired || jobIsTrulyExpired}
-                aria-label={job.isHired ? "งานนี้มีคนทำแล้ว" : jobIsTrulyExpired ? "งานหมดอายุแล้ว" : (currentUser ? "ติดต่อ" : "เข้าสู่ระบบเพื่อติดต่อ")}
               >
                 {job.isHired ? '✅ มีคนทำแล้ว' : jobIsTrulyExpired ? '⛔ หมดอายุ' : (currentUser ? 'ติดต่อ' : 'เข้าสู่ระบบ')}
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -235,13 +236,13 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
       {currentUser && !jobIsTrulyExpired && (
         <>
           <Modal isOpen={isWarningModalOpen} onClose={closeWarningModal} title="⚠️ โปรดระวังมิจฉาชีพ">
-            <div className="bg-amber-50 dark:bg-amber-700/20 border border-amber-300 dark:border-amber-600/40 p-4 rounded-md my-2 text-neutral-dark dark:text-dark-textMuted font-serif">
-              <p className="mb-2">โปรดใช้ความระมัดระวัง <strong className="font-bold text-red-700 dark:text-red-400">ห้ามโอนเงินก่อนเจอตัว</strong> และควรนัดเจอในที่ปลอดภัย</p>
+            <div className="bg-amber-50 border border-amber-300 p-4 rounded-md my-2 text-neutral-dark font-serif">
+              <p className="mb-2">โปรดใช้ความระมัดระวัง <strong className="font-bold text-red-700">ห้ามโอนเงินก่อนเจอตัว</strong> และควรนัดเจอในที่ปลอดภัย</p>
               <p>
                 หาจ๊อบจ้าเป็นเพียงพื้นที่ให้คนเจอกัน โปรดใช้วิจารณญาณในการติดต่อ ฉบับเต็มโปรดอ่านที่หน้า{" "}
                 <button
                   onClick={() => { closeWarningModal(); navigateTo(View.Safety); }}
-                  className="font-serif font-normal underline text-neutral-dark dark:text-dark-textMuted hover:text-primary dark:hover:text-dark-primary-DEFAULT"
+                  className="font-serif font-normal underline text-neutral-dark hover:text-primary"
                 >
                   "โปรดอ่านเพื่อความปลอดภัย"
                 </button>
@@ -253,9 +254,9 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
           </Modal>
 
           <Modal isOpen={isInterestModalOpen} onClose={closeInterestModal} title="ขอบคุณที่สนใจงานนี้">
-            <div className="text-neutral-dark dark:text-dark-textMuted font-serif p-4 rounded-md">
+            <div className="text-neutral-dark font-serif p-4 rounded-md">
               <p className="mb-4">กรุณาติดต่อผู้ประกาศโดยตรงตามข้อมูลด้านล่างเพื่อนัดหมาย หรือสอบถามรายละเอียดเพิ่มเติม</p>
-              <div className="bg-neutral-light dark:bg-dark-inputBg p-4 rounded-md border border-neutral-DEFAULT dark:border-dark-border whitespace-pre-wrap font-sans">
+              <div className="bg-neutral-light p-4 rounded-md border border-neutral-DEFAULT whitespace-pre-wrap font-sans">
                 <p>{job.contact}</p>
               </div>
               <Button onClick={closeInterestModal} variant="primary" className="w-full mt-6">

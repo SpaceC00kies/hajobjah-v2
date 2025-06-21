@@ -4,12 +4,12 @@ import React from 'react';
 export const AboutUsPage: React.FC = () => {
   return (
     <div className="container mx-auto p-6 sm:p-10 max-w-3xl my-8">
-      <div className="bg-white dark:bg-dark-cardBg shadow-xl rounded-xl p-8 md:p-12 border border-neutral-DEFAULT dark:border-dark-border">
-        <h2 className="text-2xl sm:text-3xl font-sans font-bold text-neutral-dark dark:text-dark-text mb-6 text-center whitespace-nowrap">
+      <div className="bg-white shadow-xl rounded-xl p-8 md:p-12 border border-neutral-DEFAULT">
+        <h2 className="text-2xl sm:text-3xl font-sans font-bold text-neutral-dark mb-6 text-center whitespace-nowrap">
           ✨ เกี่ยวกับหาจ๊อบจ้า ✨
         </h2>
 
-        <div className="space-y-5 font-serif text-neutral-dark dark:text-dark-textMuted leading-relaxed font-normal text-base sm:text-lg">
+        <div className="space-y-5 font-serif text-neutral-dark leading-relaxed font-normal text-base sm:text-lg">
           <p>
             รู้สึกไหมว่า... ในตัวเรามี "ของ" ดีๆ ซ่อนอยู่ มีทักษะบางอย่างที่ยังไม่ได้ใช้เต็มที่ หรือมีเวลาว่างช่วงสั้นๆ ที่อยากสร้าง "คุณค่า" ให้มากกว่าแค่ผ่านไปวันๆ? บางทีโลกออนไลน์อาจยังไม่เคยเห็นความสามารถพิเศษนั้อ หรืออาจมีงานด่วนๆ ที่รอคอย "มืออาชีพ" อย่างคุณอยู่!
           </p>
@@ -20,14 +20,14 @@ export const AboutUsPage: React.FC = () => {
             เราเชื่อว่าทุกความสามารถมีค่า และทุกนาทีมีพลังในการสร้างสรรค์
           </p>
 
-          <h3 className="text-xl sm:text-2xl font-sans font-semibold text-neutral-dark dark:text-dark-text pt-4">
+          <h3 className="text-xl sm:text-2xl font-sans font-semibold text-neutral-dark pt-4">
             สำหรับผู้ที่มองหาโอกาส:
           </h3>
           <p>
             คุณอาจเป็นพนักงานประจำที่มี "ไฟในใจ" อยากใช้เวลาช่วงเย็นไปเป็นโค้ชฟิตเนสที่ปลุกพลังให้คนอื่นได้แข็งแรงขึ้น เป็นพนักงานขายในห้างที่หลังเลิกงานแล้วมือไม่ว่าง เพราะมีทักษะการทำขนมอร่อยล้ำพร้อมส่งตรงถึงบ้านตามออเดอร์ หรือเป็นคนที่มีรถคู่ใจและพร้อมจะรับบทเป็น "ฮีโร่ขนส่ง" นอกเวลา ช่วยส่งของสำคัญข้ามจังหวัดเป็นครั้งคราว
           </p>
 
-          <h3 className="text-xl sm:text-2xl font-sans font-semibold text-neutral-dark dark:text-dark-text pt-4">
+          <h3 className="text-xl sm:text-2xl font-sans font-semibold text-neutral-dark pt-4">
             สำหรับผู้ที่มองหาคนเก่ง:
           </h3>
           <p>
@@ -40,7 +40,7 @@ export const AboutUsPage: React.FC = () => {
           <p>
             ที่หาจ๊อบจ้า... เราไม่สนใจว่าคุณเป็นบริษัทใหญ่โต มีประวัติยืดยาวแค่ไหน ขอแค่คุณมี "ทักษะ" "ความตั้งใจที่เต็มเปี่ยม" และ "เบอร์ติดต่อที่พร้อมเชื่อมโยง" โอกาสดีๆ ก็เป็นของคุณ! (อ่อ ซื่อสัตย์และไม่โกงด้วย)
           </p>
-          <p className="text-xl sm:text-2xl font-sans font-semibold text-neutral-medium dark:text-dark-textMuted pt-5 text-center italic">
+          <p className="text-xl sm:text-2xl font-sans font-semibold text-neutral-medium pt-5 text-center italic">
             เราเชื่อมั่นเสมอว่า... "โอกาสใหม่ ๆ มักเริ่มจากสิ่งเล็ก ๆ"
           </p>
         </div>

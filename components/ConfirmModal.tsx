@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Button } from './Button';
 import { motion, AnimatePresence, type Transition } from 'framer-motion';
@@ -54,7 +53,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({ isOpen, onClose, onC
       {isOpen && (
         <motion.div
           key="confirm-modal-backdrop"
-          className="fixed inset-0 bg-neutral-dark dark:bg-black backdrop-blur-md flex justify-center items-center z-50 p-4"
+          className="fixed inset-0 bg-neutral-dark/70 backdrop-blur-sm flex justify-center items-center z-50 p-4"
           variants={backdropVariants}
           initial="hidden"
           animate="visible"
@@ -68,7 +67,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({ isOpen, onClose, onC
         >
           <motion.div
             key="confirm-modal-content"
-            className="bg-white dark:bg-dark-cardBg px-6 pt-6 pb-8 sm:pb-10 rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+            className="bg-white px-6 pt-6 pb-8 sm:pb-10 rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto"
             variants={panelVariants}
             initial="hidden"
             animate="visible"
@@ -76,8 +75,8 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({ isOpen, onClose, onC
             transition={modalTransition}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 id="confirm-modal-title" className="text-xl font-semibold text-neutral-dark dark:text-dark-text mb-4">{title}</h2>
-            <p id="confirm-modal-message" className="text-neutral-dark dark:text-dark-textMuted mb-6 font-normal whitespace-pre-wrap">{message}</p>
+            <h2 id="confirm-modal-title" className="text-xl font-sans font-semibold text-neutral-dark mb-4">{title}</h2>
+            <p id="confirm-modal-message" className="font-serif text-base text-neutral-dark mb-6 whitespace-pre-wrap">{message}</p>
             <div className="flex flex-col sm:flex-row justify-end gap-3">
               <Button onClick={onClose} variant="outline" colorScheme="neutral" size="md" className="w-full sm:w-auto">
                 ยกเลิก
@@ -85,7 +84,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({ isOpen, onClose, onC
               <Button 
                 onClick={handleActualConfirm} 
                 size="md"
-                className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-semibold focus:ring-red-500/50 dark:bg-red-500 dark:hover:bg-red-600 dark:focus:ring-red-400"
+                className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-semibold focus:ring-2 focus:ring-red-500/50 focus:ring-offset-1"
               >
                 <span className="flex items-center justify-center gap-1.5">
                   <span>🗑️</span>

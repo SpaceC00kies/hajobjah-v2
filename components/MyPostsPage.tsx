@@ -142,45 +142,45 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
       if (item.isHiredOrUnavailable) {
         statusText = 'ได้งานแล้ว';
         dotColorClass = 'bg-green-500';
-        badgeBgColorClass = 'bg-green-50 dark:bg-green-700/20';
-        badgeTextColorClass = 'text-green-700 dark:text-green-300';
+        badgeBgColorClass = 'bg-green-50';
+        badgeTextColorClass = 'text-green-700';
       } else if (item.isSuspicious) {
         statusText = 'น่าสงสัย (รอตรวจสอบ)';
         dotColorClass = 'bg-yellow-500';
-        badgeBgColorClass = 'bg-yellow-100 dark:bg-yellow-700/20';
-        badgeTextColorClass = 'text-yellow-700 dark:text-yellow-300';
+        badgeBgColorClass = 'bg-yellow-100';
+        badgeTextColorClass = 'text-yellow-700';
       } else if (isTrulyExpired) {
         statusText = 'หมดอายุ';
         dotColorClass = 'bg-gray-400';
-        badgeBgColorClass = 'bg-gray-100 dark:bg-gray-700/20';
-        badgeTextColorClass = 'text-gray-700 dark:text-gray-300';
+        badgeBgColorClass = 'bg-gray-100';
+        badgeTextColorClass = 'text-gray-700';
       } else {
         statusText = 'แสดงอยู่';
         dotColorClass = 'bg-blue-500';
-        badgeBgColorClass = 'bg-blue-50 dark:bg-blue-700/20';
-        badgeTextColorClass = 'text-blue-700 dark:text-blue-300';
+        badgeBgColorClass = 'bg-blue-50';
+        badgeTextColorClass = 'text-blue-700';
       }
     } else if (item.type === 'profile') {
       if (item.isHiredOrUnavailable) {
         statusText = 'ไม่ว่างแล้ว';
         dotColorClass = 'bg-red-500';
-        badgeBgColorClass = 'bg-red-50 dark:bg-red-700/20';
-        badgeTextColorClass = 'text-red-700 dark:text-red-300';
+        badgeBgColorClass = 'bg-red-50';
+        badgeTextColorClass = 'text-red-700';
       } else if (item.isSuspicious) {
         statusText = 'น่าสงสัย (รอตรวจสอบ)';
         dotColorClass = 'bg-yellow-500';
-        badgeBgColorClass = 'bg-yellow-100 dark:bg-yellow-700/20';
-        badgeTextColorClass = 'text-yellow-700 dark:text-yellow-300';
+        badgeBgColorClass = 'bg-yellow-100';
+        badgeTextColorClass = 'text-yellow-700';
       } else if (isTrulyExpired) {
         statusText = 'หมดอายุ';
         dotColorClass = 'bg-gray-400';
-        badgeBgColorClass = 'bg-gray-100 dark:bg-gray-700/20';
-        badgeTextColorClass = 'text-gray-700 dark:text-gray-300';
+        badgeBgColorClass = 'bg-gray-100';
+        badgeTextColorClass = 'text-gray-700';
       } else {
         statusText = 'แสดงอยู่';
         dotColorClass = 'bg-blue-500';
-        badgeBgColorClass = 'bg-blue-50 dark:bg-blue-700/20';
-        badgeTextColorClass = 'text-blue-700 dark:text-blue-300';
+        badgeBgColorClass = 'bg-blue-50';
+        badgeTextColorClass = 'text-blue-700';
       }
     } else if (item.type === 'webboardPost') {
       return null;
@@ -190,7 +190,7 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
 
     return (
       <>
-        <span className="font-sans text-sm text-neutral-dark dark:text-dark-textMuted">สถานะ: </span>
+        <span className="font-sans text-sm text-neutral-dark">สถานะ: </span>
         <span className={`inline-flex items-center text-xs font-sans font-medium px-2 py-0.5 rounded-md ${badgeBgColorClass} ${badgeTextColorClass}`}>
           <span className={`inline-block w-2 h-2 rounded-full mr-1.5 ${dotColorClass}`}></span>
           {statusText}
@@ -260,33 +260,33 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
   return (
     <div className="container mx-auto p-4 sm:p-8">
       <div className="text-center mb-6">
-        <h2 className="text-3xl font-sans font-semibold text-neutral-800 dark:text-dark-text mb-2">
+        <h2 className="text-3xl font-sans font-semibold text-neutral-800 mb-2">
           📁 โพสต์ของฉัน
         </h2>
-        <p className="text-md font-sans text-neutral-dark dark:text-dark-textMuted">
+        <p className="text-md font-sans text-neutral-dark">
           รวมโพสต์ทั้งหมดของคุณที่นี่
         </p>
       </div>
 
-      <div className="mb-8 p-4 bg-white dark:bg-dark-cardBg shadow-md rounded-lg border dark:border-dark-border">
-        <h3 className="text-xl font-sans font-semibold text-neutral-700 dark:text-dark-text mb-3 text-center">
+      <div className="mb-8 p-4 bg-white shadow-md rounded-lg border border-neutral-DEFAULT">
+        <h3 className="text-xl font-sans font-semibold text-neutral-700 mb-3 text-center">
          📊 สถานะโพสต์
         </h3>
-        <div className="space-y-2 text-sm font-sans text-neutral-dark dark:text-dark-textMuted">
-          <div className="flex justify-between items-center p-2 bg-neutral-light/50 dark:bg-dark-inputBg/30 rounded">
+        <div className="space-y-2 text-sm font-sans text-neutral-dark">
+          <div className="flex justify-between items-center p-2 bg-neutral-light/50 rounded">
             <span>ประกาศงาน: {userActiveJobsCount}/{maxJobsAllowed}</span>
             {jobCanCreate ? (
-              <span className="text-green-600 dark:text-green-400"> (พร้อมสร้าง)</span>
+              <span className="text-green-600"> (พร้อมสร้าง)</span>
             ) : (
-              <span className="text-orange-600 dark:text-orange-400"> (พร้อมสร้าง)</span>
+              <span className="text-orange-600"> (พร้อมสร้าง)</span>
             )}
           </div>
-          <div className="flex justify-between items-center p-2 bg-neutral-light/50 dark:bg-dark-inputBg/30 rounded">
+          <div className="flex justify-between items-center p-2 bg-neutral-light/50 rounded">
             <span>โปรไฟล์ผู้ช่วย: {userActiveHelperProfilesCount}/{maxHelperProfilesAllowed}</span>
             {profileCanCreate ? (
-              <span className="text-green-600 dark:text-green-400"> (พร้อมสร้าง)</span>
+              <span className="text-green-600"> (พร้อมสร้าง)</span>
             ) : (
-              <span className="text-orange-600 dark:text-orange-400"> (พร้อมสร้าง)</span>
+              <span className="text-orange-600"> (พร้อมสร้าง)</span>
             )}
           </div>
         </div>
@@ -294,11 +294,11 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
 
 
       {userItems.length === 0 ? (
-        <div className="text-center py-10 bg-white dark:bg-dark-cardBg p-6 rounded-lg shadow">
-          <svg className="mx-auto h-16 w-16 text-neutral-DEFAULT dark:text-dark-border mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <div className="text-center py-10 bg-white p-6 rounded-lg shadow">
+          <svg className="mx-auto h-16 w-16 text-neutral-DEFAULT mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          <p className="text-xl text-neutral-dark dark:text-dark-textMuted mb-6 font-normal">คุณยังไม่มีประกาศหรือโพสต์ใดๆ เลยนะ</p>
+          <p className="text-xl text-neutral-dark mb-6 font-normal">คุณยังไม่มีประกาศหรือโพสต์ใดๆ เลยนะ</p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Button onClick={() => navigateTo(View.PostJob)} variant="primary" size="md">
               + สร้างประกาศงาน
@@ -324,7 +324,7 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
                 if (hoursLeft > 0) {
                   const daysLeftDisplay = Math.ceil(hoursLeft / 24); // Display in days
                   daysRemainingElement = (
-                    <span className="text-xs font-sans text-blue-600 dark:text-blue-400">
+                    <span className="text-xs font-sans text-blue-600">
                       (⏳ เหลือเวลา {daysLeftDisplay} วัน)
                     </span>
                   );
@@ -333,82 +333,48 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
             }
 
             return (
-              <div key={`${item.type}-${item.id}`} className="bg-white dark:bg-dark-cardBg p-4 sm:p-6 rounded-lg shadow-lg border dark:border-dark-border">
+              <div key={`${item.type}-${item.id}`} className="bg-white p-4 sm:p-6 rounded-lg shadow-lg border border-neutral-DEFAULT">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-start mb-2">
                   <div>
-                      <h4 className="font-semibold text-xl mb-1 text-neutral-800 dark:text-dark-text">
+                      <h4 className="font-semibold text-xl mb-1 text-neutral-800">
                         {item.title}
                       </h4>
-                      <span className="text-xs font-sans text-neutral-medium dark:text-dark-textMuted">
+                      <span className="text-xs font-sans text-neutral-medium">
                         ประเภท: {item.type === 'job' ? 'ประกาศงาน' : item.type === 'profile' ? 'โปรไฟล์ผู้ช่วย' : 'กระทู้พูดคุย'}
                       </span>
                        {item.type === 'webboardPost' && (
-                          <span className="text-xs font-sans text-neutral-medium dark:text-dark-textMuted ml-2">
+                          <span className="text-xs font-sans text-neutral-medium ml-2">
                              ❤️ {item.likesCount || 0} ไลค์ | 💬 {item.commentsCount || 0} คอมเมนต์
                           </span>
                        )}
+                       {daysRemainingElement}
                   </div>
-                  <span className="text-xs font-sans text-neutral-medium dark:text-dark-textMuted mt-1 sm:mt-0">
-                    🕒 โพสต์เมื่อ: {formatDateDisplay(item.postedAt)}
+                  <span className="text-xs font-sans text-neutral-medium mt-1 sm:mt-0">
+                    โพสต์เมื่อ: {formatDateDisplay(item.postedAt)}
                   </span>
                 </div>
-
-                {(item.type === 'job' || item.type === 'profile') && (
-                  <div className="my-3 font-sans flex items-center gap-2 flex-wrap">
-                      {getStatusBadge(item)}
-                      {daysRemainingElement}
-                  </div>
-                )}
-
-                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 font-sans">
-                  {(item.type === 'job' || item.type === 'profile' || item.type === 'webboardPost') &&
-                      <Button
-                        onClick={() => onEditItem(item.id, item.type)}
-                        variant="outline"
-                        colorScheme="neutral"
-                        size="sm"
-                        className="w-full"
-                        disabled={item.isSuspicious} 
-                        title={item.isSuspicious ? "ไม่สามารถแก้ไขโพสต์ที่ถูกระงับ" : "แก้ไขโพสต์"}
-                      >
-                        ✏️ แก้ไขโพสต์
-                      </Button>
-                  }
-
-                  {getToggleStatusButtonText(item) && (
-                      <Button
-                        onClick={() => onToggleHiredStatus(item.id, item.type)}
-                        variant="outline"
-                        colorScheme="neutral"
-                        size="sm"
-                        className="w-full"
-                        disabled={item.isSuspicious} 
-                        title={item.isSuspicious ? "ไม่สามารถเปลี่ยนสถานะโพสต์ที่ถูกระงับ" : getToggleStatusButtonText(item) || ""}
-                      >
-                        {getToggleStatusButtonText(item)}
-                      </Button>
+                <div className="mb-3">
+                  {getStatusBadge(item)}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(item.type === 'job' || item.type === 'profile') && (
+                    <Button
+                      onClick={() => onToggleHiredStatus(item.id, item.type)}
+                      variant="outline"
+                      colorScheme="neutral"
+                      size="sm"
+                      disabled={item.isSuspicious || (item.expiresAt ? isDateInPast(item.expiresAt) : false)}
+                    >
+                      {getToggleStatusButtonText(item)}
+                    </Button>
                   )}
                   {item.type === 'webboardPost' && (
-                       <Button
-                          onClick={() => navigateTo(View.Webboard, { postId: item.id })}
-                          variant="outline"
-                          colorScheme="neutral"
-                          size="sm"
-                          className="w-full"
-                      >
-                          👁️ ดูกระทู้
-                      </Button>
+                     <Button onClick={() => navigateTo(View.Webboard, item.id)} variant="outline" colorScheme="neutral" size="sm">
+                        👁️ ดูกระทู้
+                     </Button>
                   )}
-                  <Button
-                    onClick={() => onDeleteItem(item.id, item.type)}
-                    variant="outline" 
-                    size="sm"
-                    className="w-full text-red-600 dark:text-red-400 border-red-300 dark:border-red-500/50 bg-red-50 dark:bg-red-900/20 hover:bg-red-600 hover:text-white dark:hover:bg-red-500 dark:hover:text-white hover:border-transparent focus:ring-red-500"
-                    disabled={item.isSuspicious} 
-                    title={item.isSuspicious ? "ไม่สามารถลบโพสต์ที่ถูกระงับ" : "ลบโพสต์"}
-                  >
-                    🗑️ ลบโพสต์
-                  </Button>
+                  <Button onClick={() => onEditItem(item.id, item.type)} variant="outline" colorScheme="neutral" size="sm" disabled={item.isSuspicious}>✏️ แก้ไข</Button>
+                  <Button onClick={() => onDeleteItem(item.id, item.type)} variant="outline" colorScheme="accent" className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white" size="sm" disabled={item.isSuspicious}>🗑️ ลบ</Button>
                 </div>
               </div>
             );

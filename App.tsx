@@ -329,7 +329,7 @@ const App: React.FC = () => {
 
 
   useEffect(() => {
-    document.documentElement.classList.remove('dark');
+    // document.documentElement.classList.remove('dark'); // Removed: dark mode management
     setRecentJobSearches(getRecentSearches('recentJobSearches'));
     setRecentHelperSearches(getRecentSearches('recentHelperSearches'));
     
@@ -1348,7 +1348,7 @@ const App: React.FC = () => {
         return (
           <>
             {isMobile && (
-              <div className={`font-sans font-medium mb-3 py-2 px-4 border-b border-neutral-DEFAULT/50 dark:border-dark-border/50 w-full text-center`}>
+              <div className={`font-sans font-medium text-base mb-3 py-2 px-4 border-b border-neutral-DEFAULT/50 w-full text-center`}>
                 สวัสดี, {currentUser.publicDisplayName}!
                 <UserLevelBadge level={displayBadgeForProfile} size="sm" />
                 {currentUser.activityBadge?.isActive && <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm" />}
@@ -1389,7 +1389,7 @@ const App: React.FC = () => {
             )}
 
             {currentView === View.FindJobs ? (
-              <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateAndCloseMenu(View.PostJob);}} variant="outline" colorScheme="primary" {...commonButtonPropsBase}>
+              <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateAndCloseMenu(View.PostJob);}} variant="primary" {...commonButtonPropsBase}>
                 + ลงประกาศงาน
               </Button>
             ) : (currentView !== View.PostJob || (currentView === View.PostJob && itemToEdit)) && (
@@ -1404,7 +1404,7 @@ const App: React.FC = () => {
             )}
 
             {currentView === View.FindHelpers ? (
-              <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateAndCloseMenu(View.OfferHelp);}} variant="outline" colorScheme="secondary" {...commonButtonPropsBase}>
+              <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateAndCloseMenu(View.OfferHelp);}} variant="secondary" {...commonButtonPropsBase}>
                 + สร้างโปรไฟล์
               </Button>
             ) : (currentView !== View.OfferHelp || (currentView === View.OfferHelp && itemToEdit )) && (
@@ -1422,7 +1422,7 @@ const App: React.FC = () => {
               onClick={handleLogout}
               variant="outline"
               colorScheme="accent"
-              className={`${commonButtonPropsBase.className} border-red-500 text-red-500 hover:bg-red-500 hover:text-white dark:border-red-400 dark:text-red-400 dark:hover:bg-red-400 dark:hover:text-neutral-dark focus:ring-red-500 dark:focus:ring-red-400`}
+              className={`${commonButtonPropsBase.className} border-red-500 text-red-500 hover:bg-red-500 hover:text-white focus:ring-red-500`}
               size={commonButtonPropsBase.size}
             >
               <span className={navItemSpanClass}><span>🔓</span><span>ออกจากระบบ</span></span>
@@ -1533,7 +1533,7 @@ const App: React.FC = () => {
                 {renderNavLinks(false)}
               </nav>
 
-              <div className="lg:hidden ml-2 p-2 rounded-md text-neutral-dark hover:bg-neutral/20 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-400 dark:focus:ring-gray-500">
+              <div className="lg:hidden ml-2 p-2 rounded-md text-neutral-dark hover:bg-neutral-DEFAULT/20 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-neutral-DEFAULT">
                 <AnimatedHamburgerIcon />
               </div>
           </div>
@@ -1553,7 +1553,7 @@ const App: React.FC = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 } as Transition}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+              className="fixed inset-0 bg-neutral-dark/60 backdrop-blur-sm"
               onClick={() => setIsMobileMenuOpen(false)}
               aria-hidden="true"
             />
@@ -1563,13 +1563,13 @@ const App: React.FC = () => {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "tween", ease: "easeInOut", duration: 0.3 } as Transition}
-              className="fixed top-0 right-0 h-full w-4/5 max-w-xs bg-white dark:bg-dark-cardBg shadow-xl p-5 z-50 overflow-y-auto"
+              className="fixed top-0 right-0 h-full w-4/5 max-w-xs bg-white shadow-xl p-5 z-50 overflow-y-auto"
             >
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-lg font-sans font-semibold text-neutral-medium dark:text-dark-textMuted">เมนู</h2>
+                <h2 className="text-lg font-sans font-semibold text-neutral-medium">เมนู</h2>
                 <button 
                   onClick={() => setIsMobileMenuOpen(false)} 
-                  className="p-1 rounded-md text-neutral-dark dark:text-dark-text hover:bg-neutral-light/50 dark:hover:bg-dark-inputBg/30 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-400 dark:focus:ring-gray-500" 
+                  className="p-1 rounded-md text-neutral-dark hover:bg-neutral-light/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-neutral-DEFAULT" 
                   aria-label="Close menu"
                 >
                   <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
@@ -1773,9 +1773,9 @@ const App: React.FC = () => {
         job.isHired === false
     );
     
-    const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border border-[#CCCCCC] dark:border-dark-border rounded-[10px] text-neutral-dark dark:text-dark-text font-serif font-normal focus:outline-none transition-colors duration-150 ease-in-out";
+    const inputBaseStyle = "w-full p-3 bg-white border border-[#CCCCCC] rounded-[10px] text-neutral-dark font-serif font-normal focus:outline-none transition-colors duration-150 ease-in-out";
     const selectBaseStyle = `${inputBaseStyle} appearance-none`;
-    const inputFocusStyle = "focus:border-neutral-dark dark:focus:border-dark-text focus:ring-1 focus:ring-neutral-dark dark:focus:ring-dark-text focus:ring-opacity-50";
+    const inputFocusStyle = "focus:border-neutral-dark focus:ring-1 focus:ring-neutral-dark focus:ring-opacity-50";
 
     const jobSubCategoryOptions = selectedJobCategoryFilter !== 'all' && JOB_SUBCATEGORIES_MAP[selectedJobCategoryFilter]
       ? JOB_SUBCATEGORIES_MAP[selectedJobCategoryFilter]
@@ -1790,18 +1790,18 @@ const App: React.FC = () => {
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-x-8">
         <aside className="lg:col-span-3 mb-8 lg:mb-0">
-          <div className="sticky top-24 space-y-6 p-4 bg-white dark:bg-dark-cardBg rounded-xl shadow-lg border dark:border-dark-border">
+          <div className="sticky top-24 space-y-6 p-4 bg-white rounded-xl shadow-lg border border-neutral-DEFAULT">
             <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedJobCategoryFilter} onSelectCategory={handleJobCategoryFilterChange} />
             
             <div>
-              <label htmlFor="job-subcategory-filter" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
+              <label htmlFor="job-subcategory-filter" className="block text-sm font-sans font-medium text-neutral-dark mb-1">
                 เลือกหมวดหมู่ย่อย:
               </label>
               <select
                 id="job-subcategory-filter"
                 value={selectedJobSubCategoryFilter}
                 onChange={(e) => setSelectedJobSubCategoryFilter(e.target.value as JobSubCategory | 'all')}
-                className={`${selectBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
+                className={`${selectBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                 disabled={selectedJobCategoryFilter === 'all' || jobSubCategoryOptions.length === 0}
                 aria-label="กรองตามหมวดหมู่ย่อยงาน"
               >
@@ -1813,14 +1813,14 @@ const App: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="job-province-filter" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
+              <label htmlFor="job-province-filter" className="block text-sm font-sans font-medium text-neutral-dark mb-1">
                 เลือกจังหวัด:
               </label>
               <select
                 id="job-province-filter"
                 value={selectedJobProvinceFilter}
                 onChange={(e) => setSelectedJobProvinceFilter(e.target.value as Province | 'all')}
-                className={`${selectBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
+                className={`${selectBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                 aria-label="กรองตามจังหวัดสำหรับงาน"
               >
                 <option value="all">ทุกจังหวัด</option>
@@ -1842,7 +1842,7 @@ const App: React.FC = () => {
             <div className="text-center py-20"><p className="text-xl font-sans">✨ กำลังโหลดประกาศงาน...</p></div>
           )}
           {initialJobsLoaded && activeUserJobs.length === 0 && !hasMoreJobs && (
-            <div className="text-center py-10 bg-white dark:bg-dark-cardBg p-6 rounded-lg shadow-md border dark:border-dark-border">
+            <div className="text-center py-10 bg-white p-6 rounded-lg shadow-md border border-neutral-DEFAULT">
               <svg className="mx-auto h-24 w-24 text-neutral-DEFAULT" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
               <p className="mt-3 text-xl font-serif text-neutral-dark font-normal"> {emptyStateMessage} </p>
               {currentUser && jobsList.length === 0 && !jobSearchTerm.trim() && selectedJobCategoryFilter === 'all' && selectedJobSubCategoryFilter === 'all' && selectedJobProvinceFilter === 'all' && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="mt-6 font-medium"> เป็นคนแรกที่ลงประกาศงาน! </Button> )}
@@ -1875,7 +1875,7 @@ const App: React.FC = () => {
             {isLoadingJobs && initialJobsLoaded && jobsList.length > 0 && <p className="text-sm font-sans text-neutral-medium">✨ กำลังโหลดเพิ่มเติม...</p>}
           </div>
           {initialJobsLoaded && !hasMoreJobs && activeUserJobs.length > 0 && (
-            <p className="text-center text-sm font-sans text-neutral-medium dark:text-dark-textMuted py-4">🎉 คุณดูครบทุกประกาศงานแล้ว</p>
+            <p className="text-center text-sm font-sans text-neutral-medium py-4">🎉 คุณดูครบทุกประกาศงานแล้ว</p>
           )}
         </section>
       </div>
@@ -1996,9 +1996,9 @@ const App: React.FC = () => {
       return { ...hp, userPhoto: user?.photo, userAddress: user?.address, verifiedExperienceBadge: hp.adminVerifiedExperience || false, profileCompleteBadge: user?.profileComplete || false, warningBadge: hp.isSuspicious || false, interestedCount: hp.interestedCount || 0, };
     });
 
-    const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border border-[#CCCCCC] dark:border-dark-border rounded-[10px] text-neutral-dark dark:text-dark-text font-serif font-normal focus:outline-none transition-colors duration-150 ease-in-out";
+    const inputBaseStyle = "w-full p-3 bg-white border border-[#CCCCCC] rounded-[10px] text-neutral-dark font-serif font-normal focus:outline-none transition-colors duration-150 ease-in-out";
     const selectBaseStyle = `${inputBaseStyle} appearance-none`;
-    const inputFocusStyle = "focus:border-neutral-dark dark:focus:border-dark-text focus:ring-1 focus:ring-neutral-dark dark:focus:ring-dark-text focus:ring-opacity-50";
+    const inputFocusStyle = "focus:border-neutral-dark focus:ring-1 focus:ring-neutral-dark focus:ring-opacity-50";
 
     const helperSubCategoryOptions = selectedHelperCategoryFilter !== 'all' && JOB_SUBCATEGORIES_MAP[selectedHelperCategoryFilter]
       ? JOB_SUBCATEGORIES_MAP[selectedHelperCategoryFilter]
@@ -2012,18 +2012,18 @@ const App: React.FC = () => {
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-x-8">
         <aside className="lg:col-span-3 mb-8 lg:mb-0">
-            <div className="sticky top-24 space-y-6 p-4 bg-white dark:bg-dark-cardBg rounded-xl shadow-lg border dark:border-dark-border">
+            <div className="sticky top-24 space-y-6 p-4 bg-white rounded-xl shadow-lg border border-neutral-DEFAULT">
                 <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedHelperCategoryFilter} onSelectCategory={handleHelperCategoryFilterChange} />
                 
                 <div>
-                  <label htmlFor="helper-subcategory-filter" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
+                  <label htmlFor="helper-subcategory-filter" className="block text-sm font-sans font-medium text-neutral-dark mb-1">
                     เลือกหมวดหมู่ย่อย:
                   </label>
                   <select
                     id="helper-subcategory-filter"
                     value={selectedHelperSubCategoryFilter}
                     onChange={(e) => setSelectedHelperSubCategoryFilter(e.target.value as JobSubCategory | 'all')}
-                    className={`${selectBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
+                    className={`${selectBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                     disabled={selectedHelperCategoryFilter === 'all' || helperSubCategoryOptions.length === 0}
                     aria-label="กรองตามหมวดหมู่ย่อยผู้ช่วย"
                   >
@@ -2035,14 +2035,14 @@ const App: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="helper-province-filter" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
+                  <label htmlFor="helper-province-filter" className="block text-sm font-sans font-medium text-neutral-dark mb-1">
                     เลือกจังหวัด:
                   </label>
                   <select
                     id="helper-province-filter"
                     value={selectedHelperProvinceFilter}
                     onChange={(e) => setSelectedHelperProvinceFilter(e.target.value as Province | 'all')}
-                    className={`${selectBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
+                    className={`${selectBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                     aria-label="กรองตามจังหวัดสำหรับผู้ช่วย"
                   >
                     <option value="all">ทุกจังหวัด</option>
@@ -2062,7 +2062,7 @@ const App: React.FC = () => {
               <div className="text-center py-20"><p className="text-xl font-sans">✨ กำลังค้นหาผู้ช่วย...</p></div>
             )}
             {initialHelpersLoaded && enrichedHelperProfilesList.length === 0 && !hasMoreHelpers && (
-            <div className="text-center py-10 bg-white dark:bg-dark-cardBg p-6 rounded-lg shadow-md border dark:border-dark-border">
+            <div className="text-center py-10 bg-white p-6 rounded-lg shadow-md border border-neutral-DEFAULT">
                 <svg className="mx-auto h-24 w-24 text-neutral-DEFAULT" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-2.144M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
                 <p className="mt-3 text-xl font-serif text-neutral-dark font-normal"> {emptyStateMessage} </p>
                 {currentUser && helperProfilesList.length === 0 && !helperSearchTerm.trim() && selectedHelperCategoryFilter === 'all' && selectedHelperSubCategoryFilter === 'all' && selectedHelperProvinceFilter === 'all' && ( <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateTo(View.OfferHelp);}} variant="secondary" size="md" className="mt-6 font-medium"> เป็นคนแรกที่เสนอตัวช่วยงาน! </Button> )}
@@ -2098,7 +2098,7 @@ const App: React.FC = () => {
                 {isLoadingHelpers && initialHelpersLoaded && helperProfilesList.length > 0 && <p className="text-sm font-sans text-neutral-medium">✨ กำลังโหลดเพิ่มเติม...</p>}
             </div>
             {initialHelpersLoaded && !hasMoreHelpers && enrichedHelperProfilesList.length > 0 && (
-                <p className="text-center text-sm font-sans text-neutral-medium dark:text-dark-textMuted py-4">🎉 คุณดูครบทุกโปรไฟล์แล้ว</p>
+                <p className="text-center text-sm font-sans text-neutral-medium py-4">🎉 คุณดูครบทุกโปรไฟล์แล้ว</p>
             )}
         </section>
       </div>
@@ -2222,7 +2222,7 @@ const App: React.FC = () => {
 
   let currentViewContent;
   if (isLoadingAuth) {
-    currentViewContent = (<div className="flex justify-center items-center h-screen"><p className="text-xl font-sans text-neutral-dark dark:text-dark-text">กำลังโหลด...</p></div>);
+    currentViewContent = (<div className="flex justify-center items-center h-screen"><p className="text-xl font-sans text-neutral-dark">กำลังโหลด...</p></div>);
   } else {
     if (currentView === View.PasswordReset) {
       currentViewContent = renderPasswordResetPage();
@@ -2251,14 +2251,14 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-neutral-light dark:bg-dark-pageBg font-serif text-neutral-dark dark:text-dark-text">
+    <div className="flex flex-col min-h-screen bg-neutral-light font-serif text-neutral-dark">
       {!(currentView === View.PasswordReset && !currentUser) && renderHeader()}
       {renderMobileMenu()}
       <main className={`flex-grow container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 ${ (currentView !== View.PasswordReset) ? 'py-6 sm:py-8 lg:py-10 xl:py-12' : ''}`}>
         {currentViewContent}
       </main>
       {!(currentView === View.PasswordReset && !currentUser) && (
-        <footer className="bg-neutral-light dark:bg-dark-headerBg/70 text-neutral-dark dark:text-dark-textMuted pt-16 pb-8 px-4 text-center font-sans">
+        <footer className="bg-neutral-light text-neutral-dark pt-16 pb-8 px-4 text-center font-sans">
           <motion.div
             className="container mx-auto"
             initial={{ opacity: 0, y: 10 }}
@@ -2268,28 +2268,28 @@ const App: React.FC = () => {
             <nav className="mb-3 flex justify-center items-center flex-wrap gap-x-1">
               <button 
                 onClick={() => navigateTo(View.AboutUs)} 
-                className="text-xs text-neutral-medium dark:text-dark-textMuted hover:text-neutral-dark dark:hover:text-dark-text transition-colors duration-300 ease-in-out px-2 py-1"
+                className="text-xs text-neutral-medium hover:text-neutral-dark transition-colors duration-300 ease-in-out px-2 py-1"
               >
                 เกี่ยวกับเรา
               </button>
               <button 
                 onClick={() => navigateTo(View.Safety)} 
-                className="text-xs text-neutral-medium dark:text-dark-textMuted hover:text-neutral-dark dark:hover:text-dark-text transition-colors duration-300 ease-in-out px-2 py-1"
+                className="text-xs text-neutral-medium hover:text-neutral-dark transition-colors duration-300 ease-in-out px-2 py-1"
               >
                 ความปลอดภัย
               </button>
               <button 
                 onClick={() => setIsFeedbackModalOpen(true)} 
-                className="text-xs text-neutral-medium dark:text-dark-textMuted hover:text-neutral-dark dark:hover:text-dark-text transition-colors duration-300 ease-in-out px-2 py-1"
+                className="text-xs text-neutral-medium hover:text-neutral-dark transition-colors duration-300 ease-in-out px-2 py-1"
               >
                 ส่ง Feedback
               </button>
             </nav>
 
-            <div className="mb-3 text-xs text-neutral-medium dark:text-dark-textMuted flex items-center justify-center">
+            <div className="mb-3 text-xs text-neutral-medium flex items-center justify-center">
               <span className="mr-1.5">Created by</span>
               <motion.a
-                href="https://bluecathouse.com" // Assuming you want to link it
+                href="https://bluecathouse.com" 
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center group"
@@ -2301,13 +2301,13 @@ const App: React.FC = () => {
                   alt="Blue Cat House Logo" 
                   className="h-4 w-auto inline-block align-middle mr-1" 
                 />
-                <span className="text-neutral-medium dark:text-dark-textMuted group-hover:text-[#2196F3] dark:group-hover:text-[#2196F3] transition-colors duration-300 ease-in-out">
+                <span className="text-neutral-medium group-hover:text-primary transition-colors duration-300 ease-in-out">
                   Blue Cat House
                 </span>
               </motion.a>
             </div>
             
-            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0">
+            <p className="text-[11px] text-gray-400 mt-0">
               © {new Date().getFullYear()} HAJOBJA.COM - All rights reserved.
             </p>
           </motion.div>

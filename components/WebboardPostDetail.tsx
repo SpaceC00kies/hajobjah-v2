@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react'; // Added useState, useEffect, useRef
 import type { EnrichedWebboardPost, EnrichedWebboardComment, User } from '../types';
 import { USER_LEVELS, UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES } 
@@ -35,23 +36,23 @@ const FallbackAvatarLarge: React.FC<{ name?: string, photo?: string, size?: stri
   }
   const initial = name ? name.charAt(0).toUpperCase() : '👤';
   return (
-    <div className={`${size} rounded-full bg-neutral/60 dark:bg-dark-inputBg flex items-center justify-center text-xl text-white dark:text-dark-text ${className}`}>
+    <div className={`${size} rounded-full bg-neutral/60 flex items-center justify-center text-xl text-white ${className}`}>
       {initial}
     </div>
   );
 };
 
-// Helper function to define SVG icons (example)
-const Icon = ({ path, className = "w-5 h-5" }: { path: string; className?: string }) => (
+// Helper function to define SVG icons
+const Icon = ({ path, className = "w-4 h-4" }: { path: string; className?: string }) => ( // Standardized to w-4 h-4
   <svg className={className} fill="currentColor" viewBox="0 0 20 20">
     <path fillRule="evenodd" d={path} clipRule="evenodd" />
   </svg>
 );
-const LikeIcon = () => <Icon path="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" className="w-5 h-5 text-neutral-500 dark:text-neutral-400" />;
-const LikedIcon = () => <Icon path="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" className="w-5 h-5 text-red-500 dark:text-red-400" />;
-const SaveIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" className="w-5 h-5 text-neutral-500 dark:text-neutral-400" />;
-const SavedIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" className="w-5 h-5 text-blue-500 dark:text-blue-400"/>;
-const ShareIcon = () => <Icon path="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" className="w-5 h-5 text-neutral-500 dark:text-neutral-400" />;
+const LikeIcon = () => <Icon path="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" className="w-4 h-4 text-neutral-500" />;
+const LikedIcon = () => <Icon path="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" className="w-4 h-4 text-red-500" />;
+const SaveIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" className="w-4 h-4 text-neutral-500" />;
+const SavedIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" className="w-4 h-4 text-blue-500"/>;
+const ShareIcon = () => <Icon path="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" className="w-4 h-4 text-neutral-500" />;
 
 const commentListVariants: Variants = {
   hidden: { opacity: 0 },
@@ -95,7 +96,6 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
   const canEditPost = isAuthor || isAdmin || (isModerator && !post.isAuthorAdmin);
   const canDeletePost = isAuthor || isAdmin || canModeratorDeletePost;
 
-  // Removed isAnimatingLike and prevHasLikedRef
   const shareIconControls: AnimationControls = useAnimation();
 
 
@@ -142,14 +142,14 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
   };
 
   const categoryStyle = WEBBOARD_CATEGORY_STYLES[post.category] || WEBBOARD_CATEGORY_STYLES[WebboardCategory.General];
-  const actionButtonBaseClass = "flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-neutral-light dark:hover:bg-dark-inputBg focus:outline-none focus:ring-1 focus:ring-neutral-DEFAULT dark:focus:ring-dark-border text-xs sm:text-sm transition-colors duration-150";
+  const actionButtonBaseClass = "flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-neutral-light focus:outline-none focus:ring-1 focus:ring-neutral-DEFAULT text-xs sm:text-sm transition-colors duration-150";
 
 
   return (
-    <div className="bg-white dark:bg-dark-cardBg shadow-xl rounded-xl p-4 sm:p-6 md:p-8 my-6 border border-neutral-DEFAULT/70 dark:border-dark-border/70">
+    <div className="bg-white shadow-xl rounded-xl p-4 sm:p-6 md:p-8 my-6 border border-neutral-DEFAULT/70">
       {post.isPinned && (
-        <div className="mb-4 px-3 py-1 bg-yellow-100 dark:bg-yellow-500/20 rounded-full text-center">
-          <p className="text-sm font-normal text-yellow-800 dark:text-yellow-300">📌 ปักหมุดโดยแอดมิน</p>
+        <div className="mb-4 px-3 py-1 bg-yellow-100 rounded-full text-center">
+          <p className="text-sm font-normal text-yellow-800">📌 ปักหมุดโดยแอดมิน</p>
         </div>
       )}
 
@@ -161,20 +161,20 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
         </span>
       </div>
 
-      <h1 className="text-xl sm:text-2xl md:text-3xl font-sans font-semibold text-neutral-800 dark:text-dark-text mb-4">{post.title}</h1>
+      <h1 className="text-xl sm:text-2xl md:text-3xl font-sans font-semibold text-neutral-800 mb-4">{post.title}</h1>
 
-      <div className="flex items-center mb-4 pb-3 border-b border-neutral-DEFAULT/30 dark:border-dark-border/30">
+      <div className="flex items-center mb-4 pb-3 border-b border-neutral-DEFAULT/30">
         <FallbackAvatarLarge name={post.authorDisplayName} photo={postAuthor?.photo || post.authorPhoto} className="mr-3 flex-shrink-0" />
         <div className="font-sans">
           <div className="flex items-baseline"> 
             <span 
-              className="text-sm font-semibold text-gray-800 dark:text-gray-200 hover:underline cursor-pointer"
+              className="text-sm font-semibold text-neutral-dark hover:underline cursor-pointer"
               onClick={() => onNavigateToPublicProfile({userId: post.userId})}
               role="link" tabIndex={0} onKeyPress={(e) => e.key === 'Enter' && onNavigateToPublicProfile({userId: post.userId})}
             >
               @{post.authorDisplayName}
             </span>
-            <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+            <span className="ml-2 text-xs text-gray-500">
               · {timeSince(post.createdAt)}
               {post.updatedAt && new Date(post.updatedAt).getTime() !== new Date(post.createdAt).getTime() && 
                 <span className="italic"> (แก้ไข {timeSince(post.updatedAt)})</span>
@@ -185,16 +185,16 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
       </div>
 
       {post.image && (
-        <div className="my-4 flex justify-center items-center bg-neutral-light dark:bg-dark-inputBg rounded-lg overflow-hidden">
+        <div className="my-4 flex justify-center items-center bg-neutral-light rounded-lg overflow-hidden">
           <img src={post.image} alt={post.title} className="max-w-full max-h-[70vh] object-contain" />
         </div>
       )}
 
-      <div className="prose prose-sm sm:prose dark:prose-invert max-w-none text-neutral-dark dark:text-dark-textMuted font-normal leading-relaxed whitespace-pre-wrap mb-6 font-serif">
+      <div className="prose prose-base font-serif max-w-none text-neutral-dark font-normal leading-relaxed whitespace-pre-wrap mb-6">
         {post.body}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 mt-6 pt-4 border-t border-neutral-DEFAULT/30 dark:border-dark-border/30">
+      <div className="flex flex-wrap items-center justify-between gap-2 mt-6 pt-4 border-t border-neutral-DEFAULT/30">
         <div className="flex items-center gap-2 sm:gap-3">
            <motion.button
             onClick={handleLikeClick}
@@ -204,7 +204,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
             whileTap={{ scale: 0.9 }}
           >
             <motion.span
-              key={hasLiked ? "liked-detail" : "unliked-detail"} // Ensure key is unique if icon component changes
+              key={hasLiked ? "liked-detail" : "unliked-detail"} 
               initial={{ scale: 1 }}
               animate={hasLiked ? { scale: [1, 1.3, 1], transition: { type: "spring", stiffness: 400, damping: 10 } } : { scale: [1, 0.8, 1], transition: { type: "spring", stiffness: 300, damping: 15 } }}
               className="inline-block"
@@ -217,7 +217,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
                     initial={{ opacity: 0, y: -3 }}
                     animate={{ opacity: 1, y: 0, transition: { duration: 0.15 } }}
                     exit={{ opacity: 0, y: 3, transition: { duration: 0.15 } }}
-                    className={`font-medium ${hasLiked ? 'text-red-500 dark:text-red-400' : 'text-neutral-500 dark:text-neutral-400'}`}
+                    className={`font-medium ${hasLiked ? 'text-red-500' : 'text-neutral-500'}`}
                 >
                     {post.likes.length}
                 </motion.span>
@@ -240,12 +240,12 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
               >
                 {isSaved ? <SavedIcon/> : <SaveIcon />} 
               </motion.span>
-              <span className={`hidden sm:inline ${isSaved ? 'text-blue-500 dark:text-blue-400' : 'text-neutral-500 dark:text-neutral-400'}`}>{isSaved ? 'Saved' : 'Save'}</span>
+              <span className={`hidden sm:inline ${isSaved ? 'text-blue-500' : 'text-neutral-500'}`}>{isSaved ? 'Saved' : 'Save'}</span>
             </motion.button>
             <div className="relative">
                 <motion.button 
                     onClick={handleShareClick} 
-                    className={`${actionButtonBaseClass} text-neutral-500 dark:text-neutral-400`} 
+                    className={`${actionButtonBaseClass} text-neutral-500`} 
                     aria-label="Share post"
                     whileTap={{ scale: 0.9 }}
                     animate={shareIconControls}
@@ -278,7 +278,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
             </Button>
           )}
           {canDeletePost && (
-            <Button onClick={() => onDeletePost(post.id)} variant="outline" colorScheme="accent" size="sm" className="text-xs border-red-500 text-red-500 hover:bg-red-500 hover:text-white dark:border-red-400 dark:text-red-400 dark:hover:bg-red-400 dark:hover:text-neutral-dark px-2">
+            <Button onClick={() => onDeletePost(post.id)} variant="outline" colorScheme="accent" size="sm" className="text-xs border-red-500 text-red-500 hover:bg-red-500 hover:text-white px-2">
               🗑️ ลบโพสต์
             </Button>
           )}
@@ -286,7 +286,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
       </div>
 
       <div className="mt-8">
-        <h4 className="text-lg font-semibold text-neutral-dark dark:text-dark-text mb-3 font-sans">
+        <h4 className="text-lg font-semibold text-neutral-dark mb-3 font-sans">
             {comments.length} ความคิดเห็น
         </h4>
         {comments.length > 0 ? (
@@ -296,7 +296,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
               variants={commentListVariants}
               initial="hidden"
               animate="visible"
-              exit="hidden" // Optional: define exit for the list container if needed
+              exit="hidden" 
             >
               {comments
                   .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) 
@@ -309,7 +309,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
                       };
                       return (
                           <WebboardCommentItem 
-                              key={comment.id} // Ensure key is on the direct child of AnimatePresence/motion.div list
+                              key={comment.id} 
                               comment={enrichedComment} 
                               currentUser={currentUser} 
                               onDeleteComment={onDeleteComment}
@@ -321,13 +321,13 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
             </motion.div>
           </AnimatePresence>
         ) : (
-          <p className="text-sm text-neutral-medium dark:text-dark-textMuted">ยังไม่มีความคิดเห็น...</p>
+          <p className="text-sm text-neutral-medium">ยังไม่มีความคิดเห็น...</p>
         )}
         <WebboardCommentForm 
             postId={post.id} 
             currentUser={currentUser}
-            onAddComment={onAddComment} 
-            requestLoginForAction={requestLoginForAction} 
+            onAddComment={onAddComment}
+            requestLoginForAction={requestLoginForAction}
             checkWebboardCommentLimits={checkWebboardCommentLimits}
         />
       </div>

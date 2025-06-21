@@ -16,11 +16,10 @@ import { motion, AnimatePresence, type Variants, type Transition } from 'framer-
 interface WebboardPageProps {
   currentUser: User | null;
   users: User[];
-  // posts: WebboardPost[]; // Removed: WebboardPage will fetch its own posts
   comments: WebboardComment[]; // Global comments for enrichment
   onAddOrUpdatePost: (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => void;
   onAddComment: (postId: string, text: string) => void;
-  onToggleLike: (postId: string) => Promise<void>; // Changed to Promise<void>
+  onToggleLike: (postId: string) => Promise<void>; 
   onSavePost: (postId: string) => void;
   onSharePost: (postId: string, postTitle: string) => void;
   onDeletePost: (postId: string) => void;
@@ -72,7 +71,7 @@ const itemVariants: Variants = {
       damping: 12,
     } as Transition,
   },
-  exit: { // Not typically used if parent listContainerVariants handles exit opacity
+  exit: { 
     opacity: 0,
     y: -10,
     transition: {
@@ -99,7 +98,6 @@ const detailViewVariants: Variants = {
 export const WebboardPage: React.FC<WebboardPageProps> = ({
   currentUser,
   users,
-  // posts, // Removed
   comments,
   onAddOrUpdatePost,
   onAddComment,
@@ -127,7 +125,6 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<WebboardCategory | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // State for infinite scroll
   const [webboardPostsList, setWebboardPostsList] = useState<WebboardPost[]>([]);
   const [lastVisibleWebboardPost, setLastVisibleWebboardPost] = useState<DocumentSnapshot | null>(null);
   const [isLoadingWebboardPosts, setIsLoadingWebboardPosts] = useState(false);
@@ -135,7 +132,6 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
   const [initialWebboardPostsLoaded, setInitialWebboardPostsLoaded] = useState(false);
   const webboardLoaderRef = useRef<HTMLDivElement>(null);
 
-  // Refs for current state values to be used in useCallback
   const isLoadingRef = useRef(isLoadingWebboardPosts);
   const hasMoreRef = useRef(hasMoreWebboardPosts);
   const lastVisibleRef = useRef(lastVisibleWebboardPost);
@@ -214,10 +210,6 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
     if (selectedPostId !== null && selectedPostId !== 'create' && initialWebboardPostsLoaded) {
       const postExists = webboardPostsList.some(p => p.id === selectedPostId);
       if (!postExists) {
-        // If the selected post is not in the current list (e.g., direct URL navigation),
-        // reload the posts. This might not place the selected post on the first page,
-        // but it ensures the data context is refreshed. For a more robust solution,
-        // one might fetch the specific post directly if not found.
         loadWebboardPosts(true); 
       }
     }
@@ -250,9 +242,6 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
     await loadWebboardPosts(true); 
     if (postIdToUpdate) { 
         handleCloseCreateModal(); 
-    } else {
-      // New post created, App.tsx's onAddOrUpdatePost will handle navigation/state.
-      // Modal closure for new post is handled by App.tsx logic or its own effects.
     }
   };
 
@@ -263,12 +252,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
     }
 
     try {
-      // Call the main like toggle function from App.tsx (passed as onToggleLike prop)
-      // This ensures backend and global state (allWebboardPostsForAdmin) are updated correctly.
       await onToggleLike(postId);
-
-      // Update local webboardPostsList state for immediate UI feedback
-      // WITHOUT modifying updatedAt
       setWebboardPostsList(prevList =>
         prevList.map(p => {
           if (p.id === postId) {
@@ -277,7 +261,6 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
               userIndex > -1
                 ? p.likes.filter(id => id !== currentUser!.id)
                 : [...p.likes, currentUser!.id];
-            // Crucially, do NOT update p.updatedAt here
             return { ...p, likes: newLikes };
           }
           return p;
@@ -285,7 +268,6 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
       );
     } catch (error) {
       console.error("Error during onToggleLike prop call in WebboardPage:", error);
-      // Handle error if necessary, e.g., show a notification
     }
   };
 
@@ -319,8 +301,9 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
         })
     : [];
 
-  const inputBaseStyle = "p-2 sm:p-2.5 bg-white dark:bg-dark-inputBg border border-neutral-DEFAULT dark:border-dark-border rounded-lg text-neutral-dark dark:text-dark-text focus:outline-none focus:ring-2 focus:ring-neutral-DEFAULT dark:focus:ring-dark-border text-sm sm:text-base";
-  const selectBaseStyle = `${inputBaseStyle} appearance-none`;
+  // Input styles for filters - overriding global font-serif with font-sans here
+  const filterInputBaseStyle = "w-full p-3 bg-white border border-neutral-DEFAULT rounded-md text-neutral-dark font-sans focus:outline-none focus:ring-1 focus:ring-neutral-DEFAULT text-sm sm:text-base";
+  const filterSelectBaseStyle = `${filterInputBaseStyle} appearance-none`;
 
   return (
     <div className="p-2 sm:p-4 md:max-w-3xl md:mx-auto" style={{ position: 'relative', overflowX: 'hidden' }}>
@@ -332,7 +315,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
             initial="initial"
             animate="animate"
             exit="exit"
-            className="w-full" // Ensure it takes full width for proper positioning
+            className="w-full" 
           >
             <Button
               onClick={() => setSelectedPostId(null)}
@@ -371,7 +354,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
             exit="exit"
           >
             <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-              <h2 className="text-2xl sm:text-3xl font-sans font-semibold text-neutral-700 dark:text-neutral-300 text-center sm:text-left">
+              <h2 className="text-2xl sm:text-3xl font-sans font-semibold text-neutral-700 text-center sm:text-left">
                 💬 กระทู้พูดคุย
               </h2>
               <Button
@@ -384,14 +367,14 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
               </Button>
             </div>
 
-            <div className="mb-6 p-3 sm:p-4 bg-white dark:bg-dark-cardBg rounded-lg shadow-sm border border-neutral-DEFAULT/30 dark:border-dark-border/30 flex flex-col sm:flex-row gap-3 sm:gap-4 items-center">
+            <div className="mb-6 p-3 sm:p-4 bg-white rounded-lg shadow-sm border border-neutral-DEFAULT/30 flex flex-col sm:flex-row gap-3 sm:gap-4 items-center">
               <div className="w-full sm:w-auto sm:flex-1">
                 <label htmlFor="categoryFilter" className="sr-only">กรองตามหมวดหมู่</label>
                 <select
                   id="categoryFilter"
                   value={selectedCategoryFilter}
                   onChange={(e) => setSelectedCategoryFilter(e.target.value as WebboardCategory | 'all')}
-                  className={`${selectBaseStyle} w-full font-sans`}
+                  className={`${filterSelectBaseStyle} w-full`}
                 >
                   <option value="all">หมวดหมู่ทั้งหมด</option>
                   {Object.values(WebboardCategory).map((cat: string) => (
@@ -407,28 +390,28 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="ค้นหาหัวข้อ, เนื้อหา, ผู้เขียน..."
-                  className={`${inputBaseStyle} w-full font-serif`}
+                  className={`${filterInputBaseStyle} w-full`}
                 />
               </div>
             </div>
 
             {!initialWebboardPostsLoaded && isLoadingWebboardPosts && webboardPostsList.length === 0 && (
-              <div className="text-center py-20"><p className="text-xl font-sans text-neutral-dark dark:text-dark-text">✨ กำลังโหลดกระทู้…</p></div>
+              <div className="text-center py-20"><p className="text-xl font-sans text-neutral-dark">✨ กำลังโหลดกระทู้…</p></div>
             )}
 
             {initialWebboardPostsLoaded && enrichedPosts.length === 0 && !hasMoreWebboardPosts && (
-              <div className="text-center py-10 bg-white dark:bg-dark-cardBg p-6 rounded-lg shadow">
-                <svg className="mx-auto h-16 w-16 text-neutral-DEFAULT dark:text-dark-border mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <div className="text-center py-10 bg-white p-6 rounded-lg shadow">
+                <svg className="mx-auto h-16 w-16 text-neutral-DEFAULT mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                 </svg>
-                <p className="text-xl font-serif text-neutral-dark dark:text-dark-textMuted mb-4 font-normal">
+                <p className="text-xl font-serif text-neutral-dark mb-4 font-normal">
                   {(searchTerm || selectedCategoryFilter !== 'all')
                       ? 'ไม่พบกระทู้ที่ตรงกับการค้นหาหรือตัวกรองของคุณ'
                       : 'ยังไม่มีกระทู้ในขณะนี้'}
                 </p>
                 {!currentUser && !(searchTerm || selectedCategoryFilter !== 'all') && (
-                  <p className="text-md font-serif text-neutral-dark dark:text-dark-textMuted mb-4 font-normal">
-                      <button onClick={() => navigateTo(View.Login)} className="font-sans text-primary dark:text-dark-primary-DEFAULT hover:underline">เข้าสู่ระบบ</button> หรือ <button onClick={() => navigateTo(View.Register)} className="font-sans text-primary dark:text-dark-primary-DEFAULT hover:underline">ลงทะเบียน</button> เพื่อเริ่มสร้างกระทู้
+                  <p className="text-md font-serif text-neutral-dark mb-4 font-normal">
+                      <button onClick={() => navigateTo(View.Login)} className="font-sans text-primary hover:underline">เข้าสู่ระบบ</button> หรือ <button onClick={() => navigateTo(View.Register)} className="font-sans text-primary hover:underline">ลงทะเบียน</button> เพื่อเริ่มสร้างกระทู้
                   </p>
                 )}
                 {currentUser && !(searchTerm || selectedCategoryFilter !== 'all') && (
@@ -447,7 +430,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
             {enrichedPosts.length > 0 && (
               <motion.div
                 className="space-y-4"
-                variants={listContainerVariants} // Using the list container variants here for the list items' parent
+                variants={listContainerVariants} 
                 initial="hidden"
                 animate="visible"
               >
@@ -470,12 +453,12 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
 
             <div ref={webboardLoaderRef} className="h-10 flex justify-center items-center">
               {isLoadingWebboardPosts && initialWebboardPostsLoaded && webboardPostsList.length > 0 && (
-                <p className="text-sm font-sans text-neutral-medium dark:text-dark-textMuted">กำลังโหลดเพิ่มเติม…</p>
+                <p className="text-sm font-sans text-neutral-medium">กำลังโหลดเพิ่มเติม…</p>
               )}
             </div>
 
             {initialWebboardPostsLoaded && !hasMoreWebboardPosts && webboardPostsList.length > 0 && (
-              <p className="text-center text-sm font-sans text-neutral-medium dark:text-dark-textMuted py-4">🎉 คุณดูครบทุกกระทู้แล้ว</p>
+              <p className="text-center text-sm font-sans text-neutral-medium py-4">🎉 คุณดูครบทุกกระทู้แล้ว</p>
             )}
           </motion.div>
         )}

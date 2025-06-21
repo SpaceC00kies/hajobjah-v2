@@ -17,7 +17,7 @@ const FallbackAvatarCommentForm: React.FC<{ name?: string, photo?: string, size?
     }
     const initial = '💬'; 
     return (
-      <div className={`${size} rounded-full bg-neutral-light dark:bg-dark-inputBg flex items-center justify-center text-md text-neutral-dark dark:text-dark-text ${className}`}>
+      <div className={`${size} rounded-full bg-neutral-light flex items-center justify-center text-md text-neutral-dark ${className}`}>
         {initial}
       </div>
     );
@@ -26,19 +26,17 @@ const FallbackAvatarCommentForm: React.FC<{ name?: string, photo?: string, size?
 export const WebboardCommentForm: React.FC<WebboardCommentFormProps> = ({ postId, currentUser, onAddComment, requestLoginForAction, checkWebboardCommentLimits }) => {
   const [commentText, setCommentText] = useState('');
   const [error, setError] = useState<string | null>(null);
-  // Removed: isCoolingDown, cooldownTimeLeft, hourlyLimitMessage, canPostHourly related states
+  // Removed cooldown state as per plan
 
   useEffect(() => {
     if (!currentUser) {
       return;
     }
-    // Call checkWebboardCommentLimits for consistency, though its direct enforcement is removed.
+    // The checkWebboardCommentLimits function is called to get potential messages,
+    // but the actual limiting logic based on cooldown is removed from the client-side form.
+    // This function is now primarily for displaying messages from App.tsx's central logic if needed.
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const limits = checkWebboardCommentLimits(currentUser);
-    // setCanPostHourly(limits.canPost); // No longer used to block
-    // setHourlyLimitMessage(limits.message || null); // No longer used to block
-    
-    // Per-post cooldown logic and related timer useEffect have been removed.
   }, [postId, currentUser, checkWebboardCommentLimits]);
 
 
@@ -49,9 +47,6 @@ export const WebboardCommentForm: React.FC<WebboardCommentFormProps> = ({ postId
       return;
     }
     
-    // Hourly limit and cooldown checks removed from here.
-    // The checkWebboardCommentLimits function in App.tsx now always returns canPost: true.
-
     if (!commentText.trim()) {
       setError("กรุณาใส่ความคิดเห็น");
       return;
@@ -59,7 +54,6 @@ export const WebboardCommentForm: React.FC<WebboardCommentFormProps> = ({ postId
     onAddComment(postId, commentText);
     setCommentText('');
     setError(null);
-    // Cooldown state updates and localStorage logic removed.
   };
   
   const isDisabled = !currentUser || !commentText.trim(); 
@@ -67,10 +61,9 @@ export const WebboardCommentForm: React.FC<WebboardCommentFormProps> = ({ postId
   if (!currentUser) {
     placeholderText = "เข้าสู่ระบบเพื่อแสดงความคิดเห็น";
   }
-  // Placeholder logic for cooldown/hourly limit removed.
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 p-3 bg-neutral-light/50 dark:bg-dark-inputBg/30 rounded-lg">
+    <form onSubmit={handleSubmit} className="mt-4 p-3 bg-neutral-light/50 rounded-lg">
       <div className="flex items-start space-x-3">
         <FallbackAvatarCommentForm name={currentUser?.publicDisplayName} photo={currentUser?.photo} className="mt-1" />
         <div className="flex-1">
@@ -81,19 +74,19 @@ export const WebboardCommentForm: React.FC<WebboardCommentFormProps> = ({ postId
               if (error) setError(null);
             }}
             rows={3}
-            className={`w-full p-2 border rounded-md text-sm font-normal transition-colors duration-150 ease-in-out
-                        bg-white dark:bg-dark-inputBg text-neutral-dark dark:text-dark-text 
-                        focus:outline-none focus:ring-2 focus:bg-gray-50 dark:focus:bg-[#383838]
+            className={`w-full p-2.5 border rounded-md text-sm font-sans font-normal transition-colors duration-150 ease-in-out
+                        bg-white text-neutral-dark 
+                        focus:outline-none focus:ring-1 focus:bg-gray-50
                         ${error 
-                            ? 'border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500 focus:ring-opacity-70 dark:focus:ring-red-400 dark:focus:ring-opacity-70' 
-                            : 'border-gray-200 dark:border-gray-700 focus:border-gray-300 dark:focus:border-gray-600 focus:ring-gray-300 focus:ring-opacity-70 dark:focus:ring-gray-600 dark:focus:ring-opacity-70'}`}
+                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500/50' 
+                            : 'border-neutral-DEFAULT focus:border-neutral-DEFAULT/70 focus:ring-neutral-DEFAULT/50'}`}
             placeholder={placeholderText}
             disabled={!currentUser} 
             aria-label="แสดงความคิดเห็น"
             aria-invalid={!!error}
             aria-describedby={error ? "comment-error" : undefined}
           />
-          {error && <p id="comment-error" className="text-red-500 dark:text-red-400 text-xs mt-1">{error}</p>}
+          {error && <p id="comment-error" className="text-red-500 text-xs mt-1">{error}</p>}
         </div>
       </div>
       {currentUser && (

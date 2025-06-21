@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import type { WebboardPost, User } from '../types'; // Added User
 import { WebboardCategory } from '../types'; 
@@ -32,25 +31,25 @@ const MAX_POST_CHARS = 5000; // Increased to 5000
 const WebboardRules: React.FC = () => {
   return (
     <motion.div 
-      className="my-6 p-3 sm:p-4 bg-amber-50 dark:bg-amber-800/20 border border-amber-300 dark:border-amber-600/40 rounded-lg shadow-sm"
+      className="my-6 p-3 sm:p-4 bg-amber-50 border border-amber-300 rounded-lg shadow-sm"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2, duration: 0.4, ease: "easeOut" } as Transition}
     >
-      <h4 className="text-md sm:text-lg font-sans font-semibold text-amber-700 dark:text-amber-300 mb-2 text-center">
+      <h4 className="text-md sm:text-lg font-sans font-semibold text-amber-700 mb-2 text-center">
         📝 กฎพื้นฐานของกระดานพูดคุย
       </h4>
-      <p className="text-xs font-serif text-neutral-700 dark:text-dark-textMuted mb-2 text-center">
+      <p className="text-xs font-serif text-neutral-700 mb-2 text-center">
         เพื่อให้พื้นที่นี้เป็นมิตร และปลอดภัยสำหรับทุกคน โปรดช่วยกันรักษากฎเหล่านี้:
       </p>
-      <ul className="space-y-1 text-xs font-serif text-neutral-dark dark:text-dark-textMuted list-none pl-0 sm:pl-1">
+      <ul className="space-y-1 text-xs font-serif text-neutral-dark list-none pl-0 sm:pl-1">
         <li className="flex items-start"><span className="mr-1.5">1.</span>❌ ห้ามโพสต์ซื้อขายสินค้า/บริการทุกชนิด</li>
         <li className="flex items-start"><span className="mr-1.5">2.</span>🚫 ห้ามโพสต์เนื้อหา 18+ หรือเนื้อหาที่ไม่เหมาะสม</li>
         <li className="flex items-start"><span className="mr-1.5">3.</span>👑 ห้ามวิจารณ์หรือพูดถึงสถาบันพระมหากษัตริย์</li>
         <li className="flex items-start"><span className="mr-1.5">4.</span>🗳️ งดการพูดคุยประเด็นการเมืองหรือสร้างความขัดแย้ง</li>
         <li className="flex items-start"><span className="mr-1.5">5.</span>🤝 เคารพกันและกัน — ไม่ใช้คำหยาบ ไม่บูลลี่ ไม่เหยียดหยาม</li>
       </ul>
-      <p className="mt-3 text-xs font-sans text-red-600 dark:text-red-400 text-center font-medium">
+      <p className="mt-3 text-xs font-sans text-red-600 text-center font-medium">
         โพสต์ที่ละเมิดกฎจะถูกลบ อาจถูกระงับการใช้งานโดยไม่แจ้งล่วงหน้า หรือดำเนินคดีตามกฏหมาย
       </p>
     </motion.div>
@@ -156,6 +155,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
     
     if (!formData.category) newErrors.category = 'กรุณาเลือกหมวดหมู่ของโพสต์';
     
+    // Preserve existing image size error if it exists
     if (errors.image && errors.image.startsWith('ขนาดรูปภาพต้องไม่เกิน')) { 
         newErrors.image = errors.image;
     }
@@ -179,13 +179,10 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
     onSubmit(finalDataToSubmit, editingPost?.id);
   };
   
-  const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border border-[#CCCCCC] dark:border-dark-border rounded-[10px] text-neutral-dark dark:text-dark-text font-serif font-normal focus:outline-none transition-colors duration-150 ease-in-out";
-  const inputFocusStyle = "focus:ring-1 focus:ring-neutral-DEFAULT/50 dark:focus:ring-dark-border/50";
-  const inputErrorStyle = "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-2 focus:ring-red-500 focus:ring-opacity-70 dark:focus:ring-red-400 dark:focus:ring-opacity-70";
-  const selectBaseStyle = `${inputBaseStyle} appearance-none`;
+  const inputErrorStyle = "input-error"; // This class is defined in global CSS
 
   const charsLeft = MAX_POST_CHARS - formData.body.length;
-  const charCountColor = charsLeft < 0 ? 'text-red-500 dark:text-red-400' : charsLeft < MAX_POST_CHARS * 0.1 ? 'text-amber-600 dark:text-amber-400' : 'text-neutral-medium dark:text-dark-textMuted';
+  const charCountColor = charsLeft < 0 ? 'text-red-500' : charsLeft < MAX_POST_CHARS * 0.1 ? 'text-amber-600' : 'text-neutral-medium';
 
 
   return (
@@ -193,14 +190,14 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
       <form onSubmit={handleSubmit} className="space-y-4">
         {!editingPost && limitMessage && (
           <div className={`mb-4 p-3 text-center text-sm font-sans rounded-md 
-            ${canSubmitForm ? 'bg-sky-100 dark:bg-sky-700/30 text-sky-700 dark:text-sky-200 border border-sky-300 dark:border-sky-500' 
-                            : 'bg-yellow-100 dark:bg-yellow-700/30 text-yellow-700 dark:text-yellow-200 border border-yellow-300 dark:border-yellow-500'}`}>
+            ${canSubmitForm ? 'bg-sky-100 text-sky-700 border border-sky-300' 
+                            : 'bg-yellow-100 text-yellow-700 border border-yellow-300'}`}>
             {limitMessage}
           </div>
         )}
         <div>
-          <label htmlFor="postTitle" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
-            หัวข้อกระทู้ <span className="text-red-500 dark:text-red-400">*</span>
+          <label htmlFor="postTitle" className="block text-sm font-sans font-medium text-neutral-dark mb-1">
+            หัวข้อกระทู้ <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -208,17 +205,17 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
             name="title"
             value={formData.title}
             onChange={handleChange}
-            className={`${inputBaseStyle} ${errors.title ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
+            className={`${errors.title ? inputErrorStyle : ''}`}
             placeholder="เช่น มีใครเคยลอง... / ขอคำแนะนำเรื่อง..."
             disabled={!canSubmitForm && !editingPost}
           />
-          {errors.title && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.title}</p>}
+          {errors.title && <p className="text-red-500 font-sans text-xs mt-1">{errors.title}</p>}
         </div>
 
         <div>
             <div className="flex justify-between items-center mb-1">
-                <label htmlFor="postBody" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text">
-                    เนื้อหากระทู้ <span className="text-red-500 dark:text-red-400">*</span>
+                <label htmlFor="postBody" className="block text-sm font-sans font-medium text-neutral-dark">
+                    เนื้อหากระทู้ <span className="text-red-500">*</span>
                 </label>
                 <span className={`text-xs font-sans ${charCountColor}`}>
                     {formData.body.length}/{MAX_POST_CHARS}
@@ -230,24 +227,24 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
             value={formData.body}
             onChange={handleChange}
             rows={6}
-            className={`${inputBaseStyle} ${errors.body ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
+            className={`${errors.body ? inputErrorStyle : ''}`}
             placeholder="เล่าเรื่องราว ถามคำถาม หรือแบ่งปันประสบการณ์ของคุณที่นี่..."
             disabled={!canSubmitForm && !editingPost}
             maxLength={MAX_POST_CHARS + 100} // Allow slight overtyping for UX, validate on submit
           />
-          {errors.body && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.body}</p>}
+          {errors.body && <p className="text-red-500 font-sans text-xs mt-1">{errors.body}</p>}
         </div>
 
         <div>
-          <label htmlFor="postCategory" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
-            หมวดหมู่ <span className="text-red-500 dark:text-red-400">*</span>
+          <label htmlFor="postCategory" className="block text-sm font-sans font-medium text-neutral-dark mb-1">
+            หมวดหมู่ <span className="text-red-500">*</span>
           </label>
           <select
             id="postCategory"
             name="category"
             value={formData.category}
             onChange={handleChange}
-            className={`${selectBaseStyle} ${errors.category ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
+            className={`${errors.category ? inputErrorStyle : ''}`}
             disabled={!canSubmitForm && !editingPost}
           >
             <option value="" disabled>-- กรุณาเลือกหมวดหมู่ --</option>
@@ -255,11 +252,11 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
               <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>
-          {errors.category && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.category}</p>}
+          {errors.category && <p className="text-red-500 font-sans text-xs mt-1">{errors.category}</p>}
         </div>
 
         <div>
-          <label htmlFor="postImage" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
+          <label htmlFor="postImage" className="block text-sm font-sans font-medium text-neutral-dark mb-1">
             แนบรูปภาพ (ถ้ามี - ไม่เกิน 2MB)
           </label>
           <input
@@ -269,21 +266,24 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
             ref={fileInputRef}
             accept="image/*"
             onChange={handleImageChange}
-            className={`w-full text-sm font-sans text-neutral-dark dark:text-dark-textMuted 
-                        file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border file:border-neutral-DEFAULT/70 dark:file:border-dark-border/70 
-                        file:bg-neutral-light/30 dark:file:bg-dark-inputBg/30 file:text-sm file:font-semibold file:text-neutral-medium dark:file:text-dark-textMuted
-                        hover:file:bg-neutral-light/70 dark:hover:file:bg-dark-inputBg/50 hover:file:border-neutral-DEFAULT dark:hover:file:border-dark-border
-                        ${errors.image ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
+            className={`w-full text-sm font-sans text-neutral-dark 
+                        file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border file:border-neutral-DEFAULT/70 
+                        file:bg-neutral-light/30 file:text-sm file:font-semibold file:text-neutral-medium
+                        hover:file:bg-neutral-light/70 hover:file:border-neutral-DEFAULT
+                        ${errors.image ? inputErrorStyle : ''}`} // Base input inherits global styles for border, focus etc.
              disabled={!canSubmitForm && !editingPost}
           />
-          {errors.image && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.image}</p>}
+          {errors.image && <p className="text-red-500 font-sans text-xs mt-1">{errors.image}</p>}
           {formData.imagePreviewUrl && (
             <div className="mt-3 relative">
               <img src={formData.imagePreviewUrl} alt="Preview" className="max-h-48 w-auto rounded-md shadow" />
               <Button 
                 type="button" 
                 onClick={handleRemoveImage} 
-                className="absolute top-1 right-1 bg-red-500/70 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs p-0 m-0 shadow"
+                variant="outline"
+                colorScheme="accent"
+                size="sm"
+                className="!p-0 !min-w-0 !w-6 !h-6 flex items-center justify-center !rounded-full !text-xs absolute top-1 right-1 shadow-md"
                 aria-label="ลบรูปภาพ"
                 disabled={!canSubmitForm && !editingPost}
               >

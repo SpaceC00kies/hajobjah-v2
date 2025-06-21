@@ -33,7 +33,7 @@ const calculateAge = (birthdateString?: string): number | null => {
 const FallbackAvatar: React.FC<{ name?: string, size?: string, className?: string }> = ({ name, size = "w-32 h-32", className = "" }) => {
   const initial = name ? name.charAt(0).toUpperCase() : '👤';
   return (
-    <div className={`${size} rounded-full bg-neutral dark:bg-dark-inputBg flex items-center justify-center text-4xl font-sans text-white dark:text-dark-text shadow-md ${className}`}>
+    <div className={`${size} rounded-full bg-neutral flex items-center justify-center text-4xl font-sans text-white shadow-md ${className}`}>
       {initial}
     </div>
   );
@@ -101,10 +101,10 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     }
   }, [feedback]);
 
-  const inputBaseStyle = "w-full p-3 bg-white dark:bg-dark-inputBg border border-[#CCCCCC] dark:border-dark-border rounded-[10px] text-neutral-dark dark:text-dark-text font-serif font-normal focus:outline-none transition-colors duration-150 ease-in-out";
-  const inputFocusStyle = "focus:border-secondary dark:focus:border-dark-secondary-DEFAULT focus:ring-2 focus:ring-secondary focus:ring-opacity-70 dark:focus:ring-dark-secondary-DEFAULT dark:focus:ring-opacity-70";
-  const inputErrorStyle = "border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400 focus:ring-2 focus:ring-red-500 focus:ring-opacity-70 dark:focus:ring-red-400 dark:focus:ring-opacity-70";
-  const readOnlyStyle = "bg-neutral-light dark:bg-dark-inputBg/50 cursor-not-allowed";
+  const inputBaseStyle = "w-full p-3 bg-white border border-[#CCCCCC] rounded-[10px] text-neutral-dark font-serif font-normal focus:outline-none transition-colors duration-150 ease-in-out";
+  const inputFocusStyle = "focus:border-secondary focus:ring-2 focus:ring-secondary focus:ring-opacity-70";
+  const inputErrorStyle = "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500 focus:ring-opacity-70";
+  const readOnlyStyle = "bg-neutral-light cursor-not-allowed";
   const selectBaseStyle = `${inputBaseStyle} appearance-none`;
   const textareaBaseStyle = `${inputBaseStyle} min-h-[60px]`;
 
@@ -209,15 +209,15 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
 
 
   return (
-    <div className="bg-white dark:bg-dark-cardBg p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-xl mx-auto my-10 border border-neutral-DEFAULT dark:border-dark-border">
-      <h2 className="text-3xl font-sans font-semibold text-secondary-hover dark:text-dark-secondary-hover mb-6 text-center">👤 โปรไฟล์ของฉัน</h2>
+    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-xl mx-auto my-10 border border-neutral-DEFAULT">
+      <h2 className="text-3xl font-sans font-semibold text-secondary-hover mb-6 text-center">👤 โปรไฟล์ของฉัน</h2>
 
       {feedback && (
         <div
           ref={feedbackRef}
           className={`p-3 mb-4 rounded-md text-sm font-sans font-medium text-center
-            ${feedback.type === 'success' ? 'bg-green-100 dark:bg-green-700/30 text-green-700 dark:text-green-300' : ''}
-            ${feedback.type === 'error' ? 'bg-red-100 dark:bg-red-700/30 text-red-700 dark:text-red-300' : ''}`}
+            ${feedback.type === 'success' ? 'bg-green-100 text-green-700' : ''}
+            ${feedback.type === 'error' ? 'bg-red-100 text-red-700' : ''}`}
           role="alert"
         >
           {feedback.message}
@@ -231,7 +231,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
           ) : (
             <FallbackAvatar name={currentUser.publicDisplayName} size="w-32 h-32" className="mb-3" />
           )}
-          <label htmlFor="photoUpload" className="cursor-pointer text-sm font-sans text-secondary dark:text-dark-secondary-DEFAULT hover:underline">
+          <label htmlFor="photoUpload" className="cursor-pointer text-sm font-sans text-secondary hover:underline">
             เปลี่ยนรูปโปรไฟล์ (ไม่เกิน 2MB)
           </label>
           <input
@@ -241,51 +241,51 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             onChange={handlePhotoChange}
             className="hidden"
           />
-          {errors.photo && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1 text-center">{errors.photo}</p>}
+          {errors.photo && <p className="text-red-500 font-sans text-xs mt-1 text-center">{errors.photo}</p>}
         </div>
 
         <div>
-          <label htmlFor="profilePublicDisplayName" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ชื่อที่แสดงบนเว็บไซต์ (สาธารณะ) <span className="text-red-500 dark:text-red-400">*</span></label>
+          <label htmlFor="profilePublicDisplayName" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อที่แสดงบนเว็บไซต์ (สาธารณะ) <span className="text-red-500">*</span></label>
           <input
             type="text"
             id="profilePublicDisplayName"
             value={publicDisplayName}
             onChange={(e) => setPublicDisplayName(e.target.value)}
-            className={`${inputBaseStyle} ${errors.publicDisplayName ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
+            className={`${inputBaseStyle} ${errors.publicDisplayName ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
             placeholder="เช่น Puuna V."
           />
-           <p className="text-xs font-sans text-neutral-medium dark:text-dark-textMuted mt-1">
+           <p className="text-xs font-sans text-neutral-medium mt-1">
               ชื่อนี้จะแสดงบนเว็บไซต์ (ไทย/อังกฤษ, 2-30 ตัวอักษร, อนุญาต เว้นวรรค, จุด) เช่น 'Sunny Y.'
             </p>
-          {errors.publicDisplayName && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.publicDisplayName}</p>}
+          {errors.publicDisplayName && <p className="text-red-500 font-sans text-xs mt-1">{errors.publicDisplayName}</p>}
         </div>
 
         <div>
-          <label htmlFor="profileUsername" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ชื่อผู้ใช้ (สำหรับเข้าระบบ)</label>
+          <label htmlFor="profileUsername" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อผู้ใช้ (สำหรับเข้าระบบ)</label>
           <input
             type="text"
             id="profileUsername"
             value={currentUser.username}
             readOnly
-            className={`${inputBaseStyle} ${readOnlyStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
+            className={`${inputBaseStyle} ${readOnlyStyle} focus:bg-gray-50`}
             aria-readonly="true"
           />
         </div>
 
         <div>
-          <label htmlFor="profileEmail" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">อีเมล</label>
+          <label htmlFor="profileEmail" className="block text-sm font-sans font-medium text-neutral-dark mb-1">อีเมล</label>
           <input
             type="email"
             id="profileEmail"
             value={currentUser.email}
             readOnly
-            className={`${inputBaseStyle} ${readOnlyStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
+            className={`${inputBaseStyle} ${readOnlyStyle} focus:bg-gray-50`}
             aria-readonly="true"
           />
         </div>
 
-        <div className="pt-4 border-t border-neutral-DEFAULT/50 dark:border-dark-border/30">
-            <label htmlFor="profile-introSentence" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
+        <div className="pt-4 border-t border-neutral-DEFAULT/50">
+            <label htmlFor="profile-introSentence" className="block text-sm font-sans font-medium text-neutral-dark mb-1">
                 💬 เกี่ยวกับฉัน
             </label>
             <textarea
@@ -293,18 +293,18 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                 value={introSentence}
                 onChange={(e) => setIntroSentence(e.target.value)}
                 rows={3}
-                className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
+                className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                 placeholder="เช่น เป็นคนง่ายๆ สบายๆ ชอบเรียนรู้สิ่งใหม่"
             />
         </div>
 
 
-        <details className="group pt-4 border-t border-neutral-DEFAULT/50 dark:border-dark-border/30" open>
-          <summary className="flex items-center justify-between cursor-pointer list-none p-2 -ml-2 rounded-md hover:bg-neutral-light/50 dark:hover:bg-dark-inputBg/30 transition-colors">
-            <h3 className="text-lg font-sans font-medium text-neutral-dark dark:text-dark-text">
+        <details className="group pt-4 border-t border-neutral-DEFAULT/50" open>
+          <summary className="flex items-center justify-between cursor-pointer list-none p-2 -ml-2 rounded-md hover:bg-neutral-light/50 transition-colors">
+            <h3 className="text-lg font-sans font-medium text-neutral-dark">
               ข้อมูลส่วนตัว
             </h3>
-            <span className="text-secondary dark:text-dark-secondary-DEFAULT transform transition-transform duration-200 group-open:rotate-90">
+            <span className="text-secondary transform transition-transform duration-200 group-open:rotate-90">
               ▶
             </span>
           </summary>
@@ -312,81 +312,81 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             {/* Removed hint text: "ข้อมูลส่วนนี้ จำเป็นต้องกรอก..." */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4">
                 <div>
-                    <label className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">เพศ <span className="text-red-500 dark:text-red-400">*</span></label>
+                    <label className="block text-sm font-sans font-medium text-neutral-dark mb-1">เพศ <span className="text-red-500">*</span></label>
                     <div className="space-y-1">
                         {Object.values(GenderOption).map(optionValue => (
                         <label key={optionValue} className="flex items-center space-x-2 cursor-pointer">
                             <input type="radio" name="profileGender" value={optionValue} checked={gender === optionValue}
                                     onChange={() => setGender(optionValue)}
-                                    className="form-radio h-4 w-4 text-secondary dark:text-dark-secondary-DEFAULT border-[#CCCCCC] dark:border-dark-border focus:ring-secondary dark:focus:ring-dark-secondary-DEFAULT"/>
-                            <span className="text-neutral-dark font-sans dark:text-dark-text font-normal text-sm">{optionValue}</span>
+                                    className="form-radio h-4 w-4 text-secondary border-[#CCCCCC] focus:ring-secondary"/>
+                            <span className="text-neutral-dark font-sans font-normal text-sm">{optionValue}</span>
                         </label>
                         ))}
                     </div>
-                    {errors.gender && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.gender}</p>}
+                    {errors.gender && <p className="text-red-500 font-sans text-xs mt-1">{errors.gender}</p>}
                 </div>
                 <div>
-                    <label htmlFor="profileBirthdate" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">วันเกิด <span className="text-red-500 dark:text-red-400">*</span></label>
+                    <label htmlFor="profileBirthdate" className="block text-sm font-sans font-medium text-neutral-dark mb-1">วันเกิด <span className="text-red-500">*</span></label>
                     <input type="date" id="profileBirthdate" value={birthdate} onChange={handleBirthdateChange}
                             max={new Date().toISOString().split("T")[0]}
-                            className={`${inputBaseStyle} ${errors.birthdate ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} />
-                    {currentAge !== null && <p className="text-xs font-sans text-neutral-dark dark:text-dark-textMuted mt-1">อายุ: {currentAge} ปี</p>}
-                    {errors.birthdate && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.birthdate}</p>}
+                            className={`${inputBaseStyle} ${errors.birthdate ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`} />
+                    {currentAge !== null && <p className="text-xs font-sans text-neutral-dark mt-1">อายุ: {currentAge} ปี</p>}
+                    {errors.birthdate && <p className="text-red-500 font-sans text-xs mt-1">{errors.birthdate}</p>}
                 </div>
             </div>
             <div>
-                <label htmlFor="profileEducationLevel" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ระดับการศึกษา <span className="text-red-500 dark:text-red-400">*</span></label>
+                <label htmlFor="profileEducationLevel" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ระดับการศึกษา <span className="text-red-500">*</span></label>
                 <select id="profileEducationLevel" value={educationLevel}
                         onChange={(e) => setEducationLevel(e.target.value as HelperEducationLevelOption)}
-                        className={`${selectBaseStyle} ${errors.educationLevel ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}>
+                        className={`${selectBaseStyle} ${errors.educationLevel ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}>
                     {Object.values(HelperEducationLevelOption).map(level => (
                         <option key={level} value={level}>{level}</option>
                     ))}
                 </select>
-                 {errors.educationLevel && <p className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.educationLevel}</p>}
+                 {errors.educationLevel && <p className="text-red-500 font-sans text-xs mt-1">{errors.educationLevel}</p>}
             </div>
             <div className="mt-4">
-                <label htmlFor="profileNickname" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ชื่อเล่น</label>
-                <input type="text" id="profileNickname" value={nickname} onChange={(e) => setNickname(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} placeholder="เช่น ซันนี่, จอห์น"/>
+                <label htmlFor="profileNickname" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อเล่น</label>
+                <input type="text" id="profileNickname" value={nickname} onChange={(e) => setNickname(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น ซันนี่, จอห์น"/>
             </div>
             <div className="mt-4">
-                <label htmlFor="profileFirstName" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ชื่อจริง</label>
-                <input type="text" id="profileFirstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} placeholder="เช่น ยาทิดา, สมชาย"/>
+                <label htmlFor="profileFirstName" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อจริง</label>
+                <input type="text" id="profileFirstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น ยาทิดา, สมชาย"/>
             </div>
             <div className="mt-4">
-                <label htmlFor="profileLastName" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">นามสกุล</label>
-                <input type="text" id="profileLastName" value={lastName} onChange={(e) => setLastName(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`} placeholder="เช่น แสงอรุณ, ใจดี"/>
+                <label htmlFor="profileLastName" className="block text-sm font-sans font-medium text-neutral-dark mb-1">นามสกุล</label>
+                <input type="text" id="profileLastName" value={lastName} onChange={(e) => setLastName(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น แสงอรุณ, ใจดี"/>
             </div>
             <div>
-              <label htmlFor="profileAddress" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">ที่อยู่ (จะแสดงในโปรไฟล์สาธารณะของคุณ)</label>
+              <label htmlFor="profileAddress" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ที่อยู่ (จะแสดงในโปรไฟล์สาธารณะของคุณ)</label>
               <textarea
                 id="profileAddress"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 rows={3}
-                className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
+                className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                 placeholder="เช่น บ้านเลขที่, ถนน, ตำบล, อำเภอ, จังหวัด, รหัสไปรษณีย์"
               />
             </div>
           </div>
         </details>
 
-        <details className="group pt-4 border-t border-neutral-DEFAULT/50 dark:border-dark-border/30">
-          <summary className="flex items-center justify-between cursor-pointer list-none p-2 -ml-2 rounded-md hover:bg-neutral-light/50 dark:hover:bg-dark-inputBg/30 transition-colors">
-            <h3 className="text-lg font-sans font-medium text-neutral-dark dark:text-dark-text">
+        <details className="group pt-4 border-t border-neutral-DEFAULT/50">
+          <summary className="flex items-center justify-between cursor-pointer list-none p-2 -ml-2 rounded-md hover:bg-neutral-light/50 transition-colors">
+            <h3 className="text-lg font-sans font-medium text-neutral-dark">
               👤 เพิ่มเติมเกี่ยวกับฉัน
             </h3>
-            <span className="text-secondary dark:text-dark-secondary-DEFAULT transform transition-transform duration-200 group-open:rotate-90">
+            <span className="text-secondary transform transition-transform duration-200 group-open:rotate-90">
               ▶
             </span>
           </summary>
           <div className="mt-3 space-y-4">
-            <p className="text-xs font-sans text-neutral-medium dark:text-dark-textMuted mb-3">
+            <p className="text-xs font-sans text-neutral-medium mb-3">
               ข้อมูลส่วนนี้จะช่วยให้โปรไฟล์สาธารณะของคุณน่าสนใจยิ่งขึ้น
             </p>
             {personalityFields.map(field => (
               <div key={field.name} className="mb-4">
-                <label htmlFor={`profile-${field.name}`} className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">
+                <label htmlFor={`profile-${field.name}`} className="block text-sm font-sans font-medium text-neutral-dark mb-1">
                   {field.label}
                 </label>
                 {field.type === 'textarea' ? (
@@ -395,7 +395,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                     value={field.value}
                     onChange={(e) => field.setter(e.target.value)}
                     rows={field.name === 'introSentence' ? 3 : 2}
-                    className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
+                    className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                     placeholder={field.placeholder}
                   />
                 ) : (
@@ -404,7 +404,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                     id={`profile-${field.name}`}
                     value={field.value}
                     onChange={(e) => field.setter(e.target.value)}
-                    className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
+                    className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                     placeholder={field.placeholder}
                   />
                 )}
@@ -414,49 +414,49 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
         </details>
 
 
-        <div className="pt-4 border-t border-neutral-DEFAULT/50 dark:border-dark-border/30">
-             <h3 className="text-lg font-sans font-medium text-neutral-dark dark:text-dark-text mb-3">ข้อมูลติดต่อ (จะแสดงในโพสต์ของคุณ)</h3>
+        <div className="pt-4 border-t border-neutral-DEFAULT/50">
+             <h3 className="text-lg font-sans font-medium text-neutral-dark mb-3">ข้อมูลติดต่อ (จะแสดงในโพสต์ของคุณ)</h3>
             <div>
-            <label htmlFor="profileMobile" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">เบอร์โทรศัพท์ <span className="text-red-500 dark:text-red-400">*</span></label>
+            <label htmlFor="profileMobile" className="block text-sm font-sans font-medium text-neutral-dark mb-1">เบอร์โทรศัพท์ <span className="text-red-500">*</span></label>
             <input
                 type="tel"
                 id="profileMobile"
                 value={mobile}
                 onChange={(e) => setMobile(e.target.value)}
-                className={`${inputBaseStyle} ${errors.mobile ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
+                className={`${inputBaseStyle} ${errors.mobile ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
                 placeholder="เช่น 0812345678"
                 aria-describedby={errors.mobile ? "mobile-error" : undefined}
                 aria-invalid={!!errors.mobile}
             />
-            {errors.mobile && <p id="mobile-error" className="text-red-500 font-sans dark:text-red-400 text-xs mt-1">{errors.mobile}</p>}
+            {errors.mobile && <p id="mobile-error" className="text-red-500 font-sans text-xs mt-1">{errors.mobile}</p>}
             </div>
 
             <div className="mt-4">
-            <label htmlFor="profileLineId" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">LINE ID</label>
+            <label htmlFor="profileLineId" className="block text-sm font-sans font-medium text-neutral-dark mb-1">LINE ID</label>
             <input
                 type="text"
                 id="profileLineId"
                 value={lineId}
                 onChange={(e) => setLineId(e.target.value)}
-                className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
+                className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                 placeholder="เช่น mylineid"
             />
             </div>
 
             <div className="mt-4">
-            <label htmlFor="profileFacebook" className="block text-sm font-sans font-medium text-neutral-dark dark:text-dark-text mb-1">Facebook</label>
+            <label htmlFor="profileFacebook" className="block text-sm font-sans font-medium text-neutral-dark mb-1">Facebook</label>
             <input
                 type="text"
                 id="profileFacebook"
                 value={facebook}
                 onChange={(e) => setFacebook(e.target.value)}
-                className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50 dark:focus:bg-[#383838]`}
+                className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                 placeholder="ลิงก์โปรไฟล์ หรือชื่อผู้ใช้ Facebook"
             />
             </div>
         </div>
 
-        {errors.general && <p className="text-red-500 font-sans dark:text-red-400 text-sm text-center">{errors.general}</p>}
+        {errors.general && <p className="text-red-500 font-sans text-sm text-center">{errors.general}</p>}
         <div className="flex flex-col sm:flex-row gap-4 pt-4">
             <Button type="submit" variant="secondary" size="lg" className="w-full sm:w-auto flex-grow">💾 บันทึกการเปลี่ยนแปลง</Button>
             <Button type="button" onClick={onCancel} variant="outline" colorScheme="secondary" size="lg" className="w-full sm:w-auto flex-grow">
