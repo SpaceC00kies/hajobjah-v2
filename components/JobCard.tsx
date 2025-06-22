@@ -9,7 +9,7 @@ import { motion, type Transition } from 'framer-motion';
 
 interface JobCardProps {
   job: Job;
-  navigateTo: (view: View) => void;
+  navigateTo: (view: View, payload?: any) => void; // Updated to accept payload
   currentUser: User | null;
   requestLoginForAction: (view: View, payload?: any) => void;
   onEditJobFromFindView?: (jobId: string) => void; 
@@ -152,11 +152,23 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
                 {job.subCategory}
               </div>
             )}
+            {/* Display Author Name */}
+            <div className="helper-card-name-container mt-1"> {/* Reusing helper card style for consistency */}
+                <h3 
+                    className="helper-card-name text-xs" // text-xs for smaller size in job card
+                    onClick={() => navigateTo(View.PublicProfile, job.userId)}
+                    title={`ดูโปรไฟล์ของ ${job.authorDisplayName}`}
+                >
+                    โดย: {job.authorDisplayName}
+                    <span className="name-arrow ml-1">→</span>
+                </h3>
+            </div>
         </div>
 
         <div className="job-card-info-grid">
           <div className="job-card-info-item">
-            <span className="info-icon" role="img" aria-label="Location">📍</span> {job.location} ({job.province || Province.ChiangMai})
+            <span className="info-icon" role="img" aria-label="Location">📍</span> {job.location}
+             <span className="ml-1 text-neutral-medium">(<span className="location-pin-emoji" role="img" aria-label="Province pin">📍</span>{job.province || Province.ChiangMai})</span>
           </div>
           {(dateNeededDisplay || timeNeededDisplay) && (
             <div className="job-card-info-item">
@@ -237,7 +249,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
         <>
           <Modal isOpen={isWarningModalOpen} onClose={closeWarningModal} title="⚠️ โปรดระวังมิจฉาชีพ">
             <div className="bg-amber-50 border border-amber-300 p-4 rounded-md my-2 text-neutral-dark font-serif">
-              <p className="mb-2">โปรดใช้ความระมัดระวัง <strong className="font-bold text-red-700">ห้ามโอนเงินก่อนเจอตัว</strong> และควรนัดเจอในที่ปลอดภัย</p>
+              <p className="mb-2">โปรดใช้ความระมัดระวัง <strong className="font-bold text-red-700">ห้ามโอนเงินก่อนเริ่มงาน</strong> และควรนัดเจอในที่ปลอดภัย</p>
               <p>
                 หาจ๊อบจ้าเป็นเพียงพื้นที่ให้คนเจอกัน โปรดใช้วิจารณญาณในการติดต่อ ฉบับเต็มโปรดอ่านที่หน้า{" "}
                 <button

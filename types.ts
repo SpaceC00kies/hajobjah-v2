@@ -162,6 +162,14 @@ export interface User {
   postingLimits: UserPostingLimits;
   activityBadge: UserActivityBadge;
   savedWebboardPosts?: string[]; // Array of saved post IDs
+
+  // Business Profile Fields
+  businessName?: string;
+  businessType?: string; // e.g., ร้านค้า, บริษัท, ฟรีแลนซ์
+  businessAddress?: string;
+  businessWebsite?: string;
+  businessSocialProfileLink?: string; // e.g., Link to company Facebook Page, LINE OA
+  aboutBusiness?: string;
 }
 
 export enum View {

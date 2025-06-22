@@ -57,7 +57,7 @@ const TrustBadgesPublicProfile: React.FC<{ user: User, helperProfile?: HelperPro
 export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, helperProfile, onBack, currentUser }) => {
   const age = calculateAgePublic(user.birthdate);
 
-  const renderInfoItem = (label: string, value?: string | number | null, highlight: boolean = false, isMultiline: boolean = false, fullWidth: boolean = false) => {
+  const renderInfoItem = (label: string, value?: string | number | null, highlight: boolean = false, isMultiline: boolean = false, fullWidth: boolean = false, isLink: boolean = false) => {
     if ((value === undefined || value === null || (typeof value === 'string' && !value.trim())) && value !== 0) return null;
     
     let valueClass = 'text-neutral-medium';
@@ -72,6 +72,10 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, help
             <div className={`font-serif whitespace-pre-wrap ${valueClass} mt-1`}>
              {value}
             </div>
+        ) : isLink && typeof value === 'string' ? (
+          <a href={value.startsWith('http') ? value : `https://${value}`} target="_blank" rel="noopener noreferrer" className={`font-serif ${valueClass} hover:underline text-blue-600`}>
+            {value}
+          </a>
         ) : (
             <span className={`font-serif ${valueClass}`}>
             {value}
@@ -90,6 +94,8 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, help
     { label: "🚫 สิ่งที่ไม่ชอบที่สุด", value: user.dislikedThing },
     // "เกี่ยวกับฉันสั้นๆ" is now handled separately
   ].filter(item => item.value && item.value.trim() !== '');
+
+  const hasBusinessInfo = user.businessName || user.businessType || user.aboutBusiness || user.businessAddress || user.businessWebsite || user.businessSocialProfileLink;
 
 
   return (
@@ -146,6 +152,20 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, help
             <p className="font-serif text-neutral-medium whitespace-pre-wrap p-3 bg-neutral-light rounded-md">
               {user.introSentence}
             </p>
+          </div>
+        )}
+
+        {hasBusinessInfo && (
+           <div className="mb-6 pt-4 border-t border-neutral-DEFAULT/30">
+            <h3 className="text-xl font-sans font-semibold text-neutral-dark mb-3">🏢 ข้อมูลธุรกิจ:</h3>
+             <div className="space-y-1 bg-neutral-light/30 p-4 rounded-lg border border-neutral-DEFAULT/50">
+                {renderInfoItem("ชื่อธุรกิจ/ร้านค้า", user.businessName)}
+                {renderInfoItem("ประเภทธุรกิจ", user.businessType)}
+                {renderInfoItem("เกี่ยวกับธุรกิจ", user.aboutBusiness, false, true)}
+                {renderInfoItem("ที่ตั้งธุรกิจ", user.businessAddress, false, true)}
+                {renderInfoItem("เว็บไซต์", user.businessWebsite, false, false, false, true)}
+                {renderInfoItem("โซเชียลโปรไฟล์ธุรกิจ", user.businessSocialProfileLink, false, false, false, true)}
+            </div>
           </div>
         )}
         

@@ -91,7 +91,7 @@ const cleanDataForFirestore = <T extends Record<string, any>>(data: T): Partial<
 };
 
 // Updated RegistrationDataType for simplified registration
-type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook'> & { password: string };
+type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook' | 'businessName' | 'businessType' | 'businessAddress' | 'businessWebsite' | 'businessSocialProfileLink' | 'aboutBusiness'> & { password: string };
 
 
 
@@ -143,6 +143,13 @@ export const signUpWithEmailPasswordService = async (
         last30DaysActivity: 0,
       },
       savedWebboardPosts: [], // Initialize saved posts
+      // Initialize Business Info Fields
+      businessName: '',
+      businessType: '',
+      businessAddress: '',
+      businessWebsite: '',
+      businessSocialProfileLink: '',
+      aboutBusiness: '',
       createdAt: serverTimestamp() as any,
       updatedAt: serverTimestamp() as any,
     };
