@@ -90,7 +90,9 @@ const cleanDataForFirestore = <T extends Record<string, any>>(data: T): Partial<
   return cleanedData;
 };
 
-type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts'> & { password: string };
+// Updated RegistrationDataType for simplified registration
+type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook'> & { password: string };
+
 
 
 // --- Authentication Services ---
@@ -100,13 +102,18 @@ export const signUpWithEmailPasswordService = async (
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
     const firebaseUser = userCredential.user;
-    const { password, ...userProfileData } = userData;
+    const { password, ...userProfileData } = userData; // userProfileData now only contains publicDisplayName, username, email, mobile
 
     const now = new Date();
     const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
 
     const newUser: Omit<User, 'id'> = {
-      ...userProfileData,
+      ...userProfileData, // Contains publicDisplayName, username, email, mobile
+      gender: GenderOption.NotSpecified, // Default value
+      birthdate: undefined, // Default value (or empty string)
+      educationLevel: HelperEducationLevelOption.NotStated, // Default value
+      lineId: '', // Default value
+      facebook: '', // Default value
       tier: 'free' as UserTier,
       photo: undefined,
       address: '',

@@ -1,36 +1,22 @@
 
 import React, { useState, useEffect } from 'react';
 import type { User } from '../types';
-import { GenderOption, HelperEducationLevelOption } from '../types';
+import { GenderOption, HelperEducationLevelOption } from '../types'; // Keep for default values, not for form inputs
 import { Button } from './Button';
 
 interface RegistrationFormProps {
-  onRegister: (userData: Omit<User, 'id' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts'> & { password: string }) => Promise<boolean>;
+  onRegister: (userData: Omit<User, 'id' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook'> & { password: string }) => Promise<boolean>;
   onSwitchToLogin: () => void;
 }
 
 type RegistrationFormErrorKeys =
   'publicDisplayName' | 'username' | 'email' | 'password' | 'confirmPassword' |
-  'mobile' | 'lineId' | 'facebook' | 'gender' | 'birthdate' | 'educationLevel' | 'general';
+  'mobile' | 'general'; // Removed gender, birthdate, educationLevel, lineId, facebook errors
 
 const isValidThaiMobileNumber = (mobile: string): boolean => {
   if (!mobile) return false;
   const cleaned = mobile.replace(/[\s-]/g, ''); // Remove spaces and hyphens
   return /^0[689]\d{8}$/.test(cleaned); // 10 digits, starting 06, 08, 09
-};
-
-const calculateAge = (birthdateString?: string): number | null => {
-  if (!birthdateString) return null;
-  const birthDate = new Date(birthdateString);
-  if (isNaN(birthDate.getTime())) return null;
-  const today = new Date();
-  if (birthDate > today) return null;
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-    age--;
-  }
-  return age;
 };
 
 interface PasswordCriteria {
@@ -42,22 +28,17 @@ interface PasswordCriteria {
 }
 
 const SYMBOL_REGEX = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~]/;
-const PUBLIC_DISPLAY_NAME_REGEX = /^[a-zA-Zก-๏\s.]{2,30}$/u;
+const PUBLIC_DISPLAY_NAME_REGEX = /^[a-zA-Z0-9ก-๏\s.]{2,30}$/u; // Added 0-9
 
 
 export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, onSwitchToLogin }) => {
-  const [publicDisplayName, setPublicDisplayName] = useState(''); 
+  const [publicDisplayName, setPublicDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [mobile, setMobile] = useState('');
-  const [lineId, setLineId] = useState('');
-  const [facebook, setFacebook] = useState('');
-  const [gender, setGender] = useState<GenderOption | undefined>(undefined);
-  const [birthdate, setBirthdate] = useState('');
-  const [educationLevel, setEducationLevel] = useState<HelperEducationLevelOption | undefined>(undefined);
-  const [currentAge, setCurrentAge] = useState<number | null>(null);
+  // Removed state for: lineId, facebook, gender, birthdate, educationLevel, currentAge
 
   const [errors, setErrors] = useState<Partial<Record<RegistrationFormErrorKeys, string>>>({});
   const [passwordCriteria, setPasswordCriteria] = useState<PasswordCriteria>({
@@ -69,16 +50,6 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
   });
 
   const brandGreenFocusStyle = "focus:!border-brandGreen focus:!ring-1 focus:!ring-brandGreen focus:!bg-gray-50/70";
-
-  const handleBirthdateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newBirthdate = e.target.value;
-    setBirthdate(newBirthdate);
-    const age = calculateAge(newBirthdate);
-    setCurrentAge(age);
-    if (age !== null || newBirthdate === '') {
-        setErrors(prev => ({ ...prev, birthdate: undefined }));
-    }
-  };
 
   useEffect(() => {
     const newCriteria: PasswordCriteria = {
@@ -96,7 +67,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
     if (!publicDisplayName.trim()) {
       newErrors.publicDisplayName = 'กรุณากรอกชื่อที่ต้องการให้แสดงบนเว็บไซต์';
     } else if (!PUBLIC_DISPLAY_NAME_REGEX.test(publicDisplayName)) {
-      newErrors.publicDisplayName = 'ต้องมี 2-30 ตัวอักษร (ไทย/อังกฤษ, เว้นวรรค, จุด)';
+      newErrors.publicDisplayName = 'ต้องมี 2-30 ตัวอักษร (ไทย/อังกฤษ, ตัวเลข, เว้นวรรค, จุด)';
     }
 
     if (!username.trim()) newErrors.username = 'กรุณากรอกชื่อผู้ใช้';
@@ -125,11 +96,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
     if (!mobile.trim()) newErrors.mobile = 'กรุณากรอกเบอร์โทรศัพท์';
     else if (!isValidThaiMobileNumber(mobile)) newErrors.mobile = 'รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง (เช่น 08X-XXX-XXXX)';
 
-    if (!gender) newErrors.gender = 'กรุณาเลือกเพศ';
-    if (!birthdate) newErrors.birthdate = 'กรุณาเลือกวันเกิด';
-    else if (calculateAge(birthdate) === null) newErrors.birthdate = 'กรุณาเลือกวันเกิดที่ถูกต้อง (ต้องไม่ใช่วันในอนาคต)';
-
-    if (!educationLevel || educationLevel === HelperEducationLevelOption.NotStated) newErrors.educationLevel = 'กรุณาเลือกระดับการศึกษา';
+    // Removed validation for: gender, birthdate, educationLevel
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -141,19 +108,15 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
     if (!validateForm()) return;
 
     const formDataToSubmit = {
-        publicDisplayName, 
+        publicDisplayName,
         username,
         email,
         password,
         mobile,
-        lineId: lineId || undefined, 
-        facebook: facebook || undefined,
-        gender,
-        birthdate,
-        educationLevel,
+        // Removed: lineId, facebook, gender, birthdate, educationLevel
     };
 
-    const success = await onRegister(formDataToSubmit as any); 
+    const success = await onRegister(formDataToSubmit as any);
     if (success) {
       setPublicDisplayName('');
       setUsername('');
@@ -161,12 +124,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
       setPassword('');
       setConfirmPassword('');
       setMobile('');
-      setLineId('');
-      setFacebook('');
-      setGender(undefined);
-      setBirthdate('');
-      setEducationLevel(undefined);
-      setCurrentAge(null);
+      // Removed reset for: lineId, facebook, gender, birthdate, educationLevel, currentAge
       setPasswordCriteria({ length: false, uppercase: false, lowercase: false, number: false, symbol: false });
     }
   };
@@ -197,7 +155,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
             <input type="text" id="publicDisplayName" value={publicDisplayName} onChange={(e) => setPublicDisplayName(e.target.value)}
                     className={`w-full ${errors.publicDisplayName ? 'input-error' : brandGreenFocusStyle}`} placeholder="เช่น Sunny Y., ช่างภาพใจดี123"/>
             <p className="text-xs font-sans text-neutral-medium mt-1">
-              ชื่อนี้จะแสดงบนที่สาธารณะ เช่น ประกาศงาน, โปรไฟล์และกระทู้ โปรดตั้งอย่างเหมาะสม (เช่น ชื่อจริงและนามสกุลย่อ Sunny J., หรือเกี่ยวกับตัวเรา นักการตลาดมือฉมัง1993) ห้ามใช้คำหยาบหรือสื่ออะไรที่ไม่เหมาะสม
+              ชื่อแสดงสาธารณะ (2-30 ตัวอักษร): ไทย/อังกฤษ, ตัวเลข, เว้นวรรค, จุด (.) เท่านั้น เช่น Sunny J. 123
             </p>
             {errors.publicDisplayName && <p className="text-red-500 font-sans text-xs mt-1">{errors.publicDisplayName}</p>}
             </div>
@@ -216,46 +174,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
           {errors.email && <p className="text-red-500 font-sans text-xs mt-1">{errors.email}</p>}
         </div>
 
-        <div className="pt-3 mt-3 border-t border-neutral-DEFAULT/50">
-             <h3 className="text-md font-sans font-medium text-neutral-dark mb-2">ข้อมูลส่วนตัว (ใช้แสดงในโปรไฟล์)</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                 <div>
-                    <label className="block text-sm font-sans font-medium text-neutral-dark mb-1">เพศ <span className="text-red-500">*</span></label>
-                    <div className="space-y-1">
-                        {Object.values(GenderOption).map(optionValue => (
-                        <label key={optionValue} className="flex items-center space-x-2 cursor-pointer">
-                            <input type="radio" name="gender" value={optionValue} checked={gender === optionValue}
-                                    onChange={() => setGender(optionValue)}
-                                    className="form-radio h-4 w-4 text-brandGreen border-[#CCCCCC] focus:ring-brandGreen"/>
-                            <span className="text-neutral-dark font-sans font-normal text-sm">{optionValue}</span>
-                        </label>
-                        ))}
-                    </div>
-                    {errors.gender && <p className="text-red-500 font-sans text-xs mt-1">{errors.gender}</p>}
-                </div>
-                <div>
-                    <label htmlFor="birthdate" className="block text-sm font-sans font-medium text-neutral-dark mb-1">วันเกิด <span className="text-red-500">*</span></label>
-                    <input type="date" id="birthdate" value={birthdate} onChange={handleBirthdateChange}
-                           max={new Date().toISOString().split("T")[0]} 
-                           className={`w-full ${errors.birthdate ? 'input-error' : brandGreenFocusStyle}`} />
-                    {currentAge !== null && <p className="text-xs font-sans text-neutral-dark mt-1">อายุ: {currentAge} ปี</p>}
-                    {errors.birthdate && <p className="text-red-500 font-sans text-xs mt-1">{errors.birthdate}</p>}
-                </div>
-            </div>
-            <div className="mt-4">
-                <label htmlFor="educationLevel" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ระดับการศึกษา <span className="text-red-500">*</span></label>
-                <select id="educationLevel" value={educationLevel || ''}
-                        onChange={(e) => setEducationLevel(e.target.value as HelperEducationLevelOption)}
-                        className={`w-full ${errors.educationLevel ? 'input-error' : brandGreenFocusStyle}`}>
-                    <option value="" disabled>-- กรุณาเลือก --</option>
-                    {Object.values(HelperEducationLevelOption).map(level => (
-                        <option key={level} value={level}>{level}</option>
-                    ))}
-                </select>
-                {errors.educationLevel && <p className="text-red-500 font-sans text-xs mt-1">{errors.educationLevel}</p>}
-            </div>
-        </div>
-
+        {/* Removed section for Gender, Birthdate, Education Level */}
 
         <div className="pt-3 mt-3 border-t border-neutral-DEFAULT/50">
           <h3 className="text-md font-sans font-medium text-neutral-dark mb-2">ข้อมูลติดต่อ (จะแสดงในโพสต์ของคุณ)</h3>
@@ -265,16 +184,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
                     className={`w-full ${errors.mobile ? 'input-error' : brandGreenFocusStyle}`} placeholder="เช่น 0812345678"/>
             {errors.mobile && <p className="text-red-500 font-sans text-xs mt-1">{errors.mobile}</p>}
             </div>
-            <div className="mt-4">
-            <label htmlFor="lineId" className="block text-sm font-sans font-medium text-neutral-dark mb-1">LINE ID (ถ้ามี)</label>
-            <input type="text" id="lineId" value={lineId} onChange={(e) => setLineId(e.target.value)}
-                    className={`w-full ${brandGreenFocusStyle}`} placeholder="เช่น mylineid"/>
-            </div>
-            <div className="mt-4">
-            <label htmlFor="facebook" className="block text-sm font-sans font-medium text-neutral-dark mb-1">Facebook (ถ้ามี)</label>
-            <input type="text" id="facebook" value={facebook} onChange={(e) => setFacebook(e.target.value)}
-                    className={`w-full ${brandGreenFocusStyle}`} placeholder="ลิงก์โปรไฟล์ หรือชื่อ Facebook"/>
-            </div>
+            {/* LINE ID and Facebook inputs are removed */}
         </div>
 
         <div className="pt-3 mt-3 border-t border-neutral-DEFAULT/50">
