@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="th">
   <head>
@@ -158,7 +157,7 @@
         transition: color 0.3s ease;
       }
       .helper-card-name:hover {
-        color: #FFB800;
+        color: #FFB800; /* secondary-hover for HelperCard */
       }
       .helper-card-name .name-arrow {
         opacity: 1;
@@ -168,6 +167,35 @@
         font-size: 14px; /* text-sm */
         color: #666666; /* text-neutral-medium */
       }
+
+      /* Styles for JobCard Author Name */
+      .job-card-author-name-container { /* Can reuse helper-card-name-container if styles are identical */
+        display: flex;
+        align-items: center;
+        margin-bottom: 2px; /* mb-0.5 approx */
+      }
+      .job-card-author-name {
+        /* font-size will be controlled by Tailwind in component, e.g., text-sm */
+        font-weight: 500; /* font-medium */
+        color: #454545; /* Base color */
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        transition: color 0.3s ease;
+      }
+      .job-card-author-name:hover {
+        color: #8BCBD3; /* primary-hover for JobCard */
+      }
+      .job-card-author-name .name-arrow {
+        opacity: 1;
+        transform: translateX(0);
+        transition: none;
+        margin-left: 4px; /* ml-1 */
+        font-size: 14px; /* text-sm, consistent with helper card arrow */
+        color: #666666; /* text-neutral-medium */
+      }
+
+
       .helper-card-header-location {
         font-size: 12px; /* text-xs */
         color: #555555;
@@ -195,7 +223,6 @@
       .helper-card-info-grid, .job-card-info-grid {
         display: grid;
         grid-template-columns: 1fr;
-        /* gap: 6px; Removed gap */
         padding: 0 16px; /* Add horizontal padding to the grid container */
       }
       .helper-card-info-item, .job-card-info-item {
@@ -203,8 +230,8 @@
         align-items: flex-start;
         font-size: 12px; /* text-xs */
         color: #555555;
-        padding: 6px 0; /* py-1.5, horizontal padding removed as it's on grid */
-        margin-bottom: 4px; /* mb-1 */
+        padding: 4px 0; /* Reduced py from 6px to 4px */
+        margin-bottom: 2px; /* Reduced mb from 4px to 2px */
       }
       .helper-card-info-item:last-child, .job-card-info-item:last-child {
         margin-bottom: 0;
@@ -351,6 +378,7 @@
         .helper-card-avatar { width: 60px; height: 60px; }
         /* .helper-card-name { font-size: 14px; } - Tailwind handles this in component */
         .helper-card-name .name-arrow { font-size: 12px; } /* text-xs */
+        .job-card-author-name .name-arrow { font-size: 12px; } /* text-xs */
         .helper-card-header-location { font-size: 12px; } /* text-xs */
 
         .job-card-header { padding: 12px; } /* p-3 */
@@ -359,7 +387,6 @@
         .helper-card-header-categories-combined, .job-card-header-categories-combined { font-size: 10px; }
 
         .helper-card-info-grid, .job-card-info-grid { 
-            /* gap: 5px; Removed gap */
             padding: 0 12px; /* px-3 for mobile grid container */
         } 
         .helper-card-info-item, .job-card-info-item { 

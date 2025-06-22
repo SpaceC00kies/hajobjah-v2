@@ -45,29 +45,29 @@ const TrustBadgesCompact: React.FC<{ profile: EnrichedHelperProfile, user: User 
   const badges = [];
   if (profile.adminVerifiedExperience) {
     badges.push(
-      <span key="verified" className="helper-card-trust-badge bg-yellow-200 text-yellow-800">⭐ ผ่านงาน</span>
+      <span key="verified" className="helper-card-trust-badge bg-yellow-200 text-yellow-800">ผ่านงาน</span>
     );
   }
   if (user?.profileComplete) {
      badges.push(
-      <span key="complete" className="helper-card-trust-badge bg-green-100 text-green-700">🟢 โปรไฟล์ครบ</span>
+      <span key="complete" className="helper-card-trust-badge bg-green-100 text-green-700">โปรไฟล์ครบ</span>
     );
   }
   if ((profile.interestedCount || 0) > 0) {
      badges.push(
        <span key="interested" className="helper-card-trust-badge bg-sky-100 text-sky-700">
-        👀 สนใจ {profile.interestedCount}
+        คนสนใจ {profile.interestedCount}
       </span>
     );
   }
    if (user?.activityBadge?.isActive) {
      badges.push(
-       <span key="activity" className="helper-card-trust-badge bg-orange-100 text-orange-700">🔥 ขยันใช้เว็บ</span>
+       <span key="activity" className="helper-card-trust-badge bg-orange-100 text-orange-700">ขยันใช้เว็บ</span>
     );
   }
   if (profile.isSuspicious) {
      badges.push(
-      <span key="suspicious" className="helper-card-trust-badge bg-red-100 text-red-700">🔺 ระวัง</span>
+      <span key="suspicious" className="helper-card-trust-badge bg-red-100 text-red-700">ระวัง</span>
     );
   }
 

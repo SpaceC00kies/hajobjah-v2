@@ -152,23 +152,26 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
                 {job.subCategory}
               </div>
             )}
-            {/* Display Author Name */}
-            <div className="helper-card-name-container mt-1"> {/* Reusing helper card style for consistency */}
+            <div className="job-card-author-name-container mt-1">
                 <h3 
-                    className="helper-card-name text-xs" // text-xs for smaller size in job card
+                    className="job-card-author-name text-sm" 
                     onClick={() => navigateTo(View.PublicProfile, job.userId)}
                     title={`ดูโปรไฟล์ของ ${job.authorDisplayName}`}
+                    aria-label={`ดูโปรไฟล์ของ ${job.authorDisplayName}`}
                 >
-                    โดย: {job.authorDisplayName}
+                    {job.authorDisplayName}
                     <span className="name-arrow ml-1">→</span>
                 </h3>
             </div>
+            <p className="text-xs text-neutral-medium flex items-center gap-1 mt-1"> {/* Mimics helper-card-header-location */}
+              <span role="img" aria-label="Province pin">📍</span>
+              {job.province || Province.ChiangMai}
+            </p>
         </div>
 
         <div className="job-card-info-grid">
           <div className="job-card-info-item">
-            <span className="info-icon" role="img" aria-label="Location">📍</span> {job.location}
-             <span className="ml-1 text-neutral-medium">(<span className="location-pin-emoji" role="img" aria-label="Province pin">📍</span>{job.province || Province.ChiangMai})</span>
+            <span className="info-icon" role="img" aria-label="Location map">🗺️</span> {job.location}
           </div>
           {(dateNeededDisplay || timeNeededDisplay) && (
             <div className="job-card-info-item">
