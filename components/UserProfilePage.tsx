@@ -120,7 +120,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
   }, [feedback]);
 
   const inputBaseStyle = "w-full p-3 bg-white border border-[#CCCCCC] rounded-[10px] text-neutral-dark font-serif font-normal focus:outline-none transition-colors duration-150 ease-in-out";
-  const inputFocusStyle = "focus:border-secondary focus:ring-2 focus:ring-secondary focus:ring-opacity-70";
+  const inputFocusStyle = "focus:!border-secondary focus:!ring-2 focus:!ring-secondary focus:!ring-opacity-70"; // Added !important
   const inputErrorStyle = "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500 focus:ring-opacity-70";
   const readOnlyStyle = "bg-neutral-light cursor-not-allowed";
   const selectBaseStyle = `${inputBaseStyle} appearance-none`;
@@ -334,7 +334,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                   type="checkbox"
                   checked={isBusinessProfile}
                   onChange={(e) => setIsBusinessProfile(e.target.checked)}
-                  className="form-checkbox h-5 w-5 text-secondary rounded border-neutral-DEFAULT focus:ring-secondary focus:ring-opacity-50"
+                  className="form-checkbox h-5 w-5 text-secondary rounded border-neutral-DEFAULT focus:!ring-2 focus:!ring-offset-1 focus:!ring-offset-white focus:!ring-secondary focus:!ring-opacity-70" // Enhanced focus for checkbox
               />
               <span className="text-sm font-sans font-medium text-neutral-dark">ฉันเป็นธุรกิจ/ร้านค้า (ซ่อนข้อมูลส่วนตัวบางอย่างบนโปรไฟล์สาธารณะ)</span>
           </label>
@@ -378,7 +378,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                         <label key={optionValue} className="flex items-center space-x-2 cursor-pointer">
                             <input type="radio" name="profileGender" value={optionValue} checked={gender === optionValue}
                                     onChange={() => setGender(optionValue)}
-                                    className="form-radio h-4 w-4 text-secondary border-[#CCCCCC] focus:ring-secondary"/>
+                                    className="form-radio h-4 w-4 text-secondary border-[#CCCCCC] focus:!ring-2 focus:!ring-offset-1 focus:!ring-offset-white focus:!ring-secondary focus:!ring-opacity-70"/> {/* Added ! for focus styles */}
                             <span className="text-neutral-dark font-sans font-normal text-sm">{optionValue}</span>
                         </label>
                         ))}
