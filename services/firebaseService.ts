@@ -5,8 +5,8 @@ import {
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
-  User as FirebaseUser,
-  AuthError,
+  type User as FirebaseUser,
+  type AuthError,
 } from 'firebase/auth';
 import {
   collection,
@@ -25,13 +25,13 @@ import {
   serverTimestamp,
   Timestamp,
   writeBatch,
-  WriteBatch,
-  QueryConstraint,
+  type WriteBatch,
+  type QueryConstraint,
   collectionGroup,
   deleteField,
   startAfter,
-  DocumentSnapshot,
-  DocumentData,
+  type DocumentSnapshot,
+  type DocumentData,
 } from 'firebase/firestore';
 import {
   ref,
@@ -91,7 +91,7 @@ const cleanDataForFirestore = <T extends Record<string, any>>(data: T): Partial<
 };
 
 // Updated RegistrationDataType for simplified registration
-type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook' | 'businessName' | 'businessType' | 'businessAddress' | 'businessWebsite' | 'businessSocialProfileLink' | 'aboutBusiness'> & { password: string };
+type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook' | 'isBusinessProfile' | 'businessName' | 'businessType' | 'businessAddress' | 'businessWebsite' | 'businessSocialProfileLink' | 'aboutBusiness'> & { password: string };
 
 
 
@@ -144,6 +144,7 @@ export const signUpWithEmailPasswordService = async (
       },
       savedWebboardPosts: [], // Initialize saved posts
       // Initialize Business Info Fields
+      isBusinessProfile: false, // Default
       businessName: '',
       businessType: '',
       businessAddress: '',
@@ -204,9 +205,25 @@ export const signInWithEmailPasswordService = async (loginIdentifier: string, pa
         last30DaysActivity: 0,
       };
       const tier = userData.tier || ('free' as UserTier);
-      const savedWebboardPosts = userData.savedWebboardPosts || []; // Initialize if missing
+      const savedWebboardPosts = userData.savedWebboardPosts || [];
 
-      return { id: firebaseUser.uid, ...convertTimestamps(userData), tier, postingLimits: convertTimestamps(postingLimits), activityBadge: convertTimestamps(activityBadge), savedWebboardPosts } as User;
+      // Ensure business fields are present, defaulting if necessary
+      const fullUserData = {
+        ...convertTimestamps(userData),
+        isBusinessProfile: userData.isBusinessProfile || false,
+        businessName: userData.businessName || '',
+        businessType: userData.businessType || '',
+        businessAddress: userData.businessAddress || '',
+        businessWebsite: userData.businessWebsite || '',
+        businessSocialProfileLink: userData.businessSocialProfileLink || '',
+        aboutBusiness: userData.aboutBusiness || '',
+        tier,
+        postingLimits: convertTimestamps(postingLimits),
+        activityBadge: convertTimestamps(activityBadge),
+        savedWebboardPosts
+      };
+
+      return { id: firebaseUser.uid, ...fullUserData } as User;
     } else {
       logFirebaseError("signInWithEmailPasswordService", new Error(`User ${firebaseUser.uid} authenticated but no Firestore data.`));
       await signOut(auth);
@@ -263,8 +280,23 @@ export const onAuthChangeService = (callback: (user: User | null) => void): (() 
             last30DaysActivity: 0,
           };
           const tier = userData.tier || ('free' as UserTier);
-          const savedWebboardPosts = userData.savedWebboardPosts || []; // Initialize if missing
-          callback({ id: firebaseUser.uid, ...convertTimestamps(userData), tier, postingLimits: convertTimestamps(postingLimits), activityBadge: convertTimestamps(activityBadge), savedWebboardPosts } as User);
+          const savedWebboardPosts = userData.savedWebboardPosts || [];
+          
+          const fullUserData = {
+            ...convertTimestamps(userData),
+            isBusinessProfile: userData.isBusinessProfile || false,
+            businessName: userData.businessName || '',
+            businessType: userData.businessType || '',
+            businessAddress: userData.businessAddress || '',
+            businessWebsite: userData.businessWebsite || '',
+            businessSocialProfileLink: userData.businessSocialProfileLink || '',
+            aboutBusiness: userData.aboutBusiness || '',
+            tier,
+            postingLimits: convertTimestamps(postingLimits),
+            activityBadge: convertTimestamps(activityBadge),
+            savedWebboardPosts
+          };
+          callback({ id: firebaseUser.uid, ...fullUserData } as User);
         } else {
           logFirebaseError("onAuthChangeService", new Error(`User ${firebaseUser.uid} not found in Firestore.`));
           callback(null);
@@ -322,9 +354,12 @@ export const deleteImageService = async (imageUrl?: string | null): Promise<void
 };
 
 // --- User Profile Service ---
+// Update the profileData type to include all new optional User fields
+type UserProfileUpdateData = Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username' | 'postingLimits' | 'activityBadge' | 'userLevel' | 'tier' | 'savedWebboardPosts'>>;
+
 export const updateUserProfileService = async (
   userId: string,
-  profileData: Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username' | 'postingLimits' | 'activityBadge' | 'userLevel' | 'tier' | 'savedWebboardPosts'>>
+  profileData: UserProfileUpdateData
 ): Promise<boolean> => {
   try {
     const userDocRef = doc(db, USERS_COLLECTION, userId);
@@ -341,8 +376,14 @@ export const updateUserProfileService = async (
        if(oldUserSnap.exists() && oldUserSnap.data().photo) {
            await deleteImageService(oldUserSnap.data().photo);
        }
-      dataToUpdate.photo = null;
+      dataToUpdate.photo = null; // Explicitly set to null to remove the photo field
     }
+
+    // Ensure boolean for isBusinessProfile, even if undefined is passed
+    if (profileData.hasOwnProperty('isBusinessProfile')) {
+        dataToUpdate.isBusinessProfile = !!profileData.isBusinessProfile;
+    }
+    
     await updateDoc(userDocRef, cleanDataForFirestore(dataToUpdate as Record<string, any>));
     return true;
   } catch (error: any) {
@@ -1034,7 +1075,21 @@ export const getUserDocument = async (userId: string): Promise<User | null> => {
       const userData = userDocSnap.data();
       const tier = userData.tier || ('free' as UserTier); // Default tier
       const savedWebboardPosts = userData.savedWebboardPosts || []; // Initialize if missing
-      return { id: userId, ...convertTimestamps(userData), tier, savedWebboardPosts } as User;
+      
+      // Ensure business fields are present
+      const fullUserData = {
+        ...convertTimestamps(userData),
+        isBusinessProfile: userData.isBusinessProfile || false,
+        businessName: userData.businessName || '',
+        businessType: userData.businessType || '',
+        businessAddress: userData.businessAddress || '',
+        businessWebsite: userData.businessWebsite || '',
+        businessSocialProfileLink: userData.businessSocialProfileLink || '',
+        aboutBusiness: userData.aboutBusiness || '',
+        tier,
+        savedWebboardPosts
+      };
+      return { id: userId, ...fullUserData } as User;
     }
     return null;
   } catch (error) {

@@ -67,6 +67,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
   const [introSentence, setIntroSentence] = useState(currentUser.introSentence || '');
 
   // Business Info States
+  const [isBusinessProfile, setIsBusinessProfile] = useState(currentUser.isBusinessProfile || false); // New state for business toggle
   const [businessName, setBusinessName] = useState(currentUser.businessName || '');
   const [businessType, setBusinessType] = useState(currentUser.businessType || '');
   const [aboutBusiness, setAboutBusiness] = useState(currentUser.aboutBusiness || '');
@@ -103,6 +104,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     setDislikedThing(currentUser.dislikedThing || '');
     setIntroSentence(currentUser.introSentence || '');
     // Update business info states
+    setIsBusinessProfile(currentUser.isBusinessProfile || false); // Update business toggle state
     setBusinessName(currentUser.businessName || '');
     setBusinessType(currentUser.businessType || '');
     setAboutBusiness(currentUser.aboutBusiness || '');
@@ -219,6 +221,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
       publicDisplayName, mobile, lineId, facebook, gender, birthdate, educationLevel, photo: photoBase64, address,
       nickname, firstName, lastName, // Include new fields
       favoriteMusic, favoriteBook, favoriteMovie, hobbies, favoriteFood, dislikedThing, introSentence,
+      isBusinessProfile, // Include the business toggle state
       // Business Info
       businessName, businessType, aboutBusiness, businessAddress, businessWebsite, businessSocialProfileLink
     });
@@ -324,6 +327,22 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             aria-readonly="true"
           />
         </div>
+        
+        <div className="pt-4 border-t border-neutral-DEFAULT/50">
+          <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                  type="checkbox"
+                  checked={isBusinessProfile}
+                  onChange={(e) => setIsBusinessProfile(e.target.checked)}
+                  className="form-checkbox h-5 w-5 text-secondary rounded border-neutral-DEFAULT focus:ring-secondary focus:ring-opacity-50"
+              />
+              <span className="text-sm font-sans font-medium text-neutral-dark">ฉันเป็นธุรกิจ/ร้านค้า (ซ่อนข้อมูลส่วนตัวบางอย่างบนโปรไฟล์สาธารณะ)</span>
+          </label>
+          <p className="text-xs font-sans text-neutral-medium mt-1 pl-7">
+            หมายเหตุ: หากคุณเป็นฟรีแลนซ์ การแสดงข้อมูลส่วนตัวบางอย่าง (เช่น เกี่ยวกับฉัน, สิ่งที่ชอบ) อาจช่วยสร้างความน่าเชื่อถือและความเป็นกันเองกับผู้ว่าจ้างได้ พิจารณาตามความเหมาะสมของงานที่คุณนำเสนอ
+          </p>
+        </div>
+
 
         <div className="pt-4 border-t border-neutral-DEFAULT/50">
             <label htmlFor="profile-introSentence" className="block text-sm font-sans font-medium text-neutral-dark mb-1">

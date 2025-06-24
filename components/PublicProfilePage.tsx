@@ -124,18 +124,20 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, help
           )}
         </div>
 
-        <div className="mb-6 pt-4 border-t border-neutral-DEFAULT/30">
-            <h3 className="text-xl font-sans font-semibold text-neutral-dark mb-3">ข้อมูลส่วนตัว:</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0"> 
-                {renderInfoItem("ชื่อเล่น", user.nickname)}
-                {renderInfoItem("ชื่อจริง", user.firstName)}
-                {renderInfoItem("นามสกุล", user.lastName)}
-                {renderInfoItem("อายุ", age ? `${age} ปี` : (user.birthdate ? 'ข้อมูลวันเกิดไม่ถูกต้อง' : null))}
-                {renderInfoItem("เพศ", user.gender !== GenderOption.NotSpecified ? user.gender : null)}
-                {renderInfoItem("ระดับการศึกษา", user.educationLevel !== HelperEducationLevelOption.NotStated ? user.educationLevel : null)}
-                {renderInfoItem("ที่อยู่", user.address, false, true, true)}
-            </div>
-        </div>
+        {!user.isBusinessProfile && (
+          <div className="mb-6 pt-4 border-t border-neutral-DEFAULT/30">
+              <h3 className="text-xl font-sans font-semibold text-neutral-dark mb-3">ข้อมูลส่วนตัว:</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0"> 
+                  {renderInfoItem("ชื่อเล่น", user.nickname)}
+                  {renderInfoItem("ชื่อจริง", user.firstName)}
+                  {renderInfoItem("นามสกุล", user.lastName)}
+                  {renderInfoItem("อายุ", age ? `${age} ปี` : (user.birthdate ? 'ข้อมูลวันเกิดไม่ถูกต้อง' : null))}
+                  {renderInfoItem("เพศ", user.gender !== GenderOption.NotSpecified ? user.gender : null)}
+                  {renderInfoItem("ระดับการศึกษา", user.educationLevel !== HelperEducationLevelOption.NotStated ? user.educationLevel : null)}
+                  {renderInfoItem("ที่อยู่", user.address, false, true, true)}
+              </div>
+          </div>
+        )}
         
         {helperProfile && helperProfile.details && helperProfile.details.trim() !== '' && (
           <div className="mb-6 pt-4 border-t border-neutral-DEFAULT/30">
@@ -146,7 +148,7 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, help
           </div>
         )}
 
-        {user.introSentence && user.introSentence.trim() !== '' && (
+        {!user.isBusinessProfile && user.introSentence && user.introSentence.trim() !== '' && (
           <div className="mb-6 pt-4 border-t border-neutral-DEFAULT/30">
             <h3 className="text-xl font-sans font-semibold text-neutral-dark mb-2">💬 เกี่ยวกับฉัน</h3>
             <p className="font-serif text-neutral-medium whitespace-pre-wrap p-3 bg-neutral-light rounded-md">
@@ -169,7 +171,7 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, help
           </div>
         )}
         
-        {personalityItems.length > 0 && (
+        {!user.isBusinessProfile && personalityItems.length > 0 && (
           <div className="mb-6 pt-4 border-t border-neutral-DEFAULT/30">
             <h3 className="text-xl font-sans font-semibold text-neutral-dark mb-3">ข้อมูลเพิ่มเติม:</h3>
             <div className="space-y-1 bg-neutral-light/50 p-4 rounded-lg">

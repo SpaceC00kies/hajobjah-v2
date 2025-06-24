@@ -1,4 +1,3 @@
-
 export enum Province {
   ChiangMai = 'เชียงใหม่',
   Bangkok = 'กรุงเทพมหานคร',
@@ -164,6 +163,7 @@ export interface User {
   savedWebboardPosts?: string[]; // Array of saved post IDs
 
   // Business Profile Fields
+  isBusinessProfile?: boolean; // New field for business profile toggle
   businessName?: string;
   businessType?: string; // e.g., ร้านค้า, บริษัท, ฟรีแลนซ์
   businessAddress?: string;
