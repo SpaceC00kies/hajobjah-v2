@@ -311,7 +311,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             id="profileUsername"
             value={currentUser.username}
             readOnly
-            className={`${inputBaseStyle} ${readOnlyStyle} focus:bg-gray-50`}
+            className={`${inputBaseStyle} ${readOnlyStyle} ${inputFocusStyle} focus:bg-gray-50`}
             aria-readonly="true"
           />
         </div>
@@ -323,7 +323,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             id="profileEmail"
             value={currentUser.email}
             readOnly
-            className={`${inputBaseStyle} ${readOnlyStyle} focus:bg-gray-50`}
+            className={`${inputBaseStyle} ${readOnlyStyle} ${inputFocusStyle} focus:bg-gray-50`}
             aria-readonly="true"
           />
         </div>
