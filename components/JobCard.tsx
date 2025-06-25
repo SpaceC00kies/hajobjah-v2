@@ -16,19 +16,6 @@ interface JobCardProps {
   getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
 }
 
-// FallbackAvatarJob is no longer needed and can be removed if not used elsewhere.
-// For now, it's commented out.
-/*
-const FallbackAvatarJob: React.FC<{ name?: string, size?: string, className?: string }> = ({ name, size = "w-10 h-10", className = "" }) => {
-  const initial = name ? name.charAt(0).toUpperCase() : '👤';
-  return (
-    <div className={`${size} rounded-full bg-neutral flex items-center justify-center text-lg font-sans text-white shadow-sm ${className}`}>
-      {initial}
-    </div>
-  );
-};
-*/
-
 const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
   if (dateInput === null || dateInput === undefined) return null;
   let dateObject: Date;
@@ -134,12 +121,12 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
                         className="job-card-author-name text-sm" 
                         onClick={() => navigateTo(View.PublicProfile, job.userId)}
                     >
-                        {authorActualDisplayName} {/* Removed "@" prefix */}
+                        {authorActualDisplayName}
                         <span className="name-arrow">→</span>
                     </h3>
                 </div>
             </div>
-            {/* Removed avatar rendering section */}
+            {/* Avatar removed */}
            </div>
 
           {(job.category || job.subCategory) && (
@@ -184,7 +171,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
           
           {(job.desiredAgeStart || job.desiredAgeEnd || job.preferredGender || job.desiredEducationLevel) && (
             <>
-                <h6 className="text-xs font-semibold text-neutral-dark mt-3 mb-1">คุณสมบัติที่ต้องการ (ถ้ามี):</h6>
+                <h6 className="text-xs font-semibold text-neutral-dark mt-3 mb-0.5">คุณสมบัติที่ต้องการ (ถ้ามี):</h6>
                 <ul className="job-card-details-box qualifications-list text-xs">
                     {job.desiredAgeStart && <li>อายุ: {job.desiredAgeStart}{job.desiredAgeEnd ? ` - ${job.desiredAgeEnd}` : '+'} ปี</li>}
                     {job.preferredGender && <li>เพศ: {job.preferredGender}</li>}

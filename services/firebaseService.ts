@@ -378,7 +378,12 @@ export const updateUserProfileService = async (
     if (!currentUserSnap.exists()) {
       throw new Error("User document not found for update.");
     }
-    const currentUserData = currentUserSnap.data() as User; // Data from Firestore might contain Timestamps
+    const rawFirestoreUserData = currentUserSnap.data();
+    if (!rawFirestoreUserData) {
+        throw new Error("User data is unexpectedly empty.");
+    }
+    // Convert Firestore timestamps to ISO strings before further processing
+    const currentUserData = convertTimestamps(rawFirestoreUserData) as User;
 
     let dataToUpdate: Partial<User> = { ...profileData, updatedAt: serverTimestamp() as any };
 
@@ -386,17 +391,10 @@ export const updateUserProfileService = async (
     if (profileData.publicDisplayName && profileData.publicDisplayName !== currentUserData.publicDisplayName) {
       const currentUpdateCount = currentUserData.publicDisplayNameUpdateCount || 0;
 
-      // Correctly convert Firestore Timestamp or string/Date to Date object for logic
-      const rawLastChange = currentUserData.lastPublicDisplayNameChangeAt;
+      const lastChangeIsoString = currentUserData.lastPublicDisplayNameChangeAt; // This is now string | undefined
       let lastChangeDateForLogic: Date | null = null;
-      if (rawLastChange) {
-        if (rawLastChange instanceof Timestamp) {
-          lastChangeDateForLogic = rawLastChange.toDate();
-        } else if (typeof rawLastChange === 'string') {
-          lastChangeDateForLogic = new Date(rawLastChange);
-        } else { // Assumed to be Date already if not string or Timestamp
-          lastChangeDateForLogic = rawLastChange as Date;
-        }
+      if (lastChangeIsoString) { // If it's an ISO string
+          lastChangeDateForLogic = new Date(lastChangeIsoString);
       }
 
       if (currentUpdateCount > 0 && lastChangeDateForLogic) {

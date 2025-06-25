@@ -279,10 +279,11 @@
       .job-card-details-box .qualifications-list {
         list-style-type: '✓  ';
         padding-left: 1.5em;
-        margin-top: 4px; /* mt-1 */
+        margin-top: 2px; /* Reduced from 4px (mt-1) */
       }
       .job-card-details-box .qualifications-list li {
          padding-left: 0.2em;
+         margin-bottom: 2px; /* Reduced from 5px */
       }
 
       .helper-card-footer, .job-card-footer {
@@ -530,18 +531,19 @@
 
     <!-- 5. Import Map -->
     <script type="importmap">
-    {
-      "imports": {
-        "react": "https://esm.sh/react@^19.1.0",
-        "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
-        "react/": "https://esm.sh/react@^19.1.0/",
-        "firebase/": "https://esm.sh/firebase@^11.9.1/",
-        "framer-motion": "https://esm.sh/framer-motion@^12.18.1",
-        "path": "https://esm.sh/path@^0.12.7",
-        "vite": "https://esm.sh/vite@^6.3.5"
-      }
-    }
-    </script>
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.1.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "firebase/": "https://esm.sh/firebase@^11.9.1/",
+    "framer-motion": "https://esm.sh/framer-motion@^12.18.1",
+    "path": "https://esm.sh/path@^0.12.7",
+    "vite": "https://esm.sh/vite@^6.3.5",
+    "firebase": "https://esm.sh/firebase@^11.9.1"
+  }
+}
+</script>
   </head>
   <body class="bg-neutral-light font-serif text-neutral-dark">
     <div id="root"></div>
