@@ -36,6 +36,7 @@ interface MyRoomPageProps {
   onNavigateToPublicProfile: (profileInfo: { userId: string; helperProfileId?: string }) => void; 
   initialTab?: ActiveTab | null; // New prop for initial tab
   onInitialTabProcessed?: () => void; // New prop to signal consumption
+  getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
 }
 
 // Animation Variants
@@ -144,6 +145,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
   onNavigateToPublicProfile,
   initialTab,
   onInitialTabProcessed,
+  getAuthorDisplayName,
 }) => {
   const [activeTab, setActiveTab] = useState<ActiveTab>(initialTab || 'profile');
 
@@ -166,11 +168,12 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
   const userWebboardPosts = useMemo(() => allWebboardPostsForAdmin.filter(post => post.userId === currentUser.id)
     .map(post => ({
       ...post,
+      authorDisplayName: getAuthorDisplayName(post.userId, post.authorDisplayName), // Use live display name
       commentCount: webboardComments.filter(c => c.postId === post.id).length,
       authorPhoto: currentUser?.photo || post.authorPhoto,
       isAuthorAdmin: currentUser?.role === 'Admin',
     } as EnrichedWebboardPost))
-    .sort((a, b) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime()), [allWebboardPostsForAdmin, currentUser.id, webboardComments, currentUser?.photo, currentUser?.role]);
+    .sort((a, b) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime()), [allWebboardPostsForAdmin, currentUser.id, webboardComments, currentUser?.photo, currentUser?.role, getAuthorDisplayName]);
 
   const savedWebboardPosts = useMemo(() => {
     const savedIds = currentUser.savedWebboardPosts || [];
@@ -180,13 +183,14 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
         const author = users.find(u => u.id === post.userId);
         return {
           ...post,
+          authorDisplayName: getAuthorDisplayName(post.userId, post.authorDisplayName), // Use live display name
           commentCount: webboardComments.filter(c => c.postId === post.id).length,
           authorPhoto: author?.photo || post.authorPhoto,
           isAuthorAdmin: author?.role === 'Admin',
         } as EnrichedWebboardPost;
       })
       .sort((a, b) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime());
-  }, [allWebboardPostsForAdmin, currentUser.savedWebboardPosts, webboardComments, users]);
+  }, [allWebboardPostsForAdmin, currentUser.savedWebboardPosts, webboardComments, users, getAuthorDisplayName]);
 
 
   const tabs: { id: ActiveTab; label: string; icon: JSX.Element }[] = [
@@ -486,6 +490,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
                       onSharePost={() => { /* Not primary action here */ }}
                       requestLoginForAction={() => {}} // User is logged in
                       onNavigateToPublicProfile={(userId) => onNavigateToPublicProfile({userId})}
+                      getAuthorDisplayName={getAuthorDisplayName}
                   />
                 </div>
               </motion.div>

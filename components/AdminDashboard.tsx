@@ -10,7 +10,7 @@ export interface AdminItem {
   id: string;
   itemType: 'job' | 'profile' | 'webboardPost';
   title: string;
-  authorDisplayName?: string; // Updated from username
+  authorDisplayName?: string; // This will be the live or fallback display name
   userId?: string;
   postedAt?: string; // Ensured this will be a string or undefined
   isPinned?: boolean;
@@ -61,6 +61,7 @@ interface AdminDashboardProps {
   currentUser: User | null;
   isSiteLocked: boolean; // New prop
   onToggleSiteLock: () => void; // New prop
+  getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
 }
 
 const formatDateDisplay = (dateInput?: string | Date | null): string => {
@@ -122,6 +123,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   currentUser,
   isSiteLocked,
   onToggleSiteLock,
+  getAuthorDisplayName,
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('jobs');
   const [searchTerm, setSearchTerm] = useState('');
@@ -144,7 +146,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         id: job.id,
         itemType: 'job' as const,
         title: job.title,
-        authorDisplayName: job.authorDisplayName,
+        authorDisplayName: getAuthorDisplayName(job.userId, job.authorDisplayName),
         userId: job.userId,
         postedAt: ensureStringDate(job.postedAt),
         isPinned: job.isPinned,
@@ -161,7 +163,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             id: profile.id,
             itemType: 'profile' as const,
             title: profile.profileTitle,
-            authorDisplayName: profile.authorDisplayName,
+            authorDisplayName: getAuthorDisplayName(profile.userId, profile.authorDisplayName),
             userId: profile.userId,
             postedAt: ensureStringDate(profile.postedAt),
             isPinned: profile.isPinned,
@@ -179,7 +181,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             id: post.id,
             itemType: 'webboardPost' as const,
             title: post.title,
-            authorDisplayName: post.authorDisplayName,
+            authorDisplayName: getAuthorDisplayName(post.userId, post.authorDisplayName),
             userId: post.userId,
             postedAt: ensureStringDate(post.createdAt), // Use createdAt for webboard posts
             isPinned: post.isPinned,
@@ -389,7 +391,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const filteredUsers = users.filter(user =>
       user.id !== currentUser?.id &&
       (user.username.toLowerCase().includes(lowerSearchTerm) ||
-       user.publicDisplayName.toLowerCase().includes(lowerSearchTerm))
+       getAuthorDisplayName(user.id, user.publicDisplayName).toLowerCase().includes(lowerSearchTerm))
     );
 
     return (
@@ -407,10 +409,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <ul className="space-y-3">
               {filteredUsers.map(user => {
                 const displayBadge = getUserDisplayBadge(user);
+                const actualDisplayName = getAuthorDisplayName(user.id, user.publicDisplayName);
                 return (
                   <li key={user.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 border-b border-neutral-DEFAULT/50 last:border-b-0">
                     <div>
-                      <span className="font-semibold text-neutral-dark">@{user.username}</span> ({user.publicDisplayName})
+                      <span className="font-semibold text-neutral-dark">@{user.username}</span> ({actualDisplayName})
                       <br/>
                       <span className={`text-xs px-1.5 py-0.5 rounded-full inline-block mt-1 ${displayBadge.colorClass} ${displayBadge.textColorClass || ''}`}>
                         {displayBadge.name}

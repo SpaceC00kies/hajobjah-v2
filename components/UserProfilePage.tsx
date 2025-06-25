@@ -39,6 +39,8 @@ const FallbackAvatar: React.FC<{ name?: string, size?: string, className?: strin
   );
 };
 
+const DISPLAY_NAME_COOLDOWN_DAYS_UI = 14;
+
 
 export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, onUpdateProfile, onCancel }) => {
   const [publicDisplayName, setPublicDisplayName] = useState(currentUser.publicDisplayName); // Renamed from displayName
@@ -80,6 +82,9 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
   const [feedback, setFeedback] = useState<FeedbackType | null>(null);
   const feedbackRef = useRef<HTMLDivElement>(null);
 
+  const [displayNameCooldownInfo, setDisplayNameCooldownInfo] = useState<{ canChange: boolean; message?: string }>({ canChange: true });
+
+
   useEffect(() => {
     setPublicDisplayName(currentUser.publicDisplayName);
     setMobile(currentUser.mobile);
@@ -111,6 +116,30 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     setBusinessAddress(currentUser.businessAddress || '');
     setBusinessWebsite(currentUser.businessWebsite || '');
     setBusinessSocialProfileLink(currentUser.businessSocialProfileLink || '');
+
+    // Check display name cooldown
+    const updateCount = currentUser.publicDisplayNameUpdateCount || 0;
+    const lastChange = currentUser.lastPublicDisplayNameChangeAt;
+    if (updateCount > 0 && lastChange) {
+      const lastChangeDate = typeof lastChange === 'string' ? new Date(lastChange) : lastChange;
+      if (lastChangeDate instanceof Date) {
+        const cooldownMs = DISPLAY_NAME_COOLDOWN_DAYS_UI * 24 * 60 * 60 * 1000;
+        const nextChangeAllowedTime = lastChangeDate.getTime() + cooldownMs;
+        if (Date.now() < nextChangeAllowedTime) {
+          setDisplayNameCooldownInfo({
+            canChange: false,
+            message: `คุณสามารถเปลี่ยนชื่อที่แสดงได้อีกครั้งในวันที่ ${new Date(nextChangeAllowedTime).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}`
+          });
+        } else {
+          setDisplayNameCooldownInfo({ canChange: true });
+        }
+      } else {
+         setDisplayNameCooldownInfo({ canChange: true }); // Should not happen if data is correct
+      }
+    } else {
+      setDisplayNameCooldownInfo({ canChange: true }); // First change is free
+    }
+
   }, [currentUser]);
 
   useEffect(() => {
@@ -181,6 +210,10 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
       newErrors.publicDisplayName = 'ต้องมี 2-30 ตัวอักษร (ไทย/อังกฤษ, เว้นวรรค, จุด)';
     }
 
+    if (!displayNameCooldownInfo.canChange && publicDisplayName !== currentUser.publicDisplayName) {
+        newErrors.publicDisplayName = displayNameCooldownInfo.message;
+    }
+
     if (!mobile.trim()) newErrors.mobile = 'กรุณากรอกเบอร์โทรศัพท์';
     else if (!isValidThaiMobileNumberUtil(mobile)) newErrors.mobile = 'รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง (เช่น 08X-XXX-XXXX)';
 
@@ -201,34 +234,49 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     e.preventDefault();
     setErrors(prev => ({ ...prev, general: undefined }));
     setFeedback(null);
-
+  
     if (!validateForm()) {
-      // Check if there's already a photo error, if not, set general validation message.
-      if (!errors.photo && !errors.publicDisplayName) { // Check publicDisplayName error too
-        setFeedback({ type: 'error', message: 'ข้อมูลไม่ถูกต้อง โปรดตรวจสอบข้อผิดพลาด' });
+      const firstErrorKey = Object.keys(errors).find(key => errors[key as keyof typeof errors]) as keyof typeof errors | undefined;
+      const specificErrorMessage = firstErrorKey ? errors[firstErrorKey] : 'ข้อมูลไม่ถูกต้อง โปรดตรวจสอบข้อผิดพลาด';
+      setFeedback({ type: 'error', message: specificErrorMessage || 'ข้อมูลไม่ถูกต้อง โปรดตรวจสอบข้อผิดพลาด' });
+      return;
+    }
+  
+    try {
+      const success = await onUpdateProfile({
+        publicDisplayName, mobile, lineId, facebook, gender, birthdate, educationLevel, photo: photoBase64, address,
+        nickname, firstName, lastName, 
+        favoriteMusic, favoriteBook, favoriteMovie, hobbies, favoriteFood, dislikedThing, introSentence,
+        isBusinessProfile, 
+        businessName, businessType, aboutBusiness, businessAddress, businessWebsite, businessSocialProfileLink
+      });
+      if (success) {
+        setFeedback({ type: 'success', message: 'อัปเดตโปรไฟล์เรียบร้อยแล้ว!' });
+        // Re-check cooldown after successful update, as `currentUser` prop will update
+        const updateCount = currentUser.publicDisplayNameUpdateCount || 0;
+        const lastChange = currentUser.lastPublicDisplayNameChangeAt;
+        if (updateCount > 0 && lastChange) {
+            const lastChangeDate = typeof lastChange === 'string' ? new Date(lastChange) : lastChange;
+             if (lastChangeDate instanceof Date) {
+                const cooldownMs = DISPLAY_NAME_COOLDOWN_DAYS_UI * 24 * 60 * 60 * 1000;
+                const nextChangeAllowedTime = lastChangeDate.getTime() + cooldownMs;
+                 if (Date.now() < nextChangeAllowedTime) {
+                    setDisplayNameCooldownInfo({
+                        canChange: false,
+                        message: `คุณสามารถเปลี่ยนชื่อที่แสดงได้อีกครั้งในวันที่ ${new Date(nextChangeAllowedTime).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                    });
+                } else {
+                    setDisplayNameCooldownInfo({ canChange: true });
+                }
+            }
+        } else {
+             setDisplayNameCooldownInfo({ canChange: true });
+        }
       } else {
-         setFeedback({ type: 'error', message: errors.photo || errors.publicDisplayName }); // Show photo or publicDisplayName error if it exists
+        setFeedback({ type: 'error', message: 'เกิดข้อผิดพลาดบางอย่าง ไม่สามารถบันทึกข้อมูลได้' });
       }
-      return;
-    }
-
-    if (errors.photo || errors.publicDisplayName) {
-      setFeedback({ type: 'error', message: errors.photo || errors.publicDisplayName });
-      return;
-    }
-
-    const success = await onUpdateProfile({
-      publicDisplayName, mobile, lineId, facebook, gender, birthdate, educationLevel, photo: photoBase64, address,
-      nickname, firstName, lastName, // Include new fields
-      favoriteMusic, favoriteBook, favoriteMovie, hobbies, favoriteFood, dislikedThing, introSentence,
-      isBusinessProfile, // Include the business toggle state
-      // Business Info
-      businessName, businessType, aboutBusiness, businessAddress, businessWebsite, businessSocialProfileLink
-    });
-    if (success) {
-      setFeedback({ type: 'success', message: 'อัปเดตโปรไฟล์เรียบร้อยแล้ว!' });
-    } else {
-      setFeedback({ type: 'error', message: 'เกิดข้อผิดพลาดบางอย่าง ไม่สามารถบันทึกข้อมูลได้' });
+    } catch (error: any) {
+      setFeedback({ type: 'error', message: error.message || 'เกิดข้อผิดพลาดในการอัปเดตโปรไฟล์' });
     }
   };
 
@@ -297,11 +345,16 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             onChange={(e) => setPublicDisplayName(e.target.value)}
             className={`${inputBaseStyle} ${errors.publicDisplayName ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
             placeholder="เช่น Puuna V."
+            disabled={!displayNameCooldownInfo.canChange}
+            aria-describedby={!displayNameCooldownInfo.canChange ? "displayNameCooldownMessage" : (errors.publicDisplayName ? "publicDisplayNameError" : undefined)}
           />
            <p className="text-xs font-sans text-neutral-medium mt-1">
               ชื่อนี้จะแสดงบนเว็บไซต์ (ไทย/อังกฤษ, 2-30 ตัวอักษร, อนุญาต เว้นวรรค, จุด) เช่น 'Sunny Y.'
             </p>
-          {errors.publicDisplayName && <p className="text-red-500 font-sans text-xs mt-1">{errors.publicDisplayName}</p>}
+          {errors.publicDisplayName && <p id="publicDisplayNameError" className="text-red-500 font-sans text-xs mt-1">{errors.publicDisplayName}</p>}
+          {!displayNameCooldownInfo.canChange && displayNameCooldownInfo.message && (
+            <p id="displayNameCooldownMessage" className="text-amber-600 font-sans text-xs mt-1">{displayNameCooldownInfo.message}</p>
+          )}
         </div>
 
         <div>

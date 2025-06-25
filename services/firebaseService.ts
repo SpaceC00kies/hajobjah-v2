@@ -91,7 +91,7 @@ const cleanDataForFirestore = <T extends Record<string, any>>(data: T): Partial<
 };
 
 // Updated RegistrationDataType for simplified registration
-type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook' | 'isBusinessProfile' | 'businessName' | 'businessType' | 'businessAddress' | 'businessWebsite' | 'businessSocialProfileLink' | 'aboutBusiness'> & { password: string };
+type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook' | 'isBusinessProfile' | 'businessName' | 'businessType' | 'businessAddress' | 'businessWebsite' | 'businessSocialProfileLink' | 'aboutBusiness' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount'> & { password: string };
 
 
 
@@ -151,6 +151,9 @@ export const signUpWithEmailPasswordService = async (
       businessWebsite: '',
       businessSocialProfileLink: '',
       aboutBusiness: '',
+      // Initialize display name cooldown fields
+      lastPublicDisplayNameChangeAt: undefined,
+      publicDisplayNameUpdateCount: 0,
       createdAt: serverTimestamp() as any,
       updatedAt: serverTimestamp() as any,
     };
@@ -217,6 +220,9 @@ export const signInWithEmailPasswordService = async (loginIdentifier: string, pa
         businessWebsite: userData.businessWebsite || '',
         businessSocialProfileLink: userData.businessSocialProfileLink || '',
         aboutBusiness: userData.aboutBusiness || '',
+        // Ensure display name cooldown fields
+        lastPublicDisplayNameChangeAt: userData.lastPublicDisplayNameChangeAt || undefined,
+        publicDisplayNameUpdateCount: userData.publicDisplayNameUpdateCount || 0,
         tier,
         postingLimits: convertTimestamps(postingLimits),
         activityBadge: convertTimestamps(activityBadge),
@@ -291,6 +297,9 @@ export const onAuthChangeService = (callback: (user: User | null) => void): (() 
             businessWebsite: userData.businessWebsite || '',
             businessSocialProfileLink: userData.businessSocialProfileLink || '',
             aboutBusiness: userData.aboutBusiness || '',
+            // Ensure display name cooldown fields
+            lastPublicDisplayNameChangeAt: userData.lastPublicDisplayNameChangeAt || undefined,
+            publicDisplayNameUpdateCount: userData.publicDisplayNameUpdateCount || 0,
             tier,
             postingLimits: convertTimestamps(postingLimits),
             activityBadge: convertTimestamps(activityBadge),
@@ -354,8 +363,10 @@ export const deleteImageService = async (imageUrl?: string | null): Promise<void
 };
 
 // --- User Profile Service ---
+const DISPLAY_NAME_COOLDOWN_DAYS = 14;
 // Update the profileData type to include all new optional User fields
-type UserProfileUpdateData = Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username' | 'postingLimits' | 'activityBadge' | 'userLevel' | 'tier' | 'savedWebboardPosts'>>;
+type UserProfileUpdateData = Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username' | 'postingLimits' | 'activityBadge' | 'userLevel' | 'tier' | 'savedWebboardPosts' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount' >>;
+
 
 export const updateUserProfileService = async (
   userId: string,
@@ -363,18 +374,45 @@ export const updateUserProfileService = async (
 ): Promise<boolean> => {
   try {
     const userDocRef = doc(db, USERS_COLLECTION, userId);
+    const currentUserSnap = await getDoc(userDocRef);
+    if (!currentUserSnap.exists()) {
+      throw new Error("User document not found for update.");
+    }
+    const currentUserData = currentUserSnap.data() as User;
+
     let dataToUpdate: Partial<User> = { ...profileData, updatedAt: serverTimestamp() as any };
 
+    // Display Name Cooldown Logic
+    if (profileData.publicDisplayName && profileData.publicDisplayName !== currentUserData.publicDisplayName) {
+      const currentUpdateCount = currentUserData.publicDisplayNameUpdateCount || 0;
+      const lastChangeDate = currentUserData.lastPublicDisplayNameChangeAt 
+        ? (currentUserData.lastPublicDisplayNameChangeAt instanceof Timestamp 
+            ? currentUserData.lastPublicDisplayNameChangeAt.toDate() 
+            : new Date(currentUserData.lastPublicDisplayNameChangeAt as string))
+        : null;
+
+      if (currentUpdateCount > 0 && lastChangeDate) {
+        const cooldownMs = DISPLAY_NAME_COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
+        const now = Date.now();
+        if (now - lastChangeDate.getTime() < cooldownMs) {
+          const canChangeDate = new Date(lastChangeDate.getTime() + cooldownMs);
+          throw new Error(`คุณสามารถเปลี่ยนชื่อที่แสดงได้อีกครั้งในวันที่ ${canChangeDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}`);
+        }
+      }
+      // If change is allowed
+      dataToUpdate.lastPublicDisplayNameChangeAt = serverTimestamp() as any;
+      dataToUpdate.publicDisplayNameUpdateCount = currentUpdateCount + 1;
+    }
+
+
     if (profileData.photo && typeof profileData.photo === 'string' && profileData.photo.startsWith('data:image')) {
-      const oldUserSnap = await getDoc(userDocRef);
-      if(oldUserSnap.exists() && oldUserSnap.data().photo) {
-          await deleteImageService(oldUserSnap.data().photo);
+      if(currentUserData.photo) {
+          await deleteImageService(currentUserData.photo);
       }
       dataToUpdate.photo = await uploadImageService(`profileImages/${userId}/${Date.now()}`, profileData.photo);
     } else if (profileData.hasOwnProperty('photo') && profileData.photo === undefined) {
-       const oldUserSnap = await getDoc(userDocRef);
-       if(oldUserSnap.exists() && oldUserSnap.data().photo) {
-           await deleteImageService(oldUserSnap.data().photo);
+       if(currentUserData.photo) {
+           await deleteImageService(currentUserData.photo);
        }
       dataToUpdate.photo = null; // Explicitly set to null to remove the photo field
     }
@@ -388,7 +426,7 @@ export const updateUserProfileService = async (
     return true;
   } catch (error: any) {
     logFirebaseError("updateUserProfileService", error);
-    throw error;
+    throw error; // Re-throw the error so UI can catch it (e.g., cooldown message)
   }
 };
 
@@ -427,7 +465,7 @@ export const addJobService = async (jobData: JobFormData, author: { userId: stri
     const newJobDoc: Omit<Job, 'id'> = {
       ...jobData, // Includes province from form
       userId: author.userId,
-      authorDisplayName: author.authorDisplayName,
+      authorDisplayName: author.authorDisplayName, // Snapshot at creation
       contact: author.contact,
       ownerId: author.userId,
       isPinned: false,
@@ -453,6 +491,7 @@ export const addJobService = async (jobData: JobFormData, author: { userId: stri
 export const updateJobService = async (jobId: string, jobData: Partial<JobFormData>, contact: string): Promise<boolean> => {
   try {
     // province will be part of jobData if it's being updated
+    // authorDisplayName is NOT updated here; it remains a snapshot. Live name comes from User doc.
     const dataToUpdate = { ...jobData, contact, updatedAt: serverTimestamp() as any };
     await updateDoc(doc(db, JOBS_COLLECTION, jobId), cleanDataForFirestore(dataToUpdate as Record<string, any>));
     return true;
@@ -565,7 +604,7 @@ export const addHelperProfileService = async (profileData: HelperProfileFormData
     const newProfileDoc: Omit<HelperProfile, 'id'> = {
       ...profileData, // Includes province from form
       userId: author.userId,
-      authorDisplayName: author.authorDisplayName,
+      authorDisplayName: author.authorDisplayName, // Snapshot at creation
       contact: author.contact,
       gender: author.gender,
       birthdate: author.birthdate,
@@ -594,6 +633,7 @@ export const addHelperProfileService = async (profileData: HelperProfileFormData
 export const updateHelperProfileService = async (profileId: string, profileData: Partial<HelperProfileFormData>, contact: string): Promise<boolean> => {
   try {
     // province will be part of profileData if it's being updated
+    // authorDisplayName is NOT updated here.
     const dataToUpdate = { ...profileData, contact, updatedAt: serverTimestamp() as any };
     await updateDoc(doc(db, HELPER_PROFILES_COLLECTION, profileId), cleanDataForFirestore(dataToUpdate as Record<string, any>));
     return true;
@@ -727,7 +767,7 @@ export const addWebboardPostService = async (postData: { title: string; body: st
       category: postData.category,
       image: imageUrl,
       userId: author.userId,
-      authorDisplayName: author.authorDisplayName,
+      authorDisplayName: author.authorDisplayName, // Snapshot at creation
       authorPhoto: author.photo || undefined,
       ownerId: author.userId,
       likes: [],
@@ -765,7 +805,8 @@ export const updateWebboardPostService = async (postId: string, postData: { titl
 
     basePayload.updatedAt = serverTimestamp() as any;
     if (currentUserPhoto !== undefined) {
-      basePayload.authorPhoto = currentUserPhoto || null;
+      // authorPhoto and authorDisplayName are not updated here as they are snapshots.
+      // If the author's profile photo changes, it's reflected via dynamic lookup.
     }
 
     let finalUpdatePayload = { ...basePayload };
@@ -867,7 +908,7 @@ export const getWebboardPostsPaginated = async (
         searchedPostsData = postsData.filter(post =>
             post.title.toLowerCase().includes(termLower) ||
             post.body.toLowerCase().includes(termLower) ||
-            post.authorDisplayName.toLowerCase().includes(termLower)
+            post.authorDisplayName.toLowerCase().includes(termLower) // Search snapshot name
         );
     }
 
@@ -889,7 +930,7 @@ export const addWebboardCommentService = async (postId: string, text: string, au
       postId,
       text,
       userId: author.userId,
-      authorDisplayName: author.authorDisplayName,
+      authorDisplayName: author.authorDisplayName, // Snapshot at creation
       authorPhoto: author.photo || undefined,
       ownerId: author.userId,
       createdAt: serverTimestamp() as any,
@@ -1086,6 +1127,9 @@ export const getUserDocument = async (userId: string): Promise<User | null> => {
         businessWebsite: userData.businessWebsite || '',
         businessSocialProfileLink: userData.businessSocialProfileLink || '',
         aboutBusiness: userData.aboutBusiness || '',
+        // Ensure display name cooldown fields
+        lastPublicDisplayNameChangeAt: userData.lastPublicDisplayNameChangeAt || undefined,
+        publicDisplayNameUpdateCount: userData.publicDisplayNameUpdateCount || 0,
         tier,
         savedWebboardPosts
       };

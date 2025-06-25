@@ -17,6 +17,7 @@ interface HelperCardProps {
   requestLoginForAction: (view: View, payload?: any) => void;
   onBumpProfile: (profileId: string) => void;
   onEditProfileFromFindView?: (profileId: string) => void; 
+  getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
 }
 
 const FallbackAvatarDisplay: React.FC<{ name?: string, size?: string, className?: string }> = ({ name, size = "w-[80px] h-[80px]", className = "" }) => {
@@ -89,13 +90,16 @@ export const HelperCard: React.FC<HelperCardProps> = ({
     currentUser,
     requestLoginForAction,
     onBumpProfile,
-    onEditProfileFromFindView
+    onEditProfileFromFindView,
+    getAuthorDisplayName
 }) => {
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
   const [showFullDetails, setShowFullDetails] = useState(false);
 
   const userForBadges = profile.userId === currentUser?.id ? currentUser : undefined;
+  const authorActualDisplayName = getAuthorDisplayName(profile.userId, profile.authorDisplayName);
+
 
   const handleContact = () => {
     if (!currentUser) {
@@ -185,13 +189,13 @@ export const HelperCard: React.FC<HelperCardProps> = ({
             {profile.userPhoto ? (
               <img
                 src={profile.userPhoto}
-                alt={profile.authorDisplayName}
+                alt={authorActualDisplayName}
                 className="helper-card-avatar"
                 onClick={() => onNavigateToPublicProfile({ userId: profile.userId, helperProfileId: profile.id })}
                 onError={(e) => (e.currentTarget.style.display = 'none')}
               />
             ) : (
-              <FallbackAvatarDisplay name={profile.authorDisplayName} className="helper-card-avatar" />
+              <FallbackAvatarDisplay name={authorActualDisplayName} className="helper-card-avatar" />
             )}
             {profile.userPhoto && (
                 <img src="" alt="" style={{display: 'none'}} onError={() => {
@@ -199,7 +203,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({
                     if (avatarImg && !avatarImg.nextElementSibling?.classList.contains('fallback-avatar-rendered')) {
                         const fallbackNode = document.createElement('div');
                         fallbackNode.className = 'helper-card-avatar fallback-avatar-rendered';
-                        const initial = profile.authorDisplayName ? profile.authorDisplayName.charAt(0).toUpperCase() : '👤';
+                        const initial = authorActualDisplayName ? authorActualDisplayName.charAt(0).toUpperCase() : '👤';
                         fallbackNode.innerHTML = `<div class="w-full h-full rounded-full bg-neutral flex items-center justify-center text-3xl font-sans text-white">${initial}</div>`;
                         avatarImg.parentNode?.insertBefore(fallbackNode, avatarImg.nextSibling);
                     }
@@ -214,7 +218,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({
                 className="helper-card-name text-sm" // Applied text-sm
                 onClick={() => onNavigateToPublicProfile({ userId: profile.userId, helperProfileId: profile.id })}
               >
-                {profile.authorDisplayName}
+                {authorActualDisplayName}
                 <span className="name-arrow">→</span>
               </h3>
             </div>

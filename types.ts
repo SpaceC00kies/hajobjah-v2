@@ -170,6 +170,10 @@ export interface User {
   businessWebsite?: string;
   businessSocialProfileLink?: string; // e.g., Link to company Facebook Page, LINE OA
   aboutBusiness?: string;
+
+  // Fields for display name change cooldown
+  lastPublicDisplayNameChangeAt?: string | Date;
+  publicDisplayNameUpdateCount?: number;
 }
 
 export enum View {

@@ -18,6 +18,7 @@ interface WebboardPostCardProps {
   onSharePost: (postId: string, postTitle: string) => void; 
   requestLoginForAction: (view: View, payload?: any) => void; 
   onNavigateToPublicProfile: (userId: string) => void;
+  getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
 }
 
 // Helper function to define SVG icons (example)
@@ -44,9 +45,11 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
   onSharePost,
   requestLoginForAction, 
   onNavigateToPublicProfile,
+  getAuthorDisplayName,
 }) => {
   const hasLiked = currentUser && post.likes.includes(currentUser.id);
   const isSaved = currentUser?.savedWebboardPosts?.includes(post.id) || false;
+  const authorActualDisplayName = getAuthorDisplayName(post.userId, post.authorDisplayName);
   
   // Removed isAnimatingLike and prevHasLikedRef as Framer Motion handles animation state internally more effectively for this type of icon switch.
 
@@ -138,7 +141,7 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
               onClick={(e) => { e.stopPropagation(); onNavigateToPublicProfile(post.userId);}}
               role="link" tabIndex={0} onKeyPress={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onNavigateToPublicProfile(post.userId);}}}
             >
-              @{post.authorDisplayName}
+              @{authorActualDisplayName}
             </span>
             <span className="mx-1">·</span>
             <span>{timeSince(post.createdAt)}</span>

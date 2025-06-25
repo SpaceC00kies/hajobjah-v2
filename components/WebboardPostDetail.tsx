@@ -28,6 +28,7 @@ interface WebboardPostDetailProps {
   requestLoginForAction: (view: View, payload?: any) => void; 
   onNavigateToPublicProfile: (profileInfo: { userId: string; helperProfileId?: string }) => void;
   checkWebboardCommentLimits: (user: User) => { canPost: boolean; message?: string };
+  getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
 }
 
 const FallbackAvatarLarge: React.FC<{ name?: string, photo?: string, size?: string, className?: string }> = ({ name, photo, size = "w-12 h-12", className = "" }) => {
@@ -83,6 +84,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
   requestLoginForAction, 
   onNavigateToPublicProfile,
   checkWebboardCommentLimits,
+  getAuthorDisplayName,
 }) => {
   const [copiedLink, setCopiedLink] = useState(false); 
 
@@ -91,6 +93,8 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
   const isModerator = currentUser?.role === UserRole.Moderator;
   const hasLiked = currentUser && post.likes.includes(currentUser.id);
   const isSaved = currentUser?.savedWebboardPosts?.includes(post.id) || false;
+  const authorActualDisplayName = getAuthorDisplayName(post.userId, post.authorDisplayName);
+
 
   const canModeratorDeletePost = isModerator && !post.isAuthorAdmin;
   const canEditPost = isAuthor || isAdmin || (isModerator && !post.isAuthorAdmin);
@@ -164,7 +168,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
       <h1 className="text-xl sm:text-2xl md:text-3xl font-sans font-semibold text-neutral-800 mb-4">{post.title}</h1>
 
       <div className="flex items-center mb-4 pb-3 border-b border-neutral-DEFAULT/30">
-        <FallbackAvatarLarge name={post.authorDisplayName} photo={postAuthor?.photo || post.authorPhoto} className="mr-3 flex-shrink-0" />
+        <FallbackAvatarLarge name={authorActualDisplayName} photo={postAuthor?.photo || post.authorPhoto} className="mr-3 flex-shrink-0" />
         <div className="font-sans">
           <div className="flex items-baseline"> 
             <span 
@@ -172,7 +176,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
               onClick={() => onNavigateToPublicProfile({userId: post.userId})}
               role="link" tabIndex={0} onKeyPress={(e) => e.key === 'Enter' && onNavigateToPublicProfile({userId: post.userId})}
             >
-              @{post.authorDisplayName}
+              @{authorActualDisplayName}
             </span>
             <span className="ml-2 text-xs text-gray-500">
               · {timeSince(post.createdAt)}
@@ -302,8 +306,10 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
                   .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) 
                   .map(comment => {
                       const commenter = users.find(u => u.id === comment.userId);
+                      const commenterActualDisplayName = getAuthorDisplayName(comment.userId, comment.authorDisplayName);
                       const enrichedComment: EnrichedWebboardComment = {
                           ...comment,
+                          authorDisplayName: commenterActualDisplayName, // Use the live display name
                           authorPhoto: commenter?.photo || comment.authorPhoto,
                           isAuthorAdmin: commenter?.role === UserRole.Admin,
                       };

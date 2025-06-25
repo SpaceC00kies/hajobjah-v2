@@ -193,7 +193,7 @@ const addRecentSearch = (key: string, term: string) => {
 };
 
 // Updated RegistrationDataType for simplified registration
-type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook'> & { password: string };
+type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook' | 'isBusinessProfile' | 'businessName' | 'businessType' | 'businessAddress' | 'businessWebsite' | 'businessSocialProfileLink' | 'aboutBusiness' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount'> & { password: string };
 
 
 // Animation Variants
@@ -292,6 +292,11 @@ const App: React.FC = () => {
   // States for FindJobs view (managed within renderFindJobs scope)
   // States for FindHelpers view (managed within renderFindHelpers scope)
 
+  const getAuthorDisplayName = useCallback((userId: string, fallbackName?: string): string => {
+    const author = users.find(u => u.id === userId);
+    return author?.publicDisplayName || fallbackName || "ผู้ใช้ไม่ทราบชื่อ";
+  }, [users]);
+
   const parseUrlAndSetInitialState = useCallback(() => {
     const params = new URLSearchParams(window.location.search);
     const mode = params.get('mode');
@@ -338,15 +343,15 @@ const App: React.FC = () => {
     parseUrlAndSetInitialState(); 
 
     const unsubscribeAuth = onAuthChangeService((user) => {
-      setCurrentUser(user);
+      setCurrentUser(user); // This user already includes cooldown fields from firebaseService
       setIsLoadingAuth(false);
       if (user) {
         const unsubscribeSaved = subscribeToUserSavedPostsService(user.id, (savedIds) => {
           setUserSavedPosts(savedIds);
-           setCurrentUser(prevUser => ({
-            ...prevUser!,
+           setCurrentUser(prevUser => prevUser ? ({ // Add null check for prevUser
+            ...prevUser,
             savedWebboardPosts: savedIds,
-          }));
+          }) : null);
         });
         (unsubscribeAuth as any)._unsubscribeSavedPosts = unsubscribeSaved;
       } else {
@@ -657,7 +662,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleUpdateUserProfile = async (updatedProfileData: Pick<User, 'publicDisplayName' | 'mobile' | 'lineId' | 'facebook' | 'gender' | 'birthdate' | 'educationLevel' | 'photo' | 'address' | 'nickname' | 'firstName' | 'lastName' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence'>): Promise<boolean> => {
+  const handleUpdateUserProfile = async (updatedProfileData: Pick<User, 'publicDisplayName' | 'mobile' | 'lineId' | 'facebook' | 'gender' | 'birthdate' | 'educationLevel' | 'photo' | 'address' | 'nickname' | 'firstName' | 'lastName' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'isBusinessProfile' | 'businessName' | 'businessType' | 'businessAddress' | 'businessWebsite' | 'businessSocialProfileLink' | 'aboutBusiness'>): Promise<boolean> => {
     if (!currentUser) { alert('ผู้ใช้ไม่ได้เข้าสู่ระบบ'); return false; }
     try {
       if (!isValidThaiMobileNumberUtil(updatedProfileData.mobile)) { alert('รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง'); return false; }
@@ -666,7 +671,7 @@ const App: React.FC = () => {
       if (!updatedProfileData.educationLevel || updatedProfileData.educationLevel === HelperEducationLevelOption.NotStated) { alert('กรุณาเลือกระดับการศึกษา'); return false; }
 
       await updateUserProfileService(currentUser.id, updatedProfileData);
-      alert('อัปเดตโปรไฟล์เรียบร้อยแล้ว');
+      // alert('อัปเดตโปรไฟล์เรียบร้อยแล้ว'); // Feedback is now handled in UserProfilePage itself
       // Re-fetch user to update currentUser state globally
       const updatedUserDoc = await getUserDocument(currentUser.id);
       if (updatedUserDoc) {
@@ -675,8 +680,8 @@ const App: React.FC = () => {
       return true;
     } catch (error: any) {
       logFirebaseError("handleUpdateUserProfile", error);
-      alert(`เกิดข้อผิดพลาดในการอัปเดตโปรไฟล์: ${error.message}`);
-      return false;
+      // alert(`เกิดข้อผิดพลาดในการอัปเดตโปรไฟล์: ${error.message}`); // Feedback handled in UserProfilePage
+      throw error; // Re-throw to allow UserProfilePage to catch it
     }
   };
 
@@ -846,6 +851,7 @@ const App: React.FC = () => {
     if (!canEditOrDelete(originalJob.userId, originalJob.ownerId)) { alert('คุณไม่มีสิทธิ์แก้ไขประกาศงานนี้'); return; }
     if (containsBlacklistedWords(updatedJobDataFromForm.description) || containsBlacklistedWords(updatedJobDataFromForm.title)) { alert('เนื้อหาหรือหัวข้อมีคำที่ไม่เหมาะสม'); return; }
     try {
+      // authorDisplayName is not updated on the job doc itself, it's a snapshot.
       await updateJobService(updatedJobDataFromForm.id, updatedJobDataFromForm, generateContactString(currentUser));
       setItemToEdit(null); setEditingItemType(null);
 
@@ -916,6 +922,7 @@ const App: React.FC = () => {
     if (!canEditOrDelete(originalProfile.userId, originalProfile.ownerId)) { alert('คุณไม่มีสิทธิ์แก้ไขโปรไฟล์นี้'); return; }
     if (containsBlacklistedWords(updatedProfileDataFromForm.details) || containsBlacklistedWords(updatedProfileDataFromForm.profileTitle)) { alert('เนื้อหาหรือหัวข้อมีคำที่ไม่เหมาะสม'); return; }
     try {
+      // authorDisplayName is not updated here.
       await updateHelperProfileService(updatedProfileDataFromForm.id, updatedProfileDataFromForm, generateContactString(currentUser));
       setItemToEdit(null); setEditingItemType(null);
 
@@ -1059,7 +1066,7 @@ const App: React.FC = () => {
   };
   const handleDeleteWebboardComment = (commentId: string) => { // Now standalone
     const comment = webboardComments.find(c => c.id === commentId);
-    if (comment) handleDeleteItem(commentId, 'webboardComment', `คอมเมนต์โดย ${comment.authorDisplayName}`, comment.userId, comment.ownerId);
+    if (comment) handleDeleteItem(commentId, 'webboardComment', `คอมเมนต์โดย ${getAuthorDisplayName(comment.userId, comment.authorDisplayName)}`, comment.userId, comment.ownerId);
     else alert('ไม่พบคอมเมนต์');
   };
   const handleDeleteItemFromMyRoom = (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => {
@@ -1317,7 +1324,7 @@ const App: React.FC = () => {
     if (userToUpdate && userToUpdate.role === UserRole.Admin && newRole !== UserRole.Admin) { /* Consider if this rule is needed */ }
     try {
         await setUserRoleService(userIdToUpdate, newRole);
-        alert(`อัปเดตบทบาทของผู้ใช้ @${userToUpdate?.username} (ชื่อแสดง: ${userToUpdate?.publicDisplayName}) เป็น ${newRole} เรียบร้อยแล้ว`);
+        alert(`อัปเดตบทบาทของผู้ใช้ @${userToUpdate?.username} (ชื่อแสดง: ${getAuthorDisplayName(userToUpdate?.id || '', userToUpdate?.publicDisplayName)}) เป็น ${newRole} เรียบร้อยแล้ว`);
     } catch (error: any) {
         logFirebaseError("handleSetUserRole", error);
         alert(`เกิดข้อผิดพลาดในการเปลี่ยนบทบาทผู้ใช้: ${error.message}`);
@@ -1788,7 +1795,7 @@ const App: React.FC = () => {
     <div className="p-4 sm:p-6">
       <div className="text-center mb-6 lg:mb-8">
         <h2 className="text-3xl font-sans font-semibold text-primary mb-3">📢 ประกาศงาน</h2>
-        <p className="text-md font-serif text-neutral-dark mb-6 max-w-xl mx-auto font-normal">เวลาและทักษะตรงกับอะไร แล้วทำเลย!</p>
+        <p className="text-md font-serif text-neutral-dark mb-6 max-w-xl mx-auto font-normal">เวลาและทักษะตรงกับงานไหน ติดต่อเลย!</p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-x-8">
         <aside className="lg:col-span-3 mb-8 lg:mb-0">
@@ -1867,6 +1874,7 @@ const App: React.FC = () => {
                         currentUser={currentUser} 
                         requestLoginForAction={requestLoginForAction} 
                         onEditJobFromFindView={currentUser?.id === job.userId ? handleEditOwnJobFromFindView : undefined}
+                        getAuthorDisplayName={getAuthorDisplayName}
                     />
                   </motion.div>
                 ))}
@@ -2090,6 +2098,7 @@ const App: React.FC = () => {
                             requestLoginForAction={requestLoginForAction}
                             onBumpProfile={(id) => handleBumpHelperProfile(id, loadHelpers)}
                             onEditProfileFromFindView={currentUser?.id === profile.userId ? handleEditOwnHelperProfileFromFindView : undefined}
+                            getAuthorDisplayName={getAuthorDisplayName}
                         />
                       </motion.div>
                     ))}
@@ -2134,6 +2143,7 @@ const App: React.FC = () => {
         onNavigateToPublicProfile={handleNavigateToPublicProfile}
         initialTab={myRoomInitialTabOverride}
         onInitialTabProcessed={() => setMyRoomInitialTabOverride(null)}
+        getAuthorDisplayName={getAuthorDisplayName}
       />);
   };
 
@@ -2157,6 +2167,7 @@ const App: React.FC = () => {
         onSetUserRole={handleSetUserRole}
         currentUser={currentUser}
         isSiteLocked={isSiteLocked} onToggleSiteLock={handleToggleSiteLock}
+        getAuthorDisplayName={getAuthorDisplayName}
     />);
   };
   // MyPostsPage is replaced by MyRoomPage
@@ -2208,7 +2219,7 @@ const App: React.FC = () => {
       onDeletePost={handleDeleteWebboardPost}
       onPinPost={handlePinWebboardPost}
       onEditPost={handleEditWebboardPostFromPage}
-      onDeleteComment={handleDeleteWebboardComment} // Correctly pass the handler
+      onDeleteComment={handleDeleteWebboardComment} 
       onUpdateComment={handleUpdateWebboardComment}
       selectedPostId={selectedPostId} setSelectedPostId={setSelectedPostId}
       navigateTo={navigateTo} editingPost={editingItemType === 'webboardPost' ? itemToEdit as WebboardPost : null}
@@ -2219,6 +2230,7 @@ const App: React.FC = () => {
       checkWebboardPostLimits={checkWebboardPostLimits}
       checkWebboardCommentLimits={checkWebboardCommentLimits}
       pageSize={WEBBOARD_PAGE_SIZE}
+      getAuthorDisplayName={getAuthorDisplayName}
     />);};
   const renderPasswordResetPage = () => <PasswordResetPage navigateTo={navigateTo} />;
 
