@@ -16,6 +16,9 @@ interface JobCardProps {
   getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
 }
 
+// FallbackAvatarJob is no longer needed and can be removed if not used elsewhere.
+// For now, it's commented out.
+/*
 const FallbackAvatarJob: React.FC<{ name?: string, size?: string, className?: string }> = ({ name, size = "w-10 h-10", className = "" }) => {
   const initial = name ? name.charAt(0).toUpperCase() : '👤';
   return (
@@ -24,6 +27,7 @@ const FallbackAvatarJob: React.FC<{ name?: string, size?: string, className?: st
     </div>
   );
 };
+*/
 
 const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
   if (dateInput === null || dateInput === undefined) return null;
@@ -130,18 +134,12 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
                         className="job-card-author-name text-sm" 
                         onClick={() => navigateTo(View.PublicProfile, job.userId)}
                     >
-                        @{authorActualDisplayName}
+                        {authorActualDisplayName} {/* Removed "@" prefix */}
                         <span className="name-arrow">→</span>
                     </h3>
                 </div>
             </div>
-             {job.userPhoto ? (
-                <img src={job.userPhoto} alt={authorActualDisplayName} className="w-10 h-10 rounded-full object-cover ml-2 flex-shrink-0" 
-                     onClick={() => navigateTo(View.PublicProfile, job.userId)}
-                />
-            ) : (
-                 <FallbackAvatarJob name={authorActualDisplayName} className="ml-2 flex-shrink-0" />
-            )}
+            {/* Removed avatar rendering section */}
            </div>
 
           {(job.category || job.subCategory) && (

@@ -287,7 +287,7 @@ export const onAuthChangeService = (callback: (user: User | null) => void): (() 
           };
           const tier = userData.tier || ('free' as UserTier);
           const savedWebboardPosts = userData.savedWebboardPosts || [];
-          
+
           const fullUserData = {
             ...convertTimestamps(userData),
             isBusinessProfile: userData.isBusinessProfile || false,
@@ -378,24 +378,32 @@ export const updateUserProfileService = async (
     if (!currentUserSnap.exists()) {
       throw new Error("User document not found for update.");
     }
-    const currentUserData = currentUserSnap.data() as User;
+    const currentUserData = currentUserSnap.data() as User; // Data from Firestore might contain Timestamps
 
     let dataToUpdate: Partial<User> = { ...profileData, updatedAt: serverTimestamp() as any };
 
     // Display Name Cooldown Logic
     if (profileData.publicDisplayName && profileData.publicDisplayName !== currentUserData.publicDisplayName) {
       const currentUpdateCount = currentUserData.publicDisplayNameUpdateCount || 0;
-      const lastChangeDate = currentUserData.lastPublicDisplayNameChangeAt 
-        ? (currentUserData.lastPublicDisplayNameChangeAt instanceof Timestamp 
-            ? currentUserData.lastPublicDisplayNameChangeAt.toDate() 
-            : new Date(currentUserData.lastPublicDisplayNameChangeAt as string))
-        : null;
 
-      if (currentUpdateCount > 0 && lastChangeDate) {
+      // Correctly convert Firestore Timestamp or string/Date to Date object for logic
+      const rawLastChange = currentUserData.lastPublicDisplayNameChangeAt;
+      let lastChangeDateForLogic: Date | null = null;
+      if (rawLastChange) {
+        if (rawLastChange instanceof Timestamp) {
+          lastChangeDateForLogic = rawLastChange.toDate();
+        } else if (typeof rawLastChange === 'string') {
+          lastChangeDateForLogic = new Date(rawLastChange);
+        } else { // Assumed to be Date already if not string or Timestamp
+          lastChangeDateForLogic = rawLastChange as Date;
+        }
+      }
+
+      if (currentUpdateCount > 0 && lastChangeDateForLogic) {
         const cooldownMs = DISPLAY_NAME_COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
         const now = Date.now();
-        if (now - lastChangeDate.getTime() < cooldownMs) {
-          const canChangeDate = new Date(lastChangeDate.getTime() + cooldownMs);
+        if (now - lastChangeDateForLogic.getTime() < cooldownMs) {
+          const canChangeDate = new Date(lastChangeDateForLogic.getTime() + cooldownMs);
           throw new Error(`คุณสามารถเปลี่ยนชื่อที่แสดงได้อีกครั้งในวันที่ ${canChangeDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}`);
         }
       }
@@ -421,7 +429,7 @@ export const updateUserProfileService = async (
     if (profileData.hasOwnProperty('isBusinessProfile')) {
         dataToUpdate.isBusinessProfile = !!profileData.isBusinessProfile;
     }
-    
+
     await updateDoc(userDocRef, cleanDataForFirestore(dataToUpdate as Record<string, any>));
     return true;
   } catch (error: any) {
@@ -556,7 +564,7 @@ export const getJobsPaginated = async (
         // (job.province && job.province.toLowerCase().includes(termLower)) // Handled by provinceFilter
       );
     }
-    
+
     // Client-side filtering for subCategory dropdown
     if (subCategoryFilter !== 'all') {
       jobsData = jobsData.filter(job => job.subCategory === subCategoryFilter);
@@ -647,7 +655,7 @@ export const bumpHelperProfileService = async (profileId: string, userId: string
   try {
     const now = serverTimestamp();
     await updateDoc(doc(db, HELPER_PROFILES_COLLECTION, profileId), {
-      updatedAt: now, 
+      updatedAt: now,
       lastBumpedAt: now
     });
     await updateDoc(doc(db, USERS_COLLECTION, userId), {
@@ -753,7 +761,7 @@ export const getHelperProfileDocument = async (profileId: string): Promise<Helpe
 interface WebboardPostAuthorInfo { userId: string; authorDisplayName: string; photo?: string | null; }
 export const addWebboardPostService = async (postData: { title: string; body: string; category: WebboardCategory; image?: string }, author: WebboardPostAuthorInfo): Promise<string> => {
   try {
-    if (postData.body.length > 5000) { 
+    if (postData.body.length > 5000) {
       throw new Error("Post body exceeds 5000 characters.");
     }
     let imageUrl: string | undefined = undefined;
@@ -794,7 +802,7 @@ export const addWebboardPostService = async (postData: { title: string; body: st
 
 export const updateWebboardPostService = async (postId: string, postData: { title?: string; body?: string; category?: WebboardCategory; image?: string | null }, currentUserPhoto?: string | null): Promise<boolean> => {
   try {
-    if (postData.body && postData.body.length > 5000) { 
+    if (postData.body && postData.body.length > 5000) {
       throw new Error("Post body exceeds 5000 characters.");
     }
     const postRef = doc(db, WEBBOARD_POSTS_COLLECTION, postId);
@@ -850,7 +858,7 @@ export const deleteWebboardPostService = async (postId: string): Promise<boolean
 
     const savedPostsQuery = query(collectionGroup(db, USER_SAVED_POSTS_SUBCOLLECTION), where('postId', '==', postId));
     const savedPostsSnapshot = await getDocs(savedPostsQuery);
-    savedPostsSnapshot.forEach(docSnap => batch.delete(docSnap.ref)); 
+    savedPostsSnapshot.forEach(docSnap => batch.delete(docSnap.ref));
 
     await batch.commit();
 
@@ -889,7 +897,7 @@ export const getWebboardPostsPaginated = async (
     if (categoryFilter && categoryFilter !== 'all') { // Apply category filter
       constraints.unshift(where("category", "==", categoryFilter));
     }
-    
+
     if (startAfterDoc) {
       constraints.push(startAfter(startAfterDoc));
     }
@@ -1116,7 +1124,7 @@ export const getUserDocument = async (userId: string): Promise<User | null> => {
       const userData = userDocSnap.data();
       const tier = userData.tier || ('free' as UserTier); // Default tier
       const savedWebboardPosts = userData.savedWebboardPosts || []; // Initialize if missing
-      
+
       // Ensure business fields are present
       const fullUserData = {
         ...convertTimestamps(userData),
@@ -1193,7 +1201,7 @@ export const toggleWebboardPostLikeService = async (postId: string, userId: stri
       newLikes = [...likes, userId];
     }
     // Only update the likes array, not the updatedAt timestamp for the post itself
-    const dataToUpdate = { likes: newLikes }; 
+    const dataToUpdate = { likes: newLikes };
     await updateDoc(postRef, cleanDataForFirestore(dataToUpdate as Record<string, any>));
     return true;
   } catch (error: any) {

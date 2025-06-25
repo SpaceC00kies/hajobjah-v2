@@ -33,7 +33,7 @@ interface MyRoomPageProps {
   getUserDisplayBadge: (user: User | null | undefined) => UserLevel;
   onSavePost: (postId: string) => void; // For un-saving
   onBumpProfile: (profileId: string) => void;
-  onNavigateToPublicProfile: (profileInfo: { userId: string; helperProfileId?: string }) => void; 
+  onNavigateToPublicProfile: (profileInfo: { userId: string; helperProfileId?: string }) => void;
   initialTab?: ActiveTab | null; // New prop for initial tab
   onInitialTabProcessed?: () => void; // New prop to signal consumption
   getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
@@ -234,7 +234,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
     const activeJobs = userJobs.filter(
       job => !job.isExpired && (job.expiresAt ? !isDateInPast(job.expiresAt) : true)
     ).length;
-    
+
     let maxJobs = (currentUser.tier === 'free' as UserTier) ? MAX_ACTIVE_JOBS_FREE_TIER_DISPLAY : 999;
     if (currentUser.activityBadge?.isActive) {
       maxJobs = MAX_ACTIVE_JOBS_BADGE_DISPLAY;
@@ -284,7 +284,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
       }
     }
     const canCreate = cooldownHours <= 0;
-    
+
     return {
       userActiveHelperProfilesCount: activeProfiles,
       maxHelperProfilesAllowed: maxProfiles,
@@ -393,7 +393,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
           }
           return (
             <div key={profile.id} className="bg-white p-4 rounded-lg shadow border">
-              <h4 
+              <h4
                 className="font-semibold text-lg text-secondary mb-1 cursor-pointer hover:underline"
                 onClick={() => onNavigateToPublicProfile({ userId: profile.userId, helperProfileId: profile.id })}
                 title="ดูโปรไฟล์สาธารณะ"
@@ -411,12 +411,12 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
               <div className="flex flex-wrap gap-2 mt-2">
                 <Button onClick={() => onEditItem(profile.id, 'profile', activeTab)} variant="outline" colorScheme="neutral" size="sm" disabled={profile.isSuspicious}>✏️ แก้ไข</Button>
                 <Button onClick={() => onToggleHiredStatus(profile.id, 'profile')} variant="outline" colorScheme="neutral" size="sm" disabled={profile.isSuspicious}>{profile.isUnavailable ? '🟢 แจ้งว่าว่าง' : '🔴 แจ้งว่าไม่ว่าง'}</Button>
-                <Button 
-                  onClick={() => onBumpProfile(profile.id)} 
-                  variant="outline" 
+                <Button
+                  onClick={() => onBumpProfile(profile.id)}
+                  variant="outline"
                   colorScheme="neutral" // Changed to neutral
-                  size="sm" 
-                  disabled={!canBumpProfile || profile.isSuspicious} 
+                  size="sm"
+                  disabled={!canBumpProfile || profile.isSuspicious}
                   title={canBumpProfile ? "Bump โปรไฟล์ของคุณขึ้นไปบนสุด" : profile.isSuspicious ? "ไม่สามารถ Bump โปรไฟล์ที่ถูกระงับ" : `รออีก ${bumpDaysLeft} วัน`}
                 >
                   🚀 Bump {canBumpProfile ? '' : `(${bumpDaysLeft} วัน)`}
@@ -435,8 +435,8 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
       {userWebboardPosts.length === 0 ? (
         <div className="text-center py-8">
           <p className="text-neutral-medium mb-4">คุณยังไม่ได้สร้างกระทู้</p>
-          <Button 
-            onClick={() => navigateTo(View.Webboard, 'create')} 
+          <Button
+            onClick={() => navigateTo(View.Webboard, 'create')}
             variant="outline" // Changed variant
             colorScheme="neutral" // Changed colorScheme
             size="sm"
@@ -489,8 +489,8 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
                       onSavePost={onSavePost} // This will trigger un-save
                       onSharePost={() => { /* Not primary action here */ }}
                       requestLoginForAction={() => {}} // User is logged in
-                      onNavigateToPublicProfile={(userId) => onNavigateToPublicProfile({userId})}
-                      getAuthorDisplayName={getAuthorDisplayName}
+                      onNavigateToPublicProfile={(profileInfo) => onNavigateToPublicProfile(profileInfo)}
+                      getAuthorDisplayName={getAuthorDisplayName} // Pass down
                   />
                 </div>
               </motion.div>
@@ -522,7 +522,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
               onClick={() => setActiveTab(tab.id as ActiveTab)}
               className={`
                 whitespace-nowrap flex items-center rounded-t-md
-                py-2.5 px-3 sm:py-3 sm:px-4 
+                py-2.5 px-3 sm:py-3 sm:px-4
                 font-sans font-medium text-xs sm:text-sm transition-colors duration-150
                 focus:outline-none focus:ring-2 focus:ring-offset-1
                 ${activeTab === tab.id
@@ -546,10 +546,10 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
       <div className="mt-2">
         {activeTab === 'profile' && (
           <div role="tabpanel" id="tabpanel-profile" aria-labelledby="tab-profile">
-            <UserProfilePage 
-              currentUser={currentUser} 
-              onUpdateProfile={onUpdateUserProfile} 
-              onCancel={() => { /* No specific cancel navigation needed from here */ }} 
+            <UserProfilePage
+              currentUser={currentUser}
+              onUpdateProfile={onUpdateUserProfile}
+              onCancel={() => { /* No specific cancel navigation needed from here */ }}
             />
           </div>
         )}

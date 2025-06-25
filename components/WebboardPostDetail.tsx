@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'; // Added useState, useEffect, useRef
 import type { EnrichedWebboardPost, EnrichedWebboardComment, User } from '../types';
-import { USER_LEVELS, UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES } 
+import { USER_LEVELS, UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES }
 from '../types';
 import { Button } from './Button';
 // UserLevelBadge is removed from direct import here as it's no longer used in this component
@@ -15,17 +15,17 @@ interface WebboardPostDetailProps {
   post: EnrichedWebboardPost;
   comments: EnrichedWebboardComment[];
   currentUser: User | null;
-  users: User[]; 
+  users: User[];
   onToggleLike: (postId: string) => void;
-  onSavePost: (postId: string) => void; 
-  onSharePost: (postId: string, postTitle: string) => void; 
+  onSavePost: (postId: string) => void;
+  onSharePost: (postId: string, postTitle: string) => void;
   onAddComment: (postId:string, text: string) => void;
   onDeletePost: (postId: string) => void;
   onPinPost: (postId: string) => void;
   onEditPost: (post: EnrichedWebboardPost) => void;
   onDeleteComment?: (commentId: string) => void;
   onUpdateComment?: (commentId: string, newText: string) => void;
-  requestLoginForAction: (view: View, payload?: any) => void; 
+  requestLoginForAction: (view: View, payload?: any) => void;
   onNavigateToPublicProfile: (profileInfo: { userId: string; helperProfileId?: string }) => void;
   checkWebboardCommentLimits: (user: User) => { canPost: boolean; message?: string };
   getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
@@ -81,12 +81,12 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
   onEditPost,
   onDeleteComment,
   onUpdateComment,
-  requestLoginForAction, 
+  requestLoginForAction,
   onNavigateToPublicProfile,
   checkWebboardCommentLimits,
   getAuthorDisplayName,
 }) => {
-  const [copiedLink, setCopiedLink] = useState(false); 
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const isAuthor = currentUser?.id === post.userId;
   const isAdmin = currentUser?.role === UserRole.Admin;
@@ -129,7 +129,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
       requestLoginForAction(View.Webboard, { action: 'like', postId: post.id });
     } else {
       onToggleLike(post.id);
-      triggerHapticFeedback(15); 
+      triggerHapticFeedback(15);
     }
   };
 
@@ -137,7 +137,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
     if (!currentUser) requestLoginForAction(View.Webboard, { action: 'save', postId: post.id });
     else onSavePost(post.id);
   };
-  
+
   const handleShareClick = () => {
     onSharePost(post.id, post.title);
     setCopiedLink(true);
@@ -158,7 +158,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
       )}
 
       <div className="mb-3">
-        <span 
+        <span
           className={`text-xs font-medium mr-2 px-2.5 py-1 rounded-full inline-block ${categoryStyle.bg} ${categoryStyle.text} ${categoryStyle.border ? `border ${categoryStyle.border}`: ''}`}
         >
           {post.category}
@@ -170,8 +170,8 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
       <div className="flex items-center mb-4 pb-3 border-b border-neutral-DEFAULT/30">
         <FallbackAvatarLarge name={authorActualDisplayName} photo={postAuthor?.photo || post.authorPhoto} className="mr-3 flex-shrink-0" />
         <div className="font-sans">
-          <div className="flex items-baseline"> 
-            <span 
+          <div className="flex items-baseline">
+            <span
               className="text-sm font-semibold text-neutral-dark hover:underline cursor-pointer"
               onClick={() => onNavigateToPublicProfile({userId: post.userId})}
               role="link" tabIndex={0} onKeyPress={(e) => e.key === 'Enter' && onNavigateToPublicProfile({userId: post.userId})}
@@ -180,7 +180,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
             </span>
             <span className="ml-2 text-xs text-gray-500">
               · {timeSince(post.createdAt)}
-              {post.updatedAt && new Date(post.updatedAt).getTime() !== new Date(post.createdAt).getTime() && 
+              {post.updatedAt && new Date(post.updatedAt).getTime() !== new Date(post.createdAt).getTime() &&
                 <span className="italic"> (แก้ไข {timeSince(post.updatedAt)})</span>
               }
             </span>
@@ -208,7 +208,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
             whileTap={{ scale: 0.9 }}
           >
             <motion.span
-              key={hasLiked ? "liked-detail" : "unliked-detail"} 
+              key={hasLiked ? "liked-detail" : "unliked-detail"}
               initial={{ scale: 1 }}
               animate={hasLiked ? { scale: [1, 1.3, 1], transition: { type: "spring", stiffness: 400, damping: 10 } } : { scale: [1, 0.8, 1], transition: { type: "spring", stiffness: 300, damping: 15 } }}
               className="inline-block"
@@ -229,10 +229,10 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
           </motion.button>
           {currentUser && (
             <>
-            <motion.button 
-                onClick={handleSaveClick} 
-                className={`${actionButtonBaseClass}`} 
-                aria-pressed={isSaved} 
+            <motion.button
+                onClick={handleSaveClick}
+                className={`${actionButtonBaseClass}`}
+                aria-pressed={isSaved}
                 aria-label={isSaved ? "Unsave post" : "Save post"}
                 whileTap={{ scale: 0.9 }}
             >
@@ -242,14 +242,14 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
                 animate={{ scale: [1, 0.8, 1.1, 1], transition: { type: "spring", stiffness: 350, damping: 12 } }}
                 className="inline-block"
               >
-                {isSaved ? <SavedIcon/> : <SaveIcon />} 
+                {isSaved ? <SavedIcon/> : <SaveIcon />}
               </motion.span>
               <span className={`hidden sm:inline ${isSaved ? 'text-blue-500' : 'text-neutral-500'}`}>{isSaved ? 'Saved' : 'Save'}</span>
             </motion.button>
             <div className="relative">
-                <motion.button 
-                    onClick={handleShareClick} 
-                    className={`${actionButtonBaseClass} text-neutral-500`} 
+                <motion.button
+                    onClick={handleShareClick}
+                    className={`${actionButtonBaseClass} text-neutral-500`}
                     aria-label="Share post"
                     whileTap={{ scale: 0.9 }}
                     animate={shareIconControls}
@@ -271,11 +271,11 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
              <Button onClick={() => onEditPost(post)} variant="outline" colorScheme="neutral" size="sm" className="text-xs px-2">✏️ แก้ไข</Button>
           )}
           {isAdmin && (
-            <Button 
-              onClick={() => onPinPost(post.id)} 
+            <Button
+              onClick={() => onPinPost(post.id)}
               variant={post.isPinned ? "secondary" : "outline"}
               colorScheme="secondary"
-              size="sm" 
+              size="sm"
               className="text-xs px-2"
             >
               {post.isPinned ? 'เลิกปักหมุด' : 'ปักหมุด'}
@@ -295,15 +295,15 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
         </h4>
         {comments.length > 0 ? (
           <AnimatePresence>
-            <motion.div 
+            <motion.div
               className="space-y-1"
               variants={commentListVariants}
               initial="hidden"
               animate="visible"
-              exit="hidden" 
+              exit="hidden"
             >
               {comments
-                  .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) 
+                  .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
                   .map(comment => {
                       const commenter = users.find(u => u.id === comment.userId);
                       const commenterActualDisplayName = getAuthorDisplayName(comment.userId, comment.authorDisplayName);
@@ -314,10 +314,10 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
                           isAuthorAdmin: commenter?.role === UserRole.Admin,
                       };
                       return (
-                          <WebboardCommentItem 
-                              key={comment.id} 
-                              comment={enrichedComment} 
-                              currentUser={currentUser} 
+                          <WebboardCommentItem
+                              key={comment.id}
+                              comment={enrichedComment}
+                              currentUser={currentUser}
                               onDeleteComment={onDeleteComment}
                               onUpdateComment={onUpdateComment}
                               onNavigateToPublicProfile={(userId) => onNavigateToPublicProfile({ userId })}
@@ -329,8 +329,8 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
         ) : (
           <p className="text-sm text-neutral-medium">ยังไม่มีความคิดเห็น...</p>
         )}
-        <WebboardCommentForm 
-            postId={post.id} 
+        <WebboardCommentForm
+            postId={post.id}
             currentUser={currentUser}
             onAddComment={onAddComment}
             requestLoginForAction={requestLoginForAction}

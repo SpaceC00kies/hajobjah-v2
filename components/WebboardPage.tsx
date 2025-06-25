@@ -13,13 +13,13 @@ import { logFirebaseError } from '../firebase/logging';
 import { motion, AnimatePresence, type Variants, type Transition } from 'framer-motion';
 
 
-interface WebboardPageProps {
+export interface WebboardPageProps { // Added export
   currentUser: User | null;
   users: User[];
   comments: WebboardComment[]; // Global comments for enrichment
   onAddOrUpdatePost: (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => void;
   onAddComment: (postId: string, text: string) => void;
-  onToggleLike: (postId: string) => Promise<void>; 
+  onToggleLike: (postId: string) => Promise<void>;
   onSavePost: (postId: string) => void;
   onSharePost: (postId: string, postTitle: string) => void;
   onDeletePost: (postId: string) => void;
@@ -38,6 +38,7 @@ interface WebboardPageProps {
   checkWebboardPostLimits: (user: User) => { canPost: boolean; message?: string | null };
   checkWebboardCommentLimits: (user: User) => { canPost: boolean; message?: string };
   pageSize: number; // For infinite scroll
+  getAuthorDisplayName: (userId: string, fallbackName?: string) => string; // Added this prop
 }
 
 // Animation Variants
@@ -71,7 +72,7 @@ const itemVariants: Variants = {
       damping: 12,
     } as Transition,
   },
-  exit: { 
+  exit: {
     opacity: 0,
     y: -10,
     transition: {
@@ -82,14 +83,14 @@ const itemVariants: Variants = {
 
 const detailViewVariants: Variants = {
   initial: { x: '100%', opacity: 0 },
-  animate: { 
-    x: 0, 
-    opacity: 1, 
-    transition: { type: "spring", stiffness: 260, damping: 25, duration: 0.4 } as Transition 
+  animate: {
+    x: 0,
+    opacity: 1,
+    transition: { type: "spring", stiffness: 260, damping: 25, duration: 0.4 } as Transition
   },
-  exit: { 
-    x: '-100%', 
-    opacity: 0, 
+  exit: {
+    x: '-100%',
+    opacity: 0,
     transition: { type: "spring", stiffness: 260, damping: 25, duration: 0.3 } as Transition
   },
 };
@@ -120,6 +121,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
   checkWebboardPostLimits,
   checkWebboardCommentLimits,
   pageSize,
+  getAuthorDisplayName, // Destructure the new prop
 }) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<WebboardCategory | 'all'>('all');
@@ -151,15 +153,15 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
 
     if (isInitialLoad) {
       setWebboardPostsList([]);
-      setLastVisibleWebboardPost(null); 
-      setHasMoreWebboardPosts(true);    
+      setLastVisibleWebboardPost(null);
+      setHasMoreWebboardPosts(true);
       setInitialWebboardPostsLoaded(false);
     }
 
     try {
       const result = await getWebboardPostsPaginatedService(
         pageSize,
-        isInitialLoad ? null : lastVisibleRef.current, 
+        isInitialLoad ? null : lastVisibleRef.current,
         selectedCategoryFilter === 'all' ? null : selectedCategoryFilter,
         searchTerm
       );
@@ -203,14 +205,14 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
     return () => {
       if (currentLoaderRef) observer.unobserve(currentLoaderRef);
     };
-  }, [selectedPostId, initialWebboardPostsLoaded, loadWebboardPosts]); 
+  }, [selectedPostId, initialWebboardPostsLoaded, loadWebboardPosts]);
 
 
   useEffect(() => {
     if (selectedPostId !== null && selectedPostId !== 'create' && initialWebboardPostsLoaded) {
       const postExists = webboardPostsList.some(p => p.id === selectedPostId);
       if (!postExists) {
-        loadWebboardPosts(true); 
+        loadWebboardPosts(true);
       }
     }
   }, [selectedPostId, webboardPostsList, initialWebboardPostsLoaded, loadWebboardPosts]);
@@ -239,9 +241,9 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
 
   const handleSubmitPostForm = async (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => {
     await onAddOrUpdatePost(postData, postIdToUpdate);
-    await loadWebboardPosts(true); 
-    if (postIdToUpdate) { 
-        handleCloseCreateModal(); 
+    await loadWebboardPosts(true);
+    if (postIdToUpdate) {
+        handleCloseCreateModal();
     }
   };
 
@@ -315,7 +317,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
             initial="initial"
             animate="animate"
             exit="exit"
-            className="w-full" 
+            className="w-full"
           >
             <Button
               onClick={() => setSelectedPostId(null)}
@@ -343,6 +345,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
               requestLoginForAction={requestLoginForAction}
               onNavigateToPublicProfile={onNavigateToPublicProfile}
               checkWebboardCommentLimits={checkWebboardCommentLimits}
+              getAuthorDisplayName={getAuthorDisplayName} // Pass down
             />
           </motion.div>
         ) : (
@@ -430,7 +433,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
             {enrichedPosts.length > 0 && (
               <motion.div
                 className="space-y-4"
-                variants={listContainerVariants} 
+                variants={listContainerVariants}
                 initial="hidden"
                 animate="visible"
               >
@@ -444,7 +447,8 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
                       onSavePost={onSavePost}
                       onSharePost={onSharePost}
                       requestLoginForAction={requestLoginForAction}
-                      onNavigateToPublicProfile={(userId) => onNavigateToPublicProfile({userId})}
+                      onNavigateToPublicProfile={(profileInfo) => onNavigateToPublicProfile(profileInfo)} // Pass as object
+                      getAuthorDisplayName={getAuthorDisplayName} // Pass down
                     />
                   </motion.div>
                 ))}

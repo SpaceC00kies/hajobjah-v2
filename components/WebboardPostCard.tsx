@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react'; // Added useEffect, useRef
 import type { EnrichedWebboardPost, User } from '../types';
-import { UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES } 
+import { UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES }
 from '../types';
 // Button component might be used for consistency if styled appropriately, or use raw <button> for icons
-// import { Button } from './Button'; 
+// import { Button } from './Button';
 import { triggerHapticFeedback } from '@/utils/haptics'; // Import haptic utility
 import { motion, AnimatePresence, type Transition } from 'framer-motion';
 
@@ -14,10 +14,10 @@ interface WebboardPostCardProps {
   currentUser: User | null;
   onViewPost: (postId: string) => void;
   onToggleLike: (postId: string) => void;
-  onSavePost: (postId: string) => void; 
-  onSharePost: (postId: string, postTitle: string) => void; 
-  requestLoginForAction: (view: View, payload?: any) => void; 
-  onNavigateToPublicProfile: (userId: string) => void;
+  onSavePost: (postId: string) => void;
+  onSharePost: (postId: string, postTitle: string) => void;
+  requestLoginForAction: (view: View, payload?: any) => void;
+  onNavigateToPublicProfile: (profileInfo: { userId: string }) => void; // Corrected type
   getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
 }
 
@@ -43,14 +43,14 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
   onToggleLike,
   onSavePost,
   onSharePost,
-  requestLoginForAction, 
+  requestLoginForAction,
   onNavigateToPublicProfile,
   getAuthorDisplayName,
 }) => {
   const hasLiked = currentUser && post.likes.includes(currentUser.id);
   const isSaved = currentUser?.savedWebboardPosts?.includes(post.id) || false;
   const authorActualDisplayName = getAuthorDisplayName(post.userId, post.authorDisplayName);
-  
+
   // Removed isAnimatingLike and prevHasLikedRef as Framer Motion handles animation state internally more effectively for this type of icon switch.
 
   const timeSince = (dateInput: string | Date | null | undefined): string => {
@@ -73,15 +73,15 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
   };
 
   const handleLikeClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
     if (!currentUser) {
       requestLoginForAction(View.Webboard, { action: 'like', postId: post.id });
     } else {
       onToggleLike(post.id);
-      triggerHapticFeedback(15); 
+      triggerHapticFeedback(15);
     }
   };
-  
+
   const handleSaveClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!currentUser) requestLoginForAction(View.Webboard, { action: 'save', postId: post.id });
@@ -92,13 +92,13 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
     e.stopPropagation();
     onSharePost(post.id, post.title);
   };
-  
+
   const categoryStyle = WEBBOARD_CATEGORY_STYLES[post.category] || WEBBOARD_CATEGORY_STYLES[WebboardCategory.General];
   const actionButtonBaseClass = "flex items-center gap-1 p-1.5 rounded-md hover:bg-neutral-light focus:outline-none focus:ring-1 focus:ring-neutral-DEFAULT transition-colors duration-150";
 
 
   return (
-    <motion.div 
+    <motion.div
       className="font-sans bg-white shadow rounded-lg border border-neutral-DEFAULT/50 hover:border-neutral-DEFAULT transition-all duration-200 flex cursor-pointer"
       onClick={() => onViewPost(post.id)}
       role="article"
@@ -129,17 +129,17 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
           >
             {post.title}
           </h3>
-          <span 
+          <span
             className={`text-xs font-medium mt-1 px-1.5 py-0.5 rounded-full inline-block ${categoryStyle.bg} ${categoryStyle.text} ${categoryStyle.border ? `border ${categoryStyle.border}`: ''}`}
           >
             {post.category}
           </span>
-          
+
           <div className="text-xs text-neutral-500 mt-1.5">
-            <span 
-              className="hover:underline cursor-pointer" 
-              onClick={(e) => { e.stopPropagation(); onNavigateToPublicProfile(post.userId);}}
-              role="link" tabIndex={0} onKeyPress={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onNavigateToPublicProfile(post.userId);}}}
+            <span
+              className="hover:underline cursor-pointer"
+              onClick={(e) => { e.stopPropagation(); onNavigateToPublicProfile({ userId: post.userId });}}
+              role="link" tabIndex={0} onKeyPress={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onNavigateToPublicProfile({ userId: post.userId });}}}
             >
               @{authorActualDisplayName}
             </span>
@@ -149,10 +149,10 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
         </div>
 
         <div className="flex items-center justify-start text-xs text-neutral-medium mt-2 space-x-2 sm:space-x-3 flex-wrap">
-          <motion.button 
-            onClick={handleLikeClick} 
-            className={`${actionButtonBaseClass}`} 
-            aria-pressed={hasLiked} 
+          <motion.button
+            onClick={handleLikeClick}
+            className={`${actionButtonBaseClass}`}
+            aria-pressed={hasLiked}
             aria-label={hasLiked ? "Unlike" : "Like"}
             whileTap={{ scale: 0.9 }}
           >
@@ -177,9 +177,9 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
             </AnimatePresence>
           </motion.button>
 
-          <motion.button 
-            onClick={() => onViewPost(post.id)} 
-            className={`${actionButtonBaseClass} text-neutral-500`} 
+          <motion.button
+            onClick={() => onViewPost(post.id)}
+            className={`${actionButtonBaseClass} text-neutral-500`}
             aria-label="View comments"
             whileTap={{ scale: 0.9 }}
           >
@@ -188,10 +188,10 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
 
           {currentUser && (
             <>
-              <motion.button 
-                onClick={handleSaveClick} 
-                className={`${actionButtonBaseClass}`} 
-                aria-pressed={isSaved} 
+              <motion.button
+                onClick={handleSaveClick}
+                className={`${actionButtonBaseClass}`}
+                aria-pressed={isSaved}
                 aria-label={isSaved ? "Unsave" : "Save"}
                 whileTap={{ scale: 0.9 }}
               >
@@ -201,14 +201,14 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
                   animate={{ scale: [1, 0.8, 1.1, 1], transition: { type: "spring", stiffness: 350, damping: 12 } }}
                   className="inline-block"
                 >
-                  {isSaved ? <SavedIcon/> : <SaveIcon />} 
+                  {isSaved ? <SavedIcon/> : <SaveIcon />}
                 </motion.span>
                 <span className={`hidden sm:inline ${isSaved ? 'text-blue-500' : 'text-neutral-500'}`}>{isSaved ? 'Saved' : 'Save'}</span>
               </motion.button>
 
-              <motion.button 
-                onClick={handleShareClick} 
-                className={`${actionButtonBaseClass} text-neutral-500`} 
+              <motion.button
+                onClick={handleShareClick}
+                className={`${actionButtonBaseClass} text-neutral-500`}
                 aria-label="Share"
                 whileTap={{ scale: 0.9 }}
                 animate={{ scale: 1 }} // Base state for programmatic animation
