@@ -13,7 +13,7 @@ interface UserProfilePageProps {
 
 type UserProfileFormErrorKeys = 'publicDisplayName' | 'mobile' | 'gender' | 'birthdate' | 'educationLevel' | 'general' | 'photo' | 'businessWebsite' | 'businessSocialProfileLink'; // Added business fields
 type FeedbackType = { type: 'success' | 'error'; message: string };
-const PUBLIC_DISPLAY_NAME_REGEX_PROFILE = /^[a-zA-Zก-๏\s.]{2,30}$/u;
+const PUBLIC_DISPLAY_NAME_REGEX_PROFILE = /^[a-zA-Z0-9ก-๏\s.]{2,30}$/u; // Matched with RegistrationForm
 
 
 const calculateAge = (birthdateString?: string): number | null => {
@@ -207,7 +207,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
      if (!publicDisplayName.trim()) {
       newErrors.publicDisplayName = 'กรุณากรอกชื่อที่ต้องการให้แสดงบนเว็บไซต์';
     } else if (!PUBLIC_DISPLAY_NAME_REGEX_PROFILE.test(publicDisplayName)) {
-      newErrors.publicDisplayName = 'ต้องมี 2-30 ตัวอักษร (ไทย/อังกฤษ, เว้นวรรค, จุด)';
+      newErrors.publicDisplayName = 'ต้องมี 2-30 ตัวอักษร (ไทย/อังกฤษ, ตัวเลข, เว้นวรรค, จุด)';
     }
 
     if (!displayNameCooldownInfo.canChange && publicDisplayName !== currentUser.publicDisplayName) {
@@ -336,8 +336,23 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
           {errors.photo && <p className="text-red-500 font-sans text-xs mt-1 text-center">{errors.photo}</p>}
         </div>
 
+        <div className="pt-4 border-t border-neutral-DEFAULT/50">
+          <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                  type="checkbox"
+                  checked={isBusinessProfile}
+                  onChange={(e) => setIsBusinessProfile(e.target.checked)}
+                  className="form-checkbox h-5 w-5 text-secondary rounded border-neutral-DEFAULT focus:!ring-2 focus:!ring-offset-1 focus:!ring-offset-white focus:!ring-secondary focus:!ring-opacity-70"
+              />
+              <span className="text-sm font-sans font-medium text-neutral-dark">ฉันเป็นธุรกิจ/ร้านค้า (โปรไฟล์สาธารณะจะแสดงเฉพาะข้อมูลธุรกิจ)</span>
+          </label>
+          <p className="text-xs font-sans text-neutral-medium mt-1 pl-7">
+            หมายเหตุ: หากคุณเป็นฟรีแลนซ์หรือเสนอบริการ เราไม่แนะนำให้ติ๊กข้อนี้ เพราะการแสดงข้อมูลส่วนตัวบางอย่าง เช่น เกี่ยวกับฉัน, สิ่งที่ชอบ จะช่วยสร้างความน่าเชื่อถือ
+          </p>
+        </div>
+
         <div>
-          <label htmlFor="profilePublicDisplayName" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อที่แสดงบนเว็บไซต์ (สาธารณะ) <span className="text-red-500">*</span></label>
+          <label htmlFor="profilePublicDisplayName" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อบนเว็บไซต์ (สาธารณะ) <span className="text-red-500">*</span></label>
           <input
             type="text"
             id="profilePublicDisplayName"
@@ -349,7 +364,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             aria-describedby={!displayNameCooldownInfo.canChange ? "displayNameCooldownMessage" : (errors.publicDisplayName ? "publicDisplayNameError" : undefined)}
           />
            <p className="text-xs font-sans text-neutral-medium mt-1">
-              ชื่อนี้จะแสดงบนเว็บไซต์ (ไทย/อังกฤษ, 2-30 ตัวอักษร, อนุญาต เว้นวรรค, จุด) เช่น 'Sunny Y.'
+              ชื่อแสดงสาธารณะ (2-30 ตัวอักษร): ไทย/อังกฤษ, ตัวเลข, เว้นวรรค, จุด (.) เท่านั้น เช่น Sunny J. 123
             </p>
           {errors.publicDisplayName && <p id="publicDisplayNameError" className="text-red-500 font-sans text-xs mt-1">{errors.publicDisplayName}</p>}
           {!displayNameCooldownInfo.canChange && displayNameCooldownInfo.message && (
@@ -381,22 +396,6 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
           />
         </div>
         
-        <div className="pt-4 border-t border-neutral-DEFAULT/50">
-          <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                  type="checkbox"
-                  checked={isBusinessProfile}
-                  onChange={(e) => setIsBusinessProfile(e.target.checked)}
-                  className="form-checkbox h-5 w-5 text-secondary rounded border-neutral-DEFAULT focus:!ring-2 focus:!ring-offset-1 focus:!ring-offset-white focus:!ring-secondary focus:!ring-opacity-70" // Enhanced focus for checkbox
-              />
-              <span className="text-sm font-sans font-medium text-neutral-dark">ฉันเป็นธุรกิจ/ร้านค้า (ซ่อนข้อมูลส่วนตัวบางอย่างบนโปรไฟล์สาธารณะ)</span>
-          </label>
-          <p className="text-xs font-sans text-neutral-medium mt-1 pl-7">
-            หมายเหตุ: หากคุณเป็นฟรีแลนซ์ การแสดงข้อมูลส่วนตัวบางอย่าง (เช่น เกี่ยวกับฉัน, สิ่งที่ชอบ) อาจช่วยสร้างความน่าเชื่อถือและความเป็นกันเองกับผู้ว่าจ้างได้ พิจารณาตามความเหมาะสมของงานที่คุณนำเสนอ
-          </p>
-        </div>
-
-
         <div className="pt-4 border-t border-neutral-DEFAULT/50">
             <label htmlFor="profile-introSentence" className="block text-sm font-sans font-medium text-neutral-dark mb-1">
                 💬 เกี่ยวกับฉัน
@@ -571,7 +570,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
 
 
         <div className="pt-4 border-t border-neutral-DEFAULT/50">
-             <h3 className="text-lg font-sans font-medium text-neutral-dark mb-3">ข้อมูลติดต่อส่วนตัว (จะแสดงในโพสต์ของคุณ)</h3>
+             <h3 className="text-lg font-sans font-medium text-neutral-dark mb-3">ข้อมูลติดต่อ (แสดงใน 'ติดต่อ')</h3>
             <div>
             <label htmlFor="profileMobile" className="block text-sm font-sans font-medium text-neutral-dark mb-1">เบอร์โทรศัพท์ <span className="text-red-500">*</span></label>
             <input
