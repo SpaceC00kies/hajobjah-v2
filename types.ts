@@ -35,6 +35,7 @@ export interface Job {
   // New fields for expiration
   expiresAt?: string | Date; // Date when the job expires
   isExpired?: boolean;     // Flag indicating if the job has expired
+  posterIsAdminVerified?: boolean; // Flag indicating if the job poster is admin verified
 }
 
 export enum GenderOption {

@@ -220,7 +220,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (item.itemType !== 'profile') return null;
     return (
       <div className="flex gap-1 flex-wrap my-1">
-        {item.adminVerifiedExperience && <span className="bg-yellow-200 text-yellow-800 text-xs px-2 py-0.5 rounded-full font-medium">⭐ ผ่านงาน</span>}
+        {item.adminVerifiedExperience && <span className="bg-yellow-200 text-yellow-800 text-xs px-2 py-0.5 rounded-full font-medium">⭐ ยืนยันตัวตน</span>}
         {item.profileComplete && <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full font-medium">🟢 ครบถ้วน</span>}
         {/* Removed: Has Been Contacted Badge
         {item.hasBeenContacted && <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium">📌 ผู้ติดต่อ</span>}
@@ -349,7 +349,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             colorScheme={item.adminVerifiedExperience ? "secondary" : "primary"}
             size="sm"
         >
-            {item.adminVerifiedExperience ? 'ยกเลิก Verified Exp.' : '⭐ Verified Exp.'}
+            {item.adminVerifiedExperience ? 'ยกเลิกยืนยันตัวตน' : '⭐ ยืนยันตัวตน'}
         </Button>
       )}
 

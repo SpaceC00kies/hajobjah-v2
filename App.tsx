@@ -747,7 +747,7 @@ const App: React.FC = () => {
     }
   };
 
-  type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired'>;
+  type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'posterIsAdminVerified'>;
   type HelperProfileFormData = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt'>;
 
   const generateContactString = (user: User): string => {
@@ -1775,12 +1775,22 @@ const App: React.FC = () => {
       emptyStateMessage = "ไม่พบงานที่ตรงกับเกณฑ์การค้นหาของคุณ";
     }
 
-
-    const activeUserJobs = jobsList.filter(job => 
-        job.isExpired === false && 
-        job.expiresAt && !isDateInPast(job.expiresAt) &&
-        job.isHired === false
-    );
+    const activeUserJobs = jobsList
+      .filter(job => 
+          job.isExpired === false && 
+          job.expiresAt && !isDateInPast(job.expiresAt) &&
+          job.isHired === false
+      )
+      .map(job => {
+        const posterUser = users.find(u => u.id === job.userId);
+        let posterIsAdminVerified = false;
+        if (posterUser) {
+          posterIsAdminVerified = allHelperProfilesForAdmin.some(
+            hp => hp.userId === posterUser.id && hp.adminVerifiedExperience === true
+          );
+        }
+        return { ...job, posterIsAdminVerified };
+      });
     
     const inputBaseStyle = "w-full p-3 bg-white border border-[#CCCCCC] rounded-[10px] text-neutral-dark font-serif font-normal focus:outline-none transition-colors duration-150 ease-in-out";
     const selectBaseStyle = `${inputBaseStyle} appearance-none`;

@@ -46,7 +46,7 @@ const TrustBadgesCompact: React.FC<{ profile: EnrichedHelperProfile, user: User 
   const badges = [];
   if (profile.adminVerifiedExperience) {
     badges.push(
-      <span key="verified" className="helper-card-trust-badge bg-yellow-200 text-yellow-800">ผ่านงาน</span>
+      <span key="verified" className="helper-card-trust-badge bg-yellow-200 text-yellow-800">ยืนยันตัวตน</span>
     );
   }
   if (user?.profileComplete) {

@@ -8,7 +8,7 @@ import { isDateInPast } from '../App';
 import { motion, type Transition } from 'framer-motion';
 
 interface JobCardProps {
-  job: Job;
+  job: Job; // Already includes posterIsAdminVerified?
   navigateTo: (view: View, payload?: any) => void; // Updated to accept payload
   currentUser: User | null;
   requestLoginForAction: (view: View, payload?: any) => void;
@@ -124,6 +124,11 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
                         {authorActualDisplayName}
                         <span className="name-arrow">→</span>
                     </h3>
+                    {job.posterIsAdminVerified && (
+                        <span className="ml-1.5 bg-yellow-200 text-yellow-800 text-xs px-1.5 py-0.5 rounded-full font-medium">
+                            ⭐ ยืนยันตัวตน
+                        </span>
+                    )}
                 </div>
             </div>
             {/* Avatar removed */}
