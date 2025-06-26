@@ -154,7 +154,8 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
           <h5 className="job-card-details-title text-sm">
             รายละเอียดงาน
           </h5>
-          <ul>
+          {/* The description text will sit directly below "รายละเอียดงาน" due to margin-bottom: 0px on title */}
+          <ul className="mt-1"> {/* Added small margin-top to ul if direct adjacency feels too tight for the paragraph of text */}
             <li className={`text-xs ${detailsNeedsTruncation && !showFullDetails && !(currentUser && !jobIsTrulyExpired) ? "details-line-clamp" : ""}`}>
               {displayDetails}
             </li>
@@ -171,7 +172,8 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
           
           {(job.desiredAgeStart || job.desiredAgeEnd || job.preferredGender || job.desiredEducationLevel) && (
             <>
-                <h6 className="text-xs font-semibold text-neutral-dark mt-3 mb-0.5">คุณสมบัติที่ต้องการ (ถ้ามี):</h6>
+                {/* Changed mb-0.5 to mb-0 for closer spacing to list */}
+                <h6 className="text-xs font-semibold text-neutral-dark mt-3 mb-0">คุณสมบัติที่ต้องการ (ถ้ามี):</h6>
                 <ul className="job-card-details-box qualifications-list text-xs">
                     {job.desiredAgeStart && <li>อายุ: {job.desiredAgeStart}{job.desiredAgeEnd ? ` - ${job.desiredAgeEnd}` : '+'} ปี</li>}
                     {job.preferredGender && <li>เพศ: {job.preferredGender}</li>}
