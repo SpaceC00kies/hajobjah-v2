@@ -174,7 +174,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
             <>
                 {/* Changed mb-0.5 to mb-0 for closer spacing to list */}
                 <h6 className="text-xs font-semibold text-neutral-dark mt-3 mb-0">คุณสมบัติที่ต้องการ (ถ้ามี):</h6>
-                <ul className="job-card-details-box qualifications-list text-xs">
+                <ul className="qualifications-list text-xs">
                     {job.desiredAgeStart && <li>อายุ: {job.desiredAgeStart}{job.desiredAgeEnd ? ` - ${job.desiredAgeEnd}` : '+'} ปี</li>}
                     {job.preferredGender && <li>เพศ: {job.preferredGender}</li>}
                     {job.desiredEducationLevel && job.desiredEducationLevel !== JobDesiredEducationLevelOption.Any && <li>การศึกษา: {job.desiredEducationLevel}</li>}
