@@ -36,6 +36,7 @@ export interface Job {
   expiresAt?: string | Date; // Date when the job expires
   isExpired?: boolean;     // Flag indicating if the job has expired
   posterIsAdminVerified?: boolean; // Flag indicating if the job poster is admin verified
+  interestedCount?: number;
 }
 
 export enum GenderOption {
@@ -212,6 +213,15 @@ export interface Interaction {
   timestamp: string | Date;
   type: 'contact_helper';
   createdAt?: string | Date;
+}
+
+export interface Interest {
+    id: string;
+    userId: string; // The user who is interested
+    targetId: string; // The ID of the Job or HelperProfile
+    targetType: 'job' | 'helperProfile';
+    targetOwnerId: string; // The ID of the user who owns the target
+    createdAt: string | Date;
 }
 
 export enum WebboardCategory {

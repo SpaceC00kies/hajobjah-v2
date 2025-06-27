@@ -1,4 +1,3 @@
-
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -32,6 +31,8 @@ import {
   startAfter,
   type DocumentSnapshot,
   type DocumentData,
+  runTransaction,
+  increment,
 } from 'firebase/firestore';
 import {
   ref,
@@ -42,7 +43,7 @@ import {
 } from 'firebase/storage';
 
 import { auth, db, storage } from '../firebase';
-import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier, UserSavedWebboardPostEntry, Province, JobSubCategory } from '../types'; // Added JobSubCategory
+import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier, UserSavedWebboardPostEntry, Province, JobSubCategory, Interest } from '../types'; // Added Interest
 import { UserRole, WebboardCategory, USER_LEVELS, GenderOption, HelperEducationLevelOption } from '../types';
 import { logFirebaseError } from '../firebase/logging';
 
@@ -57,6 +58,7 @@ const SITE_CONFIG_COLLECTION = 'siteConfig';
 const SITE_CONFIG_DOC_ID = 'main';
 const FEEDBACK_COLLECTION = 'feedback';
 const USER_SAVED_POSTS_SUBCOLLECTION = 'savedWebboardPosts';
+const INTERESTS_COLLECTION = 'interests'; // New collection for interests
 
 
 // --- Helper to convert Firestore Timestamps to ISO strings for consistency ---
@@ -482,6 +484,7 @@ export const addJobService = async (jobData: JobFormData, author: { userId: stri
       updatedAt: serverTimestamp() as any,
       expiresAt: expiresAt.toISOString(),
       isExpired: false,
+      interestedCount: 0,
     };
     const docRef = await addDoc(collection(db, JOBS_COLLECTION), cleanDataForFirestore(newJobDoc as Record<string, any>));
 
@@ -1056,12 +1059,8 @@ export const logHelperContactInteractionService = async (helperProfileId: string
     };
     const docRef = await addDoc(collection(db, INTERACTIONS_COLLECTION), cleanDataForFirestore(newInteractionDoc as Record<string, any>));
 
-    const helperProfileRef = doc(db, HELPER_PROFILES_COLLECTION, helperProfileId);
-    const helperProfileSnap = await getDoc(helperProfileRef);
-    if (helperProfileSnap.exists()) {
-      const currentCount = helperProfileSnap.data().interestedCount || 0;
-      await updateDoc(helperProfileRef, { interestedCount: currentCount + 1 });
-    }
+    // The logic to increment interestedCount has been moved to toggleInterestService
+    
     return docRef.id;
   } catch (error: any) {
     logFirebaseError("logHelperContactInteractionService", error);
@@ -1070,6 +1069,63 @@ export const logHelperContactInteractionService = async (helperProfileId: string
 };
 export const subscribeToInteractionsService = (callback: (data: Interaction[]) => void) =>
   subscribeToCollectionService<Interaction>(INTERACTIONS_COLLECTION, callback, [orderBy("timestamp", "desc")]);
+
+// --- New Interest Services ---
+export const toggleInterestService = async (
+  targetId: string,
+  targetType: 'job' | 'helperProfile',
+  targetOwnerId: string,
+  currentUserId: string
+): Promise<{ isInterested: boolean }> => {
+  const interestId = `${currentUserId}_${targetId}`;
+  const interestRef = doc(db, INTERESTS_COLLECTION, interestId);
+  
+  const targetCollection = targetType === 'job' ? JOBS_COLLECTION : HELPER_PROFILES_COLLECTION;
+  const targetRef = doc(db, targetCollection, targetId);
+
+  try {
+    let isInterested = false;
+    await runTransaction(db, async (transaction) => {
+      const interestDoc = await transaction.get(interestRef);
+
+      if (interestDoc.exists()) {
+        // User is un-interesting, so delete the interest and decrement count
+        transaction.delete(interestRef);
+        transaction.update(targetRef, { interestedCount: increment(-1) });
+        isInterested = false;
+      } else {
+        // User is expressing interest, so create the interest and increment count
+        const newInterest: Omit<Interest, 'id'> = {
+          userId: currentUserId,
+          targetId,
+          targetType,
+          targetOwnerId,
+          createdAt: serverTimestamp() as any,
+        };
+        transaction.set(interestRef, newInterest);
+        transaction.update(targetRef, { interestedCount: increment(1) });
+        isInterested = true;
+      }
+    });
+    return { isInterested };
+  } catch (error) {
+    logFirebaseError("toggleInterestService", error);
+    throw new Error("Failed to update interest status.");
+  }
+};
+
+export const subscribeToUserInterestsService = (userId: string, callback: (interests: Interest[]) => void): (() => void) => {
+  const q = query(collection(db, INTERESTS_COLLECTION), where("userId", "==", userId));
+  return onSnapshot(q, (querySnapshot) => {
+    const interests = querySnapshot.docs.map(docSnap => ({
+      id: docSnap.id,
+      ...convertTimestamps(docSnap.data()),
+    } as Interest));
+    callback(interests);
+  }, (error) => {
+    logFirebaseError("subscribeToUserInterestsService", error);
+  });
+};
 
 
 // Site Config

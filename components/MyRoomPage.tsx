@@ -1,10 +1,11 @@
-
 import React, { useState, useMemo, useEffect } from 'react'; // Added useEffect
-import type { User, Job, HelperProfile, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost } from '../types';
+import type { User, Job, HelperProfile, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, Interest } from '../types'; // Added Interest
 import { View, UserTier } from '../types'; // Added UserTier
 import { Button } from './Button';
 import { UserProfilePage } from './UserProfilePage';
 import { WebboardPostCard } from './WebboardPostCard'; // For Saved Posts
+import { JobCard } from './JobCard'; // For Interested Jobs
+import { HelperCard } from './HelperCard'; // For Interested Helpers
 import { isDateInPast, calculateDaysRemaining } from '../App'; // Import utilities
 import { motion, AnimatePresence, type Variants, type Transition } from 'framer-motion';
 
@@ -14,8 +15,9 @@ const JobsIcon = () => <span role="img" aria-label="Jobs" className="mr-1.5 sm:m
 const ServicesIcon = () => <span role="img" aria-label="Services" className="mr-1.5 sm:mr-2">🛠️</span>;
 const WebboardIcon = () => <span role="img" aria-label="Webboard" className="mr-1.5 sm:mr-2">💬</span>;
 const SavedIcon = () => <span role="img" aria-label="Saved" className="mr-1.5 sm:mr-2">💾</span>;
+const InterestedIcon = () => <span role="img" aria-label="Interested" className="mr-1.5 sm:mr-2">★</span>;
 
-export type ActiveTab = 'profile' | 'myJobs' | 'myHelperServices' | 'myWebboardPosts' | 'savedPosts';
+export type ActiveTab = 'profile' | 'myJobs' | 'myHelperServices' | 'myWebboardPosts' | 'savedPosts' | 'interestedJobs' | 'interestedHelpers';
 
 
 interface MyRoomPageProps {
@@ -25,6 +27,7 @@ interface MyRoomPageProps {
   allHelperProfilesForAdmin: HelperProfile[];
   allWebboardPostsForAdmin: WebboardPost[];
   webboardComments: WebboardComment[];
+  userInterests: Interest[]; // New prop for user's interests
   navigateTo: (view: View, payload?: any) => void;
   onEditItem: (itemId: string, itemType: 'job' | 'profile' | 'webboardPost', originatingTab: ActiveTab) => void; // Added originatingTab
   onDeleteItem: (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => void;
@@ -37,6 +40,11 @@ interface MyRoomPageProps {
   initialTab?: ActiveTab | null; // New prop for initial tab
   onInitialTabProcessed?: () => void; // New prop to signal consumption
   getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
+  onToggleInterest: (targetId: string, targetType: 'job' | 'helperProfile', targetOwnerId: string) => void; // New prop
+  requestLoginForAction: (view: View, payload?: any) => void; // New prop
+  onEditJobFromFindView?: (jobId: string) => void; // New prop
+  onEditHelperProfileFromFindView?: (profileId: string) => void; // New prop
+  onLogHelperContact: (helperProfileId: string) => void; // New prop
 }
 
 // Animation Variants
@@ -134,6 +142,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
   allHelperProfilesForAdmin,
   allWebboardPostsForAdmin,
   webboardComments,
+  userInterests,
   navigateTo,
   onEditItem,
   onDeleteItem,
@@ -146,6 +155,11 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
   initialTab,
   onInitialTabProcessed,
   getAuthorDisplayName,
+  onToggleInterest,
+  requestLoginForAction,
+  onEditJobFromFindView,
+  onEditHelperProfileFromFindView,
+  onLogHelperContact,
 }) => {
   const [activeTab, setActiveTab] = useState<ActiveTab>(initialTab || 'profile');
 
@@ -192,13 +206,29 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
       .sort((a, b) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime());
   }, [allWebboardPostsForAdmin, currentUser.savedWebboardPosts, webboardComments, users, getAuthorDisplayName]);
 
+  const interestedJobs = useMemo(() => {
+    const interestedJobIds = userInterests
+        .filter(i => i.targetType === 'job')
+        .map(i => i.targetId);
+    return allJobsForAdmin.filter(j => interestedJobIds.includes(j.id));
+  }, [userInterests, allJobsForAdmin]);
+
+  const interestedHelpers = useMemo(() => {
+    const interestedHelperIds = userInterests
+        .filter(i => i.targetType === 'helperProfile')
+        .map(i => i.targetId);
+    return allHelperProfilesForAdmin.filter(p => interestedHelperIds.includes(p.id));
+  }, [userInterests, allHelperProfilesForAdmin]);
+
 
   const tabs: { id: ActiveTab; label: string; icon: JSX.Element }[] = [
     { id: 'profile', label: 'โปรไฟล์', icon: <ProfileIcon /> },
     { id: 'myJobs', label: 'ประกาศงาน', icon: <JobsIcon /> },
     { id: 'myHelperServices', label: 'งานที่เสนอ', icon: <ServicesIcon /> },
+    { id: 'interestedJobs', label: 'งานที่สนใจ', icon: <InterestedIcon /> },
+    { id: 'interestedHelpers', label: 'ผู้ช่วยที่สนใจ', icon: <InterestedIcon /> },
+    { id: 'savedPosts', label: 'กระทู้ที่บันทึกไว้', icon: <SavedIcon /> },
     { id: 'myWebboardPosts', label: 'กระทู้ของฉัน', icon: <WebboardIcon /> },
-    { id: 'savedPosts', label: 'กระทู้ที่บันทึก', icon: <SavedIcon /> },
   ];
 
   const renderItemStatus = (item: Job | HelperProfile) => {
@@ -501,6 +531,70 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
     </div>
   );
 
+  const renderInterestedJobsTab = () => (
+    <div className="space-y-4">
+      {interestedJobs.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-neutral-medium mb-4">คุณยังไม่มีงานที่สนใจ</p>
+          <Button onClick={() => navigateTo(View.FindJobs)} variant="outline" colorScheme="neutral" size="sm">
+            ค้นหางานที่น่าสนใจ
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {interestedJobs.map(job => (
+            <JobCard
+              key={job.id}
+              job={job}
+              navigateTo={navigateTo}
+              currentUser={currentUser}
+              requestLoginForAction={requestLoginForAction}
+              onEditJobFromFindView={onEditJobFromFindView}
+              getAuthorDisplayName={getAuthorDisplayName}
+              onToggleInterest={onToggleInterest}
+              isInterested={true} // It's in the list, so it's interested
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+  
+  const renderInterestedHelpersTab = () => (
+    <div className="space-y-4">
+      {interestedHelpers.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-neutral-medium mb-4">คุณยังไม่มีผู้ช่วยที่สนใจ</p>
+          <Button onClick={() => navigateTo(View.FindHelpers)} variant="outline" colorScheme="neutral" size="sm">
+            ค้นหาผู้ช่วย
+          </Button>
+        </div>
+      ) : (
+         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {interestedHelpers.map(profile => {
+             const enrichedProfile = { ...profile, userPhoto: users.find(u => u.id === profile.userId)?.photo, profileCompleteBadge: users.find(u => u.id === profile.userId)?.profileComplete || false, warningBadge: profile.isSuspicious || false, verifiedExperienceBadge: profile.adminVerifiedExperience || false };
+             return (
+                 <HelperCard
+                    key={profile.id}
+                    profile={enrichedProfile}
+                    navigateTo={navigateTo}
+                    onNavigateToPublicProfile={onNavigateToPublicProfile}
+                    currentUser={currentUser}
+                    requestLoginForAction={requestLoginForAction}
+                    onBumpProfile={onBumpProfile}
+                    onEditProfileFromFindView={onEditHelperProfileFromFindView}
+                    onLogHelperContact={onLogHelperContact}
+                    getAuthorDisplayName={getAuthorDisplayName}
+                    onToggleInterest={onToggleInterest}
+                    isInterested={true} // It's in the list, so it's interested
+                 />
+             )
+          })}
+        </div>
+      )}
+    </div>
+  );
+
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
@@ -557,6 +651,8 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
         {activeTab === 'myHelperServices' && <div role="tabpanel" id="tabpanel-myHelperServices" aria-labelledby="tab-myHelperServices">{renderMyHelperServicesTab()}</div>}
         {activeTab === 'myWebboardPosts' && <div role="tabpanel" id="tabpanel-myWebboardPosts" aria-labelledby="tab-myWebboardPosts">{renderMyWebboardPostsTab()}</div>}
         {activeTab === 'savedPosts' && <div role="tabpanel" id="tabpanel-savedPosts" aria-labelledby="tab-savedPosts">{renderSavedPostsTab()}</div>}
+        {activeTab === 'interestedJobs' && <div role="tabpanel" id="tabpanel-interestedJobs" aria-labelledby="tab-interestedJobs">{renderInterestedJobsTab()}</div>}
+        {activeTab === 'interestedHelpers' && <div role="tabpanel" id="tabpanel-interestedHelpers" aria-labelledby="tab-interestedHelpers">{renderInterestedHelpersTab()}</div>}
       </div>
     </div>
   );

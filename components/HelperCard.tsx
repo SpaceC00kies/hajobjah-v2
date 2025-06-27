@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import type { EnrichedHelperProfile, User } from '../types';
 import { View, Province, ACTIVITY_BADGE_DETAILS } from '../types';
@@ -18,6 +17,8 @@ interface HelperCardProps {
   onBumpProfile: (profileId: string) => void;
   onEditProfileFromFindView?: (profileId: string) => void; 
   getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
+  onToggleInterest: (targetId: string, targetType: 'job' | 'helperProfile', targetOwnerId: string) => void; // New prop
+  isInterested: boolean; // New prop
 }
 
 const FallbackAvatarDisplay: React.FC<{ name?: string, size?: string, className?: string }> = ({ name, size = "w-[80px] h-[80px]", className = "" }) => {
@@ -91,7 +92,9 @@ export const HelperCard: React.FC<HelperCardProps> = ({
     requestLoginForAction,
     onBumpProfile,
     onEditProfileFromFindView,
-    getAuthorDisplayName
+    getAuthorDisplayName,
+    onToggleInterest,
+    isInterested,
 }) => {
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
@@ -116,6 +119,15 @@ export const HelperCard: React.FC<HelperCardProps> = ({
     onLogHelperContact(profile.id);
     setIsWarningModalOpen(false);
     setIsContactModalOpen(true);
+  };
+
+  const handleInterestClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!currentUser) {
+        requestLoginForAction(View.FindHelpers, { intent: 'interest', postId: profile.id });
+        return;
+    }
+    onToggleInterest(profile.id, 'helperProfile', profile.userId);
   };
 
   const postedAtDate = profile.postedAt ? (profile.postedAt instanceof Date ? profile.postedAt : new Date(profile.postedAt as string)) : null;
@@ -274,18 +286,19 @@ export const HelperCard: React.FC<HelperCardProps> = ({
             {formattedPostedAt}
           </div>
           <div className="helper-card-action-buttons">
-            {currentUser?.id === profile.userId && !profile.isUnavailable && !profileIsTrulyExpired && (
-              <Button
-                onClick={() => onBumpProfile(profile.id)}
-                variant="outline"
-                colorScheme="secondary"
-                size="sm"
-                disabled={!canBump}
-                title={canBump ? "Bump โปรไฟล์ของคุณขึ้นไปบนสุด" : `คุณสามารถ Bump โปรไฟล์นี้ได้อีก ${bumpDaysRemaining} วัน`}
-              >
-                🚀 Bump {canBump ? '' : `(${bumpDaysRemaining}d)`}
-              </Button>
+            {currentUser?.id !== profile.userId && (
+                <Button
+                    onClick={handleInterestClick}
+                    variant={isInterested ? "secondary" : "outline"}
+                    colorScheme="secondary"
+                    size="sm"
+                    disabled={profile.isUnavailable || profileIsTrulyExpired}
+                    className="!px-2.5"
+                >
+                    {isInterested ? '⭐ สนใจแล้ว' : '★ สนใจ'}
+                </Button>
             )}
+
             {onEditProfileFromFindView && currentUser?.id === profile.userId ? (
                  <Button
                     onClick={() => onEditProfileFromFindView(profile.id)}
@@ -296,14 +309,25 @@ export const HelperCard: React.FC<HelperCardProps> = ({
                 >
                     ✏️ แก้ไข
                 </Button>
+            ) : (currentUser?.id === profile.userId) ? (
+                 <Button
+                    onClick={() => onBumpProfile(profile.id)}
+                    variant="outline"
+                    colorScheme="secondary"
+                    size="sm"
+                    disabled={!canBump}
+                    title={canBump ? "Bump โปรไฟล์ของคุณขึ้นไปบนสุด" : `คุณสามารถ Bump โปรไฟล์นี้ได้อีก ${bumpDaysRemaining} วัน`}
+                >
+                    🚀 Bump {canBump ? '' : `(${bumpDaysRemaining}d)`}
+                </Button>
             ) : (
                 <Button
                   onClick={handleContact}
                   variant="secondary"
                   size="sm"
-                  disabled={profile.isUnavailable || profileIsTrulyExpired || currentUser?.id === profile.userId}
+                  disabled={profile.isUnavailable || profileIsTrulyExpired}
                 >
-                  {profile.isUnavailable ? '🚫 ไม่ว่าง' : profileIsTrulyExpired ? '⛔ หมดอายุ' : (currentUser?.id === profile.userId ? '👤 โปรไฟล์คุณ' : 'ติดต่อ')}
+                  {profile.isUnavailable ? '🚫 ไม่ว่าง' : profileIsTrulyExpired ? '⛔ หมดอายุ' : 'ติดต่อ'}
                 </Button>
             )}
           </div>
@@ -314,7 +338,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({
         <>
           <Modal isOpen={isWarningModalOpen} onClose={closeWarningModal} title="⚠️ โปรดระวังมิจฉาชีพ">
             <div className="bg-amber-50 border border-amber-300 p-4 rounded-md my-2 text-neutral-dark font-serif">
-              <p className="mb-2">โปรดใช้ความระมัดระวัง <strong className="font-bold text-red-700">ห้ามโอนเงินก่อนเจอตัว</strong> และควรนัดเจอในที่ปลอดภัย</p>
+              <p className="mb-2">โปรดใช้ความระมัดระวัง <strong className="font-bold text-red-700">ห้ามโอนเงินก่อนเริ่มงาน</strong> และควรนัดเจอในที่ปลอดภัย</p>
               <p>
                 หาจ๊อบจ้าเป็นเพียงพื้นที่ให้คนเจอกัน โปรดใช้วิจารณญาณในการติดต่อ ฉบับเต็มโปรดอ่านที่หน้า{" "}
                 <button

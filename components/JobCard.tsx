@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import type { Job, User } from '../types';
 import { View, JobCategory, JOB_CATEGORY_STYLES, JOB_CATEGORY_EMOJIS_MAP, JobDesiredEducationLevelOption, Province } from '../types';
@@ -14,6 +13,8 @@ interface JobCardProps {
   requestLoginForAction: (view: View, payload?: any) => void;
   onEditJobFromFindView?: (jobId: string) => void; 
   getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
+  onToggleInterest: (targetId: string, targetType: 'job' | 'helperProfile', targetOwnerId: string) => void; // New prop
+  isInterested: boolean; // New prop
 }
 
 const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
@@ -27,7 +28,7 @@ const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
   return dateObject.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, requestLoginForAction, onEditJobFromFindView, getAuthorDisplayName }) => {
+export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, requestLoginForAction, onEditJobFromFindView, getAuthorDisplayName, onToggleInterest, isInterested }) => {
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
   const [showFullDetails, setShowFullDetails] = useState(false);
@@ -48,6 +49,15 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
   const handleProceedToContact = () => {
     setIsWarningModalOpen(false);
     setIsContactModalOpen(true);
+  };
+  
+  const handleInterestClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!currentUser) {
+        requestLoginForAction(View.FindJobs, { intent: 'interest', postId: job.id });
+        return;
+    }
+    onToggleInterest(job.id, 'job', job.userId);
   };
 
   const categoryEmoji = JOB_CATEGORY_EMOJIS_MAP[job.category] || '💼';
@@ -191,10 +201,23 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
 
         <div className="job-card-footer mt-auto">
           <div className="job-card-posted-time">
-            {formattedPostedAt}
+            <span title="จำนวนผู้สนใจ">★ {job.interestedCount || 0}</span>
+            <span className="ml-2">| {formattedPostedAt}</span>
           </div>
           <div className="job-card-action-buttons">
-          {onEditJobFromFindView && currentUser?.id === job.userId ? (
+            {currentUser?.id !== job.userId && (
+                <Button
+                    onClick={handleInterestClick}
+                    variant={isInterested ? "primary" : "outline"}
+                    colorScheme="primary"
+                    size="sm"
+                    disabled={job.isHired || jobIsTrulyExpired}
+                    className="!px-2.5"
+                >
+                    {isInterested ? '⭐ สนใจแล้ว' : '★ สนใจ'}
+                </Button>
+            )}
+            {onEditJobFromFindView && currentUser?.id === job.userId ? (
              <Button
                 onClick={() => onEditJobFromFindView(job.id)}
                 variant="outline"
@@ -204,16 +227,16 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
             >
                 ✏️ แก้ไข
             </Button>
-          ) : (
-            <Button
-              onClick={handleContact}
-              variant="primary"
-              size="sm"
-              disabled={job.isHired || jobIsTrulyExpired || currentUser?.id === job.userId}
-            >
-              {job.isHired ? '✅ มีคนทำแล้ว' : jobIsTrulyExpired ? '⛔ หมดอายุ' : (currentUser?.id === job.userId ? '👤 งานของคุณ' : 'ติดต่อ')}
-            </Button>
-          )}
+            ) : (
+                <Button
+                onClick={handleContact}
+                variant="primary"
+                size="sm"
+                disabled={job.isHired || jobIsTrulyExpired || currentUser?.id === job.userId}
+                >
+                {job.isHired ? '✅ มีคนทำแล้ว' : jobIsTrulyExpired ? '⛔ หมดอายุ' : (currentUser?.id === job.userId ? '👤 งานของคุณ' : 'ติดต่อ')}
+                </Button>
+            )}
           </div>
         </div>
       </motion.div>
@@ -222,7 +245,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
         <>
           <Modal isOpen={isWarningModalOpen} onClose={closeWarningModal} title="⚠️ โปรดระวังมิจฉาชีพ">
             <div className="bg-amber-50 border border-amber-300 p-4 rounded-md my-2 text-neutral-dark font-serif">
-                <p className="mb-2">โปรดใช้ความระมัดระวัง <strong className="font-bold text-red-700">ห้ามโอนเงินก่อนเจอตัว</strong> และควรนัดเจอในที่ปลอดภัย</p>
+                <p className="mb-2">โปรดใช้ความระมัดระวัง <strong className="font-bold text-red-700">ห้ามโอนเงินก่อนเริ่มงาน</strong> และควรนัดเจอในที่ปลอดภัย</p>
                 <p>
                   หาจ๊อบจ้าเป็นเพียงพื้นที่ให้คนเจอกัน โปรดใช้วิจารณญาณในการติดต่อ ฉบับเต็มโปรดอ่านที่หน้า{" "}
                   <button
