@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react'; // Added useEffect
 import type { User, Job, HelperProfile, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, Interest } from '../types'; // Added Interest
 import { View, UserTier } from '../types'; // Added UserTier
@@ -142,7 +143,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
   allHelperProfilesForAdmin,
   allWebboardPostsForAdmin,
   webboardComments,
-  userInterests,
+  userInterests = [],
   navigateTo,
   onEditItem,
   onDeleteItem,
@@ -212,7 +213,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
         .map(i => i.targetId);
     return allJobsForAdmin.filter(j => interestedJobIds.includes(j.id));
   }, [userInterests, allJobsForAdmin]);
-
+  
   const interestedHelpers = useMemo(() => {
     const interestedHelperIds = userInterests
         .filter(i => i.targetType === 'helperProfile')

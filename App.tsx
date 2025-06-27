@@ -38,9 +38,11 @@ import {
   saveUserWebboardPostService,
   unsaveUserWebboardPostService,
   subscribeToUserSavedPostsService,
+  subscribeToUserInterestsService,
+  toggleInterestService,
 } from './services/firebaseService';
 import type { DocumentSnapshot, DocumentData } from 'firebase/firestore';
-import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier } from './types';
+import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier, Interest } from './types';
 import type { AdminItem as AdminItemType } from './components/AdminDashboard';
 import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP, ACTIVITY_BADGE_DETAILS, Province, JOB_SUBCATEGORIES_MAP } from './types';
 import { PostJobForm } from './components/PostJobForm';
@@ -193,7 +195,7 @@ const addRecentSearch = (key: string, term: string) => {
 };
 
 // Updated RegistrationDataType for simplified registration
-type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook' | 'isBusinessProfile' | 'businessName' | 'businessType' | 'businessAddress' | 'businessWebsite' | 'businessSocialProfileLink' | 'aboutBusiness' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount'> & { password: string };
+type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook' | 'isBusinessProfile' | 'businessName' | 'businessType' | 'businessAddress' | 'businessWebsite' | 'businessSocialProfileLink' | 'aboutBusiness' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount' | 'interestedCount'> & { password: string };
 
 
 // Animation Variants
@@ -253,6 +255,7 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [userSavedPosts, setUserSavedPosts] = useState<string[]>([]);
+  const [userInterests, setUserInterests] = useState<Interest[]>([]);
 
   const [users, setUsers] = useState<User[]>([]);
   // States for Admin/MyPosts - these might still fetch all data, or could be paginated too in future.
@@ -343,7 +346,7 @@ const App: React.FC = () => {
     parseUrlAndSetInitialState(); 
 
     const unsubscribeAuth = onAuthChangeService((user) => {
-      setCurrentUser(user); // This user already includes cooldown fields from firebaseService
+      setCurrentUser(user);
       setIsLoadingAuth(false);
       if (user) {
         const unsubscribeSaved = subscribeToUserSavedPostsService(user.id, (savedIds) => {
@@ -354,11 +357,18 @@ const App: React.FC = () => {
           }) : null);
         });
         (unsubscribeAuth as any)._unsubscribeSavedPosts = unsubscribeSaved;
+        const unsubscribeInterests = subscribeToUserInterestsService(user.id, setUserInterests);
+        (unsubscribeAuth as any)._unsubscribeInterests = unsubscribeInterests;
       } else {
         setUserSavedPosts([]);
+        setUserInterests([]);
          if ((unsubscribeAuth as any)._unsubscribeSavedPosts) {
             (unsubscribeAuth as any)._unsubscribeSavedPosts();
             delete (unsubscribeAuth as any)._unsubscribeSavedPosts;
+        }
+        if ((unsubscribeAuth as any)._unsubscribeInterests) {
+          (unsubscribeAuth as any)._unsubscribeInterests();
+          delete (unsubscribeAuth as any)._unsubscribeInterests;
         }
       }
     });
@@ -420,6 +430,9 @@ const App: React.FC = () => {
     return () => {
       if ((unsubscribeAuth as any)._unsubscribeSavedPosts) {
         (unsubscribeAuth as any)._unsubscribeSavedPosts();
+      }
+      if ((unsubscribeAuth as any)._unsubscribeInterests) {
+        (unsubscribeAuth as any)._unsubscribeInterests();
       }
       unsubscribeAuth();
       unsubscribeUsers();
@@ -747,7 +760,7 @@ const App: React.FC = () => {
     }
   };
 
-  type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'posterIsAdminVerified'>;
+  type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'posterIsAdminVerified' | 'interestedCount'>;
   type HelperProfileFormData = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt'>;
 
   const generateContactString = (user: User): string => {
@@ -1146,22 +1159,36 @@ const App: React.FC = () => {
     try {
         await logHelperContactInteractionService(helperProfileId, currentUser.id, helperProfile.userId);
         
-        // Update allHelperProfilesForAdmin (for Admin, MyRoom, etc.)
-        setAllHelperProfilesForAdmin(prev => prev.map(p => 
-            p.id === helperProfileId ? {...p, interestedCount: (p.interestedCount || 0) + 1 } : p
-        ));
-
-        // Update helperProfilesList (for FindHelpers view) to reflect the change immediately
-        // This avoids a full re-fetch and keeps the modal open.
-        setHelperProfilesList(prevList => prevList.map(p => 
-            p.id === helperProfileId ? {...p, interestedCount: (p.interestedCount || 0) + 1 } : p
-        ));
+        // The interestedCount is now managed by the toggleInterestService, not here.
+        // This function is purely for logging the contact event itself.
 
     } catch(error: any) {
         logFirebaseError("handleLogHelperContactInteraction", error);
         alert(`เกิดข้อผิดพลาดในการบันทึกการติดต่อ: ${error.message}`);
     }
   };
+
+  const handleToggleInterest = async (
+    targetId: string,
+    targetType: 'job' | 'helperProfile',
+    targetOwnerId: string
+  ) => {
+    if (!currentUser) {
+      requestLoginForAction(
+        targetType === 'job' ? View.FindJobs : View.FindHelpers,
+        { intent: 'interest', postId: targetId }
+      );
+      return;
+    }
+    try {
+      await toggleInterestService(targetId, targetType, targetOwnerId, currentUser.id);
+      // The onSnapshot listener will automatically update the UI.
+    } catch (error) {
+      logFirebaseError("handleToggleInterest", error);
+      alert(`เกิดข้อผิดพลาดในการบันทึกความสนใจ: ${error}`);
+    }
+  };
+
 
   const handleAddOrUpdateWebboardPost = async (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => {
     if (!currentUser) { requestLoginForAction(View.Webboard, { action: postIdToUpdate ? 'editPost' : 'createPost', postId: postIdToUpdate }); return; }
@@ -1885,6 +1912,8 @@ const App: React.FC = () => {
                         requestLoginForAction={requestLoginForAction} 
                         onEditJobFromFindView={currentUser?.id === job.userId ? handleEditOwnJobFromFindView : undefined}
                         getAuthorDisplayName={getAuthorDisplayName}
+                        onToggleInterest={(targetId, targetType, targetOwnerId) => handleToggleInterest(targetId, targetType, targetOwnerId)}
+                        isInterested={userInterests.some(i => i.targetId === job.id && i.targetType === 'job')}
                     />
                   </motion.div>
                 ))}
@@ -2109,6 +2138,8 @@ const App: React.FC = () => {
                             onBumpProfile={(id) => handleBumpHelperProfile(id, loadHelpers)}
                             onEditProfileFromFindView={currentUser?.id === profile.userId ? handleEditOwnHelperProfileFromFindView : undefined}
                             getAuthorDisplayName={getAuthorDisplayName}
+                            onToggleInterest={(targetId, targetType, targetOwnerId) => handleToggleInterest(targetId, targetType, targetOwnerId)}
+                            isInterested={userInterests.some(i => i.targetId === profile.id && i.targetType === 'helperProfile')}
                         />
                       </motion.div>
                     ))}
@@ -2142,6 +2173,7 @@ const App: React.FC = () => {
         allHelperProfilesForAdmin={allHelperProfilesForAdmin}
         allWebboardPostsForAdmin={allWebboardPostsForAdmin}
         webboardComments={webboardComments}
+        userInterests={userInterests}
         navigateTo={navigateTo}
         onEditItem={handleStartEditMyItem} // Will now pass originatingTab
         onDeleteItem={handleDeleteItemFromMyRoom}
@@ -2154,6 +2186,11 @@ const App: React.FC = () => {
         initialTab={myRoomInitialTabOverride}
         onInitialTabProcessed={() => setMyRoomInitialTabOverride(null)}
         getAuthorDisplayName={getAuthorDisplayName}
+        onToggleInterest={handleToggleInterest}
+        requestLoginForAction={requestLoginForAction}
+        onEditJobFromFindView={handleEditOwnJobFromFindView}
+        onEditHelperProfileFromFindView={handleEditOwnHelperProfileFromFindView}
+        onLogHelperContact={handleLogHelperContactInteraction}
       />);
   };
 
