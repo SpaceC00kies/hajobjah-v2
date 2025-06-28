@@ -201,7 +201,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
 
         <div className="job-card-footer mt-auto">
           <div className="job-card-posted-time">
-            <span title="จำนวนผู้สนใจ">★ {job.interestedCount || 0}</span>
+            <span title="จำนวนผู้สนใจ">⭐ {job.interestedCount || 0}</span>
             <span className="ml-2">| {formattedPostedAt}</span>
           </div>
           <div className="job-card-action-buttons">
@@ -214,7 +214,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
                     disabled={job.isHired || jobIsTrulyExpired}
                     className="!px-2.5"
                 >
-                    {isInterested ? '⭐ สนใจแล้ว' : '★ สนใจ'}
+                    {isInterested ? '⭐ สนใจแล้ว' : '⭐ สนใจ'}
                 </Button>
             )}
             {onEditJobFromFindView && currentUser?.id === job.userId ? (

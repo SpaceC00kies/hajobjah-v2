@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react'; // Added useEffect
 import type { User, Job, HelperProfile, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, Interest } from '../types'; // Added Interest
 import { View, UserTier } from '../types'; // Added UserTier
@@ -15,10 +14,10 @@ const ProfileIcon = () => <span role="img" aria-label="Profile" className="mr-1.
 const JobsIcon = () => <span role="img" aria-label="Jobs" className="mr-1.5 sm:mr-2">💼</span>;
 const ServicesIcon = () => <span role="img" aria-label="Services" className="mr-1.5 sm:mr-2">🛠️</span>;
 const WebboardIcon = () => <span role="img" aria-label="Webboard" className="mr-1.5 sm:mr-2">💬</span>;
-const SavedIcon = () => <span role="img" aria-label="Saved" className="mr-1.5 sm:mr-2">💾</span>;
-const InterestedIcon = () => <span role="img" aria-label="Interested" className="mr-1.5 sm:mr-2">★</span>;
+const InterestedIcon = () => <span role="img" aria-label="Interested" className="mr-1.5 sm:mr-2">⭐</span>;
 
-export type ActiveTab = 'profile' | 'myJobs' | 'myHelperServices' | 'myWebboardPosts' | 'savedPosts' | 'interestedJobs' | 'interestedHelpers';
+export type ActiveTab = 'profile' | 'myJobs' | 'myHelperServices' | 'interests' | 'myWebboardPosts';
+type ActiveSubTab = 'jobs' | 'helpers' | 'posts';
 
 
 interface MyRoomPageProps {
@@ -163,15 +162,32 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
   onLogHelperContact,
 }) => {
   const [activeTab, setActiveTab] = useState<ActiveTab>(initialTab || 'profile');
+  const [activeSubTab, setActiveSubTab] = useState<ActiveSubTab>('jobs');
 
   useEffect(() => {
+    // Handle main tab changes from props
     if (initialTab && initialTab !== activeTab) {
       setActiveTab(initialTab);
     }
     if (initialTab && onInitialTabProcessed) {
       onInitialTabProcessed(); // Signal that the initialTab prop has been processed
     }
+
+    // Handle sub-tab changes from URL
+    const params = new URLSearchParams(window.location.search);
+    const subTabFromUrl = params.get('subTab') as ActiveSubTab;
+    if (subTabFromUrl && ['jobs', 'helpers', 'posts'].includes(subTabFromUrl)) {
+      setActiveSubTab(subTabFromUrl);
+    }
+
   }, [initialTab, activeTab, onInitialTabProcessed]);
+
+  const handleSubTabChange = (subTab: ActiveSubTab) => {
+    setActiveSubTab(subTab);
+    const params = new URLSearchParams(window.location.search);
+    params.set('subTab', subTab);
+    window.history.pushState({}, '', `?${params.toString()}`);
+  }
 
 
   const userJobs = useMemo(() => allJobsForAdmin.filter(job => job.userId === currentUser.id)
@@ -226,9 +242,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
     { id: 'profile', label: 'โปรไฟล์', icon: <ProfileIcon /> },
     { id: 'myJobs', label: 'ประกาศงาน', icon: <JobsIcon /> },
     { id: 'myHelperServices', label: 'งานที่เสนอ', icon: <ServicesIcon /> },
-    { id: 'interestedJobs', label: 'งานที่สนใจ', icon: <InterestedIcon /> },
-    { id: 'interestedHelpers', label: 'ผู้ช่วยที่สนใจ', icon: <InterestedIcon /> },
-    { id: 'savedPosts', label: 'กระทู้ที่บันทึกไว้', icon: <SavedIcon /> },
+    { id: 'interests', label: 'สิ่งที่สนใจ', icon: <InterestedIcon /> },
     { id: 'myWebboardPosts', label: 'กระทู้ของฉัน', icon: <WebboardIcon /> },
   ];
 
@@ -492,109 +506,81 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
     </div>
   );
 
-  const renderSavedPostsTab = () => (
-    <div className="space-y-4">
-      {savedWebboardPosts.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-neutral-medium mb-4">คุณยังไม่มีกระทู้ที่บันทึกไว้</p>
-          <Button onClick={() => navigateTo(View.Webboard)} variant="outline" colorScheme="neutral" size="sm">
-            ไปที่กระดานสนทนา
-          </Button>
-        </div>
-      ) : (
-        <AnimatePresence>
-          <motion.div
-            className="space-y-4" // Use space-y-4 instead of grid for a single column list
-            variants={listVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {savedWebboardPosts.map(post => (
-              <motion.div key={post.id} variants={itemVariants}>
-                <div className="bg-white p-0.5 rounded-lg shadow border">
-                  <WebboardPostCard
-                      post={post}
-                      currentUser={currentUser}
-                      onViewPost={(postId) => navigateTo(View.Webboard, postId)}
-                      onToggleLike={() => { /* Not primary action here */ }}
-                      onSavePost={onSavePost} // This will trigger un-save
-                      onSharePost={() => { /* Not primary action here */ }}
-                      requestLoginForAction={() => {}} // User is logged in
-                      onNavigateToPublicProfile={(profileInfo) => onNavigateToPublicProfile(profileInfo)}
-                      getAuthorDisplayName={getAuthorDisplayName} // Pass down
-                  />
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </AnimatePresence>
-      )}
-    </div>
-  );
+  const renderInterestsTab = () => {
+    const subTabs: { id: ActiveSubTab, label: string }[] = [
+      { id: 'jobs', label: `งาน (${interestedJobs.length})` },
+      { id: 'helpers', label: `ผู้ช่วย (${interestedHelpers.length})` },
+      { id: 'posts', label: `กระทู้ (${savedWebboardPosts.length})` },
+    ];
 
-  const renderInterestedJobsTab = () => (
-    <div className="space-y-4">
-      {interestedJobs.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-neutral-medium mb-4">คุณยังไม่มีงานที่สนใจ</p>
-          <Button onClick={() => navigateTo(View.FindJobs)} variant="outline" colorScheme="neutral" size="sm">
-            ค้นหางานที่น่าสนใจ
-          </Button>
+    const renderContent = () => {
+      switch (activeSubTab) {
+        case 'jobs':
+          return interestedJobs.length === 0 ? (
+            <div className="text-center py-8"><p className="text-neutral-medium mb-4">คุณยังไม่มีงานที่สนใจ</p><Button onClick={() => navigateTo(View.FindJobs)} variant="outline" colorScheme="neutral" size="sm">ค้นหางานที่น่าสนใจ</Button></div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {interestedJobs.map(job => (
+                <JobCard key={job.id} job={job} navigateTo={navigateTo} currentUser={currentUser} requestLoginForAction={requestLoginForAction} onEditJobFromFindView={onEditJobFromFindView} getAuthorDisplayName={getAuthorDisplayName} onToggleInterest={onToggleInterest} isInterested={true} />
+              ))}
+            </div>
+          );
+        case 'helpers':
+          return interestedHelpers.length === 0 ? (
+            <div className="text-center py-8"><p className="text-neutral-medium mb-4">คุณยังไม่มีผู้ช่วยที่สนใจ</p><Button onClick={() => navigateTo(View.FindHelpers)} variant="outline" colorScheme="neutral" size="sm">ค้นหาผู้ช่วย</Button></div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {interestedHelpers.map(profile => {
+                 const enrichedProfile = { ...profile, userPhoto: users.find(u => u.id === profile.userId)?.photo, profileCompleteBadge: users.find(u => u.id === profile.userId)?.profileComplete || false, warningBadge: profile.isSuspicious || false, verifiedExperienceBadge: profile.adminVerifiedExperience || false };
+                 return <HelperCard key={profile.id} profile={enrichedProfile} navigateTo={navigateTo} onNavigateToPublicProfile={onNavigateToPublicProfile} currentUser={currentUser} requestLoginForAction={requestLoginForAction} onBumpProfile={onBumpProfile} onEditProfileFromFindView={onEditHelperProfileFromFindView} onLogHelperContact={onLogHelperContact} getAuthorDisplayName={getAuthorDisplayName} onToggleInterest={onToggleInterest} isInterested={true} />;
+              })}
+            </div>
+          );
+        case 'posts':
+          return savedWebboardPosts.length === 0 ? (
+            <div className="text-center py-8"><p className="text-neutral-medium mb-4">คุณยังไม่มีกระทู้ที่บันทึกไว้</p><Button onClick={() => navigateTo(View.Webboard)} variant="outline" colorScheme="neutral" size="sm">ไปที่กระดานสนทนา</Button></div>
+          ) : (
+            <AnimatePresence>
+              <motion.div className="space-y-4" variants={listVariants} initial="hidden" animate="visible">
+                {savedWebboardPosts.map(post => (
+                  <motion.div key={post.id} variants={itemVariants}>
+                    <div className="bg-white p-0.5 rounded-lg shadow border"><WebboardPostCard post={post} currentUser={currentUser} onViewPost={(postId) => navigateTo(View.Webboard, postId)} onToggleLike={() => {}} onSavePost={onSavePost} onSharePost={() => {}} requestLoginForAction={() => {}} onNavigateToPublicProfile={(profileInfo) => onNavigateToPublicProfile(profileInfo)} getAuthorDisplayName={getAuthorDisplayName}/></div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </AnimatePresence>
+          );
+        default:
+          return null;
+      }
+    };
+
+    return (
+      <div>
+        <div className="mb-4 border-b border-neutral-DEFAULT/50">
+          <nav className="flex space-x-2" aria-label="Sub-tabs for interested items">
+            {subTabs.map(subTab => (
+              <button
+                key={subTab.id}
+                onClick={() => handleSubTabChange(subTab.id)}
+                className={`px-3 py-2 font-medium text-sm rounded-t-md transition-colors duration-150
+                  ${activeSubTab === subTab.id
+                    ? 'bg-neutral-light/50 border-t border-x border-neutral-DEFAULT/50 text-secondary'
+                    : 'text-neutral-medium hover:text-neutral-dark'
+                  }`
+                }
+              >
+                {subTab.label}
+              </button>
+            ))}
+          </nav>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {interestedJobs.map(job => (
-            <JobCard
-              key={job.id}
-              job={job}
-              navigateTo={navigateTo}
-              currentUser={currentUser}
-              requestLoginForAction={requestLoginForAction}
-              onEditJobFromFindView={onEditJobFromFindView}
-              getAuthorDisplayName={getAuthorDisplayName}
-              onToggleInterest={onToggleInterest}
-              isInterested={true} // It's in the list, so it's interested
-            />
-          ))}
+        <div>
+          {renderContent()}
         </div>
-      )}
-    </div>
-  );
-  
-  const renderInterestedHelpersTab = () => (
-    <div className="space-y-4">
-      {interestedHelpers.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-neutral-medium mb-4">คุณยังไม่มีผู้ช่วยที่สนใจ</p>
-          <Button onClick={() => navigateTo(View.FindHelpers)} variant="outline" colorScheme="neutral" size="sm">
-            ค้นหาผู้ช่วย
-          </Button>
-        </div>
-      ) : (
-         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {interestedHelpers.map(profile => {
-             const enrichedProfile = { ...profile, userPhoto: users.find(u => u.id === profile.userId)?.photo, profileCompleteBadge: users.find(u => u.id === profile.userId)?.profileComplete || false, warningBadge: profile.isSuspicious || false, verifiedExperienceBadge: profile.adminVerifiedExperience || false };
-             return (
-                 <HelperCard
-                    key={profile.id}
-                    profile={enrichedProfile}
-                    navigateTo={navigateTo}
-                    onNavigateToPublicProfile={onNavigateToPublicProfile}
-                    currentUser={currentUser}
-                    requestLoginForAction={requestLoginForAction}
-                    onBumpProfile={onBumpProfile}
-                    onEditProfileFromFindView={onEditHelperProfileFromFindView}
-                    onLogHelperContact={onLogHelperContact}
-                    getAuthorDisplayName={getAuthorDisplayName}
-                    onToggleInterest={onToggleInterest}
-                    isInterested={true} // It's in the list, so it's interested
-                 />
-             )
-          })}
-        </div>
-      )}
-    </div>
-  );
+      </div>
+    );
+  };
 
 
   return (
@@ -651,9 +637,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
         {activeTab === 'myJobs' && <div role="tabpanel" id="tabpanel-myJobs" aria-labelledby="tab-myJobs">{renderMyJobsTab()}</div>}
         {activeTab === 'myHelperServices' && <div role="tabpanel" id="tabpanel-myHelperServices" aria-labelledby="tab-myHelperServices">{renderMyHelperServicesTab()}</div>}
         {activeTab === 'myWebboardPosts' && <div role="tabpanel" id="tabpanel-myWebboardPosts" aria-labelledby="tab-myWebboardPosts">{renderMyWebboardPostsTab()}</div>}
-        {activeTab === 'savedPosts' && <div role="tabpanel" id="tabpanel-savedPosts" aria-labelledby="tab-savedPosts">{renderSavedPostsTab()}</div>}
-        {activeTab === 'interestedJobs' && <div role="tabpanel" id="tabpanel-interestedJobs" aria-labelledby="tab-interestedJobs">{renderInterestedJobsTab()}</div>}
-        {activeTab === 'interestedHelpers' && <div role="tabpanel" id="tabpanel-interestedHelpers" aria-labelledby="tab-interestedHelpers">{renderInterestedHelpersTab()}</div>}
+        {activeTab === 'interests' && <div role="tabpanel" id="tabpanel-interests" aria-labelledby="tab-interests">{renderInterestsTab()}</div>}
       </div>
     </div>
   );
