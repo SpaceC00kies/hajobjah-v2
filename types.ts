@@ -128,6 +128,13 @@ export interface UserActivityBadge {
 
 export type UserTier = 'free' | 'premium';
 
+export interface VouchInfo {
+  total: number;
+  worked_together: number;
+  colleague: number;
+  community: number;
+  personal: number;
+}
 
 export interface User {
   id: string;
@@ -176,6 +183,8 @@ export interface User {
   // Fields for display name change cooldown
   lastPublicDisplayNameChangeAt?: string | Date;
   publicDisplayNameUpdateCount?: number;
+  
+  vouchInfo?: VouchInfo; // New field for community verification
 }
 
 export enum View {
@@ -223,6 +232,31 @@ export interface Interest {
     targetOwnerId: string; // The ID of the user who owns the target
     createdAt: string | Date;
 }
+
+export enum VouchType {
+  WorkedTogether = 'worked_together',
+  Colleague = 'colleague',
+  Community = 'community',
+  Personal = 'personal',
+}
+
+export const VOUCH_TYPE_LABELS: Record<VouchType, string> = {
+  [VouchType.WorkedTogether]: 'เคยร่วมงานกัน (ในฐานะผู้ว่าจ้าง/ผู้รับจ้าง)',
+  [VouchType.Colleague]: 'เคยเป็นเพื่อนร่วมงาน',
+  [VouchType.Community]: 'คนในชุมชน/พื้นที่เดียวกันที่น่าเชื่อถือ',
+  [VouchType.Personal]: 'รู้จักเป็นการส่วนตัว (เพื่อน, คนรู้จัก)',
+};
+
+export interface Vouch {
+  id: string;
+  voucherId: string;
+  voucherDisplayName: string;
+  voucheeId: string;
+  vouchType: VouchType;
+  comment?: string;
+  createdAt: string | Date;
+}
+
 
 export enum WebboardCategory {
   QA = "ถาม-ตอบ",

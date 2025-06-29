@@ -6,7 +6,7 @@ import {
   sendPasswordResetEmail,
   type User as FirebaseUser,
   type AuthError,
-} from 'firebase/auth';
+} from '@firebase/auth';
 import {
   collection,
   doc,
@@ -33,17 +33,17 @@ import {
   type DocumentData,
   runTransaction,
   increment,
-} from 'firebase/firestore';
+} from '@firebase/firestore';
 import {
   ref,
   uploadBytes,
   getDownloadURL,
   deleteObject,
   uploadString,
-} from 'firebase/storage';
+} from '@firebase/storage';
 
 import { auth, db, storage } from '../firebase';
-import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier, UserSavedWebboardPostEntry, Province, JobSubCategory, Interest } from '../types'; // Added Interest
+import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier, UserSavedWebboardPostEntry, Province, JobSubCategory, Interest, Vouch, VouchType, VouchInfo } from '../types'; // Added Interest, Vouch, VouchType
 import { UserRole, WebboardCategory, USER_LEVELS, GenderOption, HelperEducationLevelOption } from '../types';
 import { logFirebaseError } from '../firebase/logging';
 
@@ -59,6 +59,7 @@ const SITE_CONFIG_DOC_ID = 'main';
 const FEEDBACK_COLLECTION = 'feedback';
 const USER_SAVED_POSTS_SUBCOLLECTION = 'savedWebboardPosts';
 const INTERESTS_COLLECTION = 'interests'; // New collection for interests
+const VOUCHES_COLLECTION = 'vouches';
 
 
 // --- Helper to convert Firestore Timestamps to ISO strings for consistency ---
@@ -93,7 +94,7 @@ const cleanDataForFirestore = <T extends Record<string, any>>(data: T): Partial<
 };
 
 // Updated RegistrationDataType for simplified registration
-type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook' | 'isBusinessProfile' | 'businessName' | 'businessType' | 'businessAddress' | 'businessWebsite' | 'businessSocialProfileLink' | 'aboutBusiness' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount'> & { password: string };
+type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook' | 'isBusinessProfile' | 'businessName' | 'businessType' | 'businessAddress' | 'businessWebsite' | 'businessSocialProfileLink' | 'aboutBusiness' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount' | 'vouchInfo'> & { password: string };
 
 
 
@@ -108,6 +109,8 @@ export const signUpWithEmailPasswordService = async (
 
     const now = new Date();
     const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+    const initialVouchInfo: VouchInfo = { total: 0, worked_together: 0, colleague: 0, community: 0, personal: 0 };
+
 
     const newUser: Omit<User, 'id'> = {
       ...userProfileData, // Contains publicDisplayName, username, email, mobile
@@ -156,6 +159,7 @@ export const signUpWithEmailPasswordService = async (
       // Initialize display name cooldown fields
       lastPublicDisplayNameChangeAt: undefined,
       publicDisplayNameUpdateCount: 0,
+      vouchInfo: initialVouchInfo,
       createdAt: serverTimestamp() as any,
       updatedAt: serverTimestamp() as any,
     };
@@ -211,6 +215,8 @@ export const signInWithEmailPasswordService = async (loginIdentifier: string, pa
       };
       const tier = userData.tier || ('free' as UserTier);
       const savedWebboardPosts = userData.savedWebboardPosts || [];
+      const vouchInfo = userData.vouchInfo || { total: 0, worked_together: 0, colleague: 0, community: 0, personal: 0 };
+
 
       // Ensure business fields are present, defaulting if necessary
       const fullUserData = {
@@ -228,7 +234,8 @@ export const signInWithEmailPasswordService = async (loginIdentifier: string, pa
         tier,
         postingLimits: convertTimestamps(postingLimits),
         activityBadge: convertTimestamps(activityBadge),
-        savedWebboardPosts
+        savedWebboardPosts,
+        vouchInfo,
       };
 
       return { id: firebaseUser.uid, ...fullUserData } as User;
@@ -289,6 +296,8 @@ export const onAuthChangeService = (callback: (user: User | null) => void): (() 
           };
           const tier = userData.tier || ('free' as UserTier);
           const savedWebboardPosts = userData.savedWebboardPosts || [];
+          const vouchInfo = userData.vouchInfo || { total: 0, worked_together: 0, colleague: 0, community: 0, personal: 0 };
+
 
           const fullUserData = {
             ...convertTimestamps(userData),
@@ -305,7 +314,8 @@ export const onAuthChangeService = (callback: (user: User | null) => void): (() 
             tier,
             postingLimits: convertTimestamps(postingLimits),
             activityBadge: convertTimestamps(activityBadge),
-            savedWebboardPosts
+            savedWebboardPosts,
+            vouchInfo
           };
           callback({ id: firebaseUser.uid, ...fullUserData } as User);
         } else {
@@ -367,7 +377,7 @@ export const deleteImageService = async (imageUrl?: string | null): Promise<void
 // --- User Profile Service ---
 const DISPLAY_NAME_COOLDOWN_DAYS = 14;
 // Update the profileData type to include all new optional User fields
-type UserProfileUpdateData = Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username' | 'postingLimits' | 'activityBadge' | 'userLevel' | 'tier' | 'savedWebboardPosts' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount' >>;
+type UserProfileUpdateData = Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username' | 'postingLimits' | 'activityBadge' | 'userLevel' | 'tier' | 'savedWebboardPosts' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount' | 'vouchInfo' >>;
 
 
 export const updateUserProfileService = async (
@@ -464,7 +474,7 @@ export interface PaginatedDocsResponse<T> {
   lastVisibleDoc: DocumentSnapshot<DocumentData> | null;
 }
 
-type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired'>;
+type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'posterIsAdminVerified' | 'interestedCount'>;
 export const addJobService = async (jobData: JobFormData, author: { userId: string; authorDisplayName: string; contact: string }): Promise<string> => {
   try {
     const expiresAt = new Date();
@@ -1127,6 +1137,64 @@ export const subscribeToUserInterestsService = (userId: string, callback: (inter
   });
 };
 
+// --- Community Verification Services ---
+export const vouchForUserService = async (voucher: User, voucheeId: string, vouchType: VouchType, comment?: string): Promise<void> => {
+  const vouchId = `${voucher.id}_${voucheeId}`;
+  const vouchRef = doc(db, VOUCHES_COLLECTION, vouchId);
+  const voucheeRef = doc(db, USERS_COLLECTION, voucheeId);
+
+  try {
+    await runTransaction(db, async (transaction) => {
+      const existingVouchDoc = await transaction.get(vouchRef);
+      if (existingVouchDoc.exists()) {
+        throw new Error("คุณเคยรับรองผู้ใช้นี้ไปแล้ว");
+      }
+
+      const voucheeDoc = await transaction.get(voucheeRef);
+      if (!voucheeDoc.exists()) {
+        throw new Error("ไม่พบผู้ใช้ที่ต้องการรับรอง");
+      }
+
+      const newVouch: Omit<Vouch, 'id'> = {
+        voucherId: voucher.id,
+        voucherDisplayName: voucher.publicDisplayName,
+        voucheeId: voucheeId,
+        vouchType: vouchType,
+        comment: comment || '',
+        createdAt: serverTimestamp() as any,
+      };
+      transaction.set(vouchRef, newVouch);
+
+      const vouchInfoUpdate = {
+        [`vouchInfo.total`]: increment(1),
+        [`vouchInfo.${vouchType}`]: increment(1),
+      };
+      transaction.update(voucheeRef, vouchInfoUpdate);
+    });
+  } catch (error) {
+    logFirebaseError("vouchForUserService", error);
+    throw error;
+  }
+};
+
+export const getVouchesForUserService = async (voucheeId: string): Promise<Vouch[]> => {
+  try {
+    const q = query(
+      collection(db, VOUCHES_COLLECTION),
+      where("voucheeId", "==", voucheeId),
+      orderBy("createdAt", "desc")
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(docSnap => ({
+      id: docSnap.id,
+      ...convertTimestamps(docSnap.data()),
+    } as Vouch));
+  } catch (error) {
+    logFirebaseError("getVouchesForUserService", error);
+    throw error;
+  }
+};
+
 
 // Site Config
 export const subscribeToSiteConfigService = (callback: (config: SiteConfig) => void): (() => void) => {
@@ -1178,6 +1246,8 @@ export const getUserDocument = async (userId: string): Promise<User | null> => {
       const userData = userDocSnap.data();
       const tier = userData.tier || ('free' as UserTier); // Default tier
       const savedWebboardPosts = userData.savedWebboardPosts || []; // Initialize if missing
+      const vouchInfo = userData.vouchInfo || { total: 0, worked_together: 0, colleague: 0, community: 0, personal: 0 };
+
 
       // Ensure business fields are present
       const fullUserData = {
@@ -1193,7 +1263,8 @@ export const getUserDocument = async (userId: string): Promise<User | null> => {
         lastPublicDisplayNameChangeAt: userData.lastPublicDisplayNameChangeAt || undefined,
         publicDisplayNameUpdateCount: userData.publicDisplayNameUpdateCount || 0,
         tier,
-        savedWebboardPosts
+        savedWebboardPosts,
+        vouchInfo,
       };
       return { id: userId, ...fullUserData } as User;
     }

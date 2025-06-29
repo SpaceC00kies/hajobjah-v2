@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react'; // Added useState, useEffect, useRef
 import type { EnrichedWebboardPost, EnrichedWebboardComment, User } from '../types';
 import { USER_LEVELS, UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES }
@@ -8,7 +7,7 @@ import { Button } from './Button';
 import { WebboardCommentItem } from './WebboardCommentItem';
 import { WebboardCommentForm } from './WebboardCommentForm';
 import { triggerHapticFeedback } from '@/utils/haptics'; // Import haptic utility
-import { motion, AnimatePresence, type AnimationControls, useAnimation, type Transition, type Variants } from 'framer-motion';
+import { motion, AnimatePresence, useAnimation, type Transition, type Variants } from 'framer-motion';
 
 
 interface WebboardPostDetailProps {
@@ -100,7 +99,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
   const canEditPost = isAuthor || isAdmin || (isModerator && !post.isAuthorAdmin);
   const canDeletePost = isAuthor || isAdmin || canModeratorDeletePost;
 
-  const shareIconControls: AnimationControls = useAnimation();
+  const shareIconControls = useAnimation();
 
 
   const timeSince = (dateInput: string | Date | null | undefined): string => {

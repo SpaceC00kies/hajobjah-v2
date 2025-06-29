@@ -1,7 +1,6 @@
-
 import React from 'react';
-import type { User, HelperProfile } from '../types'; 
-import { HelperEducationLevelOption, GenderOption, ACTIVITY_BADGE_DETAILS } from '../types'; // Added ACTIVITY_BADGE_DETAILS
+import type { User, HelperProfile, VouchInfo } from '../types'; 
+import { HelperEducationLevelOption, GenderOption, ACTIVITY_BADGE_DETAILS, VOUCH_TYPE_LABELS, VouchType } from '../types'; // Added ACTIVITY_BADGE_DETAILS
 import { Button } from './Button';
 import { UserLevelBadge } from './UserLevelBadge'; 
 
@@ -10,6 +9,8 @@ interface PublicProfilePageProps {
   helperProfile?: HelperProfile; 
   onBack: () => void; 
   currentUser: User | null; 
+  onVouchForUser: (userToVouch: User) => void; // New prop
+  onShowVouches: (userToList: User) => void; // New prop
 }
 
 const FallbackAvatarPublic: React.FC<{ name?: string, size?: string }> = ({ name, size = "w-40 h-40" }) => {
@@ -54,7 +55,43 @@ const TrustBadgesPublicProfile: React.FC<{ user: User, helperProfile?: HelperPro
   );
 };
 
-export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, helperProfile, onBack, currentUser }) => {
+const VouchDisplay: React.FC<{ vouchInfo?: VouchInfo, onShowVouches: () => void }> = ({ vouchInfo, onShowVouches }) => {
+  if (!vouchInfo || vouchInfo.total === 0) {
+    return (
+      <div className="text-center text-sm font-serif text-neutral-medium p-3 bg-neutral-light/40 rounded-lg">
+        ยังไม่มีใครรับรองผู้ใช้นี้
+      </div>
+    );
+  }
+
+  const vouchItems = [
+    { type: VouchType.WorkedTogether, label: '🤝 ร่วมงานด้วย', count: vouchInfo.worked_together || 0 },
+    { type: VouchType.Colleague, label: '🏢 เพื่อนร่วมงาน', count: vouchInfo.colleague || 0 },
+    { type: VouchType.Community, label: '🏘️ คนในพื้นที่', count: vouchInfo.community || 0 },
+    { type: VouchType.Personal, label: '😊 คนรู้จัก', count: vouchInfo.personal || 0 },
+  ].filter(item => item.count > 0);
+
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+        {vouchItems.map(item => (
+          <div key={item.type} className="flex items-center text-sm">
+            <span className="font-sans font-medium text-neutral-dark">{item.label}:</span>
+            <span className="ml-2 font-sans font-semibold text-secondary-hover">{item.count} คน</span>
+          </div>
+        ))}
+      </div>
+      <div className="text-center pt-2">
+        <button onClick={onShowVouches} className="text-xs font-sans text-neutral-medium hover:text-secondary hover:underline">
+          ดูรายละเอียดการรับรองทั้งหมด ({vouchInfo.total})
+        </button>
+      </div>
+    </div>
+  );
+};
+
+
+export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, helperProfile, onBack, currentUser, onVouchForUser, onShowVouches }) => {
   const age = calculateAgePublic(user.birthdate);
 
   const renderInfoItem = (label: string, value?: string | number | null, highlight: boolean = false, isMultiline: boolean = false, fullWidth: boolean = false, isLink: boolean = false) => {
@@ -120,6 +157,18 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, help
                     <li>โพสต์กระทู้ได้ 4 ครั้ง/วัน (ปกติ 3)</li>
                     <li>มีโปรไฟล์ผู้ช่วยได้ 2 โปรไฟล์พร้อมกัน (ปกติ 1)</li>
                 </ul>
+            </div>
+          )}
+        </div>
+        
+        <div className="mb-6 pt-4 border-t border-neutral-DEFAULT/30">
+          <h3 className="text-xl font-sans font-semibold text-neutral-dark mb-3">⭐ การรับรองจากชุมชน</h3>
+          <VouchDisplay vouchInfo={user.vouchInfo} onShowVouches={() => onShowVouches(user)} />
+          {currentUser && currentUser.id !== user.id && (
+            <div className="text-center mt-4">
+              <Button onClick={() => onVouchForUser(user)} variant="outline" colorScheme="primary" size="sm">
+                👍 รับรองคุณ {user.publicDisplayName}
+              </Button>
             </div>
           )}
         </div>

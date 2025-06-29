@@ -40,9 +40,10 @@ import {
   subscribeToUserSavedPostsService,
   subscribeToUserInterestsService,
   toggleInterestService,
+  vouchForUserService,
 } from './services/firebaseService';
 import type { DocumentSnapshot, DocumentData } from 'firebase/firestore';
-import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier, Interest } from './types';
+import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier, Interest, VouchType } from './types';
 import type { AdminItem as AdminItemType } from './components/AdminDashboard';
 import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP, ACTIVITY_BADGE_DETAILS, Province, JOB_SUBCATEGORIES_MAP } from './types';
 import { PostJobForm } from './components/PostJobForm';
@@ -70,6 +71,8 @@ import { SiteLockOverlay } from './components/SiteLockOverlay';
 import { CategoryFilterBar } from './components/CategoryFilterBar';
 import { SearchInputWithRecent } from './components/SearchInputWithRecent';
 import { PasswordResetPage } from './components/PasswordResetPage';
+import { VouchModal } from './components/VouchModal'; // New Vouch Modal
+import { VouchesListModal } from './components/VouchesListModal'; // New Vouch List Modal
 
 import { logFirebaseError } from './firebase/logging';
 import { AnimatePresence, motion, type Variants, type Transition, type HTMLMotionProps } from "framer-motion";
@@ -195,7 +198,7 @@ const addRecentSearch = (key: string, term: string) => {
 };
 
 // Updated RegistrationDataType for simplified registration
-type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook' | 'isBusinessProfile' | 'businessName' | 'businessType' | 'businessAddress' | 'businessWebsite' | 'businessSocialProfileLink' | 'aboutBusiness' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount' | 'interestedCount'> & { password: string };
+type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook' | 'isBusinessProfile' | 'businessName' | 'businessType' | 'businessAddress' | 'businessWebsite' | 'businessSocialProfileLink' | 'aboutBusiness' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount' | 'interestedCount' | 'vouchInfo'> & { password: string };
 
 
 // Animation Variants
@@ -250,6 +253,10 @@ const App: React.FC = () => {
   
   const [copiedLinkNotification, setCopiedLinkNotification] = useState<string | null>(null);
   const copiedNotificationTimerRef = useRef<number | null>(null);
+  
+  // State for new Vouch modals
+  const [vouchModalData, setVouchModalData] = useState<{ userToVouch: User } | null>(null);
+  const [vouchListModalData, setVouchListModalData] = useState<{ userToList: User } | null>(null);
 
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -1188,6 +1195,33 @@ const App: React.FC = () => {
       alert(`เกิดข้อผิดพลาดในการบันทึกความสนใจ: ${error}`);
     }
   };
+  
+  // New Vouch handlers
+  const handleOpenVouchModal = (userToVouch: User) => {
+    if (!currentUser) {
+      requestLoginForAction(View.PublicProfile, { action: 'vouch', userId: userToVouch.id });
+      return;
+    }
+    setVouchModalData({ userToVouch });
+  };
+  const handleCloseVouchModal = () => setVouchModalData(null);
+
+  const handleVouchSubmit = async (voucheeId: string, vouchType: VouchType, comment?: string) => {
+    if (!currentUser) return;
+    try {
+      await vouchForUserService(currentUser, voucheeId, vouchType, comment);
+      alert("ขอบคุณสำหรับการรับรอง!");
+      handleCloseVouchModal();
+    } catch (error: any) {
+      logFirebaseError("handleVouchSubmit", error);
+      alert(`เกิดข้อผิดพลาด: ${error.message}`);
+    }
+  };
+  
+  const handleOpenVouchesListModal = (userToList: User) => {
+    setVouchListModalData({ userToList });
+  };
+  const handleCloseVouchesListModal = () => setVouchListModalData(null);
 
 
   const handleAddOrUpdateWebboardPost = async (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => {
@@ -2252,7 +2286,14 @@ const App: React.FC = () => {
     // The previous logic of finding *any* active profile is removed for general profile views.
 
     const displayBadgeForProfile = getUserDisplayBadge(profileUser);
-    return <PublicProfilePage currentUser={currentUser} user={{...profileUser, userLevel: displayBadgeForProfile}} helperProfile={helperProfileForBio} onBack={handleBackFromPublicProfile} />;
+    return <PublicProfilePage
+              currentUser={currentUser}
+              user={{...profileUser, userLevel: displayBadgeForProfile}}
+              helperProfile={helperProfileForBio}
+              onBack={handleBackFromPublicProfile}
+              onVouchForUser={handleOpenVouchModal}
+              onShowVouches={handleOpenVouchesListModal}
+           />;
   };
 
   const renderWebboardPage = () => {
@@ -2398,6 +2439,26 @@ const App: React.FC = () => {
         onClose={() => setIsForgotPasswordModalOpen(false)}
         onSendResetEmail={handleSendPasswordResetEmail}
       />
+      {vouchModalData && currentUser && (
+        <VouchModal
+          isOpen={!!vouchModalData}
+          onClose={handleCloseVouchModal}
+          onSubmit={handleVouchSubmit}
+          userToVouch={vouchModalData.userToVouch}
+          currentUser={currentUser}
+        />
+      )}
+      {vouchListModalData && (
+        <VouchesListModal
+          isOpen={!!vouchListModalData}
+          onClose={handleCloseVouchesListModal}
+          userToList={vouchListModalData.userToList}
+          navigateToPublicProfile={(userId) => {
+            handleCloseVouchesListModal();
+            navigateTo(View.PublicProfile, userId);
+          }}
+        />
+      )}
     </div>
   );
 };
