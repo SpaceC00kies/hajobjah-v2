@@ -4,6 +4,7 @@ import type { Job, User } from '../types'; // Added User
 import { JobDesiredEducationLevelOption, JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types'; // Added Province
 import { Button } from './Button';
 import { containsBlacklistedWords, calculateHoursRemaining } from '../App'; // Changed to calculateHoursRemaining
+import { getJobTemplateForCategory } from '../utils/templates'; // Import the new template utility
 
 type FormDataType = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired'>;
 
@@ -45,6 +46,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
   const [availableSubCategories, setAvailableSubCategories] = useState<JobSubCategory[]>([]);
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
   const [canSubmit, setCanSubmit] = useState(true);
+  const [showTemplateButton, setShowTemplateButton] = useState(false); // State for template wizard button
 
   const JOB_COOLDOWN_DAYS_FORM = 3; // Updated to 3 days
   const MAX_ACTIVE_JOBS_FREE_TIER_FORM = 3; // Updated for free tier
@@ -93,6 +95,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
 
   useEffect(() => {
     if (isEditing && initialData) {
+      setShowTemplateButton(false); // Don't show template button when editing
       const {
         id, postedAt, userId, authorDisplayName, isSuspicious, isPinned, isHired, contact,
         ownerId, createdAt, updatedAt, expiresAt, isExpired,
@@ -146,6 +149,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
       const newCategory = value as JobCategory;
       newFormData = { ...newFormData, category: newCategory, subCategory: undefined }; 
       setAvailableSubCategories(JOB_SUBCATEGORIES_MAP[newCategory] || []);
+      setShowTemplateButton(!!getJobTemplateForCategory(newCategory)); // Show button if template exists
       if (formErrors.subCategory) {
         setFormErrors(prev => ({ ...prev, subCategory: undefined }));
       }
@@ -174,6 +178,21 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
       setFormErrors(prev => ({ ...prev, [currentKey]: undefined }));
     }
   };
+  
+  const handleUseTemplate = () => {
+    const template = getJobTemplateForCategory(formData.category);
+    if (template) {
+      setFormData(prev => ({...prev, description: template}));
+      // Auto-focus on the textarea after applying template
+      const textarea = document.getElementById('description');
+      if (textarea) {
+        textarea.focus();
+        // Move cursor to the end
+        (textarea as HTMLTextAreaElement).setSelectionRange(template.length, template.length);
+      }
+    }
+    setShowTemplateButton(false);
+  }
 
   const handleRadioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -347,6 +366,11 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
             <label htmlFor="description" className="block text-sm font-sans font-medium text-neutral-dark">
               รายละเอียดงาน <span className="text-red-500">*</span>
             </label>
+            {showTemplateButton && (
+                <Button type="button" onClick={handleUseTemplate} variant="outline" colorScheme="primary" size="sm" className="!py-1 !px-2 !text-xs">
+                    📝 ใช้เทมเพลต
+                </Button>
+            )}
           </div>
           <textarea
             id="description"

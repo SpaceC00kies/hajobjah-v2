@@ -4,6 +4,7 @@ import type { User } from '../types';
 import { GenderOption, HelperEducationLevelOption } from '../types';
 import { Button } from './Button';
 import { isValidThaiMobileNumberUtil } from '../App';
+import { ProfileCompletenessWizard } from './ProfileCompletenessWizard'; // Import the new wizard
 
 interface UserProfilePageProps {
   currentUser: User;
@@ -303,11 +304,13 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
   return (
     <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-xl mx-auto my-10 border border-neutral-DEFAULT">
       <h2 className="text-3xl font-sans font-semibold text-secondary-hover mb-6 text-center">👤 โปรไฟล์ของฉัน</h2>
+      
+      <ProfileCompletenessWizard currentUser={currentUser} />
 
       {feedback && (
         <div
           ref={feedbackRef}
-          className={`p-3 mb-4 rounded-md text-sm font-sans font-medium text-center
+          className={`p-3 my-4 rounded-md text-sm font-sans font-medium text-center
             ${feedback.type === 'success' ? 'bg-green-100 text-green-700' : ''}
             ${feedback.type === 'error' ? 'bg-red-100 text-red-700' : ''}`}
           role="alert"
@@ -317,7 +320,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="flex flex-col items-center mb-6">
+        <div id="profile-photo-section" className="flex flex-col items-center mb-6">
           {photoBase64 ? (
             <img src={photoBase64} alt="Profile Preview" className="w-32 h-32 rounded-full object-cover shadow-md mb-3" />
           ) : (
@@ -396,7 +399,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
           />
         </div>
         
-        <div className="pt-4 border-t border-neutral-DEFAULT/50">
+        <div id="intro-section" className="pt-4 border-t border-neutral-DEFAULT/50">
             <label htmlFor="profile-introSentence" className="block text-sm font-sans font-medium text-neutral-dark mb-1">
                 💬 เกี่ยวกับฉัน
             </label>
@@ -411,7 +414,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
         </div>
 
 
-        <details className="group pt-4 border-t border-neutral-DEFAULT/50" open>
+        <details id="personal-info-section" className="group pt-4 border-t border-neutral-DEFAULT/50" open>
           <summary className="flex items-center justify-between cursor-pointer list-none p-2 -ml-2 rounded-md hover:bg-neutral-light/50 transition-colors">
             <h3 className="text-lg font-sans font-medium text-neutral-dark">
               ข้อมูลส่วนตัว
@@ -469,7 +472,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                 <label htmlFor="profileLastName" className="block text-sm font-sans font-medium text-neutral-dark mb-1">นามสกุล</label>
                 <input type="text" id="profileLastName" value={lastName} onChange={(e) => setLastName(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น แสงอรุณ, ใจดี"/>
             </div>
-            <div>
+            <div id="address-section">
               <label htmlFor="profileAddress" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ที่อยู่ (จะแสดงในโปรไฟล์สาธารณะของคุณ)</label>
               <textarea
                 id="profileAddress"
@@ -483,7 +486,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
           </div>
         </details>
 
-        <details className="group pt-4 border-t border-neutral-DEFAULT/50">
+        <details id="personality-section" className="group pt-4 border-t border-neutral-DEFAULT/50">
           <summary className="flex items-center justify-between cursor-pointer list-none p-2 -ml-2 rounded-md hover:bg-neutral-light/50 transition-colors">
             <h3 className="text-lg font-sans font-medium text-neutral-dark">
               👤 เพิ่มเติมเกี่ยวกับฉัน
@@ -525,7 +528,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
           </div>
         </details>
 
-        <details className="group pt-4 border-t border-neutral-DEFAULT/50">
+        <details id="business-info-section" className="group pt-4 border-t border-neutral-DEFAULT/50">
           <summary className="flex items-center justify-between cursor-pointer list-none p-2 -ml-2 rounded-md hover:bg-neutral-light/50 transition-colors">
             <h3 className="text-lg font-sans font-medium text-neutral-dark">
               🏢 ข้อมูลธุรกิจ
@@ -569,7 +572,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
         </details>
 
 
-        <div className="pt-4 border-t border-neutral-DEFAULT/50">
+        <div id="contact-info-section" className="pt-4 border-t border-neutral-DEFAULT/50">
              <h3 className="text-lg font-sans font-medium text-neutral-dark mb-3">ข้อมูลติดต่อ (แสดงใน 'ติดต่อ')</h3>
             <div>
             <label htmlFor="profileMobile" className="block text-sm font-sans font-medium text-neutral-dark mb-1">เบอร์โทรศัพท์ <span className="text-red-500">*</span></label>
