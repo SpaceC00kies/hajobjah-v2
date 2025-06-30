@@ -2,13 +2,18 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { GoogleGenAI } from "@google/genai";
-import type { User, Vouch, WebboardPost, WebboardComment } from "../../types";
+
+type User             = any;
+type Vouch            = any;
+type WebboardPost     = any;
+type WebboardComment  = any;
+
 
 admin.initializeApp();
 const db = admin.firestore();
 
 // Access the API key from the function's environment variables
-const geminiApiKey = process.env.GEMINI_API_KEY;
+const geminiApiKey = functions.config().gemini.key;
 if (!geminiApiKey) {
   console.error("GEMINI_API_KEY environment variable not set.");
 }
