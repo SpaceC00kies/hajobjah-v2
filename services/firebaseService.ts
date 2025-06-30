@@ -1284,6 +1284,12 @@ export const resolveVouchReportService = async (
 
   try {
     await runTransaction(db, async (transaction) => {
+      // ** READS FIRST **
+      const vouchDoc = await transaction.get(vouchRef);
+      // We don't need to read the vouchee or report docs unless we needed their data for conditional writes.
+      // We already have the necessary info passed as arguments.
+
+      // ** WRITES SECOND **
       transaction.update(reportRef, {
         status: resolution,
         resolvedAt: serverTimestamp(),
@@ -1291,7 +1297,6 @@ export const resolveVouchReportService = async (
       });
 
       if (resolution === VouchReportStatus.ResolvedDeleted) {
-        const vouchDoc = await transaction.get(vouchRef);
         if (vouchDoc.exists()) {
           transaction.delete(vouchRef);
           const vouchInfoUpdate = {
@@ -1369,6 +1374,7 @@ export const getUserDocument = async (userId: string): Promise<User | null> => {
         businessAddress: userData.businessAddress || '',
         businessWebsite: userData.businessWebsite || '',
         businessSocialProfileLink: userData.businessSocialProfileLink || '',
+        aboutBusiness: userData.aboutBusiness || '',
         lastPublicDisplayNameChangeAt: userData.lastPublicDisplayNameChangeAt || undefined,
         publicDisplayNameUpdateCount: userData.publicDisplayNameUpdateCount || 0,
         tier,
