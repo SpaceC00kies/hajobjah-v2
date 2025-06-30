@@ -41,8 +41,9 @@ import {
   deleteObject,
   uploadString,
 } from '@firebase/storage';
+import { httpsCallable } from 'firebase/functions'; // Import httpsCallable
 
-import { auth, db, storage } from '../firebase';
+import { auth, db, storage, functions } from '../firebase'; // Import functions instance
 import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier, UserSavedWebboardPostEntry, Province, JobSubCategory, Interest, Vouch, VouchType, VouchInfo, VouchReport } from '../types';
 import { UserRole, WebboardCategory, USER_LEVELS, GenderOption, HelperEducationLevelOption, VouchReportStatus } from '../types';
 import { logFirebaseError } from '../firebase/logging';
@@ -1418,57 +1419,18 @@ export const toggleItemFlagService = async (
 };
 
 // --- Orion Service ---
+const orionAnalyzeFunction = httpsCallable(functions, 'orionAnalyze');
+
 export const orionAnalyzeService = async (command: string): Promise<string> => {
-  // This is a placeholder service to fix the client-side build error.
-  // The actual implementation MUST be moved to a secure server-side environment
-  // like a Firebase Cloud Function.
-  logFirebaseError("orionAnalyzeService", new Error("This is a placeholder implementation. The real service needs to be on a server."));
-
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 1500));
-
-  const commandLower = command.toLowerCase();
-
-  if (commandLower.includes("analyze user")) {
-    const username = command.split('@')[1] || 'sample_user';
-    return `
-### Analysis for @${username} (Mock Data)
-
-This is a **placeholder response**. The full Orion analysis engine has not been connected to the database yet.
-
-**Genuineness Score:** 75/100
-
-**Summary:**
-*   The user account appears to be legitimate with consistent activity.
-*   No direct evidence of fraudulent vouches found in this mock analysis.
-
-**Recommendations:**
-*   **Action:** No immediate action required.
-*   **Next Step:** Implement the full server-side Orion Cloud Function to analyze real user data from Firestore for a complete report.
-    `;
+  try {
+    const result = await orionAnalyzeFunction({ command });
+    return result.data as string;
+  } catch (error: any) {
+    logFirebaseError("orionAnalyzeService", error);
+    console.error("Error calling Orion Cloud Function:", error);
+    if (error.code === 'functions/permission-denied') {
+      return "Error: You do not have permission to use this feature.";
+    }
+    return "An error occurred while communicating with the Orion AI. Check the browser console for details.";
   }
-
-  if (commandLower.includes("fraud") || commandLower.includes("vouch")) {
-    return `
-### Analysis of Vouching Patterns (Mock Data)
-
-This is a **placeholder response**.
-
-**Identified Patterns:**
-*   **Reciprocal Vouching:** A potential cluster of 3 users was identified who have all vouched for each other.
-*   **New Account Vouching:** 5% of recent vouches come from accounts less than 24 hours old.
-
-**Recommendations:**
-*   **Action:** Manually review the potential collusion cluster in the Admin Dashboard.
-*   **Next Step:** Implement the full server-side Orion Cloud Function to perform deep graph analysis on the vouching data.
-    `;
-  }
-
-  return `
-### General Inquiry Response (Mock Data)
-
-You asked: "${command}"
-
-This is a **placeholder response**. The full functionality to process general queries requires connecting to the live AI service via a secure backend function. Please proceed with the implementation of the \`orionAnalyze\` Firebase Cloud Function as outlined in the project README.
-  `;
 };
