@@ -44,8 +44,8 @@ import {
 } from '@firebase/storage';
 
 import { auth, db, storage } from '../firebase';
-import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier, UserSavedWebboardPostEntry, Province, JobSubCategory, Interest, Vouch, VouchType, VouchInfo, VouchReport, VouchReportStatus } from '../types'; // Added Interest, Vouch, VouchType, VouchReport, VouchReportStatus
-import { UserRole, WebboardCategory, USER_LEVELS, GenderOption, HelperEducationLevelOption } from '../types';
+import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier, UserSavedWebboardPostEntry, Province, JobSubCategory, Interest, Vouch, VouchType, VouchInfo, VouchReport } from '../types';
+import { UserRole, WebboardCategory, USER_LEVELS, GenderOption, HelperEducationLevelOption, VouchReportStatus } from '../types';
 import { logFirebaseError } from '../firebase/logging';
 
 // Collection Names
@@ -59,10 +59,15 @@ const SITE_CONFIG_COLLECTION = 'siteConfig';
 const SITE_CONFIG_DOC_ID = 'main';
 const FEEDBACK_COLLECTION = 'feedback';
 const USER_SAVED_POSTS_SUBCOLLECTION = 'savedWebboardPosts';
-const INTERESTS_COLLECTION = 'interests'; // New collection for interests
+const INTERESTS_COLLECTION = 'interests';
 const VOUCHES_COLLECTION = 'vouches';
-const VOUCH_REPORTS_COLLECTION = 'vouchReports'; // New collection for reports
+const VOUCH_REPORTS_COLLECTION = 'vouchReports';
 
+// --- Paginated Response Type ---
+interface PaginatedDocsResponse<T> {
+  items: T[];
+  lastVisibleDoc: DocumentSnapshot<DocumentData> | null;
+}
 
 // --- Helper to convert Firestore Timestamps to ISO strings for consistency ---
 const convertTimestamps = (data: any): any => {
@@ -96,7 +101,7 @@ const cleanDataForFirestore = <T extends Record<string, any>>(data: T): Partial<
 };
 
 // Updated RegistrationDataType for simplified registration
-type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook' | 'isBusinessProfile' | 'businessName' | 'businessType' | 'businessAddress' | 'businessWebsite' | 'businessSocialProfileLink' | 'aboutBusiness' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount' | 'vouchInfo'> & { password: string };
+type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook' | 'isBusinessProfile' | 'businessName' | 'businessType' | 'businessAddress' | 'businessWebsite' | 'businessSocialProfileLink' | 'aboutBusiness' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount' | 'vouchInfo' | 'lastLoginIP' | 'lastLoginUserAgent'> & { password: string };
 
 
 
@@ -111,16 +116,17 @@ export const signUpWithEmailPasswordService = async (
 
     const now = new Date();
     const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const initialVouchInfo: VouchInfo = { total: 0, worked_together: 0, colleague: 0, community: 0, personal: 0 };
 
 
     const newUser: Omit<User, 'id'> = {
-      ...userProfileData, // Contains publicDisplayName, username, email, mobile
-      gender: GenderOption.NotSpecified, // Default value
-      birthdate: undefined, // Default value (or empty string)
-      educationLevel: HelperEducationLevelOption.NotStated, // Default value
-      lineId: '', // Default value
-      facebook: '', // Default value
+      ...userProfileData,
+      gender: GenderOption.NotSpecified,
+      birthdate: undefined,
+      educationLevel: HelperEducationLevelOption.NotStated,
+      lineId: '',
+      facebook: '',
       tier: 'free' as UserTier,
       photo: undefined,
       address: '',
@@ -144,24 +150,25 @@ export const signUpWithEmailPasswordService = async (
         dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() },
         hourlyComments: { count: 0, resetTime: new Date(0).toISOString() },
         lastBumpDates: {},
+        vouchingActivity: { monthlyCount: 0, periodStart: firstOfMonth.toISOString() },
       },
       activityBadge: {
         isActive: false,
         last30DaysActivity: 0,
       },
-      savedWebboardPosts: [], // Initialize saved posts
-      // Initialize Business Info Fields
-      isBusinessProfile: false, // Default
+      savedWebboardPosts: [],
+      isBusinessProfile: false,
       businessName: '',
       businessType: '',
       businessAddress: '',
       businessWebsite: '',
       businessSocialProfileLink: '',
       aboutBusiness: '',
-      // Initialize display name cooldown fields
       lastPublicDisplayNameChangeAt: undefined,
       publicDisplayNameUpdateCount: 0,
       vouchInfo: initialVouchInfo,
+      lastLoginIP: 'not_recorded',
+      lastLoginUserAgent: 'not_recorded',
       createdAt: serverTimestamp() as any,
       updatedAt: serverTimestamp() as any,
     };
@@ -210,6 +217,7 @@ export const signInWithEmailPasswordService = async (loginIdentifier: string, pa
         dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() },
         hourlyComments: { count: 0, resetTime: new Date(0).toISOString() },
         lastBumpDates: {},
+        vouchingActivity: { monthlyCount: 0, periodStart: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString() }
       };
       const activityBadge = userData.activityBadge || {
         isActive: false,
@@ -230,7 +238,6 @@ export const signInWithEmailPasswordService = async (loginIdentifier: string, pa
         businessWebsite: userData.businessWebsite || '',
         businessSocialProfileLink: userData.businessSocialProfileLink || '',
         aboutBusiness: userData.aboutBusiness || '',
-        // Ensure display name cooldown fields
         lastPublicDisplayNameChangeAt: userData.lastPublicDisplayNameChangeAt || undefined,
         publicDisplayNameUpdateCount: userData.publicDisplayNameUpdateCount || 0,
         tier,
@@ -291,6 +298,7 @@ export const onAuthChangeService = (callback: (user: User | null) => void): (() 
             dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() },
             hourlyComments: { count: 0, resetTime: new Date(0).toISOString() },
             lastBumpDates: {},
+             vouchingActivity: { monthlyCount: 0, periodStart: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString() }
           };
           const activityBadge = userData.activityBadge || {
             isActive: false,
@@ -310,7 +318,6 @@ export const onAuthChangeService = (callback: (user: User | null) => void): (() 
             businessWebsite: userData.businessWebsite || '',
             businessSocialProfileLink: userData.businessSocialProfileLink || '',
             aboutBusiness: userData.aboutBusiness || '',
-            // Ensure display name cooldown fields
             lastPublicDisplayNameChangeAt: userData.lastPublicDisplayNameChangeAt || undefined,
             publicDisplayNameUpdateCount: userData.publicDisplayNameUpdateCount || 0,
             tier,
@@ -378,8 +385,7 @@ export const deleteImageService = async (imageUrl?: string | null): Promise<void
 
 // --- User Profile Service ---
 const DISPLAY_NAME_COOLDOWN_DAYS = 14;
-// Update the profileData type to include all new optional User fields
-type UserProfileUpdateData = Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username' | 'postingLimits' | 'activityBadge' | 'userLevel' | 'tier' | 'savedWebboardPosts' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount' | 'vouchInfo' >>;
+type UserProfileUpdateData = Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username' | 'postingLimits' | 'activityBadge' | 'userLevel' | 'tier' | 'savedWebboardPosts' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount' | 'vouchInfo' | 'lastLoginIP' | 'lastLoginUserAgent'>>;
 
 
 export const updateUserProfileService = async (
@@ -396,18 +402,15 @@ export const updateUserProfileService = async (
     if (!rawFirestoreUserData) {
         throw new Error("User data is unexpectedly empty.");
     }
-    // Convert Firestore timestamps to ISO strings before further processing
     const currentUserData = convertTimestamps(rawFirestoreUserData) as User;
 
     let dataToUpdate: Partial<User> = { ...profileData, updatedAt: serverTimestamp() as any };
 
-    // Display Name Cooldown Logic
     if (profileData.publicDisplayName && profileData.publicDisplayName !== currentUserData.publicDisplayName) {
       const currentUpdateCount = currentUserData.publicDisplayNameUpdateCount || 0;
-
-      const lastChangeIsoString = currentUserData.lastPublicDisplayNameChangeAt; // This is now string | undefined
+      const lastChangeIsoString = currentUserData.lastPublicDisplayNameChangeAt;
       let lastChangeDateForLogic: Date | null = null;
-      if (lastChangeIsoString) { // If it's an ISO string
+      if (lastChangeIsoString) {
           lastChangeDateForLogic = new Date(lastChangeIsoString);
       }
 
@@ -419,7 +422,6 @@ export const updateUserProfileService = async (
           throw new Error(`คุณสามารถเปลี่ยนชื่อที่แสดงได้อีกครั้งในวันที่ ${canChangeDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}`);
         }
       }
-      // If change is allowed
       dataToUpdate.lastPublicDisplayNameChangeAt = serverTimestamp() as any;
       dataToUpdate.publicDisplayNameUpdateCount = currentUpdateCount + 1;
     }
@@ -434,10 +436,9 @@ export const updateUserProfileService = async (
        if(currentUserData.photo) {
            await deleteImageService(currentUserData.photo);
        }
-      dataToUpdate.photo = null; // Explicitly set to null to remove the photo field
+      dataToUpdate.photo = deleteField() as any;
     }
 
-    // Ensure boolean for isBusinessProfile, even if undefined is passed
     if (profileData.hasOwnProperty('isBusinessProfile')) {
         dataToUpdate.isBusinessProfile = !!profileData.isBusinessProfile;
     }
@@ -446,11 +447,11 @@ export const updateUserProfileService = async (
     return true;
   } catch (error: any) {
     logFirebaseError("updateUserProfileService", error);
-    throw error; // Re-throw the error so UI can catch it (e.g., cooldown message)
+    throw error;
   }
 };
 
-// --- Generic Firestore Subscription Service (kept for specific non-paginated needs if any) ---
+// --- Generic Firestore Subscription Service ---
 const subscribeToCollectionService = <T>(
   collectionName: string,
   callback: (data: T[]) => void,
@@ -471,11 +472,6 @@ const subscribeToCollectionService = <T>(
 // --- Specific Data Services ---
 
 // Jobs
-export interface PaginatedDocsResponse<T> {
-  items: T[];
-  lastVisibleDoc: DocumentSnapshot<DocumentData> | null;
-}
-
 type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'posterIsAdminVerified' | 'interestedCount'>;
 export const addJobService = async (jobData: JobFormData, author: { userId: string; authorDisplayName: string; contact: string }): Promise<string> => {
   try {
@@ -483,9 +479,9 @@ export const addJobService = async (jobData: JobFormData, author: { userId: stri
     expiresAt.setDate(expiresAt.getDate() + 30);
 
     const newJobDoc: Omit<Job, 'id'> = {
-      ...jobData, // Includes province from form
+      ...jobData,
       userId: author.userId,
-      authorDisplayName: author.authorDisplayName, // Snapshot at creation
+      authorDisplayName: author.authorDisplayName,
       contact: author.contact,
       ownerId: author.userId,
       isPinned: false,
@@ -511,8 +507,6 @@ export const addJobService = async (jobData: JobFormData, author: { userId: stri
 };
 export const updateJobService = async (jobId: string, jobData: Partial<JobFormData>, contact: string): Promise<boolean> => {
   try {
-    // province will be part of jobData if it's being updated
-    // authorDisplayName is NOT updated here; it remains a snapshot. Live name comes from User doc.
     const dataToUpdate = { ...jobData, contact, updatedAt: serverTimestamp() as any };
     await updateDoc(doc(db, JOBS_COLLECTION, jobId), cleanDataForFirestore(dataToUpdate as Record<string, any>));
     return true;
@@ -536,8 +530,8 @@ export const getJobsPaginated = async (
   startAfterDoc: DocumentSnapshot<DocumentData> | null = null,
   categoryFilter: string | null = null,
   searchTerm: string | null = null,
-  subCategoryFilter: JobSubCategory | 'all' = 'all', // Updated
-  provinceFilter: Province | 'all' = 'all'        // Updated
+  subCategoryFilter: JobSubCategory | 'all' = 'all',
+  provinceFilter: Province | 'all' = 'all'
 ): Promise<PaginatedDocsResponse<Job>> => {
   try {
     const constraints: QueryConstraint[] = [
@@ -549,10 +543,7 @@ export const getJobsPaginated = async (
     if (categoryFilter && categoryFilter !== 'all') {
       constraints.unshift(where("category", "==", categoryFilter));
     }
-    // Firestore does not support multiple inequality filters on different fields
-    // or combining array-contains with range/inequality.
-    // So, subCategory and province will be filtered client-side after initial fetch.
-
+    
     if (startAfterDoc) {
       constraints.push(startAfter(startAfterDoc));
     }
@@ -565,25 +556,19 @@ export const getJobsPaginated = async (
       ...convertTimestamps(docSnap.data()),
     } as Job));
 
-    // Client-side filtering for search term
     if (searchTerm && searchTerm.trim() !== '') {
       const termLower = searchTerm.toLowerCase();
       jobsData = jobsData.filter(job =>
         job.title.toLowerCase().includes(termLower) ||
         job.description.toLowerCase().includes(termLower) ||
-        // job.category.toLowerCase().includes(termLower) || // Covered by Firestore query if selected
-        // (job.subCategory && job.subCategory.toLowerCase().includes(termLower)) || // Handled by subCategoryFilter
         job.location.toLowerCase().includes(termLower)
-        // (job.province && job.province.toLowerCase().includes(termLower)) // Handled by provinceFilter
       );
     }
 
-    // Client-side filtering for subCategory dropdown
     if (subCategoryFilter !== 'all') {
       jobsData = jobsData.filter(job => job.subCategory === subCategoryFilter);
     }
 
-    // Client-side filtering for province dropdown
     if (provinceFilter !== 'all') {
       jobsData = jobsData.filter(job => job.province === provinceFilter);
     }
@@ -623,9 +608,9 @@ export const addHelperProfileService = async (profileData: HelperProfileFormData
     const nowServerTimestamp = serverTimestamp();
 
     const newProfileDoc: Omit<HelperProfile, 'id'> = {
-      ...profileData, // Includes province from form
+      ...profileData,
       userId: author.userId,
-      authorDisplayName: author.authorDisplayName, // Snapshot at creation
+      authorDisplayName: author.authorDisplayName,
       contact: author.contact,
       gender: author.gender,
       birthdate: author.birthdate,
@@ -637,7 +622,7 @@ export const addHelperProfileService = async (profileData: HelperProfileFormData
       updatedAt: nowServerTimestamp as any,
       expiresAt: expiresAt.toISOString(),
       isExpired: false,
-      lastBumpedAt: null,
+      lastBumpedAt: null as any,
     };
     const docRef = await addDoc(collection(db, HELPER_PROFILES_COLLECTION), cleanDataForFirestore(newProfileDoc as Record<string, any>));
 
@@ -653,8 +638,6 @@ export const addHelperProfileService = async (profileData: HelperProfileFormData
 
 export const updateHelperProfileService = async (profileId: string, profileData: Partial<HelperProfileFormData>, contact: string): Promise<boolean> => {
   try {
-    // province will be part of profileData if it's being updated
-    // authorDisplayName is NOT updated here.
     const dataToUpdate = { ...profileData, contact, updatedAt: serverTimestamp() as any };
     await updateDoc(doc(db, HELPER_PROFILES_COLLECTION, profileId), cleanDataForFirestore(dataToUpdate as Record<string, any>));
     return true;
@@ -696,13 +679,13 @@ export const getHelperProfilesPaginated = async (
   startAfterDoc: DocumentSnapshot<DocumentData> | null = null,
   categoryFilter: string | null = null,
   searchTerm: string | null = null,
-  subCategoryFilter: JobSubCategory | 'all' = 'all', // Updated
-  provinceFilter: Province | 'all' = 'all'        // Updated
+  subCategoryFilter: JobSubCategory | 'all' = 'all',
+  provinceFilter: Province | 'all' = 'all'
 ): Promise<PaginatedDocsResponse<HelperProfile>> => {
   try {
     const constraints: QueryConstraint[] = [
       orderBy("isPinned", "desc"),
-      orderBy("updatedAt", "desc"), // Keep updatedAt for bump logic
+      orderBy("updatedAt", "desc"),
       limit(pageSize)
     ];
 
@@ -722,25 +705,19 @@ export const getHelperProfilesPaginated = async (
       ...convertTimestamps(docSnap.data()),
     } as HelperProfile));
 
-    // Client-side filtering for search term
     if (searchTerm && searchTerm.trim() !== '') {
       const termLower = searchTerm.toLowerCase();
       profilesData = profilesData.filter(profile =>
         profile.profileTitle.toLowerCase().includes(termLower) ||
         profile.details.toLowerCase().includes(termLower) ||
-        // profile.category.toLowerCase().includes(termLower) || // Covered by Firestore
-        // (profile.subCategory && profile.subCategory.toLowerCase().includes(termLower)) || // Handled by filter
         profile.area.toLowerCase().includes(termLower)
-        // (profile.province && profile.province.toLowerCase().includes(termLower)) // Handled by filter
       );
     }
 
-    // Client-side filtering for subCategory dropdown
     if (subCategoryFilter !== 'all') {
       profilesData = profilesData.filter(profile => profile.subCategory === subCategoryFilter);
     }
 
-    // Client-side filtering for province dropdown
     if (provinceFilter !== 'all') {
       profilesData = profilesData.filter(profile => profile.province === provinceFilter);
     }
@@ -788,7 +765,7 @@ export const addWebboardPostService = async (postData: { title: string; body: st
       category: postData.category,
       image: imageUrl,
       userId: author.userId,
-      authorDisplayName: author.authorDisplayName, // Snapshot at creation
+      authorDisplayName: author.authorDisplayName,
       authorPhoto: author.photo || undefined,
       ownerId: author.userId,
       likes: [],
@@ -825,11 +802,7 @@ export const updateWebboardPostService = async (postId: string, postData: { titl
     if (postData.category !== undefined) basePayload.category = postData.category;
 
     basePayload.updatedAt = serverTimestamp() as any;
-    if (currentUserPhoto !== undefined) {
-      // authorPhoto and authorDisplayName are not updated here as they are snapshots.
-      // If the author's profile photo changes, it's reflected via dynamic lookup.
-    }
-
+    
     let finalUpdatePayload = { ...basePayload };
 
     if (postData.hasOwnProperty('image')) {
@@ -844,7 +817,7 @@ export const updateWebboardPostService = async (postId: string, postData: { titl
         if(oldPostSnap.exists() && oldPostSnap.data().image) {
           await deleteImageService(oldPostSnap.data().image);
         }
-        finalUpdatePayload.image = null;
+        finalUpdatePayload.image = deleteField() as any;
       }
     }
     await updateDoc(postRef, cleanDataForFirestore(finalUpdatePayload as Record<string, any>));
@@ -897,7 +870,7 @@ export const deleteWebboardPostService = async (postId: string): Promise<boolean
 export const getWebboardPostsPaginated = async (
   pageSize: number = 10,
   startAfterDoc: DocumentSnapshot<DocumentData> | null = null,
-  categoryFilter: string | null = null, // Changed from selectedCategory
+  categoryFilter: string | null = null,
   searchTerm: string | null = null
 ): Promise<PaginatedDocsResponse<WebboardPost>> => {
   try {
@@ -907,7 +880,7 @@ export const getWebboardPostsPaginated = async (
       limit(pageSize)
     ];
 
-    if (categoryFilter && categoryFilter !== 'all') { // Apply category filter
+    if (categoryFilter && categoryFilter !== 'all') {
       constraints.unshift(where("category", "==", categoryFilter));
     }
 
@@ -929,7 +902,7 @@ export const getWebboardPostsPaginated = async (
         searchedPostsData = postsData.filter(post =>
             post.title.toLowerCase().includes(termLower) ||
             post.body.toLowerCase().includes(termLower) ||
-            post.authorDisplayName.toLowerCase().includes(termLower) // Search snapshot name
+            post.authorDisplayName.toLowerCase().includes(termLower)
         );
     }
 
@@ -942,6 +915,32 @@ export const getWebboardPostsPaginated = async (
   }
 };
 
+export const toggleWebboardPostLikeService = async (postId: string, userId: string): Promise<void> => {
+  const postRef = doc(db, WEBBOARD_POSTS_COLLECTION, postId);
+  try {
+    await runTransaction(db, async (transaction) => {
+      const postDoc = await transaction.get(postRef);
+      if (!postDoc.exists()) {
+        throw new Error("Post does not exist!");
+      }
+      const postData = postDoc.data() as WebboardPost;
+      const likes = postData.likes || [];
+      
+      if (likes.includes(userId)) {
+        transaction.update(postRef, {
+          likes: likes.filter(id => id !== userId)
+        });
+      } else {
+        transaction.update(postRef, {
+          likes: [...likes, userId]
+        });
+      }
+    });
+  } catch (error: any) {
+    logFirebaseError("toggleWebboardPostLikeService", error);
+    throw error;
+  }
+};
 
 // Webboard Comments
 interface WebboardCommentAuthorInfo { userId: string; authorDisplayName: string; photo?: string | null; }
@@ -951,7 +950,7 @@ export const addWebboardCommentService = async (postId: string, text: string, au
       postId,
       text,
       userId: author.userId,
-      authorDisplayName: author.authorDisplayName, // Snapshot at creation
+      authorDisplayName: author.authorDisplayName,
       authorPhoto: author.photo || undefined,
       ownerId: author.userId,
       createdAt: serverTimestamp() as any,
@@ -1070,8 +1069,6 @@ export const logHelperContactInteractionService = async (helperProfileId: string
       createdAt: serverTimestamp() as any,
     };
     const docRef = await addDoc(collection(db, INTERACTIONS_COLLECTION), cleanDataForFirestore(newInteractionDoc as Record<string, any>));
-
-    // The logic to increment interestedCount has been moved to toggleInterestService
     
     return docRef.id;
   } catch (error: any) {
@@ -1101,12 +1098,10 @@ export const toggleInterestService = async (
       const interestDoc = await transaction.get(interestRef);
 
       if (interestDoc.exists()) {
-        // User is un-interesting, so delete the interest and decrement count
         transaction.delete(interestRef);
         transaction.update(targetRef, { interestedCount: increment(-1) });
         isInterested = false;
       } else {
-        // User is expressing interest, so create the interest and increment count
         const newInterest: Omit<Interest, 'id'> = {
           userId: currentUserId,
           targetId,
@@ -1140,10 +1135,21 @@ export const subscribeToUserInterestsService = (userId: string, callback: (inter
 };
 
 // --- Community Verification Services ---
-export const vouchForUserService = async (voucher: User, voucheeId: string, vouchType: VouchType, comment?: string): Promise<void> => {
+export const vouchForUserService = async (voucher: User, voucheeId: string, vouchType: VouchType, ipAddress: string, userAgent: string, comment?: string): Promise<void> => {
+  if (voucher.id === voucheeId) {
+    throw new Error("คุณไม่สามารถรับรองตัวเองได้");
+  }
+
+  const accountAgeMs = new Date().getTime() - new Date(voucher.createdAt as string).getTime();
+  const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+  if (accountAgeMs < sevenDaysMs) {
+    throw new Error("บัญชีของคุณต้องมีอายุอย่างน้อย 7 วันจึงจะสามารถรับรองผู้อื่นได้");
+  }
+
   const vouchId = `${voucher.id}_${voucheeId}`;
   const vouchRef = doc(db, VOUCHES_COLLECTION, vouchId);
   const voucheeRef = doc(db, USERS_COLLECTION, voucheeId);
+  const voucherRef = doc(db, USERS_COLLECTION, voucher.id);
 
   try {
     await runTransaction(db, async (transaction) => {
@@ -1151,10 +1157,29 @@ export const vouchForUserService = async (voucher: User, voucheeId: string, vouc
       if (existingVouchDoc.exists()) {
         throw new Error("คุณเคยรับรองผู้ใช้นี้ไปแล้ว");
       }
-
+      
       const voucheeDoc = await transaction.get(voucheeRef);
       if (!voucheeDoc.exists()) {
         throw new Error("ไม่พบผู้ใช้ที่ต้องการรับรอง");
+      }
+
+      const voucherDoc = await transaction.get(voucherRef);
+      if (!voucherDoc.exists()) {
+          throw new Error("ไม่พบข้อมูลผู้รับรอง (Voucher)");
+      }
+      const voucherData = voucherDoc.data() as User;
+      let { monthlyCount = 0, periodStart } = voucherData.postingLimits?.vouchingActivity || {};
+      
+      const now = new Date();
+      const currentPeriodStart = periodStart ? new Date(periodStart as string) : new Date(0);
+      
+      if (now.getFullYear() > currentPeriodStart.getFullYear() || now.getMonth() > currentPeriodStart.getMonth()) {
+          monthlyCount = 0;
+          periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      }
+
+      if (monthlyCount >= 3) {
+          throw new Error("คุณใช้โควต้ารับรอง 3 ครั้งสำหรับเดือนนี้ไปหมดแล้ว");
       }
 
       const newVouch: Omit<Vouch, 'id'> = {
@@ -1163,6 +1188,8 @@ export const vouchForUserService = async (voucher: User, voucheeId: string, vouc
         voucheeId: voucheeId,
         vouchType: vouchType,
         comment: comment || '',
+        creatorIP: ipAddress,
+        creatorUserAgent: userAgent,
         createdAt: serverTimestamp() as any,
       };
       transaction.set(vouchRef, newVouch);
@@ -1172,6 +1199,12 @@ export const vouchForUserService = async (voucher: User, voucheeId: string, vouc
         [`vouchInfo.${vouchType}`]: increment(1),
       };
       transaction.update(voucheeRef, vouchInfoUpdate);
+      
+      transaction.update(voucherRef, {
+          'postingLimits.vouchingActivity.monthlyCount': monthlyCount + 1,
+          'postingLimits.vouchingActivity.periodStart': periodStart
+      });
+
     });
   } catch (error) {
     logFirebaseError("vouchForUserService", error);
@@ -1205,13 +1238,73 @@ export const reportVouchService = async (vouch: Vouch, reporterId: string, comme
       reporterComment: comment,
       voucheeId: vouch.voucheeId,
       voucherId: vouch.voucherId,
-      status: 'pending_review' as VouchReportStatus.Pending,
+      status: VouchReportStatus.Pending,
       createdAt: serverTimestamp() as any,
     };
     await addDoc(collection(db, VOUCH_REPORTS_COLLECTION), newReport);
   } catch (error) {
     logFirebaseError("reportVouchService", error);
     throw new Error("ไม่สามารถส่งรายงานได้ โปรดลองอีกครั้ง");
+  }
+};
+
+export const getVouchDocument = async (vouchId: string): Promise<Vouch | null> => {
+  try {
+    const docRef = doc(db, VOUCHES_COLLECTION, vouchId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...convertTimestamps(docSnap.data()) } as Vouch;
+    }
+    return null;
+  } catch (error) {
+    logFirebaseError("getVouchDocument", error);
+    return null;
+  }
+};
+
+export const subscribeToVouchReportsService = (callback: (data: VouchReport[]) => void): (() => void) => {
+  const constraints = [
+    where("status", "==", VouchReportStatus.Pending),
+    orderBy("createdAt", "desc")
+  ];
+  return subscribeToCollectionService<VouchReport>(VOUCH_REPORTS_COLLECTION, callback, constraints);
+};
+
+export const resolveVouchReportService = async (
+  reportId: string,
+  resolution: VouchReportStatus.ResolvedDeleted | VouchReportStatus.ResolvedKept,
+  adminId: string,
+  vouchId: string,
+  voucheeId: string,
+  vouchType: VouchType
+): Promise<void> => {
+  const reportRef = doc(db, VOUCH_REPORTS_COLLECTION, reportId);
+  const vouchRef = doc(db, VOUCHES_COLLECTION, vouchId);
+  const voucheeRef = doc(db, USERS_COLLECTION, voucheeId);
+
+  try {
+    await runTransaction(db, async (transaction) => {
+      transaction.update(reportRef, {
+        status: resolution,
+        resolvedAt: serverTimestamp(),
+        resolvedBy: adminId,
+      });
+
+      if (resolution === VouchReportStatus.ResolvedDeleted) {
+        const vouchDoc = await transaction.get(vouchRef);
+        if (vouchDoc.exists()) {
+          transaction.delete(vouchRef);
+          const vouchInfoUpdate = {
+            [`vouchInfo.total`]: increment(-1),
+            [`vouchInfo.${vouchType}`]: increment(-1),
+          };
+          transaction.update(voucheeRef, vouchInfoUpdate);
+        }
+      }
+    });
+  } catch (error) {
+    logFirebaseError("resolveVouchReportService", error);
+    throw error;
   }
 };
 
@@ -1257,19 +1350,17 @@ export const setUserRoleService = async (userIdToUpdate: string, newRole: UserRo
   }
 };
 
-// Helper to fetch user document - used internally for limit checks
 export const getUserDocument = async (userId: string): Promise<User | null> => {
   try {
     const userDocRef = doc(db, USERS_COLLECTION, userId);
     const userDocSnap = await getDoc(userDocRef);
     if (userDocSnap.exists()) {
       const userData = userDocSnap.data();
-      const tier = userData.tier || ('free' as UserTier); // Default tier
-      const savedWebboardPosts = userData.savedWebboardPosts || []; // Initialize if missing
+      const tier = userData.tier || ('free' as UserTier);
+      const savedWebboardPosts = userData.savedWebboardPosts || [];
       const vouchInfo = userData.vouchInfo || { total: 0, worked_together: 0, colleague: 0, community: 0, personal: 0 };
 
 
-      // Ensure business fields are present
       const fullUserData = {
         ...convertTimestamps(userData),
         isBusinessProfile: userData.isBusinessProfile || false,
@@ -1278,8 +1369,6 @@ export const getUserDocument = async (userId: string): Promise<User | null> => {
         businessAddress: userData.businessAddress || '',
         businessWebsite: userData.businessWebsite || '',
         businessSocialProfileLink: userData.businessSocialProfileLink || '',
-        aboutBusiness: userData.aboutBusiness || '',
-        // Ensure display name cooldown fields
         lastPublicDisplayNameChangeAt: userData.lastPublicDisplayNameChangeAt || undefined,
         publicDisplayNameUpdateCount: userData.publicDisplayNameUpdateCount || 0,
         tier,
@@ -1300,7 +1389,6 @@ export const subscribeToUsersService = (callback: (data: User[]) => void) =>
   subscribeToCollectionService<User>(USERS_COLLECTION, callback, [orderBy("createdAt", "desc")]);
 
 // Generic Item Flag Toggler
-type ItemWithFlags = Job | HelperProfile | WebboardPost;
 type ItemFlagKeys = 'isPinned' | 'isHired' | 'isSuspicious' | 'isUnavailable' | 'adminVerifiedExperience' | 'isExpired';
 
 export const toggleItemFlagService = async (
@@ -1308,65 +1396,17 @@ export const toggleItemFlagService = async (
   itemId: string,
   flagName: ItemFlagKeys,
   currentValue?: boolean
-): Promise<boolean> => {
+): Promise<void> => {
   try {
-    const itemRef = doc(db, collectionName, itemId);
-    let finalValueToSet: boolean;
-
-    if (typeof currentValue === 'boolean') {
-        finalValueToSet = !currentValue;
-    } else {
-        const itemSnap = await getDoc(itemRef);
-        if (!itemSnap.exists()) throw new Error("Item not found.");
-        finalValueToSet = !(itemSnap.data() as any)[flagName];
-    }
-    const dataToUpdate = { [flagName]: finalValueToSet, updatedAt: serverTimestamp() as any };
-    await updateDoc(itemRef, cleanDataForFirestore(dataToUpdate));
-    return true;
-  } catch (error: any) {
-    logFirebaseError(`toggleItemFlagService for ${flagName} on ${collectionName}`, error);
-    throw error;
-  }
-};
-
-export const toggleWebboardPostLikeService = async (postId: string, userId: string): Promise<boolean> => {
-  try {
-    const postRef = doc(db, WEBBOARD_POSTS_COLLECTION, postId);
-    const postSnap = await getDoc(postRef);
-    if (!postSnap.exists()) throw new Error("Post not found.");
-
-    const postData = postSnap.data() as WebboardPost;
-    const likes = postData.likes || [];
-    const userLikedIndex = likes.indexOf(userId);
-
-    let newLikes: string[];
-    if (userLikedIndex > -1) {
-      newLikes = likes.filter(id => id !== userId);
-    } else {
-      newLikes = [...likes, userId];
-    }
-    // Only update the likes array, not the updatedAt timestamp for the post itself
-    const dataToUpdate = { likes: newLikes };
-    await updateDoc(postRef, cleanDataForFirestore(dataToUpdate as Record<string, any>));
-    return true;
-  } catch (error: any) {
-    logFirebaseError("toggleWebboardPostLikeService", error);
-    throw error;
-  }
-};
-
-export const submitFeedbackService = async (feedbackText: string, page: string, userId?: string): Promise<boolean> => {
-  try {
-    const dataToAdd = {
-      text: feedbackText,
-      page,
-      userId: userId || null,
-      submittedAt: serverTimestamp(),
+    const docRef = doc(db, collectionName, itemId);
+    const newValue = !currentValue;
+    const updatePayload: { [key: string]: any } = {
+      [flagName]: newValue,
+      updatedAt: serverTimestamp() // Also update the updatedAt timestamp
     };
-    await addDoc(collection(db, FEEDBACK_COLLECTION), cleanDataForFirestore(dataToAdd as Record<string, any>));
-    return true;
-  } catch (error) {
-    logFirebaseError("submitFeedbackService", error);
+    await updateDoc(docRef, updatePayload);
+  } catch (error: any) {
+    logFirebaseError(`toggleItemFlagService (${flagName})`, error);
     throw error;
   }
 };

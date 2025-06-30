@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import type { Job, HelperProfile, User, Interaction, WebboardPost, WebboardComment, UserLevel } from '../types';
-import { UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, USER_LEVELS } from '../types';
+import type { Job, HelperProfile, User, Interaction, WebboardPost, WebboardComment, UserLevel, VouchReport, Vouch, VouchType } from '../types';
+import { UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, USER_LEVELS, VouchReportStatus, VOUCH_TYPE_LABELS } from '../types';
 import { Button } from './Button';
-import { checkProfileCompleteness, getUserDisplayBadge } from '../App'; // Removed checkHasBeenContacted
+import { checkProfileCompleteness } from '../App'; // Removed checkHasBeenContacted
 
 
 export interface AdminItem {
@@ -27,14 +27,15 @@ export interface AdminItem {
   authorLevel?: UserLevel;
 }
 
-type AdminTab = 'jobs' | 'profiles' | 'webboard' | 'users' | 'site_controls'; // Added site_controls tab
+type AdminTab = 'jobs' | 'profiles' | 'webboard' | 'users' | 'site_controls' | 'vouch_reports';
 
-const TABS: { id: AdminTab; label: string }[] = [
+const TABS: { id: AdminTab; label: string, badgeCount?: number }[] = [
   { id: 'jobs', label: '📢 งาน' },
   { id: 'profiles', label: '🧑‍🔧 โปรไฟล์ผู้ช่วย' },
   { id: 'webboard', label: '💬 กระทู้' },
+  { id: 'vouch_reports', label: '🛡️ รายงาน Vouch' },
   { id: 'users', label: '👥 จัดการผู้ใช้' },
-  { id: 'site_controls', label: '⚙️ ควบคุมระบบ' }, // New tab for site controls
+  { id: 'site_controls', label: '⚙️ ควบคุมระบบ' },
 ];
 
 
@@ -45,6 +46,7 @@ interface AdminDashboardProps {
   interactions: Interaction[];
   webboardPosts: WebboardPost[];
   webboardComments: WebboardComment[];
+  vouchReports: VouchReport[]; // New prop
   onDeleteJob: (jobId: string) => void;
   onDeleteHelperProfile: (profileId: string) => void;
   onToggleSuspiciousJob: (jobId: string) => void;
@@ -62,6 +64,9 @@ interface AdminDashboardProps {
   isSiteLocked: boolean; // New prop
   onToggleSiteLock: () => void; // New prop
   getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
+  getUserDisplayBadge: (user: User) => UserLevel;
+  onResolveVouchReport: (reportId: string, resolution: VouchReportStatus.ResolvedDeleted | VouchReportStatus.ResolvedKept, vouchId: string, voucheeId: string, vouchType: VouchType) => void; // New prop
+  getVouchDocument: (vouchId: string) => Promise<Vouch | null>; // New prop
 }
 
 const formatDateDisplay = (dateInput?: string | Date | null): string => {
@@ -107,6 +112,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   interactions,
   webboardPosts,
   webboardComments,
+  vouchReports,
   onDeleteJob,
   onDeleteHelperProfile,
   onToggleSuspiciousJob,
@@ -124,13 +130,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   isSiteLocked,
   onToggleSiteLock,
   getAuthorDisplayName,
+  getUserDisplayBadge,
+  onResolveVouchReport,
+  getVouchDocument
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('jobs');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedReport, setSelectedReport] = useState<VouchReport | null>(null);
+  const [selectedVouch, setSelectedVouch] = useState<Vouch | null>(null);
+  const [isHudLoading, setIsHudLoading] = useState(false);
 
   useEffect(() => {
     setSearchTerm(''); // Reset search term when tab changes
   }, [activeTab]);
+
+  useEffect(() => {
+    if (selectedReport) {
+      setIsHudLoading(true);
+      getVouchDocument(selectedReport.vouchId)
+        .then(vouch => {
+          setSelectedVouch(vouch);
+        })
+        .catch(err => console.error("Error fetching vouch for HUD:", err))
+        .finally(() => setIsHudLoading(false));
+    } else {
+      setSelectedVouch(null);
+    }
+  }, [selectedReport, getVouchDocument]);
 
   if (currentUser?.role !== UserRole.Admin) {
     return <div className="p-8 text-center text-red-500 font-sans">คุณไม่มีสิทธิ์เข้าถึงหน้านี้</div>;
@@ -588,6 +614,88 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </div>
     );
   };
+  
+  const renderVouchReportsTab = () => {
+    const voucher = selectedReport ? users.find(u => u.id === selectedReport.voucherId) : null;
+    const vouchee = selectedReport ? users.find(u => u.id === selectedReport.voucheeId) : null;
+    const reporter = selectedReport ? users.find(u => u.id === selectedReport.reporterId) : null;
+
+    if (selectedReport && selectedVouch) {
+      return (
+        <div className="mt-2">
+          <Button onClick={() => setSelectedReport(null)} variant="outline" size="sm" className="mb-4">&larr; กลับไปหน้ารายงานทั้งหมด</Button>
+          <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg border border-neutral-DEFAULT grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left Column: Report Context */}
+            <div>
+              <h4 className="text-xl font-semibold text-accent mb-4">รายละเอียดรายงาน</h4>
+              <p><strong>ผู้รายงาน:</strong> {getAuthorDisplayName(reporter?.id || '','ไม่ทราบชื่อ')} (@{reporter?.username})</p>
+              <p><strong>ผู้รับรอง (Voucher):</strong> {getAuthorDisplayName(voucher?.id || '','ไม่ทราบชื่อ')} (@{voucher?.username})</p>
+              <p><strong>ผู้ถูกรับรอง (Vouchee):</strong> {getAuthorDisplayName(vouchee?.id || '', 'ไม่ทราบชื่อ')} (@{vouchee?.username})</p>
+              <p><strong>ประเภทการรับรอง:</strong> {VOUCH_TYPE_LABELS[selectedVouch.vouchType]}</p>
+              <p className="mt-2"><strong>ความคิดเห็นจากผู้รับรอง:</strong></p>
+              <blockquote className="border-l-2 pl-2 text-sm italic">{selectedVouch.comment || "(ไม่มี)"}</blockquote>
+              <p className="mt-2"><strong>เหตุผลที่รายงาน:</strong></p>
+              <blockquote className="border-l-2 pl-2 text-sm italic bg-yellow-50 p-2 rounded-r-md">{selectedReport.reporterComment || "(ไม่มี)"}</blockquote>
+            </div>
+
+            {/* Right Column: Risk Signals HUD */}
+            <div className="bg-neutral-light p-4 rounded-lg">
+              <h4 className="text-xl font-semibold text-neutral-dark mb-4">Risk Signals HUD</h4>
+              {isHudLoading ? <p>Loading signals...</p> : (
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-start">
+                    {voucher?.lastLoginIP === selectedVouch.creatorIP ? 
+                      <><span className="mr-2">⚠️</span> <strong>IP ADDRESS MATCH:</strong> Voucher IP ({selectedVouch.creatorIP}) ตรงกับ IP ล่าสุดของผู้ถูกรับรอง</> :
+                      <><span className="mr-2">✅</span> <strong>IP ADDRESS MISMATCH:</strong> IP ไม่ตรงกัน (Voucher: {selectedVouch.creatorIP}, Vouchee: {vouchee?.lastLoginIP || 'N/A'})</>
+                    }
+                  </li>
+                  <li className="flex items-start">
+                    {voucher?.lastLoginUserAgent === selectedVouch.creatorUserAgent ?
+                      <><span className="mr-2">⚠️</span> <strong>SHARED DEVICE FOOTPRINT:</strong> User-Agent ตรงกัน</> :
+                      <><span className="mr-2">✅</span> <strong>UNIQUE DEVICE FOOTPRINT:</strong> User-Agent ไม่ตรงกัน</>
+                    }
+                  </li>
+                  <li className="flex items-start">
+                    {(new Date(selectedVouch.createdAt as string).getTime() - new Date(voucher?.createdAt as string).getTime()) < (72 * 60 * 60 * 1000) ?
+                      <><span className="mr-2">⚠️</span> <strong>NEW ACCOUNT:</strong> บัญชีผู้รับรองถูกสร้างน้อยกว่า 72 ชม. ก่อนการรับรอง</> :
+                      <><span className="mr-2">✅</span> <strong>ESTABLISHED ACCOUNT:</strong> บัญชีผู้รับรองมีอายุมากกว่า 72 ชม.</>
+                    }
+                  </li>
+                  {/* Additional checks can be added here */}
+                </ul>
+              )}
+            </div>
+            
+            {/* Actions */}
+            <div className="md:col-span-2 mt-4 flex justify-end gap-3">
+               <Button onClick={() => onResolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedKept, selectedVouch.id, selectedVouch.voucheeId, selectedVouch.vouchType)} variant="outline" colorScheme="neutral" size="md">ยกเลิกรายงาน (เก็บ Vouch ไว้)</Button>
+               <Button onClick={() => onResolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedDeleted, selectedVouch.id, selectedVouch.voucheeId, selectedVouch.vouchType)} variant="accent" size="md">ลบ Vouch นี้</Button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <div className="mt-2">
+        <h3 className="text-xl font-semibold text-accent mb-4">รายงานการรับรองที่รอตรวจสอบ ({vouchReports.length})</h3>
+        {vouchReports.length === 0 ? <p className="text-center text-neutral-medium py-10">ไม่มีรายงานที่รอการตรวจสอบ</p> : (
+          <div className="space-y-4">
+            {vouchReports.map(report => (
+              <div key={report.id} className="bg-white p-4 rounded-lg shadow border flex justify-between items-center">
+                <div>
+                  <p><strong>ผู้รายงาน:</strong> {getAuthorDisplayName(report.reporterId, 'Unknown')}</p>
+                  <p className="text-sm"><strong>Voucher:</strong> {getAuthorDisplayName(report.voucherId, 'Unknown')} &rarr; <strong>Vouchee:</strong> {getAuthorDisplayName(report.voucheeId, 'Unknown')}</p>
+                  <p className="text-xs text-neutral-medium">Reported: {formatDateDisplay(report.createdAt)}</p>
+                </div>
+                <Button onClick={() => setSelectedReport(report)} variant="primary" size="sm">ตรวจสอบ</Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
 
   return (
@@ -609,6 +717,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             aria-current={activeTab === tab.id ? 'page' : undefined}
           >
             {tab.label}
+            {tab.id === 'vouch_reports' && vouchReports.length > 0 && <span className="ml-1.5 inline-block bg-red-500 text-white text-xs font-bold rounded-full px-2 py-0.5">{vouchReports.length}</span>}
           </button>
         ))}
       </div>
@@ -619,6 +728,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {activeTab === 'webboard' && renderContentForTab('webboard')}
         {activeTab === 'users' && renderUserRoleManagement()}
         {activeTab === 'site_controls' && renderSiteControls()}
+        {activeTab === 'vouch_reports' && renderVouchReportsTab()}
       </div>
     </div>
   );

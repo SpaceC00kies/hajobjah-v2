@@ -1,4 +1,3 @@
-
 export enum Province {
   ChiangMai = 'เชียงใหม่',
   Bangkok = 'กรุงเทพมหานคร',
@@ -119,6 +118,10 @@ export interface UserPostingLimits {
   lastBumpDates: { 
     [profileId: string]: string | Date;
   };
+  vouchingActivity: { // For monthly vouch limit
+    monthlyCount: number;
+    periodStart: string | Date;
+  };
 }
 
 export interface UserActivityBadge {
@@ -186,6 +189,10 @@ export interface User {
   publicDisplayNameUpdateCount?: number;
   
   vouchInfo?: VouchInfo; // New field for community verification
+
+  // Fields for Vouch Moderation HUD
+  lastLoginIP?: string;
+  lastLoginUserAgent?: string;
 }
 
 export enum View {
@@ -256,6 +263,8 @@ export interface Vouch {
   vouchType: VouchType;
   comment?: string;
   createdAt: string | Date;
+  creatorIP?: string; // For moderation HUD
+  creatorUserAgent?: string; // For moderation HUD
 }
 
 export enum VouchReportStatus {

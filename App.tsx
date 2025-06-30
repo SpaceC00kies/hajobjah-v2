@@ -17,6 +17,7 @@ import {
   deleteHelperProfileService,
   getHelperProfilesPaginated, // Using paginated fetch
   getHelperProfileDocument, // Added to fetch single helper profile doc
+  getVouchDocument, // For Admin Dashboard HUD
   bumpHelperProfileService,
   addWebboardPostService,
   updateWebboardPostService,
@@ -26,10 +27,11 @@ import {
   addWebboardCommentService,
   updateWebboardCommentService,
   deleteWebboardCommentService,
-  subscribeToWebboardCommentsService,
   subscribeToUsersService,
   subscribeToInteractionsService,
   subscribeToSiteConfigService,
+  subscribeToVouchReportsService, // For Admin Dashboard
+  resolveVouchReportService, // For Admin Dashboard
   setSiteLockService,
   setUserRoleService,
   toggleItemFlagService,
@@ -42,9 +44,10 @@ import {
   toggleInterestService,
   vouchForUserService,
   reportVouchService, // New service
+  subscribeToWebboardCommentsService,
 } from './services/firebaseService';
 import type { DocumentSnapshot, DocumentData } from 'firebase/firestore';
-import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier, Interest, VouchType, Vouch } from './types'; // Added Vouch
+import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier, Interest, VouchType, Vouch, VouchReport, VouchReportStatus } from './types'; // Added Vouch
 import type { AdminItem as AdminItemType } from './components/AdminDashboard';
 import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP, ACTIVITY_BADGE_DETAILS, Province, JOB_SUBCATEGORIES_MAP } from './types';
 import { PostJobForm } from './components/PostJobForm';
@@ -200,7 +203,7 @@ const addRecentSearch = (key: string, term: string) => {
 };
 
 // Updated RegistrationDataType for simplified registration
-type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook' | 'isBusinessProfile' | 'businessName' | 'businessType' | 'businessAddress' | 'businessWebsite' | 'businessSocialProfileLink' | 'aboutBusiness' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount' | 'interestedCount' | 'vouchInfo'> & { password: string };
+type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook' | 'isBusinessProfile' | 'businessName' | 'businessType' | 'businessAddress' | 'businessWebsite' | 'businessSocialProfileLink' | 'aboutBusiness' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount' | 'interestedCount' | 'vouchInfo' | 'lastLoginIP' | 'lastLoginUserAgent'> & { password: string };
 
 
 // Animation Variants
@@ -266,6 +269,7 @@ const App: React.FC = () => {
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [userSavedPosts, setUserSavedPosts] = useState<string[]>([]);
   const [userInterests, setUserInterests] = useState<Interest[]>([]);
+  const [vouchReports, setVouchReports] = useState<VouchReport[]>([]); // For admin dashboard
 
   const [users, setUsers] = useState<User[]>([]);
   // States for Admin/MyPosts - these might still fetch all data, or could be paginated too in future.
@@ -387,6 +391,8 @@ const App: React.FC = () => {
     const unsubscribeWebboardCommentsGlobal = subscribeToWebboardCommentsService(setWebboardComments);
     const unsubscribeInteractions = subscribeToInteractionsService(setInteractions);
     const unsubscribeSiteConfig = subscribeToSiteConfigService((config) => setIsSiteLocked(config.isSiteLocked));
+    const unsubscribeVouchReports = subscribeToVouchReportsService(setVouchReports); // Subscribe to reports
+
 
     // Fetch all data for Admin/MyPosts - this could be optimized further if these views also adopt pagination
     const fetchAllJobsForAdminAndMyPosts = async () => {
@@ -449,6 +455,7 @@ const App: React.FC = () => {
       unsubscribeWebboardCommentsGlobal();
       unsubscribeInteractions();
       unsubscribeSiteConfig();
+      unsubscribeVouchReports();
       window.removeEventListener('popstate', handlePopState);
       if (copiedNotificationTimerRef.current) {
         clearTimeout(copiedNotificationTimerRef.current);
@@ -462,6 +469,8 @@ const App: React.FC = () => {
             let last30DaysActivity = 0;
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            
+            const threeDaysAgo = new Date(new Date().getTime() - 3 * 24 * 60 * 60 * 1000);
 
             if (allWebboardPostsForAdmin.length > 0 || webboardComments.length > 0) {
                 const userPostsLast30Days = allWebboardPostsForAdmin.filter(p => p.userId === u.id && p.createdAt && new Date(p.createdAt as string) >= thirtyDaysAgo).length;
@@ -471,14 +480,15 @@ const App: React.FC = () => {
 
             const accountAgeInDays = u.createdAt ? (new Date().getTime() - new Date(u.createdAt as string).getTime()) / (1000 * 60 * 60 * 24) : 0;
             const isActivityBadgeActive = accountAgeInDays >= 30 && last30DaysActivity >= 15;
-
-            const threeDaysAgoForCooldown = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+            
+            const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
             const defaultPostingLimits: UserPostingLimits = {
-              lastJobPostDate: threeDaysAgoForCooldown.toISOString(),
-              lastHelperProfileDate: threeDaysAgoForCooldown.toISOString(),
+              lastJobPostDate: threeDaysAgo.toISOString(),
+              lastHelperProfileDate: threeDaysAgo.toISOString(),
               dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() },
               hourlyComments: { count: 0, resetTime: new Date(0).toISOString() },
               lastBumpDates: {},
+              vouchingActivity: { monthlyCount: 0, periodStart: firstOfMonth.toISOString() }, // Added vouching activity
             };
 
             const defaultActivityBadge: UserActivityBadge = {
@@ -502,7 +512,11 @@ const App: React.FC = () => {
                     hourlyComments: {
                       ...defaultPostingLimits.hourlyComments,
                       ...(u.postingLimits?.hourlyComments || {})
-                    }
+                    },
+                    vouchingActivity: { // Ensure vouchingActivity exists
+                      ...defaultPostingLimits.vouchingActivity,
+                      ...(u.postingLimits?.vouchingActivity || {})
+                    },
                 },
                 activityBadge: {
                     ...defaultActivityBadge,
@@ -652,6 +666,8 @@ const App: React.FC = () => {
 
   const handleLogin = async (loginIdentifier: string, passwordAttempt: string): Promise<boolean> => {
     try {
+      const ipAddress = "127.0.0.1"; // Placeholder for client-side IP
+      const userAgent = navigator.userAgent;
       const loggedInUser = await signInWithEmailPasswordService(loginIdentifier, passwordAttempt);
       if (loggedInUser) {
         alert(`ยินดีต้อนรับ, ${loggedInUser.publicDisplayName}!`);
@@ -1212,7 +1228,9 @@ const App: React.FC = () => {
   const handleVouchSubmit = async (voucheeId: string, vouchType: VouchType, comment?: string) => {
     if (!currentUser) return;
     try {
-      await vouchForUserService(currentUser, voucheeId, vouchType, comment);
+      const ipAddress = "127.0.0.1"; // Placeholder for client-side IP
+      const userAgent = navigator.userAgent;
+      await vouchForUserService(currentUser, voucheeId, vouchType, ipAddress, userAgent, comment);
       alert("ขอบคุณสำหรับการรับรอง!");
       handleCloseVouchModal();
     } catch (error: any) {
@@ -1245,6 +1263,26 @@ const App: React.FC = () => {
     } catch (error: any) {
       logFirebaseError("handleReportVouchSubmit", error);
       alert(`เกิดข้อผิดพลาดในการส่งรายงาน: ${error.message}`);
+    }
+  };
+
+  const handleResolveVouchReport = async (
+    reportId: string,
+    resolution: VouchReportStatus.ResolvedDeleted | VouchReportStatus.ResolvedKept,
+    vouchId: string,
+    voucheeId: string,
+    vouchType: VouchType
+  ) => {
+    if (!currentUser || currentUser.role !== UserRole.Admin) {
+      alert("คุณไม่มีสิทธิ์ดำเนินการนี้");
+      return;
+    }
+    try {
+      await resolveVouchReportService(reportId, resolution, currentUser.id, vouchId, voucheeId, vouchType);
+      alert(`ดำเนินการกับรายงานเรียบร้อยแล้ว`);
+    } catch (error: any) {
+      logFirebaseError("handleResolveVouchReport", error);
+      alert(`เกิดข้อผิดพลาด: ${error.message}`);
     }
   };
 
@@ -2274,6 +2312,10 @@ const App: React.FC = () => {
         currentUser={currentUser}
         isSiteLocked={isSiteLocked} onToggleSiteLock={handleToggleSiteLock}
         getAuthorDisplayName={getAuthorDisplayName}
+        getUserDisplayBadge={getUserDisplayBadge}
+        vouchReports={vouchReports}
+        onResolveVouchReport={handleResolveVouchReport}
+        getVouchDocument={getVouchDocument}
     />);
   };
   // MyPostsPage is replaced by MyRoomPage
