@@ -46,7 +46,6 @@ import { auth, db, storage } from '../firebase';
 import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier, UserSavedWebboardPostEntry, Province, JobSubCategory, Interest, Vouch, VouchType, VouchInfo, VouchReport } from '../types';
 import { UserRole, WebboardCategory, USER_LEVELS, GenderOption, HelperEducationLevelOption, VouchReportStatus } from '../types';
 import { logFirebaseError } from '../firebase/logging';
-import { GoogleGenAI } from '@google/genai';
 
 
 // Collection Names
@@ -1420,37 +1419,56 @@ export const toggleItemFlagService = async (
 
 // --- Orion Service ---
 export const orionAnalyzeService = async (command: string): Promise<string> => {
-  try {
-    // IMPORTANT: In a real production app, this API key MUST be stored securely
-    // in an environment variable on a server-side environment (like Firebase Cloud Functions)
-    // and NOT exposed on the client-side. The current setup assumes a secure context
-    // where process.env.API_KEY is available.
-    if (!process.env.API_KEY) {
-      throw new Error("Gemini API key is not configured.");
-    }
+  // This is a placeholder service to fix the client-side build error.
+  // The actual implementation MUST be moved to a secure server-side environment
+  // like a Firebase Cloud Function.
+  logFirebaseError("orionAnalyzeService", new Error("This is a placeholder implementation. The real service needs to be on a server."));
 
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // Simulate network delay
+  await new Promise(resolve => setTimeout(resolve, 1500));
 
-    const systemInstruction = "You are Orion, a world-class security and behavior analyst for the HAJOBJA.COM platform. Your task is to analyze the provided data and generate a concise, actionable report for the administrator. Focus on patterns of trust, risk, and platform engagement. Provide a 'Genuineness Score' from 0 (highly suspicious) to 100 (highly trustworthy) and a clear recommendation. Always format your response in Markdown, using headings, bold text, and bullet points for readability.";
+  const commandLower = command.toLowerCase();
 
-    // For now, we will pass the command directly. In the future, this will be expanded
-    // to fetch data from Firestore based on the command and include it in the prompt.
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-preview-04-17',
-      contents: command,
-      config: {
-        systemInstruction,
-      },
-    });
+  if (commandLower.includes("analyze user")) {
+    const username = command.split('@')[1] || 'sample_user';
+    return `
+### Analysis for @${username} (Mock Data)
 
-    return response.text;
+This is a **placeholder response**. The full Orion analysis engine has not been connected to the database yet.
 
-  } catch (error) {
-    logFirebaseError("orionAnalyzeService", error);
-    // Provide a user-friendly error message
-    if (error instanceof Error && error.message.includes("API key")) {
-      return "Error: The AI service is not configured correctly. Please check the API key.";
-    }
-    return "An error occurred while communicating with the AI service. Please try again.";
+**Genuineness Score:** 75/100
+
+**Summary:**
+*   The user account appears to be legitimate with consistent activity.
+*   No direct evidence of fraudulent vouches found in this mock analysis.
+
+**Recommendations:**
+*   **Action:** No immediate action required.
+*   **Next Step:** Implement the full server-side Orion Cloud Function to analyze real user data from Firestore for a complete report.
+    `;
   }
+
+  if (commandLower.includes("fraud") || commandLower.includes("vouch")) {
+    return `
+### Analysis of Vouching Patterns (Mock Data)
+
+This is a **placeholder response**.
+
+**Identified Patterns:**
+*   **Reciprocal Vouching:** A potential cluster of 3 users was identified who have all vouched for each other.
+*   **New Account Vouching:** 5% of recent vouches come from accounts less than 24 hours old.
+
+**Recommendations:**
+*   **Action:** Manually review the potential collusion cluster in the Admin Dashboard.
+*   **Next Step:** Implement the full server-side Orion Cloud Function to perform deep graph analysis on the vouching data.
+    `;
+  }
+
+  return `
+### General Inquiry Response (Mock Data)
+
+You asked: "${command}"
+
+This is a **placeholder response**. The full functionality to process general queries requires connecting to the live AI service via a secure backend function. Please proceed with the implementation of the \`orionAnalyze\` Firebase Cloud Function as outlined in the project README.
+  `;
 };
