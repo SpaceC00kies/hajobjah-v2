@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import type { Job, HelperProfile, User, Interaction, WebboardPost, WebboardComment, UserLevel, VouchReport, Vouch, VouchType } from '../types';
 import { UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, USER_LEVELS, VouchReportStatus, VOUCH_TYPE_LABELS } from '../types';
 import { Button } from './Button';
 import { checkProfileCompleteness } from '../App'; // Removed checkHasBeenContacted
+import { OrionCommandCenter } from './OrionCommandCenter'; // Import Orion
 
 
 export interface AdminItem {
@@ -27,9 +27,10 @@ export interface AdminItem {
   authorLevel?: UserLevel;
 }
 
-type AdminTab = 'jobs' | 'profiles' | 'webboard' | 'users' | 'site_controls' | 'vouch_reports';
+type AdminTab = 'jobs' | 'profiles' | 'webboard' | 'users' | 'site_controls' | 'vouch_reports' | 'orion_command_center';
 
 const TABS: { id: AdminTab; label: string, badgeCount?: number }[] = [
+  { id: 'orion_command_center', label: 'Orion 🤖'},
   { id: 'jobs', label: '📢 งาน' },
   { id: 'profiles', label: '🧑‍🔧 โปรไฟล์ผู้ช่วย' },
   { id: 'webboard', label: '💬 กระทู้' },
@@ -67,6 +68,7 @@ interface AdminDashboardProps {
   getUserDisplayBadge: (user: User) => UserLevel;
   onResolveVouchReport: (reportId: string, resolution: VouchReportStatus.ResolvedDeleted | VouchReportStatus.ResolvedKept, vouchId: string, voucheeId: string, vouchType: VouchType) => void; // New prop
   getVouchDocument: (vouchId: string) => Promise<Vouch | null>; // New prop
+  orionAnalyzeService: (command: string) => Promise<string>;
 }
 
 const formatDateDisplay = (dateInput?: string | Date | null): string => {
@@ -132,9 +134,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   getAuthorDisplayName,
   getUserDisplayBadge,
   onResolveVouchReport,
-  getVouchDocument
+  getVouchDocument,
+  orionAnalyzeService,
 }) => {
-  const [activeTab, setActiveTab] = useState<AdminTab>('jobs');
+  const [activeTab, setActiveTab] = useState<AdminTab>('orion_command_center');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedReport, setSelectedReport] = useState<VouchReport | null>(null);
   const [selectedVouch, setSelectedVouch] = useState<Vouch | null>(null);
@@ -723,6 +726,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </div>
 
       <div>
+        {activeTab === 'orion_command_center' && <OrionCommandCenter orionAnalyzeService={orionAnalyzeService} />}
         {activeTab === 'jobs' && renderContentForTab('jobs')}
         {activeTab === 'profiles' && renderContentForTab('profiles')}
         {activeTab === 'webboard' && renderContentForTab('webboard')}

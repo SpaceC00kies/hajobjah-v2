@@ -43,7 +43,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="your.email@example.com"
-            // className will be picked up by global styles
+            className="w-full"
           />
         </div>
         <div>
@@ -59,7 +59,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
             placeholder="เราอยากรู้ว่าคุณคิดอย่างไร..."
             required
             aria-required="true"
-            // className will be picked up by global styles
+            className="w-full"
           />
         </div>
         <Button

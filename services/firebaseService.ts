@@ -1,4 +1,3 @@
-
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -47,6 +46,8 @@ import { auth, db, storage } from '../firebase';
 import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier, UserSavedWebboardPostEntry, Province, JobSubCategory, Interest, Vouch, VouchType, VouchInfo, VouchReport } from '../types';
 import { UserRole, WebboardCategory, USER_LEVELS, GenderOption, HelperEducationLevelOption, VouchReportStatus } from '../types';
 import { logFirebaseError } from '../firebase/logging';
+import { GoogleGenAI } from '@google/genai';
+
 
 // Collection Names
 const USERS_COLLECTION = 'users';
@@ -1414,5 +1415,42 @@ export const toggleItemFlagService = async (
   } catch (error: any) {
     logFirebaseError(`toggleItemFlagService (${flagName})`, error);
     throw error;
+  }
+};
+
+// --- Orion Service ---
+export const orionAnalyzeService = async (command: string): Promise<string> => {
+  try {
+    // IMPORTANT: In a real production app, this API key MUST be stored securely
+    // in an environment variable on a server-side environment (like Firebase Cloud Functions)
+    // and NOT exposed on the client-side. The current setup assumes a secure context
+    // where process.env.API_KEY is available.
+    if (!process.env.API_KEY) {
+      throw new Error("Gemini API key is not configured.");
+    }
+
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+    const systemInstruction = "You are Orion, a world-class security and behavior analyst for the HAJOBJA.COM platform. Your task is to analyze the provided data and generate a concise, actionable report for the administrator. Focus on patterns of trust, risk, and platform engagement. Provide a 'Genuineness Score' from 0 (highly suspicious) to 100 (highly trustworthy) and a clear recommendation. Always format your response in Markdown, using headings, bold text, and bullet points for readability.";
+
+    // For now, we will pass the command directly. In the future, this will be expanded
+    // to fetch data from Firestore based on the command and include it in the prompt.
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-preview-04-17',
+      contents: command,
+      config: {
+        systemInstruction,
+      },
+    });
+
+    return response.text;
+
+  } catch (error) {
+    logFirebaseError("orionAnalyzeService", error);
+    // Provide a user-friendly error message
+    if (error instanceof Error && error.message.includes("API key")) {
+      return "Error: The AI service is not configured correctly. Please check the API key.";
+    }
+    return "An error occurred while communicating with the AI service. Please try again.";
   }
 };

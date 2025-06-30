@@ -554,3 +554,11 @@ export interface UserSavedWebboardPostEntry {
   postId: string;
   savedAt: string | Date;
 }
+
+// For Orion Command Center
+export interface OrionMessage {
+  id: string;
+  text: string;
+  sender: 'user' | 'orion';
+  isError?: boolean;
+}
