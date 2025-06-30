@@ -44,8 +44,8 @@ import {
 import { httpsCallable } from 'firebase/functions'; // Import httpsCallable
 
 import { auth, db, storage, functions } from '../firebase'; // Import functions instance
-import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier, UserSavedWebboardPostEntry, Province, JobSubCategory, Interest, Vouch, VouchType, VouchInfo, VouchReport, GenderOption, HelperEducationLevelOption, VouchReportStatus } from '../types';
-import { UserRole, WebboardCategory, USER_LEVELS } from '../types';
+import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier, UserSavedWebboardPostEntry, Province, JobSubCategory, Interest, Vouch, VouchType, VouchInfo, VouchReport, GenderOption, HelperEducationLevelOption, VouchReportStatus, UserRole, WebboardCategory } from '../types';
+import { USER_LEVELS } from '../types';
 import { logFirebaseError } from '../firebase/logging';
 
 
@@ -134,7 +134,7 @@ export const signUpWithEmailPasswordService = async (
       nickname: '',
       firstName: '',
       lastName: '',
-      role: UserRole.Member,
+      role: 'Member' as UserRole,
       userLevel: USER_LEVELS[0],
       profileComplete: false,
       isMuted: false,
