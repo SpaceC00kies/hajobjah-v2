@@ -44,8 +44,8 @@ import {
 import { httpsCallable } from 'firebase/functions'; // Import httpsCallable
 
 import { auth, db, storage, functions } from '../firebase'; // Import functions instance
-import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier, UserSavedWebboardPostEntry, Province, JobSubCategory, Interest, Vouch, VouchType, VouchInfo, VouchReport } from '../types';
-import { UserRole, WebboardCategory, USER_LEVELS, GenderOption, HelperEducationLevelOption, VouchReportStatus } from '../types';
+import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier, UserSavedWebboardPostEntry, Province, JobSubCategory, Interest, Vouch, VouchType, VouchInfo, VouchReport, GenderOption, HelperEducationLevelOption, VouchReportStatus } from '../types';
+import { UserRole, WebboardCategory, USER_LEVELS } from '../types';
 import { logFirebaseError } from '../firebase/logging';
 
 
@@ -123,9 +123,9 @@ export const signUpWithEmailPasswordService = async (
 
     const newUser: Omit<User, 'id'> = {
       ...userProfileData,
-      gender: GenderOption.NotSpecified,
+      gender: 'ไม่ระบุ' as GenderOption,
       birthdate: undefined,
-      educationLevel: HelperEducationLevelOption.NotStated,
+      educationLevel: 'ไม่ได้ระบุ' as HelperEducationLevelOption,
       lineId: '',
       facebook: '',
       tier: 'free' as UserTier,
@@ -1239,7 +1239,7 @@ export const reportVouchService = async (vouch: Vouch, reporterId: string, comme
       reporterComment: comment,
       voucheeId: vouch.voucheeId,
       voucherId: vouch.voucherId,
-      status: VouchReportStatus.Pending,
+      status: 'pending_review' as VouchReportStatus,
       createdAt: serverTimestamp() as any,
     };
     await addDoc(collection(db, VOUCH_REPORTS_COLLECTION), newReport);
@@ -1265,7 +1265,7 @@ export const getVouchDocument = async (vouchId: string): Promise<Vouch | null> =
 
 export const subscribeToVouchReportsService = (callback: (data: VouchReport[]) => void): (() => void) => {
   const constraints = [
-    where("status", "==", VouchReportStatus.Pending),
+    where("status", "==", 'pending_review'),
     orderBy("createdAt", "desc")
   ];
   return subscribeToCollectionService<VouchReport>(VOUCH_REPORTS_COLLECTION, callback, constraints);
@@ -1273,7 +1273,7 @@ export const subscribeToVouchReportsService = (callback: (data: VouchReport[]) =
 
 export const resolveVouchReportService = async (
   reportId: string,
-  resolution: VouchReportStatus.ResolvedDeleted | VouchReportStatus.ResolvedKept,
+  resolution: 'resolved_deleted' | 'resolved_kept',
   adminId: string,
   vouchId: string,
   voucheeId: string,
@@ -1297,7 +1297,7 @@ export const resolveVouchReportService = async (
         resolvedBy: adminId,
       });
 
-      if (resolution === VouchReportStatus.ResolvedDeleted) {
+      if (resolution === 'resolved_deleted') {
         if (vouchDoc.exists()) {
           transaction.delete(vouchRef);
           const vouchInfoUpdate = {
