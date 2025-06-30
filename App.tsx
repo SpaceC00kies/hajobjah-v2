@@ -41,9 +41,10 @@ import {
   subscribeToUserInterestsService,
   toggleInterestService,
   vouchForUserService,
+  reportVouchService, // New service
 } from './services/firebaseService';
 import type { DocumentSnapshot, DocumentData } from 'firebase/firestore';
-import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier, Interest, VouchType } from './types';
+import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier, Interest, VouchType, Vouch } from './types'; // Added Vouch
 import type { AdminItem as AdminItemType } from './components/AdminDashboard';
 import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP, ACTIVITY_BADGE_DETAILS, Province, JOB_SUBCATEGORIES_MAP } from './types';
 import { PostJobForm } from './components/PostJobForm';
@@ -73,6 +74,7 @@ import { SearchInputWithRecent } from './components/SearchInputWithRecent';
 import { PasswordResetPage } from './components/PasswordResetPage';
 import { VouchModal } from './components/VouchModal'; // New Vouch Modal
 import { VouchesListModal } from './components/VouchesListModal'; // New Vouch List Modal
+import { ReportVouchModal } from './components/ReportVouchModal'; // New Report Vouch Modal
 
 import { logFirebaseError } from './firebase/logging';
 import { AnimatePresence, motion, type Variants, type Transition, type HTMLMotionProps } from "framer-motion";
@@ -257,6 +259,7 @@ const App: React.FC = () => {
   // State for new Vouch modals
   const [vouchModalData, setVouchModalData] = useState<{ userToVouch: User } | null>(null);
   const [vouchListModalData, setVouchListModalData] = useState<{ userToList: User } | null>(null);
+  const [reportVouchModalData, setReportVouchModalData] = useState<{ vouchToReport: Vouch } | null>(null);
 
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -1222,6 +1225,28 @@ const App: React.FC = () => {
     setVouchListModalData({ userToList });
   };
   const handleCloseVouchesListModal = () => setVouchListModalData(null);
+
+  // New Report Vouch handlers
+  const handleOpenReportVouchModal = (vouchToReport: Vouch) => {
+    if (!currentUser) {
+      requestLoginForAction(View.PublicProfile, { action: 'report_vouch', vouchId: vouchToReport.id });
+      return;
+    }
+    setReportVouchModalData({ vouchToReport });
+  };
+  const handleCloseReportVouchModal = () => setReportVouchModalData(null);
+
+  const handleReportVouchSubmit = async (vouch: Vouch, comment: string) => {
+    if (!currentUser) return;
+    try {
+      await reportVouchService(vouch, currentUser.id, comment);
+      alert("ขอบคุณที่รายงานเข้ามา เราจะทำการตรวจสอบโดยเร็วที่สุด");
+      handleCloseReportVouchModal();
+    } catch (error: any) {
+      logFirebaseError("handleReportVouchSubmit", error);
+      alert(`เกิดข้อผิดพลาดในการส่งรายงาน: ${error.message}`);
+    }
+  };
 
 
   const handleAddOrUpdateWebboardPost = async (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => {
@@ -2457,6 +2482,16 @@ const App: React.FC = () => {
             handleCloseVouchesListModal();
             navigateTo(View.PublicProfile, userId);
           }}
+          onReportVouch={handleOpenReportVouchModal}
+          currentUser={currentUser}
+        />
+      )}
+      {reportVouchModalData && currentUser && (
+        <ReportVouchModal
+          isOpen={!!reportVouchModalData}
+          onClose={handleCloseReportVouchModal}
+          onSubmitReport={(comment) => handleReportVouchSubmit(reportVouchModalData.vouchToReport, comment)}
+          vouchToReport={reportVouchModalData.vouchToReport}
         />
       )}
     </div>

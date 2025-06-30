@@ -1,3 +1,4 @@
+
 export enum Province {
   ChiangMai = 'เชียงใหม่',
   Bangkok = 'กรุงเทพมหานคร',
@@ -255,6 +256,25 @@ export interface Vouch {
   vouchType: VouchType;
   comment?: string;
   createdAt: string | Date;
+}
+
+export enum VouchReportStatus {
+  Pending = 'pending_review',
+  ResolvedKept = 'resolved_kept',
+  ResolvedDeleted = 'resolved_deleted',
+}
+
+export interface VouchReport {
+  id: string;
+  vouchId: string;
+  reporterId: string;
+  reporterComment: string;
+  voucheeId: string; // Denormalized for easier querying
+  voucherId: string; // Denormalized for easier querying
+  status: VouchReportStatus;
+  createdAt: string | Date;
+  resolvedAt?: string | Date;
+  resolvedBy?: string; // Admin ID
 }
 
 

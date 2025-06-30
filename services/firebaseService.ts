@@ -1,3 +1,4 @@
+
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -43,7 +44,7 @@ import {
 } from '@firebase/storage';
 
 import { auth, db, storage } from '../firebase';
-import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier, UserSavedWebboardPostEntry, Province, JobSubCategory, Interest, Vouch, VouchType, VouchInfo } from '../types'; // Added Interest, Vouch, VouchType
+import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier, UserSavedWebboardPostEntry, Province, JobSubCategory, Interest, Vouch, VouchType, VouchInfo, VouchReport, VouchReportStatus } from '../types'; // Added Interest, Vouch, VouchType, VouchReport, VouchReportStatus
 import { UserRole, WebboardCategory, USER_LEVELS, GenderOption, HelperEducationLevelOption } from '../types';
 import { logFirebaseError } from '../firebase/logging';
 
@@ -60,6 +61,7 @@ const FEEDBACK_COLLECTION = 'feedback';
 const USER_SAVED_POSTS_SUBCOLLECTION = 'savedWebboardPosts';
 const INTERESTS_COLLECTION = 'interests'; // New collection for interests
 const VOUCHES_COLLECTION = 'vouches';
+const VOUCH_REPORTS_COLLECTION = 'vouchReports'; // New collection for reports
 
 
 // --- Helper to convert Firestore Timestamps to ISO strings for consistency ---
@@ -1192,6 +1194,24 @@ export const getVouchesForUserService = async (voucheeId: string): Promise<Vouch
   } catch (error) {
     logFirebaseError("getVouchesForUserService", error);
     throw error;
+  }
+};
+
+export const reportVouchService = async (vouch: Vouch, reporterId: string, comment: string): Promise<void> => {
+  try {
+    const newReport: Omit<VouchReport, 'id'> = {
+      vouchId: vouch.id,
+      reporterId: reporterId,
+      reporterComment: comment,
+      voucheeId: vouch.voucheeId,
+      voucherId: vouch.voucherId,
+      status: 'pending_review' as VouchReportStatus.Pending,
+      createdAt: serverTimestamp() as any,
+    };
+    await addDoc(collection(db, VOUCH_REPORTS_COLLECTION), newReport);
+  } catch (error) {
+    logFirebaseError("reportVouchService", error);
+    throw new Error("ไม่สามารถส่งรายงานได้ โปรดลองอีกครั้ง");
   }
 };
 
