@@ -86,6 +86,22 @@ export const orionAnalyze = functions.https.onRequest((req, res) => {
         const userData = userDoc.data() as User;
         const userId = userDoc.id;
 
+        // Pre-calculate account age
+        let accountAge = "N/A";
+        if (userData.createdAt) {
+            const createdAt = (userData.createdAt as admin.firestore.Timestamp).toDate();
+            const now = new Date();
+            const diffTime = Math.abs(now.getTime() - createdAt.getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            if (diffDays < 30) {
+                accountAge = `${diffDays} days`;
+            } else if (diffDays < 365) {
+                accountAge = `${Math.floor(diffDays / 30)} months`;
+            } else {
+                accountAge = `${Math.floor(diffDays / 365)} years`;
+            }
+        }
+
         const vouchesGivenQuery = await db.collection("vouches").where("voucherId", "==", userId).get();
         const vouchesReceivedQuery = await db.collection("vouches").where("voucheeId", "==", userId).get();
         const postsQuery = await db.collection("webboardPosts").where("userId", "==", userId).limit(10).get();
@@ -102,7 +118,7 @@ export const orionAnalyze = functions.https.onRequest((req, res) => {
             username: userData.username,
             publicDisplayName: userData.publicDisplayName,
             role: userData.role,
-            createdAt: userData.createdAt,
+            accountAge: accountAge,
             vouchInfo: userData.vouchInfo,
             lastLoginIP: userData.lastLoginIP,
           },
@@ -111,44 +127,36 @@ export const orionAnalyze = functions.https.onRequest((req, res) => {
           activitySummary: {
             postCount: posts.length,
             commentCount: comments.length,
-            latestPosts: posts.map((p) => p.title).slice(0, 5),
           },
         };
         
-        const systemInstructionForUser = `You are Orion, a security analysis AI for HAJOBJA.COM. Your ONLY function is to analyze the JSON data provided and generate a report in the EXACT format below.
+        const systemInstructionForUser = `You are Orion, a data formatting AI for the HAJOBJA.COM security team. Your ONLY task is to receive a JSON object and format it into a concise, scannable text report. ABSOLUTELY DO NOT deviate from the format. DO NOT add any conversational text like "Okay, administrator."
 
-**FORMAT TEMPLATE:**
-🔍 **Analysis: @[username]**
+---
+**EXAMPLE**
+**INPUT JSON:**
+{ "userProfile": { "username": "testuser", "accountAge": "35 days" }, "activitySummary": { "postCount": 5, "commentCount": 22 }, "vouchesGiven": { "length": 2 }, "vouchesReceived": { "length": 4 } }
+
+**REQUIRED OUTPUT FORMAT:**
+🔍 **Analysis: @testuser**
 ━━━━━━━━━━━━━━━━━━━━━━
 
-📊 **Trust Score: [score]/100** [star_rating]
+📊 **Trust Score: 78/100** ⭐⭐⭐⭐☆
 
-**Status:** [status_emoji] [Status Text]
-**Account Age:** [age]
-**Activity:** [level] (**[X]** posts, **[Y]** comments)
-**Vouches:** Given: **[A]** | Received: **[B]**
-
-🚨 **Key Findings:** (OMIT this section entirely if no warnings)
-- [Bullet point finding 1]
-- [Bullet point finding 2]
+**Status:** ✅ Trusted Member
+**Account Age:** **35** days
+**Activity:** Moderate (**5** posts, **22** comments)
+**Vouches:** Given: **2** | Received: **4**
 
 💡 **Recommendation:**
-[A short, direct recommendation.]
+No action needed. Looks like a genuine user.
 
 ━━━━━━━━━━━━━━━━━━━━━━
+---
 
-**FORMATTING RULES:**
-- **DO NOT** deviate from the template. Be extremely concise.
-- **Trust Score:** Calculate a score from 0-100 based on the data (account age, activity, vouch ratio, IP flags).
-- **Star Rating:** Convert the score to a 5-star rating (e.g., 85/100 is ⭐⭐⭐⭐☆).
-- **Status:** Choose ONE: ✅ Trusted Member, ⚠️ Monitor, or 🚨 Suspicious.
-- **Key Findings:** Use bullet points for CRITICAL warnings ONLY (e.g., IP address match on vouches, impossible creation date, suspicious vouch patterns). If there are no critical warnings, OMIT the entire "Key Findings" section.
-- **Conciseness:** The entire response MUST be under 15 lines.
-- **Bold** all numbers.
-- **DO NOT** use long paragraphs. Use short phrases.`;
+**Current Task:** Analyze the following JSON and produce the report in the required format.`;
 
-        const userPrompt = `Perform a security analysis on the following user data payload:\n\n\`\`\`json\n${JSON.stringify(analysisPayload, null, 2)}\n\`\`\``;
-
+        const userPrompt = `\`\`\`json\n${JSON.stringify(analysisPayload, null, 2)}\n\`\`\``;
 
         const geminiResponse = await ai.models.generateContent({
           model: "gemini-2.5-flash-preview-04-17",
@@ -162,31 +170,30 @@ export const orionAnalyze = functions.https.onRequest((req, res) => {
         return;
       } else {
         // --- GENERAL SCENARIO ANALYSIS PATH ---
-        const systemInstructionForScenario = `You are Orion, a security analysis AI for HAJOBJA.COM. Your ONLY function is to analyze the user's text-based fraud scenario and generate a report in the EXACT format below.
+        const systemInstructionForScenario = `You are Orion, a data formatting AI for the HAJOBJA.COM security team. Your ONLY task is to receive a text scenario and format an analysis into a concise, scannable text report. ABSOLUTELY DO NOT deviate from the format. DO NOT add any conversational text.
 
-**FORMAT TEMPLATE:**
+---
+**EXAMPLE**
+**INPUT TEXT:**
+"is it suspicious that 5 new accounts from the same IP address all vouched for user @scammer99"
+
+**REQUIRED OUTPUT FORMAT:**
 🔍 **Scenario Analysis**
 ━━━━━━━━━━━━━━━━━━━━━━
 
-📊 **Fraud Risk: [score]/100** [star_rating]
+📊 **Fraud Risk: 95/100** ⭐⭐⭐⭐⭐
 
 🚨 **Key Findings:**
-- [Bullet point explaining finding 1]
-- [Bullet point explaining finding 2]
+- Multiple new accounts from a single IP is a classic sign of a sock puppet or collusion ring.
+- Immediately vouching for one user is highly suspicious behavior.
 
 💡 **Recommendation:**
-[A short, direct recommendation.]
+High confidence of fraud. Investigate and likely ban @scammer99 and the 5 associated accounts.
 
 ━━━━━━━━━━━━━━━━━━━━━━
+---
 
-**FORMATTING RULES:**
-- **DO NOT** deviate from the template. Be extremely concise.
-- **Fraud Risk:** Calculate a risk score from 0-100 based on the described scenario.
-- **Star Rating:** Convert the score to a 5-star rating (e.g., 70/100 is ⭐⭐⭐⭐☆).
-- **Key Findings:** Use bullet points to explain your reasoning.
-- **Conciseness:** The entire response MUST be under 15 lines.
-- **Bold** important numbers or concepts.
-- **DO NOT** use long paragraphs. Use short phrases.`;
+**Current Task:** Analyze the following scenario and produce the report in the required format.`;
 
         const userPrompt = command;
 
