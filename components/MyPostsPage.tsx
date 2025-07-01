@@ -1,9 +1,9 @@
 
 import React from 'react';
-import type { Job, HelperProfile, User, WebboardPost, WebboardComment, UserLevel } from '../types';
-import { View } from '../types';
-import { Button } from './Button';
-import { calculateHoursRemaining, isDateInPast } from '../App'; // Changed to calculateHoursRemaining
+import type { Job, HelperProfile, User, WebboardPost, WebboardComment, UserLevel } from '../types.ts';
+import { View } from '../types.ts';
+import { Button } from './Button.tsx';
+import { calculateHoursRemaining, isDateInPast } from '../App.tsx'; // Changed to calculateHoursRemaining
 
 interface MyPostsPageProps {
   currentUser: User;

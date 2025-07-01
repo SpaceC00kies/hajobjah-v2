@@ -1,10 +1,10 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
-import type { Job, User } from '../types'; // Added User
-import { JobDesiredEducationLevelOption, JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types'; // Added Province
-import { Button } from './Button';
-import { containsBlacklistedWords, calculateHoursRemaining } from '../App'; // Changed to calculateHoursRemaining
-import { getJobTemplateForCategory } from '../utils/templates'; // Import the new template utility
+import type { Job, User } from '../types.ts'; // Added User
+import { JobDesiredEducationLevelOption, JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types.ts'; // Added Province
+import { Button } from './Button.tsx';
+import { containsBlacklistedWords, calculateHoursRemaining } from '../App.tsx'; // Changed to calculateHoursRemaining
+import { getJobTemplateForCategory } from '../utils/templates.ts'; // Import the new template utility
 
 type FormDataType = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired'>;
 

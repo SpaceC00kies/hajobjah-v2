@@ -1,8 +1,9 @@
+
 import React from 'react';
-import type { User, HelperProfile, VouchInfo } from '../types'; 
-import { HelperEducationLevelOption, GenderOption, ACTIVITY_BADGE_DETAILS, VOUCH_TYPE_LABELS, VouchType } from '../types'; // Added ACTIVITY_BADGE_DETAILS
-import { Button } from './Button';
-import { UserLevelBadge } from './UserLevelBadge'; 
+import type { User, HelperProfile, VouchInfo } from '../types.ts'; 
+import { HelperEducationLevelOption, GenderOption, ACTIVITY_BADGE_DETAILS, VOUCH_TYPE_LABELS, VouchType } from '../types.ts'; // Added ACTIVITY_BADGE_DETAILS
+import { Button } from './Button.tsx';
+import { UserLevelBadge } from './UserLevelBadge.tsx'; 
 
 interface PublicProfilePageProps {
   user: User; 

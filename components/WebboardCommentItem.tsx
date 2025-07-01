@@ -1,10 +1,10 @@
 
 import React, { useState } from 'react';
-import type { EnrichedWebboardComment, User, View } from '../types'; // Added View
-import { UserRole } from '../types';
-// UserLevelBadge removed as it's no longer displayed here
-import { Button } from './Button';
-import { containsBlacklistedWords } from '../App';
+import type { EnrichedWebboardComment, User, View } from '../types.ts'; // Added View
+import { UserRole } from '../types.ts';
+// UserLevelBadge is removed as it's no longer displayed here
+import { Button } from './Button.tsx';
+import { containsBlacklistedWords } from '../App.tsx';
 import { motion, type Variants, type Transition } from 'framer-motion'; // Import motion
 
 interface WebboardCommentItemProps {

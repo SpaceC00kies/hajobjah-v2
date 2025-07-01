@@ -1,6 +1,6 @@
 
 import React from 'react';
-import type { UserLevel } from '../types'; // UserLevel is now generic for all badge types
+import type { UserLevel } from '../types.ts'; // UserLevel is now generic for all badge types
 
 interface UserLevelBadgeProps {
   level: UserLevel; // Changed prop name to 'level' but it accepts the generic UserLevel structure

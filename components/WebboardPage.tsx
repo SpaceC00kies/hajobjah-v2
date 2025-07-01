@@ -1,15 +1,15 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 // Corrected import path for types
-import type { WebboardPost, WebboardComment, User, EnrichedWebboardPost, EnrichedWebboardComment, UserLevel, UserRole } from '../types';
-import { View, USER_LEVELS, WebboardCategory } from '../types';
-import { Button } from './Button';
-import { WebboardPostCard } from './WebboardPostCard';
-import { WebboardPostDetail } from './WebboardPostDetail';
-import { WebboardPostCreateForm } from './WebboardPostCreateForm';
-import { getWebboardPostsPaginated as getWebboardPostsPaginatedService } from '../services/firebaseService'; // Import paginated fetch
+import type { WebboardPost, WebboardComment, User, EnrichedWebboardPost, EnrichedWebboardComment, UserLevel, UserRole } from '../types.ts';
+import { View, USER_LEVELS, WebboardCategory } from '../types.ts';
+import { Button } from './Button.tsx';
+import { WebboardPostCard } from './WebboardPostCard.tsx';
+import { WebboardPostDetail } from './WebboardPostDetail.tsx';
+import { WebboardPostCreateForm } from './WebboardPostCreateForm.tsx';
+import { getWebboardPostsPaginated as getWebboardPostsPaginatedService } from '../services/firebaseService.ts'; // Import paginated fetch
 import type { DocumentSnapshot } from 'firebase/firestore'; // For pagination
-import { logFirebaseError } from '../firebase/logging';
+import { logFirebaseError } from '../firebase/logging.ts';
 import { motion, AnimatePresence, type Variants, type Transition } from 'framer-motion';
 
 

@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import type { User } from '../types';
-import { GenderOption, HelperEducationLevelOption } from '../types';
-import { Button } from './Button';
-import { isValidThaiMobileNumberUtil } from '../App';
-import { ProfileCompletenessWizard } from './ProfileCompletenessWizard'; // Import the new wizard
+import type { User } from '../types.ts';
+import { GenderOption, HelperEducationLevelOption } from '../types.ts';
+import { Button } from './Button.tsx';
+import { isValidThaiMobileNumberUtil } from '../App.tsx';
+import { ProfileCompletenessWizard } from './ProfileCompletenessWizard.tsx'; // Import the new wizard
 
 interface UserProfilePageProps {
   currentUser: User;

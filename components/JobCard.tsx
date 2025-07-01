@@ -1,9 +1,10 @@
+
 import React, { useState } from 'react';
-import type { Job, User } from '../types';
-import { View, JobCategory, JOB_CATEGORY_STYLES, JOB_CATEGORY_EMOJIS_MAP, JobDesiredEducationLevelOption, Province } from '../types';
-import { Button } from './Button'; // Import Button
-import { Modal } from './Modal';
-import { isDateInPast } from '../App';
+import type { Job, User } from '../types.ts';
+import { View, JobCategory, JOB_CATEGORY_STYLES, JOB_CATEGORY_EMOJIS_MAP, JobDesiredEducationLevelOption, Province } from '../types.ts';
+import { Button } from './Button.tsx'; // Import Button
+import { Modal } from './Modal.tsx';
+import { isDateInPast } from '../App.tsx';
 import { motion, type Transition } from 'framer-motion';
 
 interface JobCardProps {
@@ -278,7 +279,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
   );
 };
 
-declare module '../types' {
+declare module '../types.ts' {
     interface Job {
         userPhoto?: string; // Add this to Job type if it's not already there from some enrichment process
     }

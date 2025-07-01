@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import type { User } from '../types';
-import { GenderOption, HelperEducationLevelOption } from '../types'; // Keep for default values, not for form inputs
-import { Button } from './Button';
+import type { User } from '../types.ts';
+import { GenderOption, HelperEducationLevelOption } from '../types.ts'; // Keep for default values, not for form inputs
+import { Button } from './Button.tsx';
 
 interface RegistrationFormProps {
   onRegister: (userData: Omit<User, 'id' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook'> & { password: string }) => Promise<boolean>;

@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react'; // Added useEffect, useRef
-import type { EnrichedWebboardPost, User } from '../types';
+import type { EnrichedWebboardPost, User } from '../types.ts';
 import { UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES }
-from '../types';
+from '../types.ts';
 // Button component might be used for consistency if styled appropriately, or use raw <button> for icons
 // import { Button } from './Button';
 import { motion, AnimatePresence, type Transition } from 'framer-motion';

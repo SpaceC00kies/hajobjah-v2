@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
-import type { EnrichedHelperProfile, User } from '../types';
-import { View, Province, ACTIVITY_BADGE_DETAILS } from '../types';
-import { Modal } from './Modal';
-import { Button } from './Button'; // Import Button
-import { isDateInPast, calculateDaysRemaining } from '../App';
-import { UserLevelBadge } from './UserLevelBadge';
+import type { EnrichedHelperProfile, User } from '../types.ts';
+import { View, Province, ACTIVITY_BADGE_DETAILS } from '../types.ts';
+import { Modal } from './Modal.tsx';
+import { Button } from './Button.tsx'; // Import Button
+import { isDateInPast, calculateDaysRemaining } from '../App.tsx';
+import { UserLevelBadge } from './UserLevelBadge.tsx';
 import { motion, type Transition } from 'framer-motion';
 
 interface HelperCardProps {

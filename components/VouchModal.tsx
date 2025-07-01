@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
-import { Button } from './Button';
-import { Modal } from './Modal';
-import type { User, VouchType } from '../types';
-import { VOUCH_TYPE_LABELS } from '../types';
+import { Button } from './Button.tsx';
+import { Modal } from './Modal.tsx';
+import type { User, VouchType } from '../types.ts';
+import { VOUCH_TYPE_LABELS } from '../types.ts';
 
 interface VouchModalProps {
   isOpen: boolean;

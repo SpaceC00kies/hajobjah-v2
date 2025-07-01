@@ -1,12 +1,10 @@
-
-import React, { useState, useEffect, useRef } from 'react'; // Added useState, useEffect, useRef
-import type { EnrichedWebboardPost, EnrichedWebboardComment, User } from '../types';
+import React, { useState, useEffect, useRef } from 'react';
+import type { EnrichedWebboardPost, EnrichedWebboardComment, User } from '../types.ts';
 import { USER_LEVELS, UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES }
-from '../types';
-import { Button } from './Button';
-// UserLevelBadge is removed from direct import here as it's no longer used in this component
-import { WebboardCommentItem } from './WebboardCommentItem';
-import { WebboardCommentForm } from './WebboardCommentForm';
+from '../types.ts';
+import { Button } from './Button.tsx';
+import { WebboardCommentItem } from './WebboardCommentItem.tsx';
+import { WebboardCommentForm } from './WebboardCommentForm.tsx';
 import { motion, AnimatePresence, useAnimation, type Transition, type Variants } from 'framer-motion';
 
 
@@ -85,22 +83,22 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
   checkWebboardCommentLimits,
   getAuthorDisplayName,
 }) => {
-  const [copiedLink, setCopiedLink] = useState(false);
+  const [likeAnimationKey, setLikeAnimationKey] = useState(0);
+  const likeControls = useAnimation();
+  const likeButtonRef = useRef<HTMLButtonElement>(null);
 
-  const isAuthor = currentUser?.id === post.userId;
-  const isAdmin = currentUser?.role === UserRole.Admin;
-  const isModerator = currentUser?.role === UserRole.Moderator;
   const hasLiked = currentUser && post.likes.includes(currentUser.id);
   const isSaved = currentUser?.savedWebboardPosts?.includes(post.id) || false;
+  const author = users.find(u => u.id === post.userId);
   const authorActualDisplayName = getAuthorDisplayName(post.userId, post.authorDisplayName);
 
+  const canEdit = currentUser?.id === post.userId || currentUser?.role === UserRole.Admin;
+  const canPin = currentUser?.role === UserRole.Admin;
 
-  const canModeratorDeletePost = isModerator && !post.isAuthorAdmin;
-  const canEditPost = isAuthor || isAdmin || (isModerator && !post.isAuthorAdmin);
-  const canDeletePost = isAuthor || isAdmin || canModeratorDeletePost;
-
-  const shareIconControls = useAnimation();
-
+  useEffect(() => {
+    // Scroll to top of the post detail on mount
+    window.scrollTo(0, 0);
+  }, [post.id]);
 
   const timeSince = (dateInput: string | Date | null | undefined): string => {
     if (dateInput === null || dateInput === undefined) return "just now";
@@ -113,220 +111,123 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
     const seconds = Math.floor((new Date().getTime() - dateObject.getTime()) / 1000);
     if (seconds < 0) return "just now";
     if (seconds < 5) return "just now";
-    let interval = seconds / 31536000; if (interval > 1) return Math.floor(interval) + " ปีก่อน";
-    interval = seconds / 2592000; if (interval > 1) return Math.floor(interval) + " เดือนก่อน";
-    interval = seconds / 86400; if (interval > 1) return Math.floor(interval) + " วันก่อน";
-    interval = seconds / 3600; if (interval > 1) return Math.floor(interval) + " ชม.ก่อน";
-    interval = seconds / 60; if (interval > 1) return Math.floor(interval) + " นาทีที่แล้ว";
-    return Math.floor(seconds) + " วินาทีที่แล้ว";
+    let interval = seconds / 31536000; if (interval > 1) return Math.floor(interval) + "y";
+    interval = seconds / 2592000; if (interval > 1) return Math.floor(interval) + "mo";
+    interval = seconds / 86400; if (interval > 1) return Math.floor(interval) + "d";
+    interval = seconds / 3600; if (interval > 1) return Math.floor(interval) + "h";
+    interval = seconds / 60; if (interval > 1) return Math.floor(interval) + "m";
+    return Math.floor(seconds) + "s";
   };
-
-  const postAuthor = users.find(u => u.id === post.userId);
+  
+  const wasEdited = post.updatedAt && post.createdAt && new Date(post.updatedAt).getTime() !== new Date(post.createdAt).getTime();
+  const categoryStyle = WEBBOARD_CATEGORY_STYLES[post.category] || WEBBOARD_CATEGORY_STYLES[WebboardCategory.General];
 
   const handleLikeClick = () => {
     if (!currentUser) {
       requestLoginForAction(View.Webboard, { action: 'like', postId: post.id });
+      return;
+    }
+    setLikeAnimationKey(prev => prev + 1); // Trigger re-render for animation
+    onToggleLike(post.id);
+  };
+  
+  const handleSaveClick = () => {
+    if (!currentUser) {
+        requestLoginForAction(View.Webboard, { action: 'save', postId: post.id });
     } else {
-      onToggleLike(post.id);
+        onSavePost(post.id);
     }
   };
-
-  const handleSaveClick = () => {
-    if (!currentUser) requestLoginForAction(View.Webboard, { action: 'save', postId: post.id });
-    else onSavePost(post.id);
-  };
-
-  const handleShareClick = () => {
-    onSharePost(post.id, post.title);
-    setCopiedLink(true);
-    shareIconControls.start({ scale: [1, 1.2, 1], transition: { duration: 0.3 } });
-    setTimeout(() => setCopiedLink(false), 2000);
-  };
-
-  const categoryStyle = WEBBOARD_CATEGORY_STYLES[post.category] || WEBBOARD_CATEGORY_STYLES[WebboardCategory.General];
-  const actionButtonBaseClass = "flex items-center gap-1.5 px-2 py-1.5 rounded-md hover:bg-neutral-light focus:outline-none focus:ring-1 focus:ring-neutral-DEFAULT text-xs sm:text-sm transition-colors duration-150";
-
+  
+  const actionButtonBaseClass = "flex items-center gap-1.5 p-2 rounded-md hover:bg-neutral-light focus:outline-none focus:ring-1 focus:ring-neutral-DEFAULT transition-colors duration-150 text-sm sm:text-base";
 
   return (
-    <div className="bg-white shadow-xl rounded-xl p-4 sm:p-6 md:p-8 my-6 border border-neutral-DEFAULT/70">
-      {post.isPinned && (
-        <div className="mb-4 px-3 py-1 bg-yellow-100 rounded-full text-center">
-          <p className="text-sm font-normal text-yellow-800">📌 ปักหมุดโดยแอดมิน</p>
-        </div>
-      )}
-
-      <div className="mb-3">
-        <span
-          className={`text-xs font-medium mr-2 px-2.5 py-1 rounded-full inline-block ${categoryStyle.bg} ${categoryStyle.text} ${categoryStyle.border ? `border ${categoryStyle.border}`: ''}`}
-        >
-          {post.category}
-        </span>
-      </div>
-
-      <h1 className="text-xl sm:text-2xl md:text-3xl font-sans font-semibold text-neutral-800 mb-4">{post.title}</h1>
-
-      <div className="flex items-center mb-4 pb-3 border-b border-neutral-DEFAULT/30">
-        <FallbackAvatarLarge name={authorActualDisplayName} photo={postAuthor?.photo || post.authorPhoto} className="mr-3 flex-shrink-0" />
-        <div className="font-sans">
-          <div className="flex items-baseline">
+    <div className="bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-lg border border-neutral-DEFAULT/30">
+      <article>
+        {/* Post Header */}
+        <header className="mb-4">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-2">
             <span
-              className="text-sm font-semibold text-neutral-dark hover:underline cursor-pointer"
-              onClick={() => onNavigateToPublicProfile({userId: post.userId})}
-              role="link" tabIndex={0} onKeyPress={(e) => e.key === 'Enter' && onNavigateToPublicProfile({userId: post.userId})}
+              className={`text-xs font-medium px-2 py-0.5 rounded-full inline-block ${categoryStyle.bg} ${categoryStyle.text} ${categoryStyle.border ? `border ${categoryStyle.border}`: ''}`}
             >
-              @{authorActualDisplayName}
+              {post.category}
             </span>
-            <span className="ml-2 text-xs text-gray-500">
-              · {timeSince(post.createdAt)}
-              {post.updatedAt && new Date(post.updatedAt).getTime() !== new Date(post.createdAt).getTime() &&
-                <span className="italic"> (แก้ไข {timeSince(post.updatedAt)})</span>
-              }
-            </span>
+            {post.isPinned && (
+              <span className="text-xs font-semibold text-yellow-600">📌 Pinned by Admin</span>
+            )}
           </div>
-        </div>
-      </div>
-
-      {post.image && (
-        <div className="my-4 flex justify-center items-center bg-neutral-light rounded-lg overflow-hidden">
-          <img src={post.image} alt={post.title} className="max-w-full max-h-[70vh] object-contain" />
-        </div>
-      )}
-
-      <div className="prose prose-base font-serif max-w-none text-neutral-dark font-normal leading-relaxed whitespace-pre-wrap mb-6">
-        {post.body}
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-2 mt-6 pt-4 border-t border-neutral-DEFAULT/30">
-        <div className="flex items-center gap-2 sm:gap-3">
-           <motion.button
-            onClick={handleLikeClick}
-            className={`${actionButtonBaseClass}`}
-            aria-pressed={hasLiked}
-            aria-label={hasLiked ? "Unlike post" : "Like post"}
-            whileTap={{ scale: 0.9 }}
-          >
-            <motion.span
-              key={hasLiked ? "liked-detail" : "unliked-detail"}
-              initial={{ scale: 1 }}
-              animate={hasLiked ? { scale: [1, 1.3, 1], transition: { type: "spring", stiffness: 400, damping: 10 } } : { scale: [1, 0.8, 1], transition: { type: "spring", stiffness: 300, damping: 15 } }}
-              className="inline-block"
+          <h1 className="text-2xl sm:text-3xl font-bold font-sans text-neutral-800 mb-3">{post.title}</h1>
+          <div className="flex items-center space-x-3 text-sm text-neutral-500">
+            <div 
+              className="flex items-center space-x-2 cursor-pointer"
+              onClick={() => onNavigateToPublicProfile({ userId: post.userId })}
+              role="link"
+              tabIndex={0}
+              onKeyPress={(e) => e.key === 'Enter' && onNavigateToPublicProfile({ userId: post.userId })}
             >
-              {hasLiked ? <LikedIcon /> : <LikeIcon />}
-            </motion.span>
-             <AnimatePresence mode="popLayout">
-                <motion.span
-                    key={`likes-${post.likes.length}`}
-                    initial={{ opacity: 0, y: -3 }}
-                    animate={{ opacity: 1, y: 0, transition: { duration: 0.15 } }}
-                    exit={{ opacity: 0, y: 3, transition: { duration: 0.15 } }}
-                    className={`font-medium ${hasLiked ? 'text-red-500' : 'text-neutral-500'}`}
-                >
-                    {post.likes.length}
-                </motion.span>
-            </AnimatePresence>
-          </motion.button>
-          {currentUser && (
-            <>
-            <motion.button
-                onClick={handleSaveClick}
-                className={`${actionButtonBaseClass}`}
-                aria-pressed={isSaved}
-                aria-label={isSaved ? "Unsave post" : "Save post"}
-                whileTap={{ scale: 0.9 }}
-            >
-              <motion.span
-                key={isSaved ? "saved-detail" : "unsaved-detail"}
-                initial={{ scale: 1 }}
-                animate={{ scale: [1, 0.8, 1.1, 1], transition: { type: "spring", stiffness: 350, damping: 12 } }}
-                className="inline-block"
-              >
-                {isSaved ? <SavedIcon/> : <SaveIcon />}
-              </motion.span>
-              <span className={`hidden sm:inline ${isSaved ? 'text-blue-500' : 'text-neutral-500'}`}>{isSaved ? 'Saved' : 'Save'}</span>
-            </motion.button>
-            <div className="relative">
-                <motion.button
-                    onClick={handleShareClick}
-                    className={`${actionButtonBaseClass} text-neutral-500`}
-                    aria-label="Share post"
-                    whileTap={{ scale: 0.9 }}
-                    animate={shareIconControls}
-                >
-                  <ShareIcon /> <span className="hidden sm:inline">Share</span>
-                </motion.button>
-                {copiedLink && (
-                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-0.5 bg-neutral-dark text-white text-xs rounded-md shadow-lg whitespace-nowrap">
-                    Link Copied!
-                </span>
-                )}
+              <FallbackAvatarLarge name={authorActualDisplayName} photo={post.authorPhoto} size="w-10 h-10" />
+              <div className="flex flex-col">
+                  <span className="font-semibold text-neutral-dark hover:underline">@{authorActualDisplayName}</span>
+                  <span className="text-xs">
+                    {timeSince(post.createdAt)}
+                    {wasEdited && <span className="italic"> (แก้ไข {timeSince(post.updatedAt as Date)})</span>}
+                  </span>
+              </div>
             </div>
-            </>
-          )}
-        </div>
+          </div>
+        </header>
 
-        <div className="flex items-center gap-2">
-          {canEditPost && (
-             <Button onClick={() => onEditPost(post)} variant="outline" colorScheme="neutral" size="sm" className="text-xs px-2">✏️ แก้ไข</Button>
-          )}
-          {isAdmin && (
-            <Button
-              onClick={() => onPinPost(post.id)}
-              variant={post.isPinned ? "secondary" : "outline"}
-              colorScheme="secondary"
-              size="sm"
-              className="text-xs px-2"
-            >
-              {post.isPinned ? 'เลิกปักหมุด' : 'ปักหมุด'}
-            </Button>
-          )}
-          {canDeletePost && (
-            <Button onClick={() => onDeletePost(post.id)} variant="outline" colorScheme="accent" size="sm" className="text-xs border-red-500 text-red-500 hover:bg-red-500 hover:text-white px-2">
-              🗑️ ลบโพสต์
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-8">
-        <h4 className="text-lg font-semibold text-neutral-dark mb-3 font-sans">
-            {comments.length} ความคิดเห็น
-        </h4>
-        {comments.length > 0 ? (
-          <AnimatePresence>
-            <motion.div
-              className="space-y-1"
-              variants={commentListVariants}
-              initial="hidden"
-              animate="visible"
-              exit="hidden"
-            >
-              {comments
-                  .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-                  .map(comment => {
-                      const commenter = users.find(u => u.id === comment.userId);
-                      const commenterActualDisplayName = getAuthorDisplayName(comment.userId, comment.authorDisplayName);
-                      const enrichedComment: EnrichedWebboardComment = {
-                          ...comment,
-                          authorDisplayName: commenterActualDisplayName, // Use the live display name
-                          authorPhoto: commenter?.photo || comment.authorPhoto,
-                          isAuthorAdmin: commenter?.role === UserRole.Admin,
-                      };
-                      return (
-                          <WebboardCommentItem
-                              key={comment.id}
-                              comment={enrichedComment}
-                              currentUser={currentUser}
-                              onDeleteComment={onDeleteComment}
-                              onUpdateComment={onUpdateComment}
-                              onNavigateToPublicProfile={(userId) => onNavigateToPublicProfile({ userId })}
-                          />
-                      );
-              })}
-            </motion.div>
-          </AnimatePresence>
-        ) : (
-          <p className="text-sm text-neutral-medium">ยังไม่มีความคิดเห็น...</p>
+        {/* Post Content */}
+        {post.image && (
+          <img src={post.image} alt={post.title} className="w-full max-h-[500px] object-contain rounded-lg my-4 bg-neutral-light" />
         )}
+        <div className="prose prose-sm sm:prose-base max-w-none font-serif text-neutral-dark whitespace-pre-wrap leading-relaxed">
+          {post.body}
+        </div>
+
+        {/* Post Actions */}
+        <div className="flex items-center justify-between mt-6 pt-4 border-t border-neutral-DEFAULT/50">
+           <div className="flex items-center space-x-2 sm:space-x-4">
+                <motion.button
+                    ref={likeButtonRef}
+                    key={likeAnimationKey}
+                    onClick={handleLikeClick}
+                    className={`${actionButtonBaseClass} ${hasLiked ? 'text-red-500' : 'text-neutral-500'}`}
+                    aria-label={hasLiked ? "Unlike" : "Like"}
+                    whileTap={{ scale: 0.9 }}
+                >
+                    {hasLiked ? <LikedIcon /> : <LikeIcon />}
+                    <span className="font-semibold">{post.likes.length}</span>
+                </motion.button>
+                {currentUser && (
+                    <button
+                        onClick={handleSaveClick}
+                        className={`${actionButtonBaseClass} ${isSaved ? 'text-blue-500' : 'text-neutral-500'}`}
+                        aria-label={isSaved ? "Unsave" : "Save"}
+                    >
+                        {isSaved ? <SavedIcon /> : <SaveIcon />}
+                    </button>
+                )}
+                 <button
+                    onClick={() => onSharePost(post.id, post.title)}
+                    className={`${actionButtonBaseClass} text-neutral-500`}
+                    aria-label="Share"
+                >
+                    <ShareIcon />
+                </button>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+                {canEdit && <Button onClick={() => onEditPost(post)} variant="outline" size="sm" colorScheme="neutral">แก้ไข</Button>}
+                {canPin && <Button onClick={() => onPinPost(post.id)} variant="outline" size="sm" colorScheme="neutral">{post.isPinned ? 'ยกเลิกปักหมุด' : 'ปักหมุด'}</Button>}
+                {canEdit && <Button onClick={() => onDeletePost(post.id)} variant="outline" colorScheme="accent" size="sm">ลบ</Button>}
+            </div>
+        </div>
+      </article>
+
+      {/* Comments Section */}
+      <section className="mt-8 pt-6 border-t border-neutral-DEFAULT/50">
+        <h2 className="text-xl font-semibold font-sans text-neutral-700 mb-4">{comments.length} ความคิดเห็น</h2>
         <WebboardCommentForm
             postId={post.id}
             currentUser={currentUser}
@@ -334,7 +235,23 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
             requestLoginForAction={requestLoginForAction}
             checkWebboardCommentLimits={checkWebboardCommentLimits}
         />
-      </div>
+         {comments.length > 0 && (
+          <motion.div className="mt-4 space-y-2" variants={commentListVariants} initial="hidden" animate="visible">
+            <AnimatePresence initial={false}>
+              {comments.map(comment => (
+                <WebboardCommentItem
+                  key={comment.id}
+                  comment={comment}
+                  currentUser={currentUser}
+                  onDeleteComment={onDeleteComment}
+                  onUpdateComment={onUpdateComment}
+                  onNavigateToPublicProfile={(userId) => onNavigateToPublicProfile({userId})}
+                />
+              ))}
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </section>
     </div>
   );
 };

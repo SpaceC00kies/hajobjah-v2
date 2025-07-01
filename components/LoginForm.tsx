@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Button } from './Button';
+import { Button } from './Button.tsx';
 
 interface LoginFormProps {
   onLogin: (loginIdentifier: string, passwordAttempt: string) => Promise<boolean>; // Returns true on success

@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import type { HelperProfile, User } from '../types'; // Added User
-import { JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types'; // Added Province
-import { Button } from './Button';
-import { containsBlacklistedWords, calculateHoursRemaining } from '../App'; // Changed to calculateHoursRemaining
+import type { HelperProfile, User } from '../types.ts'; // Added User
+import { JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types.ts'; // Added Province
+import { Button } from './Button.tsx';
+import { containsBlacklistedWords, calculateHoursRemaining } from '../App.tsx'; // Changed to calculateHoursRemaining
 
 type FormDataType = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt'>;
 

@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { Button } from './Button';
-import { Modal } from './Modal';
-import type { Vouch } from '../types';
+import { Button } from './Button.tsx';
+import { Modal } from './Modal.tsx';
+import type { Vouch } from '../types.ts';
 
 interface ReportVouchModalProps {
   isOpen: boolean;
