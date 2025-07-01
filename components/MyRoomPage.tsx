@@ -1,15 +1,16 @@
-import React, { useState, useMemo, useEffect } from 'react'; // Added useEffect
-import type { User, Job, HelperProfile, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, Interest } from '../types'; // Added Interest
-import { View, UserTier } from '../types'; // Added UserTier
+
+import React, { useState, useMemo, useEffect } from 'react';
+import type { User, Job, HelperProfile, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, Interest, EnrichedHelperProfile } from '../types';
+import { View, UserTier } from '../types';
 import { Button } from './Button';
 import { UserProfilePage } from './UserProfilePage';
-import { WebboardPostCard } from './WebboardPostCard'; // For Saved Posts
-import { JobCard } from './JobCard'; // For Interested Jobs
-import { HelperCard } from './HelperCard'; // For Interested Helpers
-import { isDateInPast, calculateDaysRemaining } from '../App'; // Import utilities
+import { WebboardPostCard } from './WebboardPostCard';
+import { JobCard } from './JobCard';
+import { HelperCard } from './HelperCard';
+import { isDateInPast, calculateDaysRemaining } from '../App';
 import { motion, AnimatePresence, type Variants, type Transition } from 'framer-motion';
 
-// Import icons (simple text for now, can be replaced with SVGs)
+// Import icons
 const ProfileIcon = () => <span role="img" aria-label="Profile" className="mr-1.5 sm:mr-2">👤</span>;
 const JobsIcon = () => <span role="img" aria-label="Jobs" className="mr-1.5 sm:mr-2">💼</span>;
 const ServicesIcon = () => <span role="img" aria-label="Services" className="mr-1.5 sm:mr-2">🛠️</span>;
@@ -27,59 +28,25 @@ interface MyRoomPageProps {
   allHelperProfilesForAdmin: HelperProfile[];
   allWebboardPostsForAdmin: WebboardPost[];
   webboardComments: WebboardComment[];
-  userInterests: Interest[]; // New prop for user's interests
+  userInterests: Interest[];
   navigateTo: (view: View, payload?: any) => void;
-  onEditItem: (itemId: string, itemType: 'job' | 'profile' | 'webboardPost', originatingTab: ActiveTab) => void; // Added originatingTab
+  onEditItem: (itemId: string, itemType: 'job' | 'profile' | 'webboardPost', originatingTab: ActiveTab) => void;
   onDeleteItem: (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => void;
   onToggleHiredStatus: (itemId: string, itemType: 'job' | 'profile') => void;
   onUpdateUserProfile: (updatedData: Partial<User>) => Promise<boolean>;
   getUserDisplayBadge: (user: User | null | undefined) => UserLevel;
-  onSavePost: (postId: string) => void; // For un-saving
+  onSavePost: (postId: string) => void;
   onBumpProfile: (profileId: string) => void;
   onNavigateToPublicProfile: (profileInfo: { userId: string; helperProfileId?: string }) => void;
-  initialTab?: ActiveTab | null; // New prop for initial tab
-  onInitialTabProcessed?: () => void; // New prop to signal consumption
+  initialTab?: ActiveTab | null;
+  onInitialTabProcessed?: () => void;
   getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
-  onToggleInterest: (targetId: string, targetType: 'job' | 'helperProfile', targetOwnerId: string) => void; // New prop
-  requestLoginForAction: (view: View, payload?: any) => void; // New prop
-  onEditJobFromFindView?: (jobId: string) => void; // New prop
-  onEditHelperProfileFromFindView?: (profileId: string) => void; // New prop
-  onLogHelperContact: (helperProfileId: string) => void; // New prop
+  onToggleInterest: (targetId: string, targetType: 'job' | 'helperProfile', targetOwnerId: string) => void;
+  requestLoginForAction: (view: View, payload?: any) => void;
+  onEditJobFromFindView?: (jobId: string) => void;
+  onEditHelperProfileFromFindView?: (profileId: string) => void;
+  onLogHelperContact: (helperProfileId: string) => void;
 }
-
-// Animation Variants
-const listVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      when: "beforeChildren",
-      staggerChildren: 0.07,
-      delayChildren: 0.1,
-    } as Transition,
-  },
-};
-
-const itemVariants: Variants = {
-  hidden: { y: 15, opacity: 0 },
-  visible: {
-    y: 0,
-    opacity: 1,
-    transition: {
-      type: "spring",
-      stiffness: 100,
-      damping: 12,
-    } as Transition,
-  },
-  exit: {
-    opacity: 0,
-    y: -10,
-    transition: {
-      duration: 0.2,
-    } as Transition,
-  },
-};
-
 
 const formatDateDisplay = (dateInput?: string | Date | null): string => {
   if (dateInput === null || dateInput === undefined) return 'N/A';
@@ -93,41 +60,18 @@ const formatDateDisplay = (dateInput?: string | Date | null): string => {
 };
 
 const BUMP_COOLDOWN_DAYS_MY_ROOM = 30;
-
-// Constants for posting limits (mirrored from App.tsx or MyPostsPage for local use)
 const JOB_COOLDOWN_DAYS_DISPLAY = 3;
 const HELPER_PROFILE_COOLDOWN_DAYS_DISPLAY = 3;
 const MAX_ACTIVE_JOBS_FREE_TIER_DISPLAY = 3;
 const MAX_ACTIVE_HELPER_PROFILES_FREE_TIER_DISPLAY = 1;
-const MAX_ACTIVE_JOBS_BADGE_DISPLAY = 4; // For users with activity badge
-const MAX_ACTIVE_HELPER_PROFILES_BADGE_DISPLAY = 2; // For users with activity badge
+const MAX_ACTIVE_JOBS_BADGE_DISPLAY = 4;
+const MAX_ACTIVE_HELPER_PROFILES_BADGE_DISPLAY = 2;
 
-/**
- * Determines if an expiry warning should be shown for a job or helper profile.
- * The warning "⏳ หมดอายุใน X วัน" is displayed if ALL of the following conditions are true:
- * 1. The item has a valid `expiresAt` date.
- * 2. The item is NOT hired (for jobs) or unavailable (for profiles).
- * 3. The item is NOT suspicious.
- * 4. The item has NOT already expired (i.e., `isDateInPast(expiresAt)` is false).
- * 5. The item is due to expire in 1 to 7 days (inclusive).
- *
- * @param expiresAt The expiration date of the item.
- * @param isHiredOrUnavailable Boolean indicating if the item is hired (job) or unavailable (profile).
- * @param isSuspicious Boolean indicating if the item is marked as suspicious.
- * @returns A string with the warning message if conditions are met, otherwise null.
- */
 const getExpiryWarning = (expiresAt: string | Date | undefined, isHiredOrUnavailable: boolean | undefined, isSuspicious: boolean | undefined): string | null => {
-  // Condition 1: expiresAt must exist.
-  // Condition 2: Must NOT be hired/unavailable.
-  // Condition 3: Must NOT be suspicious.
-  // Condition 4: Must NOT be already past its expiry date.
   if (!expiresAt || isHiredOrUnavailable || isSuspicious || isDateInPast(expiresAt)) {
     return null;
   }
-
-  const daysLeft = calculateDaysRemaining(expiresAt); // calculateDaysRemaining ensures daysLeft >= 0 if not expired.
-
-  // Condition 5: Must be expiring within 1 to 7 days (inclusive).
+  const daysLeft = calculateDaysRemaining(expiresAt);
   if (daysLeft > 0 && daysLeft <= 7) {
     return `⏳ หมดอายุใน ${daysLeft} วัน`;
   }
@@ -165,30 +109,25 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
   const [activeSubTab, setActiveSubTab] = useState<ActiveSubTab>('jobs');
 
   useEffect(() => {
-    // Handle main tab changes from props
     if (initialTab && initialTab !== activeTab) {
       setActiveTab(initialTab);
     }
     if (initialTab && onInitialTabProcessed) {
-      onInitialTabProcessed(); // Signal that the initialTab prop has been processed
+      onInitialTabProcessed();
     }
-
-    // Handle sub-tab changes from URL
     const params = new URLSearchParams(window.location.search);
     const subTabFromUrl = params.get('subTab') as ActiveSubTab;
     if (subTabFromUrl && ['jobs', 'helpers', 'posts'].includes(subTabFromUrl)) {
       setActiveSubTab(subTabFromUrl);
     }
-
   }, [initialTab, activeTab, onInitialTabProcessed]);
 
   const handleSubTabChange = (subTab: ActiveSubTab) => {
     setActiveSubTab(subTab);
-    const params = new URLSearchParams(window.location.search);
-    params.set('subTab', subTab);
-    window.history.pushState({}, '', `?${params.toString()}`);
+    const url = new URL(window.location.href);
+    url.searchParams.set('subTab', subTab);
+    window.history.replaceState({}, '', url);
   }
-
 
   const userJobs = useMemo(() => allJobsForAdmin.filter(job => job.userId === currentUser.id)
     .sort((a, b) => new Date(b.postedAt as string).getTime() - new Date(a.postedAt as string).getTime()), [allJobsForAdmin, currentUser.id]);
@@ -199,7 +138,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
   const userWebboardPosts = useMemo(() => allWebboardPostsForAdmin.filter(post => post.userId === currentUser.id)
     .map(post => ({
       ...post,
-      authorDisplayName: getAuthorDisplayName(post.userId, post.authorDisplayName), // Use live display name
+      authorDisplayName: getAuthorDisplayName(post.userId, post.authorDisplayName),
       commentCount: webboardComments.filter(c => c.postId === post.id).length,
       authorPhoto: currentUser?.photo || post.authorPhoto,
       isAuthorAdmin: currentUser?.role === 'Admin',
@@ -214,7 +153,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
         const author = users.find(u => u.id === post.userId);
         return {
           ...post,
-          authorDisplayName: getAuthorDisplayName(post.userId, post.authorDisplayName), // Use live display name
+          authorDisplayName: getAuthorDisplayName(post.userId, post.authorDisplayName),
           commentCount: webboardComments.filter(c => c.postId === post.id).length,
           authorPhoto: author?.photo || post.authorPhoto,
           isAuthorAdmin: author?.role === 'Admin',
@@ -224,52 +163,19 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
   }, [allWebboardPostsForAdmin, currentUser.savedWebboardPosts, webboardComments, users, getAuthorDisplayName]);
 
   const interestedJobs = useMemo(() => {
-    const interestedJobIds = userInterests
-        .filter(i => i.targetType === 'job')
-        .map(i => i.targetId);
+    const interestedJobIds = userInterests.filter(i => i.targetType === 'job').map(i => i.targetId);
     return allJobsForAdmin.filter(j => interestedJobIds.includes(j.id));
   }, [userInterests, allJobsForAdmin]);
   
   const interestedHelpers = useMemo(() => {
-    const interestedHelperIds = userInterests
-        .filter(i => i.targetType === 'helperProfile')
-        .map(i => i.targetId);
-    return allHelperProfilesForAdmin.filter(p => interestedHelperIds.includes(p.id));
-  }, [userInterests, allHelperProfilesForAdmin]);
+    const interestedHelperIds = userInterests.filter(i => i.targetType === 'helperProfile').map(i => i.targetId);
+    return allHelperProfilesForAdmin.filter(p => interestedHelperIds.includes(p.id))
+      .map(hp => {
+        const user = users.find(u => u.id === hp.userId);
+        return { ...hp, userPhoto: user?.photo, userAddress: user?.address, verifiedExperienceBadge: hp.adminVerifiedExperience || false, profileCompleteBadge: user?.profileComplete || false, warningBadge: hp.isSuspicious || false, interestedCount: hp.interestedCount || 0, } as EnrichedHelperProfile;
+      });
+  }, [userInterests, allHelperProfilesForAdmin, users]);
 
-
-  const tabs: { id: ActiveTab; label: string; icon: JSX.Element }[] = [
-    { id: 'profile', label: 'โปรไฟล์', icon: <ProfileIcon /> },
-    { id: 'myJobs', label: 'ประกาศงาน', icon: <JobsIcon /> },
-    { id: 'myHelperServices', label: 'งานที่เสนอ', icon: <ServicesIcon /> },
-    { id: 'interests', label: 'สิ่งที่สนใจ', icon: <InterestedIcon /> },
-    { id: 'myWebboardPosts', label: 'กระทู้ของฉัน', icon: <WebboardIcon /> },
-  ];
-
-  const renderItemStatus = (item: Job | HelperProfile) => {
-    const isJob = 'payment' in item;
-    const isTrulyExpired = item.isExpired || (item.expiresAt ? isDateInPast(item.expiresAt) : false);
-    let statusText = 'กำลังแสดง';
-    let statusColor = 'text-green-600';
-
-    if (isJob && item.isHired) {
-      statusText = 'มีคนทำแล้ว';
-      statusColor = 'text-blue-600';
-    } else if (!isJob && item.isUnavailable) {
-      statusText = 'ไม่ว่าง';
-      statusColor = 'text-orange-600';
-    } else if (item.isSuspicious) {
-      statusText = 'ถูกระงับชั่วคราว';
-      statusColor = 'text-red-600';
-    } else if (isTrulyExpired) {
-      statusText = 'หมดอายุ';
-      statusColor = 'text-neutral-500';
-    }
-    return <span className={`text-xs font-medium ${statusColor}`}>{statusText}</span>;
-  };
-
-
-  // --- Posting Limit Calculations ---
   const {
     userActiveJobsCount,
     maxJobsAllowed,
@@ -294,16 +200,14 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
         cooldownHours = Math.ceil(jobCooldownTotalHours - hoursSinceLastJobPost);
       }
     }
-    const canCreate = cooldownHours <= 0;
-
     return {
       userActiveJobsCount: activeJobs,
       maxJobsAllowed: maxJobs,
       jobCooldownHoursRemaining: cooldownHours,
-      jobCanCreate: canCreate,
+      jobCanCreate: cooldownHours <= 0,
     };
-  }, [userJobs, currentUser.tier, currentUser.activityBadge, currentUser.postingLimits]);
-
+  }, [userJobs, currentUser]);
+  
   const {
     userActiveHelperProfilesCount,
     maxHelperProfilesAllowed,
@@ -311,334 +215,217 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
     profileCanCreate,
   } = useMemo(() => {
     const activeProfiles = userHelperProfiles.filter(
-      profile => !profile.isExpired && (profile.expiresAt ? !isDateInPast(profile.expiresAt) : true)
+      p => !p.isExpired && (p.expiresAt ? !isDateInPast(p.expiresAt) : true)
     ).length;
-
     let maxProfiles = (currentUser.tier === 'free' as UserTier) ? MAX_ACTIVE_HELPER_PROFILES_FREE_TIER_DISPLAY : 999;
     if (currentUser.activityBadge?.isActive) {
-      maxProfiles = MAX_ACTIVE_HELPER_PROFILES_BADGE_DISPLAY;
+        maxProfiles = MAX_ACTIVE_HELPER_PROFILES_BADGE_DISPLAY;
     }
 
     let cooldownHours = 0;
     const lastHelperProfileDate = currentUser.postingLimits?.lastHelperProfileDate;
     if (lastHelperProfileDate) {
-      const helperCooldownTotalHours = HELPER_PROFILE_COOLDOWN_DAYS_DISPLAY * 24;
-      const hoursSinceLastHelperProfilePost = (new Date().getTime() - new Date(lastHelperProfileDate as string).getTime()) / (1000 * 60 * 60);
-      if (hoursSinceLastHelperProfilePost < helperCooldownTotalHours) {
-        cooldownHours = Math.ceil(helperCooldownTotalHours - hoursSinceLastHelperProfilePost);
-      }
+        const helperCooldownTotalHours = HELPER_PROFILE_COOLDOWN_DAYS_DISPLAY * 24;
+        const hoursSinceLastHelperProfilePost = (new Date().getTime() - new Date(lastHelperProfileDate as string).getTime()) / (1000 * 60 * 60);
+        if (hoursSinceLastHelperProfilePost < helperCooldownTotalHours) {
+            cooldownHours = Math.ceil(helperCooldownTotalHours - hoursSinceLastHelperProfilePost);
+        }
     }
-    const canCreate = cooldownHours <= 0;
-
     return {
       userActiveHelperProfilesCount: activeProfiles,
       maxHelperProfilesAllowed: maxProfiles,
       helperProfileCooldownHoursRemaining: cooldownHours,
-      profileCanCreate: canCreate,
+      profileCanCreate: cooldownHours <= 0,
     };
-  }, [userHelperProfiles, currentUser.tier, currentUser.activityBadge, currentUser.postingLimits]);
+  }, [userHelperProfiles, currentUser]);
 
+  const tabs: { id: ActiveTab; label: string; icon: JSX.Element }[] = [
+    { id: 'profile', label: 'โปรไฟล์', icon: <ProfileIcon /> },
+    { id: 'myJobs', label: 'ประกาศงาน', icon: <JobsIcon /> },
+    { id: 'myHelperServices', label: 'งานที่เสนอ', icon: <ServicesIcon /> },
+    { id: 'interests', label: 'สิ่งที่สนใจ', icon: <InterestedIcon /> },
+    { id: 'myWebboardPosts', label: 'กระทู้ของฉัน', icon: <WebboardIcon /> },
+  ];
 
-  const renderMyJobsTab = () => (
-    <div className="space-y-4">
-       <div className="mb-6 p-3 bg-neutral-light/50 shadow-sm rounded-lg border border-neutral-DEFAULT/30">
-        <h3 className="text-md font-sans font-semibold text-neutral-700 mb-2 text-center">
-         📊 สถานะประกาศงาน
-        </h3>
-        <div className="space-y-1 text-xs sm:text-sm font-sans text-neutral-dark">
-          <div className="flex justify-between items-center p-1.5 bg-white/50 rounded">
-            <span>จำนวนประกาศ: {userActiveJobsCount}/{maxJobsAllowed}</span>
-            {jobCanCreate ? (
-              <span className="text-green-600">✅ พร้อมสร้าง</span>
-            ) : (
-              <span className="text-orange-600">⏳ รออีก {jobCooldownHoursRemaining} ชั่วโมง</span>
-            )}
-          </div>
-        </div>
-      </div>
+  const renderItemStatus = (item: Job | HelperProfile) => {
+    const isJob = 'payment' in item;
+    const isTrulyExpired = item.isExpired || (item.expiresAt ? isDateInPast(item.expiresAt) : false);
+    let statusText = 'กำลังแสดง';
+    let statusColor = 'text-green-600';
 
-      {userJobs.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-neutral-medium mb-4">คุณยังไม่ได้ลงประกาศงาน</p>
-          <Button onClick={() => navigateTo(View.PostJob)} variant="primary" size="sm" disabled={!jobCanCreate && userActiveJobsCount >= maxJobsAllowed}>
-            {jobCanCreate && userActiveJobsCount < maxJobsAllowed ? '+ สร้างประกาศงานใหม่' : 'ไม่สามารถสร้างได้ตอนนี้'}
-          </Button>
-        </div>
-      ) : (
-        userJobs.map(job => {
-          const jobExpiryWarning = getExpiryWarning(job.expiresAt, job.isHired, job.isSuspicious);
-          const isTrulyActiveAndNotExpiringSoon = !job.isHired && !job.isSuspicious && job.expiresAt && !isDateInPast(job.expiresAt) && !jobExpiryWarning;
-          let daysRemainingText = null;
-          if (isTrulyActiveAndNotExpiringSoon) {
-            const daysLeft = calculateDaysRemaining(job.expiresAt);
-            if (daysLeft > 0) {
-              daysRemainingText = `(เหลือ ${daysLeft} วัน)`;
-            }
-          }
-          return (
-            <div key={job.id} className="bg-white p-4 rounded-lg shadow border">
-              <h4 className="font-semibold text-lg text-primary mb-1">{job.title}</h4>
-              <p className="text-xs text-neutral-medium mb-1">หมวดหมู่: {job.category} {job.subCategory && `(${job.subCategory})`}</p>
-              <p className="text-xs text-neutral-medium mb-2">ลงประกาศเมื่อ: {formatDateDisplay(job.postedAt)}</p>
-              <div className="mb-1 flex items-center gap-2 flex-wrap">
-                {renderItemStatus(job)}
-                {jobExpiryWarning && <span className="text-xs text-amber-600">{jobExpiryWarning}</span>}
-                {!jobExpiryWarning && daysRemainingText && <span className="text-xs text-sky-600">{daysRemainingText}</span>}
-              </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                <Button onClick={() => onEditItem(job.id, 'job', activeTab)} variant="outline" colorScheme="neutral" size="sm" disabled={job.isSuspicious}>✏️ แก้ไข</Button>
-                <Button onClick={() => onToggleHiredStatus(job.id, 'job')} variant="outline" colorScheme="neutral" size="sm" disabled={job.isSuspicious}>{job.isHired ? '🔄 แจ้งว่ายังหาคน' : '✅ แจ้งว่าได้คนแล้ว'}</Button>
-                <Button onClick={() => onDeleteItem(job.id, 'job')} variant="outline" colorScheme="accent" size="sm" disabled={job.isSuspicious}>🗑️ ลบ</Button>
-              </div>
-            </div>
-          );
-        })
-      )}
-    </div>
-  );
-
-  const renderMyHelperServicesTab = () => (
-    <div className="space-y-4">
-      <div className="mb-6 p-3 bg-neutral-light/50 shadow-sm rounded-lg border border-neutral-DEFAULT/30">
-        <h3 className="text-md font-sans font-semibold text-neutral-700 mb-2 text-center">
-         📊 สถานะโปรไฟล์ผู้ช่วย
-        </h3>
-        <div className="space-y-1 text-xs sm:text-sm font-sans text-neutral-dark">
-          <div className="flex justify-between items-center p-1.5 bg-white/50 rounded">
-            <span>จำนวนโปรไฟล์: {userActiveHelperProfilesCount}/{maxHelperProfilesAllowed}</span>
-             {profileCanCreate ? (
-              <span className="text-green-600">✅ พร้อมสร้าง</span>
-            ) : (
-              <span className="text-orange-600">⏳ รออีก {helperProfileCooldownHoursRemaining} ชั่วโมง</span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {userHelperProfiles.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-neutral-medium mb-4">คุณยังไม่ได้สร้างโปรไฟล์ผู้ช่วย/บริการ</p>
-          <Button onClick={() => navigateTo(View.OfferHelp)} variant="secondary" size="sm" disabled={!profileCanCreate && userActiveHelperProfilesCount >= maxHelperProfilesAllowed}>
-             {profileCanCreate && userActiveHelperProfilesCount < maxHelperProfilesAllowed ? '+ สร้างโปรไฟล์ใหม่' : 'ไม่สามารถสร้างได้ตอนนี้'}
-          </Button>
-        </div>
-      ) : (
-        userHelperProfiles.map(profile => {
-          const lastBump = currentUser.postingLimits.lastBumpDates?.[profile.id] || profile.lastBumpedAt;
-          const bumpDaysLeft = lastBump ? calculateDaysRemaining(new Date(new Date(lastBump as string).getTime() + BUMP_COOLDOWN_DAYS_MY_ROOM * 24 * 60 * 60 * 1000)) : 0;
-          const canBumpProfile = bumpDaysLeft === 0 && !profile.isExpired && !profile.isUnavailable && (profile.expiresAt ? !isDateInPast(profile.expiresAt) : true);
-          const profileExpiryWarning = getExpiryWarning(profile.expiresAt, profile.isUnavailable, profile.isSuspicious);
-          const isTrulyActiveAndNotExpiringSoon = !profile.isUnavailable && !profile.isSuspicious && profile.expiresAt && !isDateInPast(profile.expiresAt) && !profileExpiryWarning;
-          let daysRemainingText = null;
-          if (isTrulyActiveAndNotExpiringSoon) {
-            const daysLeft = calculateDaysRemaining(profile.expiresAt);
-            if (daysLeft > 0) {
-              daysRemainingText = `(เหลือ ${daysLeft} วัน)`;
-            }
-          }
-          return (
-            <div key={profile.id} className="bg-white p-4 rounded-lg shadow border">
-              <h4
-                className="font-semibold text-lg text-secondary mb-1 cursor-pointer hover:underline"
-                onClick={() => onNavigateToPublicProfile({ userId: profile.userId, helperProfileId: profile.id })}
-                title="ดูโปรไฟล์สาธารณะ"
-                aria-label={`ดูโปรไฟล์สาธารณะของ ${profile.profileTitle}`}
-              >
-                {profile.profileTitle}
-              </h4>
-              <p className="text-xs text-neutral-medium mb-1">หมวดหมู่: {profile.category} {profile.subCategory && `(${profile.subCategory})`}</p>
-              <p className="text-xs text-neutral-medium mb-2">ลงประกาศเมื่อ: {formatDateDisplay(profile.postedAt)} (อัปเดตล่าสุด: {formatDateDisplay(profile.updatedAt)})</p>
-              <div className="mb-1 flex items-center gap-2 flex-wrap">
-                {renderItemStatus(profile)}
-                {profileExpiryWarning && <span className="text-xs text-amber-600">{profileExpiryWarning}</span>}
-                {!profileExpiryWarning && daysRemainingText && <span className="text-xs text-sky-600">{daysRemainingText}</span>}
-              </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                <Button onClick={() => onEditItem(profile.id, 'profile', activeTab)} variant="outline" colorScheme="neutral" size="sm" disabled={profile.isSuspicious}>✏️ แก้ไข</Button>
-                <Button onClick={() => onToggleHiredStatus(profile.id, 'profile')} variant="outline" colorScheme="neutral" size="sm" disabled={profile.isSuspicious}>{profile.isUnavailable ? '🟢 แจ้งว่าว่าง' : '🔴 แจ้งว่าไม่ว่าง'}</Button>
-                <Button
-                  onClick={() => onBumpProfile(profile.id)}
-                  variant="outline"
-                  colorScheme="neutral" // Changed to neutral
-                  size="sm"
-                  disabled={!canBumpProfile || profile.isSuspicious}
-                  title={canBumpProfile ? "Bump โปรไฟล์ของคุณขึ้นไปบนสุด" : profile.isSuspicious ? "ไม่สามารถ Bump โปรไฟล์ที่ถูกระงับ" : `รออีก ${bumpDaysLeft} วัน`}
-                >
-                  🚀 Bump {canBumpProfile ? '' : `(${bumpDaysLeft} วัน)`}
-                </Button>
-                <Button onClick={() => onDeleteItem(profile.id, 'profile')} variant="outline" colorScheme="accent" size="sm" disabled={profile.isSuspicious}>🗑️ ลบ</Button>
-              </div>
-            </div>
-          );
-        })
-      )}
-    </div>
-  );
-
-  const renderMyWebboardPostsTab = () => (
-    <div className="space-y-4">
-      {userWebboardPosts.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-neutral-medium mb-4">คุณยังไม่ได้สร้างกระทู้</p>
-          <Button
-            onClick={() => navigateTo(View.Webboard, 'create')}
-            variant="outline" // Changed variant
-            colorScheme="neutral" // Changed colorScheme
-            size="sm"
-          >
-            + สร้างกระทู้ใหม่
-          </Button>
-        </div>
-      ) : (
-        userWebboardPosts.map(post => (
-          <div key={post.id} className="bg-white p-4 rounded-lg shadow border">
-            <h4 className="font-semibold text-lg text-accent mb-1">{post.title}</h4>
-            <p className="text-xs text-neutral-medium mb-1">หมวดหมู่: {post.category}</p>
-            <p className="text-xs text-neutral-medium mb-2">สร้างเมื่อ: {formatDateDisplay(post.createdAt)} | {post.likes.length} ไลค์, {post.commentCount} คอมเมนต์</p>
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={() => navigateTo(View.Webboard, post.id)} variant="outline" colorScheme="neutral" size="sm">👁️ ดูกระทู้</Button>
-              <Button onClick={() => onEditItem(post.id, 'webboardPost', activeTab)} variant="outline" colorScheme="neutral" size="sm">✏️ แก้ไข</Button>
-              <Button onClick={() => onDeleteItem(post.id, 'webboardPost')} variant="outline" colorScheme="accent" size="sm">🗑️ ลบ</Button>
-            </div>
-          </div>
-        ))
-      )}
-    </div>
-  );
-
-  const renderInterestsTab = () => {
-    const subTabs: { id: ActiveSubTab, label: string }[] = [
-      { id: 'jobs', label: `งาน (${interestedJobs.length})` },
-      { id: 'helpers', label: `ผู้ช่วย (${interestedHelpers.length})` },
-      { id: 'posts', label: `กระทู้ (${savedWebboardPosts.length})` },
-    ];
-
-    const renderContent = () => {
-      switch (activeSubTab) {
-        case 'jobs':
-          return interestedJobs.length === 0 ? (
-            <div className="text-center py-8"><p className="text-neutral-medium mb-4">คุณยังไม่มีงานที่สนใจ</p><Button onClick={() => navigateTo(View.FindJobs)} variant="outline" colorScheme="neutral" size="sm">ค้นหางานที่น่าสนใจ</Button></div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {interestedJobs.map(job => (
-                <JobCard key={job.id} job={job} navigateTo={navigateTo} currentUser={currentUser} requestLoginForAction={requestLoginForAction} onEditJobFromFindView={onEditJobFromFindView} getAuthorDisplayName={getAuthorDisplayName} onToggleInterest={onToggleInterest} isInterested={true} />
-              ))}
-            </div>
-          );
-        case 'helpers':
-          return interestedHelpers.length === 0 ? (
-            <div className="text-center py-8"><p className="text-neutral-medium mb-4">คุณยังไม่มีผู้ช่วยที่สนใจ</p><Button onClick={() => navigateTo(View.FindHelpers)} variant="outline" colorScheme="neutral" size="sm">ค้นหาผู้ช่วย</Button></div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {interestedHelpers.map(profile => {
-                 const enrichedProfile = { ...profile, userPhoto: users.find(u => u.id === profile.userId)?.photo, profileCompleteBadge: users.find(u => u.id === profile.userId)?.profileComplete || false, warningBadge: profile.isSuspicious || false, verifiedExperienceBadge: profile.adminVerifiedExperience || false };
-                 return <HelperCard key={profile.id} profile={enrichedProfile} navigateTo={navigateTo} onNavigateToPublicProfile={onNavigateToPublicProfile} currentUser={currentUser} requestLoginForAction={requestLoginForAction} onBumpProfile={onBumpProfile} onEditProfileFromFindView={onEditHelperProfileFromFindView} onLogHelperContact={onLogHelperContact} getAuthorDisplayName={getAuthorDisplayName} onToggleInterest={onToggleInterest} isInterested={true} />;
-              })}
-            </div>
-          );
-        case 'posts':
-          return savedWebboardPosts.length === 0 ? (
-            <div className="text-center py-8"><p className="text-neutral-medium mb-4">คุณยังไม่มีกระทู้ที่บันทึกไว้</p><Button onClick={() => navigateTo(View.Webboard)} variant="outline" colorScheme="neutral" size="sm">ไปที่กระดานสนทนา</Button></div>
-          ) : (
-            <AnimatePresence>
-              <motion.div className="space-y-4" variants={listVariants} initial="hidden" animate="visible">
-                {savedWebboardPosts.map(post => (
-                  <motion.div key={post.id} variants={itemVariants}>
-                    <div className="bg-white p-0.5 rounded-lg shadow border"><WebboardPostCard post={post} currentUser={currentUser} onViewPost={(postId) => navigateTo(View.Webboard, postId)} onToggleLike={() => {}} onSavePost={onSavePost} onSharePost={() => {}} requestLoginForAction={() => {}} onNavigateToPublicProfile={(profileInfo) => onNavigateToPublicProfile(profileInfo)} getAuthorDisplayName={getAuthorDisplayName}/></div>
-                  </motion.div>
-                ))}
-              </motion.div>
-            </AnimatePresence>
-          );
-        default:
-          return null;
-      }
-    };
-
-    return (
-      <div>
-        <div className="mb-4 border-b border-neutral-DEFAULT/50">
-          <nav className="flex space-x-2" aria-label="Sub-tabs for interested items">
-            {subTabs.map(subTab => (
-              <button
-                key={subTab.id}
-                onClick={() => handleSubTabChange(subTab.id)}
-                className={`px-3 py-2 font-medium text-sm rounded-t-md transition-colors duration-150
-                  ${activeSubTab === subTab.id
-                    ? 'bg-neutral-light/50 border-t border-x border-neutral-DEFAULT/50 text-secondary'
-                    : 'text-neutral-medium hover:text-neutral-dark'
-                  }`
-                }
-              >
-                {subTab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
-        <div>
-          {renderContent()}
-        </div>
-      </div>
-    );
+    if (isJob && item.isHired) { statusText = 'มีคนทำแล้ว'; statusColor = 'text-blue-600'; }
+    else if (!isJob && item.isUnavailable) { statusText = 'ไม่ว่าง'; statusColor = 'text-orange-600'; }
+    else if (item.isSuspicious) { statusText = 'ถูกระงับชั่วคราว'; statusColor = 'text-red-600'; }
+    else if (isTrulyExpired) { statusText = 'หมดอายุ'; statusColor = 'text-neutral-500'; }
+    return <span className={`text-xs font-medium ${statusColor}`}>{statusText}</span>;
   };
-
+  
+  const renderEmptyState = (title: string, buttonText: string, targetView: View) => (
+    <div className="text-center py-10 bg-white p-6 rounded-lg shadow-md border border-neutral-DEFAULT">
+      <svg className="mx-auto h-16 w-16 text-neutral-DEFAULT mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+      <p className="text-xl text-neutral-dark mb-6 font-normal">{title}</p>
+      <Button onClick={() => navigateTo(targetView)} variant="primary" size="md">{buttonText}</Button>
+    </div>
+  );
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <div className="mb-6 sm:mb-8 text-center">
-        <h2 className="text-2xl sm:text-3xl font-sans font-semibold text-neutral-800">
-          🛋️ ห้องของฉัน
-        </h2>
-        <p className="text-sm text-neutral-medium">
-          จัดการโปรไฟล์และกิจกรรมทั้งหมดของคุณได้ที่นี่
-        </p>
-      </div>
-
-      {/* Tab Navigation */}
-      <div className="mb-6 sm:mb-8 border-b border-neutral-DEFAULT/70">
-        <nav className="flex overflow-x-auto space-x-1 sm:space-x-2 -mb-px" aria-label="Tabs">
+    <div className="flex flex-col md:flex-row gap-8">
+      <aside className="md:w-1/4 lg:w-1/5">
+        <nav className="sticky top-24 space-y-2">
           {tabs.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as ActiveTab)}
-              className={`
-                whitespace-nowrap flex items-center rounded-t-md
-                py-2.5 px-3 sm:py-3 sm:px-4
-                font-sans font-medium text-xs sm:text-sm transition-colors duration-150
-                focus:outline-none focus:ring-2 focus:ring-offset-1
-                ${activeTab === tab.id
-                  ? 'border-b-2 border-neutral-700 text-neutral-800 bg-neutral-light/20 focus:ring-neutral-700'
-                  : 'border-b-2 border-transparent text-neutral-medium hover:text-neutral-dark hover:border-neutral-DEFAULT/80 focus:ring-neutral-DEFAULT'
-                }
-              `}
-              role="tab"
-              aria-selected={activeTab === tab.id}
-              aria-controls={`tabpanel-${tab.id}`}
-              id={`tab-${tab.id}`}
+              onClick={() => setActiveTab(tab.id)}
+              className={`w-full flex items-center p-3 text-sm font-sans font-medium rounded-md transition-colors duration-200 ${activeTab === tab.id ? 'bg-secondary text-neutral-dark shadow' : 'text-neutral-medium hover:bg-secondary-hover/20 hover:text-neutral-dark'}`}
             >
               {tab.icon}
-              {tab.label}
+              <span>{tab.label}</span>
             </button>
           ))}
         </nav>
-      </div>
+      </aside>
 
-      {/* Tab Content */}
-      <div className="mt-2">
-        {activeTab === 'profile' && (
-          <div role="tabpanel" id="tabpanel-profile" aria-labelledby="tab-profile">
-            <UserProfilePage
-              currentUser={currentUser}
-              onUpdateProfile={onUpdateUserProfile}
-              onCancel={() => { /* No specific cancel navigation needed from here */ }}
-            />
-          </div>
-        )}
-        {activeTab === 'myJobs' && <div role="tabpanel" id="tabpanel-myJobs" aria-labelledby="tab-myJobs">{renderMyJobsTab()}</div>}
-        {activeTab === 'myHelperServices' && <div role="tabpanel" id="tabpanel-myHelperServices" aria-labelledby="tab-myHelperServices">{renderMyHelperServicesTab()}</div>}
-        {activeTab === 'myWebboardPosts' && <div role="tabpanel" id="tabpanel-myWebboardPosts" aria-labelledby="tab-myWebboardPosts">{renderMyWebboardPostsTab()}</div>}
-        {activeTab === 'interests' && <div role="tabpanel" id="tabpanel-interests" aria-labelledby="tab-interests">{renderInterestsTab()}</div>}
-      </div>
+      <main className="flex-1 min-w-0">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            {activeTab === 'profile' && (
+              <UserProfilePage currentUser={currentUser} onUpdateProfile={onUpdateUserProfile} onCancel={() => {}} />
+            )}
+
+            {activeTab === 'myJobs' && (
+              <div>
+                <div className="mb-6 p-4 bg-white shadow-md rounded-lg border border-neutral-DEFAULT">
+                  <h3 className="text-xl font-sans font-semibold text-neutral-dark mb-3 text-center">📊 สถานะประกาศงาน</h3>
+                  <div className="space-y-2 text-sm font-sans text-neutral-dark">
+                    <div className="flex justify-between items-center p-2 bg-neutral-light/50 rounded">
+                      <span>ประกาศงานที่ใช้งานอยู่: {userActiveJobsCount}/{maxJobsAllowed}</span>
+                      {jobCanCreate ? <span className="text-green-600 font-medium">(พร้อมสร้าง)</span> : <span className="text-orange-600 font-medium">(เหลืออีก {jobCooldownHoursRemaining} ชม.)</span>}
+                    </div>
+                  </div>
+                </div>
+                {userJobs.length === 0 ? renderEmptyState("คุณยังไม่มีประกาศงาน", "+ สร้างประกาศงานใหม่", View.PostJob) : (
+                  <div className="space-y-4">
+                    {userJobs.map(job => (
+                      <div key={job.id} className="bg-white p-4 rounded-lg shadow border">
+                        <h4 className="font-semibold text-lg text-neutral-dark">{job.title}</h4>
+                        <p className="text-xs text-neutral-medium mb-2">โพสต์เมื่อ: {formatDateDisplay(job.postedAt)}</p>
+                        <div className="flex items-center gap-2 mb-3">
+                          {renderItemStatus(job)}
+                          <span className="text-amber-600 text-xs font-medium">{getExpiryWarning(job.expiresAt, job.isHired, job.isSuspicious)}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button onClick={() => onToggleHiredStatus(job.id, 'job')} variant="outline" size="sm" disabled={job.isSuspicious || isDateInPast(job.expiresAt)}>{job.isHired ? '🔄 แจ้งว่ายังหางาน' : '✅ แจ้งว่าได้งานแล้ว'}</Button>
+                          <Button onClick={() => onEditItem(job.id, 'job', 'myJobs')} variant="outline" size="sm" disabled={job.isSuspicious}>✏️ แก้ไข</Button>
+                          <Button onClick={() => onDeleteItem(job.id, 'job')} variant="outline" colorScheme="accent" size="sm">🗑️ ลบ</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'myHelperServices' && (
+              <div>
+                <div className="mb-6 p-4 bg-white shadow-md rounded-lg border border-neutral-DEFAULT">
+                  <h3 className="text-xl font-sans font-semibold text-neutral-dark mb-3 text-center">📊 สถานะโปรไฟล์ผู้ช่วย</h3>
+                  <div className="space-y-2 text-sm font-sans text-neutral-dark">
+                    <div className="flex justify-between items-center p-2 bg-neutral-light/50 rounded">
+                      <span>โปรไฟล์ที่ใช้งานอยู่: {userActiveHelperProfilesCount}/{maxHelperProfilesAllowed}</span>
+                      {profileCanCreate ? <span className="text-green-600 font-medium">(พร้อมสร้าง)</span> : <span className="text-orange-600 font-medium">(เหลืออีก {helperProfileCooldownHoursRemaining} ชม.)</span>}
+                    </div>
+                  </div>
+                </div>
+                {userHelperProfiles.length === 0 ? renderEmptyState("คุณยังไม่มีโปรไฟล์ผู้ช่วย", "+ สร้างโปรไฟล์ใหม่", View.OfferHelp) : (
+                  <div className="space-y-4">
+                    {userHelperProfiles.map(profile => {
+                      const bumpDaysRemaining = profile.lastBumpedAt ? calculateDaysRemaining(new Date(new Date(profile.lastBumpedAt as string).getTime() + BUMP_COOLDOWN_DAYS_MY_ROOM * 24 * 60 * 60 * 1000)) : 0;
+                      const canBump = bumpDaysRemaining <= 0 && !isDateInPast(profile.expiresAt);
+                      return (
+                        <div key={profile.id} className="bg-white p-4 rounded-lg shadow border">
+                          <h4 className="font-semibold text-lg text-neutral-dark">{profile.profileTitle}</h4>
+                          <p className="text-xs text-neutral-medium mb-2">โพสต์เมื่อ: {formatDateDisplay(profile.postedAt)}</p>
+                          <div className="flex items-center gap-2 mb-3">
+                            {renderItemStatus(profile)}
+                            <span className="text-amber-600 text-xs font-medium">{getExpiryWarning(profile.expiresAt, profile.isUnavailable, profile.isSuspicious)}</span>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <Button onClick={() => onToggleHiredStatus(profile.id, 'profile')} variant="outline" size="sm" disabled={profile.isSuspicious || isDateInPast(profile.expiresAt)}>{profile.isUnavailable ? '🟢 แจ้งว่ากลับมาว่าง' : '🔴 แจ้งว่าไม่ว่างแล้ว'}</Button>
+                            <Button onClick={() => onBumpProfile(profile.id)} variant="outline" colorScheme="secondary" size="sm" disabled={!canBump || profile.isSuspicious || isDateInPast(profile.expiresAt)}>🚀 Bump {canBump ? '' : `(${bumpDaysRemaining}d)`}</Button>
+                            <Button onClick={() => onEditItem(profile.id, 'profile', 'myHelperServices')} variant="outline" size="sm" disabled={profile.isSuspicious}>✏️ แก้ไข</Button>
+                            <Button onClick={() => onDeleteItem(profile.id, 'profile')} variant="outline" colorScheme="accent" size="sm">🗑️ ลบ</Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'interests' && (
+              <div>
+                <div className="flex border-b border-neutral-DEFAULT mb-4">
+                  <button onClick={() => handleSubTabChange('jobs')} className={`py-2 px-4 text-sm font-medium ${activeSubTab === 'jobs' ? 'border-b-2 border-secondary text-secondary' : 'text-neutral-medium hover:text-secondary'}`}>งานที่สนใจ ({interestedJobs.length})</button>
+                  <button onClick={() => handleSubTabChange('helpers')} className={`py-2 px-4 text-sm font-medium ${activeSubTab === 'helpers' ? 'border-b-2 border-secondary text-secondary' : 'text-neutral-medium hover:text-secondary'}`}>ผู้ช่วยที่สนใจ ({interestedHelpers.length})</button>
+                  <button onClick={() => handleSubTabChange('posts')} className={`py-2 px-4 text-sm font-medium ${activeSubTab === 'posts' ? 'border-b-2 border-secondary text-secondary' : 'text-neutral-medium hover:text-secondary'}`}>กระทู้ที่บันทึก ({savedWebboardPosts.length})</button>
+                </div>
+                <AnimatePresence mode="wait">
+                  <motion.div key={activeSubTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                    {activeSubTab === 'jobs' && (
+                      interestedJobs.length === 0 ? <p className="text-center p-6 text-neutral-medium">ยังไม่มีงานที่สนใจ</p> : 
+                      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {interestedJobs.map(job => <JobCard key={job.id} job={job} navigateTo={navigateTo} currentUser={currentUser} requestLoginForAction={requestLoginForAction} onEditJobFromFindView={onEditJobFromFindView} getAuthorDisplayName={getAuthorDisplayName} onToggleInterest={onToggleInterest} isInterested={userInterests.some(i => i.targetId === job.id)} />)}
+                      </div>
+                    )}
+                    {activeSubTab === 'helpers' && (
+                      interestedHelpers.length === 0 ? <p className="text-center p-6 text-neutral-medium">ยังไม่มีผู้ช่วยที่สนใจ</p> :
+                      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {interestedHelpers.map(profile => <HelperCard key={profile.id} profile={profile} onNavigateToPublicProfile={onNavigateToPublicProfile} navigateTo={navigateTo} onLogHelperContact={onLogHelperContact} currentUser={currentUser} requestLoginForAction={requestLoginForAction} onBumpProfile={onBumpProfile} onEditProfileFromFindView={onEditHelperProfileFromFindView} getAuthorDisplayName={getAuthorDisplayName} onToggleInterest={onToggleInterest} isInterested={userInterests.some(i => i.targetId === profile.id)} />)}
+                      </div>
+                    )}
+                    {activeSubTab === 'posts' && (
+                      savedWebboardPosts.length === 0 ? <p className="text-center p-6 text-neutral-medium">ยังไม่มีกระทู้ที่บันทึกไว้</p> :
+                      <div className="space-y-4">
+                        {savedWebboardPosts.map(post => <WebboardPostCard key={post.id} post={post} currentUser={currentUser} onViewPost={(id) => navigateTo(View.Webboard, id)} onToggleLike={onToggleInterest as any} onSavePost={onSavePost} onSharePost={() => {}} requestLoginForAction={requestLoginForAction} onNavigateToPublicProfile={(info) => onNavigateToPublicProfile(info)} getAuthorDisplayName={getAuthorDisplayName}/>)}
+                      </div>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            )}
+            
+            {activeTab === 'myWebboardPosts' && (
+              <div>
+                {userWebboardPosts.length === 0 ? renderEmptyState("คุณยังไม่มีกระทู้", "+ สร้างกระทู้ใหม่", View.Webboard) : (
+                  <div className="space-y-4">
+                    {userWebboardPosts.map(post => (
+                      <div key={post.id} className="bg-white p-4 rounded-lg shadow border">
+                        <h4 className="font-semibold text-lg text-neutral-dark">{post.title}</h4>
+                        <p className="text-xs text-neutral-medium mb-2">โพสต์เมื่อ: {formatDateDisplay(post.createdAt)}</p>
+                        <p className="text-xs font-sans text-neutral-medium mb-2"> ❤️ {post.likes.length} ไลค์ | 💬 {post.commentCount} คอมเมนต์ </p>
+                        <div className="flex flex-wrap gap-2">
+                          <Button onClick={() => navigateTo(View.Webboard, post.id)} variant="outline" colorScheme="neutral" size="sm">👁️ ดูกระทู้</Button>
+                          <Button onClick={() => onEditItem(post.id, 'webboardPost', 'myWebboardPosts')} variant="outline" size="sm">✏️ แก้ไข</Button>
+                          <Button onClick={() => onDeleteItem(post.id, 'webboardPost')} variant="outline" colorScheme="accent" size="sm">🗑️ ลบ</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </main>
     </div>
   );
 };

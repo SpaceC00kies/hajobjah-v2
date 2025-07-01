@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   onAuthChangeService,
@@ -9,14 +10,14 @@ import {
   addJobService,
   updateJobService,
   deleteJobService,
-  getJobsPaginated,
-  getJobDocument,
+  getJobsPaginated, // Using paginated fetch
+  getJobDocument, // Added to fetch single job doc
   addHelperProfileService,
   updateHelperProfileService,
   deleteHelperProfileService,
-  getHelperProfilesPaginated,
-  getHelperProfileDocument,
-  getVouchDocument,
+  getHelperProfilesPaginated, // Using paginated fetch
+  getHelperProfileDocument, // Added to fetch single helper profile doc
+  getVouchDocument, // For Admin Dashboard HUD
   bumpHelperProfileService,
   addWebboardPostService,
   updateWebboardPostService,
@@ -29,8 +30,8 @@ import {
   subscribeToUsersService,
   subscribeToInteractionsService,
   subscribeToSiteConfigService,
-  subscribeToVouchReportsService,
-  resolveVouchReportService,
+  subscribeToVouchReportsService, // For Admin Dashboard
+  resolveVouchReportService, // For Admin Dashboard
   setSiteLockService,
   setUserRoleService,
   toggleItemFlagService,
@@ -42,12 +43,12 @@ import {
   subscribeToUserInterestsService,
   toggleInterestService,
   vouchForUserService,
-  reportVouchService,
+  reportVouchService, // New service
   subscribeToWebboardCommentsService,
-  orionAnalyzeService,
+  orionAnalyzeService, // New Orion service
 } from './services/firebaseService';
 import type { DocumentSnapshot, DocumentData } from 'firebase/firestore';
-import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier, Interest, VouchType, Vouch, VouchReport, VouchReportStatus, OrionMessage } from './types';
+import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier, Interest, VouchType, Vouch, VouchReport, VouchReportStatus, OrionMessage } from './types'; // Added Vouch, OrionMessage
 import type { AdminItem as AdminItemType } from './components/AdminDashboard';
 import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP, ACTIVITY_BADGE_DETAILS, Province, JOB_SUBCATEGORIES_MAP } from './types';
 import { PostJobForm } from './components/PostJobForm';
@@ -60,8 +61,10 @@ import { LoginForm } from './components/LoginForm';
 import { ForgotPasswordModal } from './components/ForgotPasswordModal';
 import { AdminDashboard } from './components/AdminDashboard';
 import { ConfirmModal } from './components/ConfirmModal';
-import { MyRoomPage } from './components/MyRoomPage';
-import type { ActiveTab as MyRoomActiveTab } from './components/MyRoomPage';
+// MyPostsPage is removed as its functionality is integrated into MyRoomPage
+// import { MyPostsPage } from './components/MyPostsPage';
+import { MyRoomPage } from './components/MyRoomPage'; // New MyRoomPage
+import type { ActiveTab as MyRoomActiveTab } from './components/MyRoomPage'; // Import ActiveTab type
 import { UserProfilePage } from './components/UserProfilePage';
 import { AboutUsPage } from './components/AboutUsPage';
 import { PublicProfilePage } from './components/PublicProfilePage';
@@ -73,9 +76,10 @@ import { SiteLockOverlay } from './components/SiteLockOverlay';
 import { CategoryFilterBar } from './components/CategoryFilterBar';
 import { SearchInputWithRecent } from './components/SearchInputWithRecent';
 import { PasswordResetPage } from './components/PasswordResetPage';
-import { VouchModal } from './components/VouchModal';
-import { VouchesListModal } from './components/VouchesListModal';
-import { ReportVouchModal } from './components/ReportVouchModal';
+import { VouchModal } from './components/VouchModal'; // New Vouch Modal
+import { VouchesListModal } from './components/VouchesListModal'; // New Vouch List Modal
+import { ReportVouchModal } from './components/ReportVouchModal'; // New Report Vouch Modal
+
 import { logFirebaseError } from './firebase/logging';
 import { AnimatePresence, motion, type Variants, type Transition, type HTMLMotionProps } from "framer-motion";
 
@@ -252,10 +256,10 @@ const App: React.FC = () => {
   const [isSiteLocked, setIsSiteLocked] = useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loginRedirectInfo, setLoginRedirectInfo] = useState<{ view: View; payload?: any } | null>(null);
-
+  
   const [copiedLinkNotification, setCopiedLinkNotification] = useState<string | null>(null);
   const copiedNotificationTimerRef = useRef<number | null>(null);
-
+  
   // State for new Vouch modals
   const [vouchModalData, setVouchModalData] = useState<{ userToVouch: User } | null>(null);
   const [vouchListModalData, setVouchListModalData] = useState<{ userToList: User } | null>(null);
@@ -335,14 +339,14 @@ const App: React.FC = () => {
         if(referrerView && Object.values(View).includes(referrerView)) {
             setSourceViewForPublicProfile(referrerView);
         } else {
-            setSourceViewForPublicProfile(View.FindHelpers);
+            setSourceViewForPublicProfile(View.FindHelpers); 
         }
       } else {
         setSelectedPostId(null);
         setViewingProfileInfo(null);
       }
     } else {
-      setCurrentView(View.Home);
+      setCurrentView(View.Home); 
       setSelectedPostId(null);
       setViewingProfileInfo(null);
     }
@@ -353,8 +357,8 @@ const App: React.FC = () => {
     // document.documentElement.classList.remove('dark'); // Removed: dark mode management
     setRecentJobSearches(getRecentSearches('recentJobSearches'));
     setRecentHelperSearches(getRecentSearches('recentHelperSearches'));
-
-    parseUrlAndSetInitialState();
+    
+    parseUrlAndSetInitialState(); 
 
     const unsubscribeAuth = onAuthChangeService((user) => {
       setCurrentUser(user);
@@ -466,7 +470,7 @@ const App: React.FC = () => {
             let last30DaysActivity = 0;
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
+            
             const threeDaysAgo = new Date(new Date().getTime() - 3 * 24 * 60 * 60 * 1000);
 
             if (allWebboardPostsForAdmin.length > 0 || webboardComments.length > 0) {
@@ -477,7 +481,7 @@ const App: React.FC = () => {
 
             const accountAgeInDays = u.createdAt ? (new Date().getTime() - new Date(u.createdAt as string).getTime()) / (1000 * 60 * 60 * 24) : 0;
             const isActivityBadgeActive = accountAgeInDays >= 30 && last30DaysActivity >= 15;
-
+            
             const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
             const defaultPostingLimits: UserPostingLimits = {
               lastJobPostDate: threeDaysAgo.toISOString(),
@@ -618,7 +622,7 @@ const App: React.FC = () => {
         if (typeof payload === 'string') idForUrl = payload;
         else if (payload && typeof payload === 'object' && payload.userId) idForUrl = payload.userId;
     }
-
+    
 
     if (idForUrl) {
       params.set('id', idForUrl);
@@ -864,7 +868,7 @@ const App: React.FC = () => {
       if (currentView === View.FindJobs || sourceViewForForm === View.FindJobs || sourceViewForForm === View.MyRoom) {
         loadJobsFn(true); // Use the passed loadJobs function
       }
-
+      
       const newJobDoc = await getJobDocument(newJobId);
       if (newJobDoc) {
         setAllJobsForAdmin(prev => [...prev, newJobDoc]);
@@ -872,7 +876,7 @@ const App: React.FC = () => {
         console.warn(`Failed to fetch newly created job ${newJobId} for admin list update. The list might be updated on next full load.`);
       }
 
-      navigateTo(sourceViewForForm || View.FindJobs);
+      navigateTo(sourceViewForForm || View.FindJobs); 
       setSourceViewForForm(null); alert('ประกาศงานของคุณถูกเพิ่มแล้ว!');
     } catch (error: any) {
       logFirebaseError("handleAddJob", error);
@@ -934,15 +938,15 @@ const App: React.FC = () => {
       if (currentView === View.FindHelpers || sourceViewForForm === View.FindHelpers || sourceViewForForm === View.MyRoom) {
         loadHelpersFn(true);
       }
-
+      
       const newHelperProfileDoc = await getHelperProfileDocument(newProfileId);
       if (newHelperProfileDoc) {
         setAllHelperProfilesForAdmin(prev => [...prev, newHelperProfileDoc]);
       } else {
          console.warn(`Failed to fetch newly created helper profile ${newProfileId} for admin list update. The list might be updated on next full load.`);
       }
-
-      navigateTo(sourceViewForForm || View.FindHelpers);
+      
+      navigateTo(sourceViewForForm || View.FindHelpers); 
       setSourceViewForForm(null);
       alert('โปรไฟล์ของคุณถูกเพิ่มแล้ว!');
     } catch (error: any) {
@@ -1042,7 +1046,7 @@ const App: React.FC = () => {
     } else {
         setMyRoomInitialTabOverride(null);
     }
-
+    
     // Navigate. If targetView is Webboard and we were viewing a specific post (not creating),
     // payload should be that post's ID. Otherwise, undefined.
     navigateTo(targetView, (targetView === View.Webboard && currentSelectedPostIdForNav && currentSelectedPostIdForNav !== 'create') ? currentSelectedPostIdForNav : undefined);
@@ -1181,7 +1185,7 @@ const App: React.FC = () => {
     if (!helperProfile || currentUser.id === helperProfile.userId) return;
     try {
         await logHelperContactInteractionService(helperProfileId, currentUser.id, helperProfile.userId);
-
+        
         // The interestedCount is now managed by the toggleInterestService, not here.
         // This function is purely for logging the contact event itself.
 
@@ -1211,7 +1215,7 @@ const App: React.FC = () => {
       alert(`เกิดข้อผิดพลาดในการบันทึกความสนใจ: ${error}`);
     }
   };
-
+  
   // New Vouch handlers
   const handleOpenVouchModal = (userToVouch: User) => {
     if (!currentUser) {
@@ -1235,7 +1239,7 @@ const App: React.FC = () => {
       alert(`เกิดข้อผิดพลาด: ${error.message}`);
     }
   };
-
+  
   const handleOpenVouchesListModal = (userToList: User) => {
     setVouchListModalData({ userToList });
   };
@@ -1319,9 +1323,9 @@ const App: React.FC = () => {
             setMyRoomInitialTabOverride(editOriginMyRoomTab); // Prepare tab for MyRoomPage
             navigateTo(View.MyRoom);
         } else if (sourceViewForForm === View.AdminDashboard) {
-            setSelectedPostId(finalPostId || null);
+            setSelectedPostId(finalPostId || null); 
             navigateTo(View.Webboard, finalPostId);
-        } else {
+        } else { 
             setSelectedPostId(finalPostId || null);
             navigateTo(View.Webboard, finalPostId);
         }
@@ -1406,14 +1410,14 @@ const App: React.FC = () => {
     const postUrl = `${window.location.origin}${window.location.pathname}?view=${View.Webboard}&id=${postId}`;
     try {
       await navigator.clipboard.writeText(postUrl);
-
+      
       if (copiedNotificationTimerRef.current) {
         clearTimeout(copiedNotificationTimerRef.current);
       }
       setCopiedLinkNotification(`คัดลอกลิงก์แล้ว: ${postTitle.substring(0, 30)}${postTitle.length > 30 ? '...' : ''}`);
-
+      
       copiedNotificationTimerRef.current = window.setTimeout(() => {
-        setCopiedLinkNotification(null);
+        setCopiedLinkNotification(null); 
       }, 2500);
 
     } catch (err) {
@@ -1697,9 +1701,9 @@ const App: React.FC = () => {
             >
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-lg font-sans font-semibold text-neutral-medium">เมนู</h2>
-                <button
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-1 rounded-md text-neutral-dark hover:bg-neutral-light/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-neutral-DEFAULT"
+                <button 
+                  onClick={() => setIsMobileMenuOpen(false)} 
+                  className="p-1 rounded-md text-neutral-dark hover:bg-neutral-light/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-neutral-DEFAULT" 
                   aria-label="Close menu"
                 >
                   <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
@@ -1817,8 +1821,8 @@ const App: React.FC = () => {
         isInitialLoad ? null : lastVisibleJob,
         selectedJobCategoryFilter === 'all' ? null : selectedJobCategoryFilter,
         jobSearchTerm,
-        selectedJobSubCategoryFilter,
-        selectedJobProvinceFilter
+        selectedJobSubCategoryFilter, 
+        selectedJobProvinceFilter    
       );
       setJobsList(prevJobs => isInitialLoad ? result.items : [...prevJobs, ...result.items]);
       setLastVisibleJob(result.lastVisibleDoc);
@@ -1838,7 +1842,7 @@ const App: React.FC = () => {
     if (currentView === View.FindJobs) {
       loadJobs(true);
     }
-  }, [currentView, selectedJobCategoryFilter, jobSearchTerm, selectedJobSubCategoryFilter, selectedJobProvinceFilter]);
+  }, [currentView, selectedJobCategoryFilter, jobSearchTerm, selectedJobSubCategoryFilter, selectedJobProvinceFilter]); 
 
   useEffect(() => {
     if (currentView !== View.FindJobs || !initialJobsLoaded) return;
@@ -1868,7 +1872,7 @@ const App: React.FC = () => {
     setSelectedJobCategoryFilter(category);
     setSelectedJobSubCategoryFilter('all'); // Reset subcategory when main category changes
   };
-
+  
   const handleSubmitJobForm = (formDataFromForm: JobFormData & { id?: string }) => {
     if (formDataFromForm.id && itemToEdit && editingItemType === 'job') {
         handleUpdateJob(formDataFromForm as JobFormData & { id: string }, loadJobs);
@@ -1897,8 +1901,8 @@ const App: React.FC = () => {
     }
 
     const activeUserJobs = jobsList
-      .filter(job =>
-          job.isExpired === false &&
+      .filter(job => 
+          job.isExpired === false && 
           job.expiresAt && !isDateInPast(job.expiresAt) &&
           job.isHired === false
       )
@@ -1912,7 +1916,7 @@ const App: React.FC = () => {
         }
         return { ...job, posterIsAdminVerified };
       });
-
+    
     const inputBaseStyle = "w-full p-3 bg-white border border-[#CCCCCC] rounded-[10px] text-neutral-dark font-serif font-normal focus:outline-none transition-colors duration-150 ease-in-out";
     const selectBaseStyle = `${inputBaseStyle} appearance-none`;
     const inputFocusStyle = "focus:border-neutral-dark focus:ring-1 focus:ring-neutral-dark focus:ring-opacity-50";
@@ -1932,7 +1936,7 @@ const App: React.FC = () => {
         <aside className="lg:col-span-3 mb-8 lg:mb-0">
           <div className="sticky top-24 space-y-6 p-4 bg-white rounded-xl shadow-lg border border-neutral-DEFAULT">
             <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedJobCategoryFilter} onSelectCategory={handleJobCategoryFilterChange} />
-
+            
             <div>
               <label htmlFor="job-subcategory-filter" className="block text-sm font-sans font-medium text-neutral-dark mb-1">
                 เลือกหมวดหมู่ย่อย:
@@ -1969,9 +1973,9 @@ const App: React.FC = () => {
                 ))}
               </select>
             </div>
-
+            
             <SearchInputWithRecent searchTerm={jobSearchTerm} onSearchTermChange={handleJobSearch} placeholder="ค้นหางาน, รายละเอียด..." recentSearches={recentJobSearches} onRecentSearchSelect={(term) => { setJobSearchTerm(term); addRecentSearch('recentJobSearches', term); setRecentJobSearches(getRecentSearches('recentJobSearches')); }} ariaLabel="ค้นหางาน" />
-
+            
             {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="w-full sm:px-4 sm:text-sm">
               <span className="flex items-center justify-center gap-2">ลงประกาศงาน</span>
             </Button> )}
@@ -1999,11 +2003,11 @@ const App: React.FC = () => {
               >
                  {activeUserJobs.map(job => (
                   <motion.div key={job.id} variants={itemVariants}>
-                    <JobCard
-                        job={job}
-                        navigateTo={navigateTo}
-                        currentUser={currentUser}
-                        requestLoginForAction={requestLoginForAction}
+                    <JobCard 
+                        job={job} 
+                        navigateTo={navigateTo} 
+                        currentUser={currentUser} 
+                        requestLoginForAction={requestLoginForAction} 
                         onEditJobFromFindView={currentUser?.id === job.userId ? handleEditOwnJobFromFindView : undefined}
                         getAuthorDisplayName={getAuthorDisplayName}
                         onToggleInterest={(targetId, targetType, targetOwnerId) => handleToggleInterest(targetId, targetType, targetOwnerId)}
@@ -2049,8 +2053,8 @@ const App: React.FC = () => {
         isInitialLoad ? null : lastVisibleHelper,
         selectedHelperCategoryFilter === 'all' ? null : selectedHelperCategoryFilter,
         helperSearchTerm,
-        selectedHelperSubCategoryFilter,
-        selectedHelperProvinceFilter
+        selectedHelperSubCategoryFilter, 
+        selectedHelperProvinceFilter    
       );
       setHelperProfilesList(prev => isInitialLoad ? result.items : [...prev, ...result.items]);
       setLastVisibleHelper(result.lastVisibleDoc);
@@ -2070,7 +2074,7 @@ const App: React.FC = () => {
     if (currentView === View.FindHelpers) {
       loadHelpers(true);
     }
-  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm, selectedHelperSubCategoryFilter, selectedHelperProvinceFilter]);
+  }, [currentView, selectedHelperCategoryFilter, helperSearchTerm, selectedHelperSubCategoryFilter, selectedHelperProvinceFilter]); 
 
   useEffect(() => {
     if (currentView !== View.FindHelpers || !initialHelpersLoaded) return;
@@ -2100,7 +2104,7 @@ const App: React.FC = () => {
     setSelectedHelperCategoryFilter(category);
     setSelectedHelperSubCategoryFilter('all'); // Reset subcategory when main category changes
   };
-
+  
   const handleSubmitHelperProfileForm = (formDataFromForm: HelperProfileFormData & { id?: string }) => {
     if (formDataFromForm.id && itemToEdit && editingItemType === 'profile') {
         handleUpdateHelperProfile(formDataFromForm as HelperProfileFormData & { id: string }, loadHelpers);
@@ -2157,7 +2161,7 @@ const App: React.FC = () => {
         <aside className="lg:col-span-3 mb-8 lg:mb-0">
             <div className="sticky top-24 space-y-6 p-4 bg-white rounded-xl shadow-lg border border-neutral-DEFAULT">
                 <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedHelperCategoryFilter} onSelectCategory={handleHelperCategoryFilterChange} />
-
+                
                 <div>
                   <label htmlFor="helper-subcategory-filter" className="block text-sm font-sans font-medium text-neutral-dark mb-1">
                     เลือกหมวดหมู่ย่อย:
@@ -2194,9 +2198,9 @@ const App: React.FC = () => {
                     ))}
                   </select>
                 </div>
-
+                
                 <SearchInputWithRecent searchTerm={helperSearchTerm} onSearchTermChange={handleHelperSearch} placeholder="ค้นหาผู้ช่วย, ทักษะ, พื้นที่..." recentSearches={recentHelperSearches} onRecentSearchSelect={(term) => { setHelperSearchTerm(term); addRecentSearch('recentHelperSearches', term); setRecentHelperSearches(getRecentSearches('recentHelperSearches')); }} ariaLabel="ค้นหาผู้ช่วย" />
-
+                
                 {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateTo(View.OfferHelp); }} variant="secondary" size="md" className="w-full sm:px-4 sm:text-sm"> <span className="flex items-center justify-center gap-2">สร้างโปรไฟล์</span> </Button> )}
             </div>
         </aside>
@@ -2280,7 +2284,7 @@ const App: React.FC = () => {
         initialTab={myRoomInitialTabOverride}
         onInitialTabProcessed={() => setMyRoomInitialTabOverride(null)}
         getAuthorDisplayName={getAuthorDisplayName}
-        onToggleInterest={onToggleInterest}
+        onToggleInterest={handleToggleInterest}
         requestLoginForAction={requestLoginForAction}
         onEditJobFromFindView={handleEditOwnJobFromFindView}
         onEditHelperProfileFromFindView={handleEditOwnHelperProfileFromFindView}
@@ -2340,10 +2344,10 @@ const App: React.FC = () => {
     let helperProfileForBio: HelperProfile | undefined = undefined;
     if (viewingProfileInfo.helperProfileId) {
         // Find specific helper profile if ID is provided
-        helperProfileForBio = allHelperProfilesForAdmin.find(hp =>
-            hp.id === viewingProfileInfo.helperProfileId &&
+        helperProfileForBio = allHelperProfilesForAdmin.find(hp => 
+            hp.id === viewingProfileInfo.helperProfileId && 
             hp.userId === viewingProfileInfo.userId && // Ensure it belongs to the user
-            !isDateInPast(hp.expiresAt) &&
+            !isDateInPast(hp.expiresAt) && 
             !hp.isExpired
         );
     }
@@ -2372,7 +2376,7 @@ const App: React.FC = () => {
       onDeletePost={handleDeleteWebboardPost}
       onPinPost={handlePinWebboardPost}
       onEditPost={handleEditWebboardPostFromPage}
-      onDeleteComment={handleDeleteWebboardComment}
+      onDeleteComment={handleDeleteWebboardComment} 
       onUpdateComment={handleUpdateWebboardComment}
       selectedPostId={selectedPostId} setSelectedPostId={setSelectedPostId}
       navigateTo={navigateTo} editingPost={editingItemType === 'webboardPost' ? itemToEdit as WebboardPost : null}
@@ -2433,20 +2437,20 @@ const App: React.FC = () => {
             transition={{ duration: 0.6, ease: "easeOut" } as Transition}
           >
             <nav className="mb-3 flex justify-center items-center flex-wrap gap-x-1">
-              <button
-                onClick={() => navigateTo(View.AboutUs)}
+              <button 
+                onClick={() => navigateTo(View.AboutUs)} 
                 className="text-xs text-neutral-medium hover:text-neutral-dark transition-colors duration-300 ease-in-out px-2 py-1"
               >
                 เกี่ยวกับเรา
               </button>
-              <button
-                onClick={() => navigateTo(View.Safety)}
+              <button 
+                onClick={() => navigateTo(View.Safety)} 
                 className="text-xs text-neutral-medium hover:text-neutral-dark transition-colors duration-300 ease-in-out px-2 py-1"
               >
                 ความปลอดภัย
               </button>
-              <button
-                onClick={() => setIsFeedbackModalOpen(true)}
+              <button 
+                onClick={() => setIsFeedbackModalOpen(true)} 
                 className="text-xs text-neutral-medium hover:text-neutral-dark transition-colors duration-300 ease-in-out px-2 py-1"
               >
                 ส่ง Feedback
@@ -2456,24 +2460,24 @@ const App: React.FC = () => {
             <div className="mb-3 text-xs text-neutral-medium flex items-center justify-center">
               <span className="mr-1.5">Created by</span>
               <motion.a
-                href="https://bluecathouse.com"
+                href="https://bluecathouse.com" 
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center group"
                 whileHover={{ scale: 1.02 }}
                 transition={{ duration: 0.3, ease: "easeOut" } as Transition}
               >
-                <img
-                  src="https://i.postimg.cc/wxrcQPHV/449834128-122096458958403535-3024125841409891827-n-1-removebg-preview.png"
-                  alt="Blue Cat House Logo"
-                  className="h-4 w-auto inline-block align-middle mr-1"
+                <img 
+                  src="https://i.postimg.cc/wxrcQPHV/449834128-122096458958403535-3024125841409891827-n-1-removebg-preview.png" 
+                  alt="Blue Cat House Logo" 
+                  className="h-4 w-auto inline-block align-middle mr-1" 
                 />
                 <span className="text-neutral-medium group-hover:text-primary transition-colors duration-300 ease-in-out">
                   Blue Cat House
                 </span>
               </motion.a>
             </div>
-
+            
             <p className="text-[11px] text-gray-400 mt-0">
               © {new Date().getFullYear()} HAJOBJA.COM - All rights reserved.
             </p>
