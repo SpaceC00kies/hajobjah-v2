@@ -41,10 +41,9 @@ import {
   deleteObject,
   uploadString,
 } from '@firebase/storage';
-// This line has been corrected
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { httpsCallable } from 'firebase/functions'; // Import httpsCallable
 
-import { auth, db, storage } from '../firebase'; // Corrected Path
+import { auth, db, storage, functions } from '../firebase.ts'; // Import functions instance
 import {
   USER_LEVELS,
   UserRole,
@@ -70,11 +69,9 @@ import {
   type VouchReport,
   type GenderOption,
   type HelperEducationLevelOption,
-} from '../types'; // Corrected Path
-import { logFirebaseError } from '../firebase/logging'; // Corrected Path
+} from '../types.ts';
+import { logFirebaseError } from '../firebase/logging.ts';
 
-// Initialize functions here, as it's a client-side import
-const functions = getFunctions();
 
 // Collection Names
 const USERS_COLLECTION = 'users';

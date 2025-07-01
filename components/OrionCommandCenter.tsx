@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { OrionMessage } from '../types';
-import { Button } from './Button';
+import type { OrionMessage } from '../types.ts';
+import { Button } from './Button.tsx';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface OrionCommandCenterProps {
@@ -75,7 +75,7 @@ export const OrionCommandCenter: React.FC<OrionCommandCenterProps> = ({ orionAna
     } catch (error) {
       const errorMessage: OrionMessage = {
         id: `error-${Date.now()}`,
-        text: 'เกิดข้อผิดพลาดในการสื่อสารกับ Orion AI',
+        text: 'An unexpected error occurred while contacting Orion.',
         sender: 'orion',
         isError: true,
       };
@@ -86,61 +86,63 @@ export const OrionCommandCenter: React.FC<OrionCommandCenterProps> = ({ orionAna
   };
 
   return (
-    <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg border border-neutral-DEFAULT flex flex-col h-[75vh]">
-      <h3 className="text-xl font-semibold text-accent mb-4 text-center">Orion Command Center</h3>
-      <div className="flex-1 overflow-y-auto pr-2 space-y-4 mb-4">
+    <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg border border-neutral-DEFAULT h-[70vh] flex flex-col">
+      <h3 className="text-xl font-semibold text-accent mb-4 text-center">
+        🤖 Orion Command Center
+      </h3>
+      <div className="flex-grow overflow-y-auto mb-4 p-4 bg-neutral-light/50 rounded-md space-y-4">
         <AnimatePresence>
-          {messages.map((message, index) => (
+          {messages.map((message) => (
             <motion.div
               key={message.id}
-              initial={{ opacity: 0, y: 20 }}
+              className={`flex items-start gap-3 ${message.sender === 'user' ? 'justify-end' : ''}`}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
-              className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
             >
+              {message.sender === 'orion' && <span className="text-xl">🤖</span>}
               <div
-                className={`max-w-xs md:max-w-md lg:max-w-lg p-3 rounded-lg text-sm font-serif ${
+                className={`max-w-xl p-3 rounded-lg prose prose-sm ${
                   message.sender === 'user'
-                    ? 'bg-blue-500 text-white'
+                    ? 'bg-blue-100 text-neutral-dark'
                     : message.isError
-                    ? 'bg-red-100 text-red-700 border border-red-200'
+                    ? 'bg-red-100 text-red-800'
                     : 'bg-neutral-light text-neutral-dark'
                 }`}
               >
-                {message.sender === 'orion' && <strong className="font-sans font-semibold block mb-1">🤖 Orion:</strong>}
-                <div
-                    className="prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: message.text.replace(/\n/g, '<br />') }}
-                />
+                {message.text}
               </div>
             </motion.div>
           ))}
+          {isLoading && (
+            <motion.div
+              key="typing"
+              className="flex items-start gap-3"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <span className="text-xl">🤖</span>
+              <div className="max-w-xl p-3 rounded-lg bg-neutral-light">
+                <TypingIndicator />
+              </div>
+            </motion.div>
+          )}
         </AnimatePresence>
-        {isLoading && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex justify-start"
-          >
-            <div className="bg-neutral-light text-neutral-dark p-3 rounded-lg">
-              <TypingIndicator />
-            </div>
-          </motion.div>
-        )}
         <div ref={messagesEndRef} />
       </div>
-      <form onSubmit={handleSubmit} className="flex items-center gap-3 border-t border-neutral-DEFAULT pt-4">
+      <form onSubmit={handleSubmit} className="flex gap-3">
         <input
           type="text"
           value={inputCommand}
           onChange={(e) => setInputCommand(e.target.value)}
-          placeholder={isLoading ? "Orion is thinking..." : "Enter your command..."}
-          className="flex-1 p-2 border border-neutral-DEFAULT rounded-md focus:outline-none focus:ring-2 focus:ring-accent"
+          placeholder="Enter command..."
+          className="flex-grow w-full p-3 bg-white border border-neutral-DEFAULT rounded-lg text-neutral-dark focus:outline-none focus:ring-2 focus:ring-accent"
           disabled={isLoading}
-          aria-label="Orion command input"
         />
-        <Button type="submit" variant="primary" size="md" disabled={isLoading || !inputCommand.trim()}>
-          Send
+        <Button type="submit" variant="primary" size="md" disabled={isLoading}>
+          {isLoading ? 'Sending...' : 'Send'}
         </Button>
       </form>
     </div>
