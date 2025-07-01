@@ -1,10 +1,14 @@
-import * as functions from "firebase-functions";
+=import {onCall, HttpsError} from "firebase-functions/v2/https";
+import {setGlobalOptions} from "firebase-functions/v2";
 import * as admin from "firebase-admin";
 import { GoogleGenAI } from "@google/genai";
 import type { User, Vouch, WebboardPost, WebboardComment } from "../../types.ts";
 
 admin.initializeApp();
 const db = admin.firestore();
+
+// Set global options for all functions
+setGlobalOptions({ region: "us-central1" });
 
 // Access the API key from the function's environment variables
 const geminiApiKey = process.env.GEMINI_API_KEY;
@@ -14,10 +18,10 @@ if (!geminiApiKey) {
 const ai = new GoogleGenAI({apiKey: geminiApiKey || ""});
 
 
-export const orionAnalyze = functions.https.onCall(async (request) => {
+export const orionAnalyze = onCall(async (request) => {
   // 1. Security Check: Ensure the user is an admin.
   if (request.auth?.token?.role !== "Admin") {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
         "permission-denied",
         "You must be an administrator to use this feature.",
     );
@@ -25,7 +29,7 @@ export const orionAnalyze = functions.https.onCall(async (request) => {
 
   const command: string = request.data.command;
   if (!command) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
         "invalid-argument",
         "The function must be called with a command.",
     );
@@ -110,7 +114,7 @@ export const orionAnalyze = functions.https.onCall(async (request) => {
     return response.text;
   } catch (error) {
     console.error("Error in orionAnalyze function:", error);
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
         "internal",
         "An error occurred while processing your request.",
     );
@@ -118,10 +122,10 @@ export const orionAnalyze = functions.https.onCall(async (request) => {
 });
 
 // New function to securely set a user's role
-export const setUserRole = functions.https.onCall(async (request) => {
+export const setUserRole = onCall(async (request) => {
   // 1. Security Check: Ensure the caller is an admin.
   if (request.auth?.token?.role !== "Admin") {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
         "permission-denied",
         "Only administrators can set user roles.",
     );
@@ -129,7 +133,7 @@ export const setUserRole = functions.https.onCall(async (request) => {
 
   const {userId, role} = request.data;
   if (!userId || !role) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
         "invalid-argument",
         "The function must be called with a 'userId' and 'role'.",
     );
@@ -143,7 +147,7 @@ export const setUserRole = functions.https.onCall(async (request) => {
     return {status: "success", message: `Role for user ${userId} updated to ${role}.`};
   } catch (error) {
     console.error("Error setting user role:", error);
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
         "internal",
         "An error occurred while setting the user role.",
     );
@@ -151,10 +155,10 @@ export const setUserRole = functions.https.onCall(async (request) => {
 });
 
 // New function to self-heal and sync a user's auth token with their Firestore role
-export const syncUserClaims = functions.https.onCall(async (request) => {
+export const syncUserClaims = onCall(async (request) => {
   // 1. Security Check: Ensure user is authenticated.
   if (!request.auth) {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
         "unauthenticated",
         "The function must be called while authenticated.",
     );
@@ -167,7 +171,7 @@ export const syncUserClaims = functions.https.onCall(async (request) => {
     const userDoc = await db.collection("users").doc(userId).get();
     if (!userDoc.exists) {
       // This should ideally not happen for an authenticated user.
-      throw new functions.https.HttpsError("not-found", "User document not found.");
+      throw new HttpsError("not-found", "User document not found.");
     }
 
     const firestoreRole = userDoc.data()?.role;
@@ -181,7 +185,7 @@ export const syncUserClaims = functions.https.onCall(async (request) => {
     return {status: "synced", newRole: firestoreRole};
   } catch (error) {
     console.error(`Error syncing claims for user ${userId}:`, error);
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
         "internal",
         "An error occurred while syncing user claims.",
     );
