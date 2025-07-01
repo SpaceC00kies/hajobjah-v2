@@ -43,7 +43,7 @@ import {
 } from '@firebase/storage';
 import { httpsCallable } from 'firebase/functions'; // Import httpsCallable
 
-import { auth, db, storage, functions } from '@/firebase'; // Import functions instance
+import { auth, db, storage, functions } from '../firebase'; // Corrected Path
 import {
   USER_LEVELS,
   UserRole,
@@ -69,8 +69,8 @@ import {
   type VouchReport,
   type GenderOption,
   type HelperEducationLevelOption,
-} from '@/types';
-import { logFirebaseError } from '@/firebase/logging';
+} from '../types'; // Corrected Path
+import { logFirebaseError } from '../firebase/logging'; // Corrected Path
 
 
 // Collection Names
