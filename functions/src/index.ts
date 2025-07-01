@@ -1,6 +1,5 @@
 
 import {onCall, HttpsError} from "firebase-functions/v2/https";
-import {setGlobalOptions} from "firebase-functions/v2";
 import * as admin from "firebase-admin";
 import { GoogleGenAI } from "@google/genai";
 import type { User, Vouch, WebboardPost, WebboardComment } from "./types.ts";
@@ -8,8 +7,18 @@ import type { User, Vouch, WebboardPost, WebboardComment } from "./types.ts";
 admin.initializeApp();
 const db = admin.firestore();
 
-// Set global options for all functions
-setGlobalOptions({ region: "us-central1" });
+// Define CORS policy to be used by all onCall functions
+const corsPolicy = [
+  "https://www.hajobja.com",
+  "https://hajobja.com",
+  /hajobjah\.web\.app$/,
+  /hajobjah\.firebaseapp\.com$/,
+];
+
+const functionOptions = {
+  region: "us-central1",
+  cors: corsPolicy,
+};
 
 // Access the API key from the function's environment variables
 const geminiApiKey = process.env.GEMINI_API_KEY;
@@ -19,7 +28,7 @@ if (!geminiApiKey) {
 const ai = new GoogleGenAI({apiKey: geminiApiKey || ""});
 
 
-export const orionAnalyze = onCall(async (request) => {
+export const orionAnalyze = onCall(functionOptions, async (request) => {
   // 1. Security Check: Ensure the user is an admin.
   if (request.auth?.token?.role !== "Admin") {
     throw new HttpsError(
@@ -123,7 +132,7 @@ export const orionAnalyze = onCall(async (request) => {
 });
 
 // New function to securely set a user's role
-export const setUserRole = onCall(async (request) => {
+export const setUserRole = onCall(functionOptions, async (request) => {
   // 1. Security Check: Ensure the caller is an admin.
   if (request.auth?.token?.role !== "Admin") {
     throw new HttpsError(
@@ -156,7 +165,7 @@ export const setUserRole = onCall(async (request) => {
 });
 
 // New function to self-heal and sync a user's auth token with their Firestore role
-export const syncUserClaims = onCall(async (request) => {
+export const syncUserClaims = onCall(functionOptions, async (request) => {
   // 1. Security Check: Ensure user is authenticated.
   if (!request.auth) {
     throw new HttpsError(
