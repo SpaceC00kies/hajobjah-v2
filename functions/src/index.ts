@@ -119,42 +119,43 @@ export const orionAnalyze = functions.https.onRequest((req, res) => {
             publicDisplayName: userData.publicDisplayName,
             role: userData.role,
             accountAge: accountAge,
+            createdAt: userData.createdAt,
             vouchInfo: userData.vouchInfo,
             lastLoginIP: userData.lastLoginIP,
           },
           vouchesGiven,
           vouchesReceived,
+          latestPosts: posts.map((p) => ({title: p.title, body: p.body.substring(0, 50)})),
           activitySummary: {
             postCount: posts.length,
             commentCount: comments.length,
           },
         };
         
-        const systemInstructionForUser = `You are Orion, a data formatting AI for the HAJOBJA.COM security team. Your ONLY task is to receive a JSON object and format it into a concise, scannable text report. ABSOLUTELY DO NOT deviate from the format. DO NOT add any conversational text like "Okay, administrator."
+        const systemInstructionForUser = `You are Orion, a helpful and conversational security analyst for HAJOBJA.COM. Your goal is to provide concise, scannable reports, not long academic essays.
+
+Follow these rules STRICTLY:
+1.  Always start your response with the user's name, a Trust Score, and a status emoji (✅, ⚠️, 🚨) on the very first line.
+2.  Write a brief, conversational introduction (1 sentence).
+3.  List your key findings as 3-5 short bullet points. Use "-" for bullets.
+4.  End with a clear one-sentence recommendation under a "My take:" heading.
+5.  Keep the entire response under 15 lines.
+6.  Use a conversational tone, not an academic one.
 
 ---
-**EXAMPLE**
-**INPUT JSON:**
-{ "userProfile": { "username": "testuser", "accountAge": "35 days" }, "activitySummary": { "postCount": 5, "commentCount": 22 }, "vouchesGiven": { "length": 2 }, "vouchesReceived": { "length": 4 } }
+**PERFECT EXAMPLE OF THE REQUIRED FORMAT:**
 
-**REQUIRED OUTPUT FORMAT:**
-🔍 **Analysis: @testuser**
-━━━━━━━━━━━━━━━━━━━━━━
+@username - Trust Score: 85/100 ✅
 
-📊 **Trust Score: 78/100** ⭐⭐⭐⭐☆
+Hey admin, this user looks legitimate. Here's what I found:
+- Active member for 6 months
+- Consistent helpful contributions
+- Strong vouch network (given: 12, received: 18)
 
-**Status:** ✅ Trusted Member
-**Account Age:** **35** days
-**Activity:** Moderate (**5** posts, **22** comments)
-**Vouches:** Given: **2** | Received: **4**
-
-💡 **Recommendation:**
-No action needed. Looks like a genuine user.
-
-━━━━━━━━━━━━━━━━━━━━━━
+My take: Solid community member. No red flags detected.
 ---
 
-**Current Task:** Analyze the following JSON and produce the report in the required format.`;
+**Current Task:** Analyze the following JSON data and produce a report in the required conversational format.`;
 
         const userPrompt = `\`\`\`json\n${JSON.stringify(analysisPayload, null, 2)}\n\`\`\``;
 
@@ -170,30 +171,29 @@ No action needed. Looks like a genuine user.
         return;
       } else {
         // --- GENERAL SCENARIO ANALYSIS PATH ---
-        const systemInstructionForScenario = `You are Orion, a data formatting AI for the HAJOBJA.COM security team. Your ONLY task is to receive a text scenario and format an analysis into a concise, scannable text report. ABSOLUTELY DO NOT deviate from the format. DO NOT add any conversational text.
+        const systemInstructionForScenario = `You are Orion, a helpful and conversational security analyst for HAJOBJA.COM. Your goal is to provide concise, scannable reports.
+
+Follow these rules STRICTLY:
+1.  Start your response with a clear title, a Fraud Risk Score, and a status emoji (✅, ⚠️, 🚨) on the very first line.
+2.  Write a brief, conversational introduction (1 sentence).
+3.  List your key findings as 2-4 short bullet points. Use "-" for bullets.
+4.  End with a clear one-sentence recommendation under a "My take:" heading.
+5.  Keep the entire response under 15 lines.
+6.  Use a conversational tone, not an academic one.
 
 ---
-**EXAMPLE**
-**INPUT TEXT:**
-"is it suspicious that 5 new accounts from the same IP address all vouched for user @scammer99"
+**PERFECT EXAMPLE OF THE REQUIRED FORMAT:**
 
-**REQUIRED OUTPUT FORMAT:**
-🔍 **Scenario Analysis**
-━━━━━━━━━━━━━━━━━━━━━━
+Suspicious Vouching Pattern - Fraud Risk: 95/100 🚨
 
-📊 **Fraud Risk: 95/100** ⭐⭐⭐⭐⭐
-
-🚨 **Key Findings:**
+Hey admin, this scenario is highly suspicious. Here's the breakdown:
 - Multiple new accounts from a single IP is a classic sign of a sock puppet or collusion ring.
-- Immediately vouching for one user is highly suspicious behavior.
+- Immediately vouching for one user is not organic behavior.
 
-💡 **Recommendation:**
-High confidence of fraud. Investigate and likely ban @scammer99 and the 5 associated accounts.
-
-━━━━━━━━━━━━━━━━━━━━━━
+My take: High confidence of fraud. Investigate and likely ban all associated accounts.
 ---
 
-**Current Task:** Analyze the following scenario and produce the report in the required format.`;
+**Current Task:** Analyze the following fraud scenario and produce a report in the required conversational format.`;
 
         const userPrompt = command;
 
