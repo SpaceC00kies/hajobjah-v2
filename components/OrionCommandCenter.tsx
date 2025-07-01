@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { getAuth } from 'firebase/auth';
 import type { OrionMessage } from '../types.ts';
 import { Button } from './Button.tsx';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -72,6 +73,11 @@ export const OrionCommandCenter: React.FC<OrionCommandCenterProps> = () => {
     setIsLoading(true);
 
     try {
+      const auth = getAuth();
+      if (auth.currentUser) {
+        // Force refresh the ID token so custom claims are up-to-date
+        await auth.currentUser.getIdToken(true);
+      }
       const reply = await runOrion(command);
       appendMessage({ text: reply, from: 'orion' });
     } catch (e: any) {
