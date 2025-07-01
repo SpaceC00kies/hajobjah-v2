@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import type { OrionMessage } from '../types.ts';
 import { Button } from './Button.tsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import { runOrion } from "../services/orionService";
 
 interface OrionCommandCenterProps {
+  // This prop is no longer used but kept to avoid breaking parent components as per instructions.
   orionAnalyzeService: (command: string) => Promise<string>;
 }
 
@@ -32,7 +34,7 @@ const TypingIndicator = () => (
   </motion.div>
 );
 
-export const OrionCommandCenter: React.FC<OrionCommandCenterProps> = ({ orionAnalyzeService }) => {
+export const OrionCommandCenter: React.FC<OrionCommandCenterProps> = () => {
   const [messages, setMessages] = useState<OrionMessage[]>([
     {
       id: 'initial',
@@ -49,40 +51,39 @@ export const OrionCommandCenter: React.FC<OrionCommandCenterProps> = ({ orionAna
   };
 
   useEffect(scrollToBottom, [messages]);
+  
+  const appendMessage = (message: { text: string; from: 'user' | 'orion'; isError?: boolean }) => {
+    const newMessage: OrionMessage = {
+      id: `${message.from}-${Date.now()}`,
+      text: message.text,
+      sender: message.from,
+      isError: message.isError || false,
+    };
+    setMessages(prev => [...prev, newMessage]);
+  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+
+  const handleSend = async () => {
     const command = inputCommand.trim();
     if (!command || isLoading) return;
 
-    const userMessage: OrionMessage = {
-      id: `user-${Date.now()}`,
-      text: command,
-      sender: 'user',
-    };
-    setMessages(prev => [...prev, userMessage]);
+    appendMessage({ text: command, from: 'user' });
     setInputCommand('');
     setIsLoading(true);
 
     try {
-      const responseText = await orionAnalyzeService(command);
-      const orionMessage: OrionMessage = {
-        id: `orion-${Date.now()}`,
-        text: responseText,
-        sender: 'orion',
-      };
-      setMessages(prev => [...prev, orionMessage]);
-    } catch (error) {
-      const errorMessage: OrionMessage = {
-        id: `error-${Date.now()}`,
-        text: 'An unexpected error occurred while contacting Orion.',
-        sender: 'orion',
-        isError: true,
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      const reply = await runOrion(command);
+      appendMessage({ text: reply, from: 'orion' });
+    } catch (e: any) {
+      appendMessage({ text: "Error: " + e.message, from: 'orion', isError: true });
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSend();
   };
 
   return (
