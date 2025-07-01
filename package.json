@@ -1,4 +1,3 @@
-
 {
   "name": "hajobja-com",
   "private": true,
@@ -10,15 +9,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
     "firebase": "^10.7.1",
-    "framer-motion": "^11.3.11"
+    "framer-motion": "^11.3.11",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^4.6.0",
+    "firebase-tools": "^13.13.2",
     "typescript": "~5.7.2",
-    "vite": "^6.2.0",
-    "firebase-tools": "^13.13.2"
+    "vite": "^6.2.0"
   }
 }
