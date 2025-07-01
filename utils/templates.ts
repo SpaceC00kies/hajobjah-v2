@@ -1,5 +1,5 @@
 
-import { JobCategory, JobSubCategory } from '../types';
+import { JobCategory, JobSubCategory } from '../types.ts';
 
 const generalTemplate = `
 **หน้าที่ความรับผิดชอบ:**

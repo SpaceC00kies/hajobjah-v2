@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
-import { Button } from './Button';
-import { Modal } from './Modal';
+import { Button } from './Button.tsx';
+import { Modal } from './Modal.tsx';
 
 interface FeedbackFormProps {
   isOpen: boolean;

@@ -1,6 +1,6 @@
 
-import type { User } from '../types';
-import { GenderOption, HelperEducationLevelOption } from '../types';
+import type { User } from '../types.ts';
+import { GenderOption, HelperEducationLevelOption } from '../types.ts';
 
 export interface ChecklistItem {
   label: string;

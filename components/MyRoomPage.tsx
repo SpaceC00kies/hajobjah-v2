@@ -1,13 +1,13 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import type { User, Job, HelperProfile, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, Interest, EnrichedHelperProfile } from '../types';
-import { View, UserTier } from '../types';
-import { Button } from './Button';
-import { UserProfilePage } from './UserProfilePage';
-import { WebboardPostCard } from './WebboardPostCard';
-import { JobCard } from './JobCard';
-import { HelperCard } from './HelperCard';
-import { isDateInPast, calculateDaysRemaining } from '../App';
+import type { User, Job, HelperProfile, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, Interest, EnrichedHelperProfile } from '../types.ts';
+import { View, UserTier } from '../types.ts';
+import { Button } from './Button.tsx';
+import { UserProfilePage } from './UserProfilePage.tsx';
+import { WebboardPostCard } from './WebboardPostCard.tsx';
+import { JobCard } from './JobCard.tsx';
+import { HelperCard } from './HelperCard.tsx';
+import { isDateInPast, calculateDaysRemaining } from '../App.tsx';
 import { motion, AnimatePresence, type Variants, type Transition } from 'framer-motion';
 
 // Import icons

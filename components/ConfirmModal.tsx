@@ -1,5 +1,6 @@
+
 import React, { useEffect } from 'react';
-import { Button } from './Button';
+import { Button } from './Button.tsx';
 import { motion, AnimatePresence, type Transition } from 'framer-motion';
 
 interface ConfirmModalProps {
@@ -18,7 +19,7 @@ const backdropVariants = {
 const panelVariants = {
   hidden: { opacity: 0, scale: 0.95, y: 20 },
   visible: { opacity: 1, scale: 1, y: 0 },
-  exit: { opacity: 0, scale: 0.95, y: 20, transition: { duration: 0.2, ease: "easeIn" } },
+  exit: { opacity: 0, scale: 0.95, y: 20, transition: { duration: 0.2, ease: "easeIn" } as Transition },
 };
 
 const modalTransition: Transition = {

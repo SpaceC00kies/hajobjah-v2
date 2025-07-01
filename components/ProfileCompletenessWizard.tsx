@@ -1,7 +1,7 @@
 
 import React from 'react';
-import type { User } from '../types';
-import { calculateProfileCompleteness } from '../utils/profileUtils';
+import type { User } from '../types.ts';
+import { calculateProfileCompleteness } from '../utils/profileUtils.ts';
 import { motion } from 'framer-motion';
 
 interface ProfileCompletenessWizardProps {
