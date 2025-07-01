@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import type { Job, HelperProfile, User, Interaction, WebboardPost, WebboardComment, UserLevel, VouchReport, Vouch, VouchType } from '../types';
-import { UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, USER_LEVELS, VouchReportStatus, VOUCH_TYPE_LABELS } from '../types';
-import { Button } from './Button';
-import { checkProfileCompleteness } from '../App'; // Removed checkHasBeenContacted
-import { OrionCommandCenter } from './OrionCommandCenter'; // Import Orion
+import type { Job, HelperProfile, User, Interaction, WebboardPost, WebboardComment, UserLevel, VouchReport, Vouch, VouchType } from '@/types';
+import { UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, USER_LEVELS, VouchReportStatus, VOUCH_TYPE_LABELS } from '@/types';
+import { Button } from '@/components/Button';
+import { checkProfileCompleteness } from '@/App'; // Removed checkHasBeenContacted
+import { OrionCommandCenter } from '@/components/OrionCommandCenter'; // Import Orion
 
 
 export interface AdminItem {
