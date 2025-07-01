@@ -1416,13 +1416,38 @@ export const resolveVouchReportService = async (
 
 // --- Cloud Function Services ---
 export const orionAnalyzeService = async (command: string): Promise<string> => {
+  const user = auth.currentUser;
+  if (!user) {
+    return "Error: Authentication required. Please sign in.";
+  }
+  
   try {
-    const orionAnalyzeFunction = httpsCallable(functions, 'orionAnalyze');
-    const result = await orionAnalyzeFunction({ command });
+    const idToken = await user.getIdToken();
+    const functionUrl = `https://us-central1-hajobjah.cloudfunctions.net/orionAnalyze`;
+
+    const response = await fetch(functionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`,
+      },
+      // v1 onRequest functions that simulate v2 onCall expect the payload inside a 'data' object
+      body: JSON.stringify({ data: { command } }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      // Use the error message from the function if available, otherwise use a generic HTTP error
+      throw new Error(result.error?.message || `HTTP error! status: ${response.status}`);
+    }
+
+    // The v1 onRequest function is coded to return a {data: "..."} structure
     return result.data as string;
+
   } catch (error: any) {
     logFirebaseError("orionAnalyzeService", error);
-    // Provide a user-friendly error message
+    // Return a formatted error message for the UI to display
     return `Error: ${error.message || 'Could not connect to Orion AI.'}`;
   }
 };

@@ -1,14 +1,9 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { getAuth } from 'firebase/auth';
+import { orionAnalyzeService } from '../services/firebaseService.ts';
 import type { OrionMessage } from '../types.ts';
 import { Button } from './Button.tsx';
 import { motion, AnimatePresence } from 'framer-motion';
-import { runOrion } from "../services/orionService";
-
-interface OrionCommandCenterProps {
-  // This prop is no longer used but kept to avoid breaking parent components as per instructions.
-  orionAnalyzeService: (command: string) => Promise<string>;
-}
 
 const TypingIndicator = () => (
   <motion.div
@@ -35,7 +30,7 @@ const TypingIndicator = () => (
   </motion.div>
 );
 
-export const OrionCommandCenter: React.FC<OrionCommandCenterProps> = () => {
+export const OrionCommandCenter: React.FC = () => {
   const [messages, setMessages] = useState<OrionMessage[]>([
     {
       id: 'initial',
@@ -73,15 +68,19 @@ export const OrionCommandCenter: React.FC<OrionCommandCenterProps> = () => {
     setIsLoading(true);
 
     try {
-      const auth = getAuth();
-      if (auth.currentUser) {
-        // Force refresh the ID token so custom claims are up-to-date
-        await auth.currentUser.getIdToken(true);
+      const reply = await orionAnalyzeService(command);
+
+      // The service function now returns a string which can be the result or an error message.
+      // We check if the reply starts with "Error:" to style it correctly.
+      if (reply.startsWith('Error:')) {
+         appendMessage({ text: reply, from: 'orion', isError: true });
+      } else {
+         appendMessage({ text: reply, from: 'orion' });
       }
-      const reply = await runOrion(command);
-      appendMessage({ text: reply, from: 'orion' });
-    } catch (e: any) {
-      appendMessage({ text: "Error: " + e.message, from: 'orion', isError: true });
+
+    } catch (e: any) { // This catch block might not be hit if the service catches all errors, but it's good practice to keep it.
+      const errorMessage = e.message || 'An unknown error occurred.';
+      appendMessage({ text: "Error: " + errorMessage, from: 'orion', isError: true });
     } finally {
       setIsLoading(false);
     }

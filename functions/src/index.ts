@@ -1,187 +1,179 @@
 
-import {onCall, HttpsError} from "firebase-functions/v2/https";
+import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { GoogleGenAI } from "@google/genai";
 import type { User, Vouch, WebboardPost, WebboardComment } from "./types.ts";
+import cors from "cors";
+
 
 admin.initializeApp();
 const db = admin.firestore();
 
-// Define CORS policy to be used by all onCall functions
-const corsPolicy = [
+// Define the origins allowed to access the functions.
+const allowedOrigins = [
   "https://www.hajobja.com",
   "https://hajobja.com",
   /hajobjah\.web\.app$/,
   /hajobjah\.firebaseapp\.com$/,
+  "http://localhost:5173",
+  "http://localhost:3000",
 ];
 
-const functionOptions = {
-  region: "us-central1",
-  cors: corsPolicy,
-};
+const corsHandler = cors({ origin: allowedOrigins });
 
-// Access the API key from the function's environment variables
-const geminiApiKey = process.env.GEMINI_API_KEY;
+
+// Access the API key from the function's environment variables as requested.
+const geminiApiKey = functions.config().gemini.api_key;
+
 if (!geminiApiKey) {
-  console.error("GEMINI_API_KEY environment variable not set.");
+  console.error("CRITICAL: GEMINI_API_KEY environment variable not set. Run 'firebase functions:config:set gemini.api_key=\"YOUR_KEY\"'");
 }
 const ai = new GoogleGenAI({apiKey: geminiApiKey || ""});
 
 
-export const orionAnalyze = onCall(functionOptions, async (request) => {
-  // 1. Security Check: Ensure the user is an admin.
-  if (request.auth?.token?.role !== "Admin") {
-    throw new HttpsError(
-        "permission-denied",
-        "You must be an administrator to use this feature.",
-    );
-  }
-
-  const command: string = request.data.command;
-  if (!command) {
-    throw new HttpsError(
-        "invalid-argument",
-        "The function must be called with a command.",
-    );
-  }
-
-  try {
-    const analyzeUserMatch = command.match(/analyze user @(\w+)/i);
-
-    if (analyzeUserMatch && analyzeUserMatch[1]) {
-      const username = analyzeUserMatch[1];
-
-      // 2. Data Gathering: Fetch user and related data from Firestore.
-      const usersRef = db.collection("users");
-      const userQuery = await usersRef.where("username", "==", username).limit(1).get();
-
-      if (userQuery.empty) {
-        return `User @${username} not found.`;
-      }
-
-      const userDoc = userQuery.docs[0];
-      const userData = userDoc.data() as User;
-      const userId = userDoc.id;
-
-      // Fetch related data
-      const vouchesGivenQuery = await db.collection("vouches").where("voucherId", "==", userId).get();
-      const vouchesReceivedQuery = await db.collection("vouches").where("voucheeId", "==", userId).get();
-      const postsQuery = await db.collection("webboardPosts").where("userId", "==", userId).limit(10).get();
-      const commentsQuery = await db.collection("webboardComments").where("userId", "==", userId).limit(20).get();
-
-      const vouchesGiven = vouchesGivenQuery.docs.map((doc) => doc.data() as Vouch);
-      const vouchesReceived = vouchesReceivedQuery.docs.map((doc) => doc.data() as Vouch);
-      const posts = postsQuery.docs.map((doc) => doc.data() as WebboardPost);
-      const comments = commentsQuery.docs.map((doc) => doc.data() as WebboardComment);
-
-      const analysisPayload = {
-        userProfile: {
-          id: userId,
-          username: userData.username,
-          publicDisplayName: userData.publicDisplayName,
-          role: userData.role,
-          createdAt: userData.createdAt,
-          vouchInfo: userData.vouchInfo,
-          lastLoginIP: userData.lastLoginIP,
-        },
-        vouchesGiven,
-        vouchesReceived,
-        activitySummary: {
-          postCount: posts.length,
-          commentCount: comments.length,
-          latestPosts: posts.map((p) => p.title).slice(0, 5),
-        },
-      };
-
-      // 3. Prompt Engineering & Gemini API Call
-      const systemInstruction = `You are Orion, a world-class security and behavior analyst for the HAJOBJA.COM platform.
-      Your task is to analyze the provided JSON data about a user and generate a concise, actionable report for the administrator.
-      Focus on patterns of trust, risk, and platform engagement.
-      Provide a 'Genuineness Score' from 0 (highly suspicious) to 100 (highly trustworthy) and a clear recommendation.
-      Format your response in Markdown with headings.`;
-
-      const prompt = `${systemInstruction}
-
-      Analyze the following data:
-      ${JSON.stringify(analysisPayload, null, 2)}
-
-      Your Analysis:`;
-
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-preview-04-17",
-        contents: prompt,
-      });
-
-      // 4. Return Response
-      return response.text;
+export const orionAnalyze = functions.https.onRequest((req, res) => {
+  corsHandler(req, res, async () => {
+    // 1. Security Checks for onRequest (Callable Protocol)
+    if (req.method !== "POST") {
+        res.status(405).send({error: {message: "Method Not Allowed"}});
+        return;
     }
 
-    // Default response for unrecognized commands
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-preview-04-17",
-      contents: `An admin on HAJOBJA.COM asked: "${command}". Provide a helpful, general answer.`,
-    });
-    return response.text;
-  } catch (error) {
-    console.error("Error in orionAnalyze function:", error);
-    throw new HttpsError(
-        "internal",
-        "An error occurred while processing your request.",
-    );
-  }
+    if (!req.headers.authorization || !req.headers.authorization.startsWith("Bearer ")) {
+      console.error("No Firebase ID token was passed as a Bearer token in the Authorization header.");
+      res.status(401).send({error: {status: "UNAUTHENTICATED", message: "Unauthorized."}});
+      return;
+    }
+
+    const idToken = req.headers.authorization.split("Bearer ")[1];
+    let decodedToken;
+    try {
+      decodedToken = await admin.auth().verifyIdToken(idToken);
+    } catch (error) {
+      console.error("Error while verifying Firebase ID token:", error);
+      res.status(401).send({error: {status: "UNAUTHENTICATED", message: "Unauthorized. Invalid token."}});
+      return;
+    }
+
+    if (decodedToken.role !== "Admin") {
+      res.status(403).send({error: {status: "PERMISSION_DENIED", message: "Permission denied. You must be an administrator."}});
+      return;
+    }
+
+    // 2. Argument Validation (Callable Protocol wraps data)
+    const command: string = req.body.data?.command;
+    if (!command) {
+      res.status(400).send({error: {status: "INVALID_ARGUMENT", message: "The function must be called with a 'command' in the data payload."}});
+      return;
+    }
+
+    // 3. Main Logic
+    try {
+      const analyzeUserMatch = command.match(/analyze user @(\w+)/i);
+      if (analyzeUserMatch && analyzeUserMatch[1]) {
+        const username = analyzeUserMatch[1];
+        const usersRef = db.collection("users");
+        const userQuery = await usersRef.where("username", "==", username).limit(1).get();
+
+        if (userQuery.empty) {
+          res.status(200).send({data: `User @${username} not found.`});
+          return;
+        }
+
+        const userDoc = userQuery.docs[0];
+        const userData = userDoc.data() as User;
+        const userId = userDoc.id;
+
+        const vouchesGivenQuery = await db.collection("vouches").where("voucherId", "==", userId).get();
+        const vouchesReceivedQuery = await db.collection("vouches").where("voucheeId", "==", userId).get();
+        const postsQuery = await db.collection("webboardPosts").where("userId", "==", userId).limit(10).get();
+        const commentsQuery = await db.collection("webboardComments").where("userId", "==", userId).limit(20).get();
+
+        const vouchesGiven = vouchesGivenQuery.docs.map((doc) => doc.data() as Vouch);
+        const vouchesReceived = vouchesReceivedQuery.docs.map((doc) => doc.data() as Vouch);
+        const posts = postsQuery.docs.map((doc) => doc.data() as WebboardPost);
+        const comments = commentsQuery.docs.map((doc) => doc.data() as WebboardComment);
+
+        const analysisPayload = {
+          userProfile: {
+            id: userId,
+            username: userData.username,
+            publicDisplayName: userData.publicDisplayName,
+            role: userData.role,
+            createdAt: userData.createdAt,
+            vouchInfo: userData.vouchInfo,
+            lastLoginIP: userData.lastLoginIP,
+          },
+          vouchesGiven,
+          vouchesReceived,
+          activitySummary: {
+            postCount: posts.length,
+            commentCount: comments.length,
+            latestPosts: posts.map((p) => p.title).slice(0, 5),
+          },
+        };
+
+        const systemInstruction = `You are Orion, a world-class security and behavior analyst for the HAJOBJA.COM platform. Your task is to analyze the provided JSON data about a user and generate a concise, actionable report for the administrator. Focus on patterns of trust, risk, and platform engagement. Provide a 'Genuineness Score' from 0 (highly suspicious) to 100 (highly trustworthy) and a clear recommendation. Format your response in Markdown with headings.`;
+        const prompt = `${systemInstruction}\n\nAnalyze the following data:\n${JSON.stringify(analysisPayload, null, 2)}\n\nYour Analysis:`;
+
+        const geminiResponse = await ai.models.generateContent({
+          model: "gemini-2.5-flash-preview-04-17",
+          contents: prompt,
+        });
+
+        res.status(200).send({data: geminiResponse.text});
+        return;
+      }
+
+      const geminiResponse = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-04-17",
+        contents: `An admin on HAJOBJA.COM asked: "${command}". Provide a helpful, general answer.`,
+      });
+      res.status(200).send({data: geminiResponse.text});
+    } catch (error) {
+      console.error("Error in orionAnalyze function logic:", error);
+      res.status(500).send({error: {status: "INTERNAL", message: "An internal error occurred while processing your request."}});
+    }
+  });
 });
 
-// New function to securely set a user's role
-export const setUserRole = onCall(functionOptions, async (request) => {
-  // 1. Security Check: Ensure the caller is an admin.
-  if (request.auth?.token?.role !== "Admin") {
-    throw new HttpsError(
-        "permission-denied",
-        "Only administrators can set user roles.",
-    );
+export const setUserRole = functions.https.onCall(async (data, context) => {
+  if (context.auth?.token?.role !== "Admin") {
+    throw new functions.https.HttpsError("permission-denied", "Only administrators can set user roles.");
   }
 
-  const {userId, role} = request.data;
+  const {userId, role} = data;
   if (!userId || !role) {
-    throw new HttpsError(
-        "invalid-argument",
-        "The function must be called with a 'userId' and 'role'.",
-    );
+    throw new functions.https.HttpsError("invalid-argument", "The function must be called with a 'userId' and 'role'.");
   }
 
   try {
-    // 2. Set custom claims on the user's auth token
     await admin.auth().setCustomUserClaims(userId, {role});
-    // 3. Update the role in the user's Firestore document
     await db.collection("users").doc(userId).update({role});
     return {status: "success", message: `Role for user ${userId} updated to ${role}.`};
   } catch (error) {
     console.error("Error setting user role:", error);
-    throw new HttpsError(
-        "internal",
-        "An error occurred while setting the user role.",
-    );
+    throw new functions.https.HttpsError("internal", "An error occurred while setting the user role.");
   }
 });
 
-// New function to self-heal and sync a user's auth token with their Firestore role
-export const syncUserClaims = onCall(functionOptions, async (request) => {
-  if (!request.auth) {
-    throw new HttpsError("unauthenticated", "The function must be called while authenticated.");
+export const syncUserClaims = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError("unauthenticated", "The function must be called while authenticated.");
   }
 
-  const userId = request.auth.uid;
-  const currentTokenRole = request.auth.token.role;
+  const userId = context.auth.uid;
+  const currentTokenRole = context.auth.token.role;
   let userDoc: admin.firestore.DocumentSnapshot;
 
   try {
     userDoc = await db.collection("users").doc(userId).get();
     if (!userDoc.exists) {
-      throw new HttpsError("not-found", "User document not found during claim sync.");
+      throw new functions.https.HttpsError("not-found", "User document not found during claim sync.");
     }
   } catch (error: any) {
     console.error(`Error syncing claims for user ${userId} (Firestore read):`, error);
-    throw new HttpsError("internal", `Failed to read user document during claim sync. Check logs. Code: ${error.code || "N/A"}`);
+    throw new functions.https.HttpsError("internal", `Failed to read user document. Error: ${error.message} (Code: ${error.code || "N/A"})`);
   }
 
   const firestoreRole = userDoc.data()?.role;
@@ -201,61 +193,6 @@ export const syncUserClaims = onCall(functionOptions, async (request) => {
         errorMessage: error.message,
         errorCode: error.code,
     });
-    throw new HttpsError("internal", `Failed to set custom claims during sync. Likely an IAM permission issue. Check logs. Code: ${error.code || "N/A"}`);
+    throw new functions.https.HttpsError("internal", `Failed to set custom claims. This is likely an IAM permission issue. Error: ${error.message} (Code: ${error.code || "N/A"})`);
   }
-});
-
-
-/**
- * Grants admin role to a user. This is a powerful utility function.
- * In a production environment, you should secure this so only an existing
- * admin can call it, or run it as a one-off script.
- */
-export const grantAdminRole = onCall(functionOptions, async (request) => {
-  const email = request.data.email;
-  if (typeof email !== "string" || !email) {
-    throw new HttpsError("invalid-argument", "Email is required in the request data.");
-  }
-  if (!request.auth || request.auth.token.email !== email) {
-    throw new HttpsError("permission-denied", "You can only grant admin role to your own account.");
-  }
-
-  let user: admin.auth.UserRecord;
-  try {
-    console.log(`[Step 1/3] Getting user by email: ${email}`);
-    user = await admin.auth().getUserByEmail(email);
-    console.log(`[Step 1/3] Success. Found user UID: ${user.uid}`);
-  } catch (error: any) {
-    console.error("CRITICAL ERROR in grantAdminRole (getUserByEmail):", {
-        errorMessage: error.message,
-        errorCode: error.code,
-    });
-    throw new HttpsError("internal", `Failed at step 1: Could not retrieve user. Check logs for details. Code: ${error.code || "N/A"}`);
-  }
-
-  try {
-    console.log(`[Step 2/3] Setting custom claims for UID: ${user.uid}`);
-    await admin.auth().setCustomUserClaims(user.uid, { role: "Admin" });
-    console.log(`[Step 2/3] Success. Custom claims set.`);
-  } catch (error: any) {
-    console.error("CRITICAL ERROR in grantAdminRole (setCustomUserClaims):", {
-        errorMessage: error.message,
-        errorCode: error.code,
-    });
-    throw new HttpsError("internal", `Failed at step 2: Could not set claims. This is likely an IAM permission issue. Check logs. Code: ${error.code || "N/A"}`);
-  }
-  
-  try {
-    console.log(`[Step 3/3] Updating Firestore document for UID: ${user.uid}`);
-    await db.collection("users").doc(user.uid).update({ role: "Admin" });
-    console.log(`[Step 3/3] Success. Firestore document updated.`);
-  } catch (error: any) {
-    console.error("CRITICAL ERROR in grantAdminRole (updateFirestore):", {
-        errorMessage: error.message,
-        errorCode: error.code,
-    });
-    throw new HttpsError("internal", `Failed at step 3: Could not update Firestore. Check logs. Code: ${error.code || "N/A"}`);
-  }
-
-  return { message: `Success! ${email} has been made an admin.` };
 });
