@@ -44,8 +44,32 @@ import {
 import { httpsCallable } from 'firebase/functions'; // Import httpsCallable
 
 import { auth, db, storage, functions } from '../firebase'; // Import functions instance
-import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Interaction, SiteConfig, UserPostingLimits, UserActivityBadge, UserTier, UserSavedWebboardPostEntry, Province, JobSubCategory, Interest, Vouch, VouchType, VouchInfo, VouchReport, GenderOption, HelperEducationLevelOption, VouchReportStatus } from '../types';
-import { USER_LEVELS, UserRole, WebboardCategory } from '../types';
+import {
+  USER_LEVELS,
+  UserRole,
+  WebboardCategory,
+  VouchReportStatus,
+  type User,
+  type Job,
+  type HelperProfile,
+  type WebboardPost,
+  type WebboardComment,
+  type Interaction,
+  type SiteConfig,
+  type UserPostingLimits,
+  type UserActivityBadge,
+  type UserTier,
+  type UserSavedWebboardPostEntry,
+  type Province,
+  type JobSubCategory,
+  type Interest,
+  type Vouch,
+  type VouchType,
+  type VouchInfo,
+  type VouchReport,
+  type GenderOption,
+  type HelperEducationLevelOption,
+} from '../types';
 import { logFirebaseError } from '../firebase/logging';
 
 
@@ -325,7 +349,7 @@ export const onAuthChangeService = (callback: (user: User | null) => void): (() 
             postingLimits: convertTimestamps(postingLimits),
             activityBadge: convertTimestamps(activityBadge),
             savedWebboardPosts,
-            vouchInfo
+            vouchInfo,
           };
           callback({ id: firebaseUser.uid, ...fullUserData } as User);
         } else {
@@ -1094,15 +1118,16 @@ export const toggleInterestService = async (
   const targetRef = doc(db, targetCollection, targetId);
 
   try {
-    let isInterested = false;
+    let isNowInterested = false;
     await runTransaction(db, async (transaction) => {
       const interestDoc = await transaction.get(interestRef);
-
       if (interestDoc.exists()) {
+        // Interest exists, so we are un-interesting it
         transaction.delete(interestRef);
         transaction.update(targetRef, { interestedCount: increment(-1) });
-        isInterested = false;
+        isNowInterested = false;
       } else {
+        // Interest does not exist, so we are adding it
         const newInterest: Omit<Interest, 'id'> = {
           userId: currentUserId,
           targetId,
@@ -1112,17 +1137,20 @@ export const toggleInterestService = async (
         };
         transaction.set(interestRef, newInterest);
         transaction.update(targetRef, { interestedCount: increment(1) });
-        isInterested = true;
+        isNowInterested = true;
       }
     });
-    return { isInterested };
+    return { isInterested: isNowInterested };
   } catch (error) {
     logFirebaseError("toggleInterestService", error);
-    throw new Error("Failed to update interest status.");
+    throw new Error('Failed to update interest.');
   }
 };
 
-export const subscribeToUserInterestsService = (userId: string, callback: (interests: Interest[]) => void): (() => void) => {
+export const subscribeToUserInterestsService = (
+  userId: string,
+  callback: (interests: Interest[]) => void
+): (() => void) => {
   const q = query(collection(db, INTERESTS_COLLECTION), where("userId", "==", userId));
   return onSnapshot(q, (querySnapshot) => {
     const interests = querySnapshot.docs.map(docSnap => ({
@@ -1135,254 +1163,16 @@ export const subscribeToUserInterestsService = (userId: string, callback: (inter
   });
 };
 
-// --- Community Verification Services ---
-export const vouchForUserService = async (voucher: User, voucheeId: string, vouchType: VouchType, ipAddress: string, userAgent: string, comment?: string): Promise<void> => {
-  if (voucher.id === voucheeId) {
-    throw new Error("คุณไม่สามารถรับรองตัวเองได้");
-  }
-
-  const accountAgeMs = new Date().getTime() - new Date(voucher.createdAt as string).getTime();
-  const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
-  if (accountAgeMs < sevenDaysMs) {
-    throw new Error("บัญชีของคุณต้องมีอายุอย่างน้อย 7 วันจึงจะสามารถรับรองผู้อื่นได้");
-  }
-
-  const vouchId = `${voucher.id}_${voucheeId}`;
-  const vouchRef = doc(db, VOUCHES_COLLECTION, vouchId);
-  const voucheeRef = doc(db, USERS_COLLECTION, voucheeId);
-  const voucherRef = doc(db, USERS_COLLECTION, voucher.id);
-
-  try {
-    await runTransaction(db, async (transaction) => {
-      const existingVouchDoc = await transaction.get(vouchRef);
-      if (existingVouchDoc.exists()) {
-        throw new Error("คุณเคยรับรองผู้ใช้นี้ไปแล้ว");
-      }
-      
-      const voucheeDoc = await transaction.get(voucheeRef);
-      if (!voucheeDoc.exists()) {
-        throw new Error("ไม่พบผู้ใช้ที่ต้องการรับรอง");
-      }
-
-      const voucherDoc = await transaction.get(voucherRef);
-      if (!voucherDoc.exists()) {
-          throw new Error("ไม่พบข้อมูลผู้รับรอง (Voucher)");
-      }
-      const voucherData = voucherDoc.data() as User;
-      let { monthlyCount = 0, periodStart } = voucherData.postingLimits?.vouchingActivity || {};
-      
-      const now = new Date();
-      const currentPeriodStart = periodStart ? new Date(periodStart as string) : new Date(0);
-      
-      if (now.getFullYear() > currentPeriodStart.getFullYear() || now.getMonth() > currentPeriodStart.getMonth()) {
-          monthlyCount = 0;
-          periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      }
-
-      if (monthlyCount >= 3) {
-          throw new Error("คุณใช้โควต้ารับรอง 3 ครั้งสำหรับเดือนนี้ไปหมดแล้ว");
-      }
-
-      const newVouch: Omit<Vouch, 'id'> = {
-        voucherId: voucher.id,
-        voucherDisplayName: voucher.publicDisplayName,
-        voucheeId: voucheeId,
-        vouchType: vouchType,
-        comment: comment || '',
-        creatorIP: ipAddress,
-        creatorUserAgent: userAgent,
-        createdAt: serverTimestamp() as any,
-      };
-      transaction.set(vouchRef, newVouch);
-
-      const vouchInfoUpdate = {
-        [`vouchInfo.total`]: increment(1),
-        [`vouchInfo.${vouchType}`]: increment(1),
-      };
-      transaction.update(voucheeRef, vouchInfoUpdate);
-      
-      transaction.update(voucherRef, {
-          'postingLimits.vouchingActivity.monthlyCount': monthlyCount + 1,
-          'postingLimits.vouchingActivity.periodStart': periodStart
-      });
-
-    });
-  } catch (error) {
-    logFirebaseError("vouchForUserService", error);
-    throw error;
-  }
-};
-
-export const getVouchesForUserService = async (voucheeId: string): Promise<Vouch[]> => {
-  try {
-    const q = query(
-      collection(db, VOUCHES_COLLECTION),
-      where("voucheeId", "==", voucheeId),
-      orderBy("createdAt", "desc")
-    );
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(docSnap => ({
-      id: docSnap.id,
-      ...convertTimestamps(docSnap.data()),
-    } as Vouch));
-  } catch (error) {
-    logFirebaseError("getVouchesForUserService", error);
-    throw error;
-  }
-};
-
-export const reportVouchService = async (vouch: Vouch, reporterId: string, comment: string): Promise<void> => {
-  try {
-    const newReport: Omit<VouchReport, 'id'> = {
-      vouchId: vouch.id,
-      reporterId: reporterId,
-      reporterComment: comment,
-      voucheeId: vouch.voucheeId,
-      voucherId: vouch.voucherId,
-      status: 'pending_review' as VouchReportStatus,
-      createdAt: serverTimestamp() as any,
-    };
-    await addDoc(collection(db, VOUCH_REPORTS_COLLECTION), newReport);
-  } catch (error) {
-    logFirebaseError("reportVouchService", error);
-    throw new Error("ไม่สามารถส่งรายงานได้ โปรดลองอีกครั้ง");
-  }
-};
-
-export const getVouchDocument = async (vouchId: string): Promise<Vouch | null> => {
-  try {
-    const docRef = doc(db, VOUCHES_COLLECTION, vouchId);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return { id: docSnap.id, ...convertTimestamps(docSnap.data()) } as Vouch;
-    }
-    return null;
-  } catch (error) {
-    logFirebaseError("getVouchDocument", error);
-    return null;
-  }
-};
-
-export const subscribeToVouchReportsService = (callback: (data: VouchReport[]) => void): (() => void) => {
-  const constraints = [
-    where("status", "==", 'pending_review'),
-    orderBy("createdAt", "desc")
-  ];
-  return subscribeToCollectionService<VouchReport>(VOUCH_REPORTS_COLLECTION, callback, constraints);
-};
-
-export const resolveVouchReportService = async (
-  reportId: string,
-  resolution: 'resolved_deleted' | 'resolved_kept',
-  adminId: string,
-  vouchId: string,
-  voucheeId: string,
-  vouchType: VouchType
-): Promise<void> => {
-  const reportRef = doc(db, VOUCH_REPORTS_COLLECTION, reportId);
-  const vouchRef = doc(db, VOUCHES_COLLECTION, vouchId);
-  const voucheeRef = doc(db, USERS_COLLECTION, voucheeId);
-
-  try {
-    await runTransaction(db, async (transaction) => {
-      // ** READS FIRST **
-      const vouchDoc = await transaction.get(vouchRef);
-      // We don't need to read the vouchee or report docs unless we needed their data for conditional writes.
-      // We already have the necessary info passed as arguments.
-
-      // ** WRITES SECOND **
-      transaction.update(reportRef, {
-        status: resolution,
-        resolvedAt: serverTimestamp(),
-        resolvedBy: adminId,
-      });
-
-      if (resolution === 'resolved_deleted') {
-        if (vouchDoc.exists()) {
-          transaction.delete(vouchRef);
-          const vouchInfoUpdate = {
-            [`vouchInfo.total`]: increment(-1),
-            [`vouchInfo.${vouchType}`]: increment(-1),
-          };
-          transaction.update(voucheeRef, vouchInfoUpdate);
-        }
-      }
-    });
-  } catch (error) {
-    logFirebaseError("resolveVouchReportService", error);
-    throw error;
-  }
-};
-
-
-// Site Config
-export const subscribeToSiteConfigService = (callback: (config: SiteConfig) => void): (() => void) => {
-  const docRef = doc(db, SITE_CONFIG_COLLECTION, SITE_CONFIG_DOC_ID);
-  return onSnapshot(docRef, (docSnap) => {
-    if (docSnap.exists()) {
-      callback(convertTimestamps(docSnap.data()) as SiteConfig);
-    } else {
-      callback({ isSiteLocked: false });
-    }
-  }, (error) => {
-    logFirebaseError("subscribeToSiteConfigService", error);
-    callback({ isSiteLocked: false });
-  });
-};
-export const setSiteLockService = async (isLocked: boolean, adminUserId: string): Promise<boolean> => {
-  try {
-    const dataToSet = {
-      isSiteLocked: isLocked,
-      updatedAt: serverTimestamp() as any,
-      updatedBy: adminUserId,
-    };
-    await setDoc(doc(db, SITE_CONFIG_COLLECTION, SITE_CONFIG_DOC_ID), cleanDataForFirestore(dataToSet), { merge: true });
-    return true;
-  } catch (error: any) {
-    logFirebaseError("setSiteLockService", error);
-    throw error;
-  }
-};
-
-// User Management (Admin)
-export const setUserRoleService = async (userIdToUpdate: string, newRole: UserRole): Promise<boolean> => {
-  try {
-    const dataToUpdate = { role: newRole, updatedAt: serverTimestamp() as any };
-    await updateDoc(doc(db, USERS_COLLECTION, userIdToUpdate), cleanDataForFirestore(dataToUpdate));
-    return true;
-  } catch (error: any) {
-    logFirebaseError("setUserRoleService", error);
-    throw error;
-  }
-};
+// --- General Data Services ---
+export const subscribeToUsersService = (callback: (data: User[]) => void) =>
+  subscribeToCollectionService<User>(USERS_COLLECTION, callback);
 
 export const getUserDocument = async (userId: string): Promise<User | null> => {
   try {
-    const userDocRef = doc(db, USERS_COLLECTION, userId);
-    const userDocSnap = await getDoc(userDocRef);
-    if (userDocSnap.exists()) {
-      const userData = userDocSnap.data();
-      const tier = userData.tier || ('free' as UserTier);
-      const savedWebboardPosts = userData.savedWebboardPosts || [];
-      const vouchInfo = userData.vouchInfo || { total: 0, worked_together: 0, colleague: 0, community: 0, personal: 0 };
-
-
-      const fullUserData = {
-        ...convertTimestamps(userData),
-        isBusinessProfile: userData.isBusinessProfile || false,
-        businessName: userData.businessName || '',
-        businessType: userData.businessType || '',
-        businessAddress: userData.businessAddress || '',
-        businessWebsite: userData.businessWebsite || '',
-        businessSocialProfileLink: userData.businessSocialProfileLink || '',
-        aboutBusiness: userData.aboutBusiness || '',
-        lastPublicDisplayNameChangeAt: userData.lastPublicDisplayNameChangeAt || undefined,
-        publicDisplayNameUpdateCount: userData.publicDisplayNameUpdateCount || 0,
-        tier,
-        savedWebboardPosts,
-        vouchInfo,
-      };
-      return { id: userId, ...fullUserData } as User;
+    const docRef = doc(db, USERS_COLLECTION, userId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...convertTimestamps(docSnap.data()) } as User;
     }
     return null;
   } catch (error) {
@@ -1391,46 +1181,233 @@ export const getUserDocument = async (userId: string): Promise<User | null> => {
   }
 };
 
+// --- Site Config Service ---
+export const subscribeToSiteConfigService = (callback: (config: SiteConfig) => void): (() => void) => {
+  const docRef = doc(db, SITE_CONFIG_COLLECTION, SITE_CONFIG_DOC_ID);
+  return onSnapshot(docRef, (docSnap) => {
+    const defaultConfig: SiteConfig = { isSiteLocked: false };
+    if (docSnap.exists()) {
+      callback({ ...defaultConfig, ...convertTimestamps(docSnap.data()) });
+    } else {
+      callback(defaultConfig);
+    }
+  }, (error) => {
+    logFirebaseError("subscribeToSiteConfigService", error);
+  });
+};
 
-export const subscribeToUsersService = (callback: (data: User[]) => void) =>
-  subscribeToCollectionService<User>(USERS_COLLECTION, callback, [orderBy("createdAt", "desc")]);
-
-// Generic Item Flag Toggler
-type ItemFlagKeys = 'isPinned' | 'isHired' | 'isSuspicious' | 'isUnavailable' | 'adminVerifiedExperience' | 'isExpired';
-
+// --- Admin Services ---
+export const setSiteLockService = async (isLocked: boolean, adminId: string): Promise<boolean> => {
+  try {
+    const configRef = doc(db, SITE_CONFIG_COLLECTION, SITE_CONFIG_DOC_ID);
+    await setDoc(configRef, { 
+      isSiteLocked: isLocked,
+      updatedAt: serverTimestamp(),
+      updatedBy: adminId,
+    }, { merge: true });
+    return true;
+  } catch (error: any) {
+    logFirebaseError("setSiteLockService", error);
+    throw error;
+  }
+};
+export const setUserRoleService = async (userIdToUpdate: string, newRole: UserRole): Promise<boolean> => {
+  try {
+    await updateDoc(doc(db, USERS_COLLECTION, userIdToUpdate), { role: newRole });
+    return true;
+  } catch (error: any) {
+    logFirebaseError("setUserRoleService", error);
+    throw error;
+  }
+};
 export const toggleItemFlagService = async (
   collectionName: 'jobs' | 'helperProfiles' | 'webboardPosts',
   itemId: string,
-  flagName: ItemFlagKeys,
+  flagName: keyof Job | keyof HelperProfile | keyof WebboardPost,
   currentValue?: boolean
-): Promise<void> => {
+): Promise<boolean> => {
   try {
-    const docRef = doc(db, collectionName, itemId);
-    const newValue = !currentValue;
-    const updatePayload: { [key: string]: any } = {
-      [flagName]: newValue,
-      updatedAt: serverTimestamp() // Also update the updatedAt timestamp
-    };
-    await updateDoc(docRef, updatePayload);
+    const dataToUpdate = { [flagName]: !currentValue, updatedAt: serverTimestamp() as any };
+    await updateDoc(doc(db, collectionName, itemId), cleanDataForFirestore(dataToUpdate as Record<string, any>));
+    return true;
   } catch (error: any) {
-    logFirebaseError(`toggleItemFlagService (${flagName})`, error);
+    logFirebaseError("toggleItemFlagService", error);
     throw error;
   }
 };
 
-// --- Orion Service ---
-const orionAnalyzeFunction = httpsCallable(functions, 'orionAnalyze');
+// --- Vouching Services ---
+const VOUCH_MONTHLY_LIMIT = 5;
 
+export const vouchForUserService = async (
+    voucher: User, 
+    voucheeId: string, 
+    vouchType: VouchType,
+    ipAddress: string,
+    userAgent: string,
+    comment?: string
+): Promise<void> => {
+  if (voucher.id === voucheeId) throw new Error("You cannot vouch for yourself.");
+  
+  // Check monthly limit
+  const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+  const currentPeriodStart = voucher.postingLimits.vouchingActivity.periodStart;
+
+  if (currentPeriodStart < firstOfMonth) {
+      // It's a new month, reset the counter
+      voucher.postingLimits.vouchingActivity = { monthlyCount: 0, periodStart: firstOfMonth };
+  }
+  if (voucher.postingLimits.vouchingActivity.monthlyCount >= VOUCH_MONTHLY_LIMIT) {
+    throw new Error(`You have reached your monthly vouching limit of ${VOUCH_MONTHLY_LIMIT}.`);
+  }
+  
+  // Check if already vouched in this relationship
+  const q = query(collection(db, VOUCHES_COLLECTION), 
+    where('voucherId', '==', voucher.id), 
+    where('voucheeId', '==', voucheeId),
+    where('vouchType', '==', vouchType)
+  );
+  const existingVouchSnap = await getDocs(q);
+  if (!existingVouchSnap.empty) {
+    throw new Error(`You have already vouched for this user with the same relationship type.`);
+  }
+
+  const vouchRef = doc(collection(db, VOUCHES_COLLECTION));
+  const voucheeRef = doc(db, USERS_COLLECTION, voucheeId);
+  const voucherRef = doc(db, USERS_COLLECTION, voucher.id);
+
+  const newVouch: Omit<Vouch, 'id'> = {
+    voucherId: voucher.id,
+    voucherDisplayName: voucher.publicDisplayName,
+    voucheeId,
+    vouchType,
+    comment: comment?.trim() || '',
+    createdAt: serverTimestamp() as any,
+    creatorIP: ipAddress,
+    creatorUserAgent: userAgent,
+  };
+
+  try {
+    await runTransaction(db, async (transaction) => {
+        // 1. Create the vouch document
+        transaction.set(vouchRef, newVouch);
+
+        // 2. Increment the specific vouch type and total on the vouchee's profile
+        transaction.update(voucheeRef, {
+            [`vouchInfo.${vouchType}`]: increment(1),
+            'vouchInfo.total': increment(1)
+        });
+
+        // 3. Increment the voucher's monthly count
+        transaction.update(voucherRef, {
+            'postingLimits.vouchingActivity.monthlyCount': increment(1)
+        });
+    });
+  } catch (error) {
+    logFirebaseError("vouchForUserService", error);
+    throw new Error('Failed to submit vouch.');
+  }
+};
+
+export const getVouchesForUserService = async (userId: string): Promise<Vouch[]> => {
+    try {
+        const q = query(collection(db, VOUCHES_COLLECTION), where("voucheeId", "==", userId), orderBy("createdAt", "desc"));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(docSnap => ({ id: docSnap.id, ...convertTimestamps(docSnap.data()) } as Vouch));
+    } catch (error) {
+        logFirebaseError("getVouchesForUserService", error);
+        throw error;
+    }
+};
+
+export const getVouchDocument = async (vouchId: string): Promise<Vouch | null> => {
+    try {
+        const docRef = doc(db, VOUCHES_COLLECTION, vouchId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return { id: docSnap.id, ...convertTimestamps(docSnap.data()) } as Vouch;
+        }
+        return null;
+    } catch (error) {
+        logFirebaseError("getVouchDocument", error);
+        return null;
+    }
+};
+
+// --- Vouch Reporting Services ---
+export const reportVouchService = async (vouch: Vouch, reporterId: string, reporterComment: string): Promise<void> => {
+    const reportRef = doc(collection(db, VOUCH_REPORTS_COLLECTION));
+    const newReport: Omit<VouchReport, 'id'> = {
+        vouchId: vouch.id,
+        reporterId,
+        reporterComment,
+        voucheeId: vouch.voucheeId,
+        voucherId: vouch.voucherId,
+        status: VouchReportStatus.Pending,
+        createdAt: serverTimestamp() as any,
+    };
+    try {
+        await setDoc(reportRef, newReport);
+    } catch (error) {
+        logFirebaseError("reportVouchService", error);
+        throw new Error('Failed to submit report.');
+    }
+};
+
+export const subscribeToVouchReportsService = (callback: (reports: VouchReport[]) => void): (() => void) => {
+    const q = query(collection(db, VOUCH_REPORTS_COLLECTION), where("status", "==", VouchReportStatus.Pending), orderBy("createdAt", "asc"));
+    return subscribeToCollectionService<VouchReport>(VOUCH_REPORTS_COLLECTION, callback, [where("status", "==", VouchReportStatus.Pending), orderBy("createdAt", "asc")]);
+};
+
+export const resolveVouchReportService = async (
+    reportId: string, 
+    resolution: VouchReportStatus.ResolvedDeleted | VouchReportStatus.ResolvedKept, 
+    adminId: string,
+    vouchId: string,
+    voucheeId: string,
+    vouchType: VouchType
+): Promise<void> => {
+    const reportRef = doc(db, VOUCH_REPORTS_COLLECTION, reportId);
+    
+    try {
+        if (resolution === VouchReportStatus.ResolvedDeleted) {
+            const vouchRef = doc(db, VOUCHES_COLLECTION, vouchId);
+            const voucheeRef = doc(db, USERS_COLLECTION, voucheeId);
+
+            await runTransaction(db, async (transaction) => {
+                transaction.delete(vouchRef);
+                transaction.update(voucheeRef, {
+                    [`vouchInfo.${vouchType}`]: increment(-1),
+                    'vouchInfo.total': increment(-1)
+                });
+                transaction.update(reportRef, {
+                    status: resolution,
+                    resolvedAt: serverTimestamp(),
+                    resolvedBy: adminId,
+                });
+            });
+        } else { // ResolvedKept
+            await updateDoc(reportRef, {
+                status: resolution,
+                resolvedAt: serverTimestamp(),
+                resolvedBy: adminId,
+            });
+        }
+    } catch (error) {
+        logFirebaseError("resolveVouchReportService", error);
+        throw new Error('Failed to resolve report.');
+    }
+};
+
+// --- Cloud Function Services ---
 export const orionAnalyzeService = async (command: string): Promise<string> => {
   try {
+    const orionAnalyzeFunction = httpsCallable(functions, 'orionAnalyze');
     const result = await orionAnalyzeFunction({ command });
     return result.data as string;
   } catch (error: any) {
     logFirebaseError("orionAnalyzeService", error);
-    console.error("Error calling Orion Cloud Function:", error);
-    if (error.code === 'functions/permission-denied') {
-      return "Error: You do not have permission to use this feature.";
-    }
-    return "An error occurred while communicating with the Orion AI. Check the browser console for details.";
+    // Provide a user-friendly error message
+    return `Error: ${error.message || 'Could not connect to Orion AI.'}`;
   }
 };
