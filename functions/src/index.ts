@@ -201,3 +201,31 @@ export const syncUserClaims = onCall(functionOptions, async (request) => {
     );
   }
 });
+
+/**
+ * Grants admin role to a user. This is a powerful utility function.
+ * In a production environment, you should secure this so only an existing
+ * admin can call it, or run it as a one-off script.
+ */
+export const grantAdminRole = onCall(functionOptions, async (request) => {
+  const email = request.data.email;
+  if (typeof email !== "string" || !email) {
+    throw new HttpsError("invalid-argument", "Email is required in the request data.");
+  }
+
+  try {
+    // Get the user by email
+    const user = await admin.auth().getUserByEmail(email);
+    
+    // Set custom claims
+    await admin.auth().setCustomUserClaims(user.uid, { role: "Admin" });
+    
+    // Update the role in the user's Firestore document for consistency
+    await db.collection("users").doc(user.uid).update({ role: "Admin" });
+
+    return { message: `Success! ${email} has been made an admin.` };
+  } catch (error) {
+    console.error("Error granting admin role:", error);
+    throw new HttpsError("internal", `Failed to grant admin role to ${email}.`);
+  }
+});
