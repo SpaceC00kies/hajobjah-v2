@@ -26,8 +26,18 @@
     /* Path Aliases */
     "baseUrl": ".",
     "paths": {
-      "@/*" :  ["src/*"]
+      "@/*": ["./*"] // Changed from "src/*" to "./*"
     }
   },
-  "include": ["src"]
+  "include": [
+    "index.tsx",          // Explicitly include your main entry file
+    "App.tsx",            // Explicitly include your App component
+    "types.ts",           // Your types file
+    "firebase.ts",        // Your Firebase config file
+    "vite-env.d.ts",      // Vite's environment declaration file
+    "components/**/*.ts", // All .ts files in components/ and its subfolders
+    "components/**/*.tsx",// All .tsx files in components/ and its subfolders
+    "services/**/*.ts",   // All .ts files in services/ and its subfolders
+    "utils/**/*.ts"       // All .ts files in utils/ and its subfolders
+  ] // Changed from ["src"] to list actual source locations
 }
