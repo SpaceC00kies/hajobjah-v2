@@ -15,16 +15,16 @@ if (!geminiApiKey) {
 const ai = new GoogleGenAI({apiKey: geminiApiKey || ""});
 
 
-export const orionAnalyze = functions.https.onCall(async (data, context) => {
+export const orionAnalyze = functions.https.onCall(async (request) => {
   // 1. Security Check: Ensure the user is an admin.
-  if (context.auth?.token?.role !== "Admin") {
+  if (request.auth?.token?.role !== "Admin") {
     throw new functions.https.HttpsError(
         "permission-denied",
         "You must be an administrator to use this feature.",
     );
   }
 
-  const command: string = data.command;
+  const command: string = request.data.command;
   if (!command) {
     throw new functions.https.HttpsError(
         "invalid-argument",
@@ -119,16 +119,16 @@ export const orionAnalyze = functions.https.onCall(async (data, context) => {
 });
 
 // New function to securely set a user's role
-export const setUserRole = functions.https.onCall(async (data, context) => {
+export const setUserRole = functions.https.onCall(async (request) => {
   // 1. Security Check: Ensure the caller is an admin.
-  if (context.auth?.token?.role !== "Admin") {
+  if (request.auth?.token?.role !== "Admin") {
     throw new functions.https.HttpsError(
         "permission-denied",
         "Only administrators can set user roles.",
     );
   }
 
-  const {userId, role} = data;
+  const {userId, role} = request.data;
   if (!userId || !role) {
     throw new functions.https.HttpsError(
         "invalid-argument",
@@ -152,17 +152,17 @@ export const setUserRole = functions.https.onCall(async (data, context) => {
 });
 
 // New function to self-heal and sync a user's auth token with their Firestore role
-export const syncUserClaims = functions.https.onCall(async (data, context) => {
+export const syncUserClaims = functions.https.onCall(async (request) => {
   // 1. Security Check: Ensure user is authenticated.
-  if (!context.auth) {
+  if (!request.auth) {
     throw new functions.https.HttpsError(
         "unauthenticated",
         "The function must be called while authenticated.",
     );
   }
 
-  const userId = context.auth.uid;
-  const currentTokenRole = context.auth.token.role;
+  const userId = request.auth.uid;
+  const currentTokenRole = request.auth.token.role;
 
   try {
     const userDoc = await db.collection("users").doc(userId).get();
