@@ -9,8 +9,6 @@ import { JobCard } from './JobCard.tsx';
 import { HelperCard } from './HelperCard.tsx';
 import { isDateInPast, calculateDaysRemaining } from '../App.tsx';
 import { motion, AnimatePresence, type Variants, type Transition } from 'framer-motion';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '../firebase.ts';
 
 // Import icons
 const ProfileIcon = () => <span role="img" aria-label="Profile" className="mr-1.5 sm:mr-2">👤</span>;
@@ -124,28 +122,6 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
     }
   }, [initialTab, activeTab, onInitialTabProcessed]);
   
-  const handleMakeAdmin = async () => {
-    if (!currentUser || !currentUser.email) {
-      alert("Please log in with the user you want to make an admin.");
-      return;
-    }
-    const emailToMakeAdmin = currentUser.email;
-    const confirmAction = window.confirm(`Are you sure you want to grant Admin role to ${emailToMakeAdmin}? This is a one-time action.`);
-    
-    if (confirmAction) {
-        try {
-            console.log(`Attempting to grant admin role to ${emailToMakeAdmin}...`);
-            const grantAdminRoleFn = httpsCallable(functions, 'grantAdminRole');
-            const result = await grantAdminRoleFn({ email: emailToMakeAdmin });
-            console.log('Admin grant result:', result.data);
-            alert(`Success: ${(result.data as any).message}. Please log out and log back in to see the change.`);
-        } catch (error: any) {
-            console.error("Error granting admin role:", error);
-            alert(`Error granting admin role: ${error.message}`);
-        }
-    }
-  };
-
 
   const handleSubTabChange = (subTab: ActiveSubTab) => {
     setActiveSubTab(subTab);
@@ -322,16 +298,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
             transition={{ duration: 0.2 }}
           >
             {activeTab === 'profile' && (
-              <>
-                <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-4 mb-6 rounded-r-lg shadow" role="alert">
-                  <p className="font-bold">One-Time Admin Grant</p>
-                  <p className="text-sm">Click this button once to make the currently logged-in user ({currentUser.email}) an administrator. After success, ask me to remove this button.</p>
-                  <Button onClick={handleMakeAdmin} variant="accent" size="sm" className="mt-2 bg-yellow-400 hover:bg-yellow-500 text-yellow-900">
-                    Make Me Admin
-                  </Button>
-                </div>
                 <UserProfilePage currentUser={currentUser} onUpdateProfile={onUpdateUserProfile} onCancel={() => {}} />
-              </>
             )}
 
             {activeTab === 'myJobs' && (
