@@ -1,3 +1,4 @@
+
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -311,6 +312,19 @@ export const signOutUserService = async (): Promise<void> => {
 export const onAuthChangeService = (callback: (user: User | null) => void): (() => void) => {
   return onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
     if (firebaseUser) {
+      // Self-healing: Ensure user's auth token role matches Firestore role.
+      try {
+        const syncUserClaimsFunction = httpsCallable(functions, 'syncUserClaims');
+        await syncUserClaimsFunction();
+        // Force a refresh of the token on the client to get the new claims immediately.
+        // This is crucial for ensuring the UI has the correct permissions right after login.
+        await firebaseUser.getIdToken(true);
+      } catch (error) {
+        // Log this error but don't block the login flow.
+        // The user might just have an old token for a bit longer.
+        logFirebaseError("onAuthChangeService.sync", error);
+      }
+
       const userDocRef = doc(db, USERS_COLLECTION, firebaseUser.uid);
       try {
         const userDocSnap = await getDoc(userDocRef);
@@ -1213,7 +1227,8 @@ export const setSiteLockService = async (isLocked: boolean, adminId: string): Pr
 };
 export const setUserRoleService = async (userIdToUpdate: string, newRole: UserRole): Promise<boolean> => {
   try {
-    await updateDoc(doc(db, USERS_COLLECTION, userIdToUpdate), { role: newRole });
+    const setUserRoleFunction = httpsCallable(functions, 'setUserRole');
+    await setUserRoleFunction({ userId: userIdToUpdate, role: newRole });
     return true;
   } catch (error: any) {
     logFirebaseError("setUserRoleService", error);

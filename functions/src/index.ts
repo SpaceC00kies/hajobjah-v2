@@ -117,3 +117,74 @@ export const orionAnalyze = functions.https.onCall(async (request) => {
     );
   }
 });
+
+// New function to securely set a user's role
+export const setUserRole = functions.https.onCall(async (request) => {
+  // 1. Security Check: Ensure the caller is an admin.
+  if (request.auth?.token?.role !== "Admin") {
+    throw new functions.https.HttpsError(
+        "permission-denied",
+        "Only administrators can set user roles.",
+    );
+  }
+
+  const {userId, role} = request.data;
+  if (!userId || !role) {
+    throw new functions.https.HttpsError(
+        "invalid-argument",
+        "The function must be called with a 'userId' and 'role'.",
+    );
+  }
+
+  try {
+    // 2. Set custom claims on the user's auth token
+    await admin.auth().setCustomUserClaims(userId, {role});
+    // 3. Update the role in the user's Firestore document
+    await db.collection("users").doc(userId).update({role});
+    return {status: "success", message: `Role for user ${userId} updated to ${role}.`};
+  } catch (error) {
+    console.error("Error setting user role:", error);
+    throw new functions.https.HttpsError(
+        "internal",
+        "An error occurred while setting the user role.",
+    );
+  }
+});
+
+// New function to self-heal and sync a user's auth token with their Firestore role
+export const syncUserClaims = functions.https.onCall(async (request) => {
+  // 1. Security Check: Ensure user is authenticated.
+  if (!request.auth) {
+    throw new functions.https.HttpsError(
+        "unauthenticated",
+        "The function must be called while authenticated.",
+    );
+  }
+
+  const userId = request.auth.uid;
+  const currentTokenRole = request.auth.token.role;
+
+  try {
+    const userDoc = await db.collection("users").doc(userId).get();
+    if (!userDoc.exists) {
+      // This should ideally not happen for an authenticated user.
+      throw new functions.https.HttpsError("not-found", "User document not found.");
+    }
+
+    const firestoreRole = userDoc.data()?.role;
+
+    if (currentTokenRole === firestoreRole) {
+      return {status: "already_in_sync"};
+    }
+
+    // 2. Roles are out of sync, update the custom claims to match Firestore.
+    await admin.auth().setCustomUserClaims(userId, {role: firestoreRole});
+    return {status: "synced", newRole: firestoreRole};
+  } catch (error) {
+    console.error(`Error syncing claims for user ${userId}:`, error);
+    throw new functions.https.HttpsError(
+        "internal",
+        "An error occurred while syncing user claims.",
+    );
+  }
+});
