@@ -45,39 +45,38 @@ import {
   reportVouchService,
   subscribeToWebboardCommentsService,
   orionAnalyzeService,
-} from './src/services/firebaseService'; // Corrected Path
+} from './services/firebaseService';
 import type { DocumentSnapshot, DocumentData } from 'firebase/firestore';
-import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier, Interest, VouchType, Vouch, VouchReport, VouchReportStatus, OrionMessage } from './src/types'; // Corrected Path
-import type { AdminItem as AdminItemType } from './src/components/AdminDashboard'; // Corrected Path
-import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP, ACTIVITY_BADGE_DETAILS, Province, JOB_SUBCATEGORIES_MAP } from './src/types'; // Corrected Path
-import { PostJobForm } from './src/components/PostJobForm'; // Corrected Path
-import { JobCard } from './src/components/JobCard'; // Corrected Path
-import { Button } from './src/components/Button'; // Corrected Path
-import { OfferHelpForm } from './src/components/OfferHelpForm'; // Corrected Path
-import { HelperCard } from './src/components/HelperCard'; // Corrected Path
-import { RegistrationForm } from './src/components/RegistrationForm'; // Corrected Path
-import { LoginForm } from './src/components/LoginForm'; // Corrected Path
-import { ForgotPasswordModal } from './src/components/ForgotPasswordModal'; // Corrected Path
-import { AdminDashboard } from './src/components/AdminDashboard'; // Corrected Path
-import { ConfirmModal } from './src/components/ConfirmModal'; // Corrected Path
-import { MyRoomPage } from './src/components/MyRoomPage'; // Corrected Path
-import type { ActiveTab as MyRoomActiveTab } from './src/components/MyRoomPage'; // Corrected Path
-import { UserProfilePage } from './src/components/UserProfilePage'; // Corrected Path
-import { AboutUsPage } from './src/components/AboutUsPage'; // Corrected Path
-import { PublicProfilePage } from './src/components/PublicProfilePage'; // Corrected Path
-import { SafetyPage } from './src/components/SafetyPage'; // Corrected Path
-import { FeedbackForm } from './src/components/FeedbackForm'; // Corrected Path
-import { WebboardPage } from './src/components/WebboardPage'; // Corrected Path
-import { UserLevelBadge } from './src/components/UserLevelBadge'; // Corrected Path
-import { SiteLockOverlay } from './src/components/SiteLockOverlay'; // Corrected Path
-import { CategoryFilterBar } from './src/components/CategoryFilterBar'; // Corrected Path
-import { SearchInputWithRecent } from './src/components/SearchInputWithRecent'; // Corrected Path
-import { PasswordResetPage } from './src/components/PasswordResetPage'; // Corrected Path
-import { VouchModal } from './src/components/VouchModal'; // Corrected Path
-import { VouchesListModal } from './src/components/VouchesListModal'; // Corrected Path
-import { ReportVouchModal } from './src/components/ReportVouchModal'; // Corrected Path
-
-import { logFirebaseError } from './src/firebase/logging'; // Corrected Path
+import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier, Interest, VouchType, Vouch, VouchReport, VouchReportStatus, OrionMessage } from './types';
+import type { AdminItem as AdminItemType } from './components/AdminDashboard';
+import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP, ACTIVITY_BADGE_DETAILS, Province, JOB_SUBCATEGORIES_MAP } from './types';
+import { PostJobForm } from './components/PostJobForm';
+import { JobCard } from './components/JobCard';
+import { Button } from './components/Button';
+import { OfferHelpForm } from './components/OfferHelpForm';
+import { HelperCard } from './components/HelperCard';
+import { RegistrationForm } from './components/RegistrationForm';
+import { LoginForm } from './components/LoginForm';
+import { ForgotPasswordModal } from './components/ForgotPasswordModal';
+import { AdminDashboard } from './components/AdminDashboard';
+import { ConfirmModal } from './components/ConfirmModal';
+import { MyRoomPage } from './components/MyRoomPage';
+import type { ActiveTab as MyRoomActiveTab } from './components/MyRoomPage';
+import { UserProfilePage } from './components/UserProfilePage';
+import { AboutUsPage } from './components/AboutUsPage';
+import { PublicProfilePage } from './components/PublicProfilePage';
+import { SafetyPage } from './components/SafetyPage';
+import { FeedbackForm } from './components/FeedbackForm';
+import { WebboardPage } from './components/WebboardPage';
+import { UserLevelBadge } from './components/UserLevelBadge';
+import { SiteLockOverlay } from './components/SiteLockOverlay';
+import { CategoryFilterBar } from './components/CategoryFilterBar';
+import { SearchInputWithRecent } from './components/SearchInputWithRecent';
+import { PasswordResetPage } from './components/PasswordResetPage';
+import { VouchModal } from './components/VouchModal';
+import { VouchesListModal } from './components/VouchesListModal';
+import { ReportVouchModal } from './components/ReportVouchModal';
+import { logFirebaseError } from './firebase/logging';
 import { AnimatePresence, motion, type Variants, type Transition, type HTMLMotionProps } from "framer-motion";
 
 
@@ -2281,7 +2280,7 @@ const App: React.FC = () => {
         initialTab={myRoomInitialTabOverride}
         onInitialTabProcessed={() => setMyRoomInitialTabOverride(null)}
         getAuthorDisplayName={getAuthorDisplayName}
-        onToggleInterest={handleToggleInterest}
+        onToggleInterest={onToggleInterest}
         requestLoginForAction={requestLoginForAction}
         onEditJobFromFindView={handleEditOwnJobFromFindView}
         onEditHelperProfileFromFindView={handleEditOwnHelperProfileFromFindView}
