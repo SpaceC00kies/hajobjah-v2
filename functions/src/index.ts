@@ -166,41 +166,45 @@ export const setUserRole = onCall(functionOptions, async (request) => {
 
 // New function to self-heal and sync a user's auth token with their Firestore role
 export const syncUserClaims = onCall(functionOptions, async (request) => {
-  // 1. Security Check: Ensure user is authenticated.
   if (!request.auth) {
-    throw new HttpsError(
-        "unauthenticated",
-        "The function must be called while authenticated.",
-    );
+    throw new HttpsError("unauthenticated", "The function must be called while authenticated.");
   }
 
   const userId = request.auth.uid;
   const currentTokenRole = request.auth.token.role;
+  let userDoc: admin.firestore.DocumentSnapshot;
 
   try {
-    const userDoc = await db.collection("users").doc(userId).get();
+    userDoc = await db.collection("users").doc(userId).get();
     if (!userDoc.exists) {
-      // This should ideally not happen for an authenticated user.
-      throw new HttpsError("not-found", "User document not found.");
+      throw new HttpsError("not-found", "User document not found during claim sync.");
     }
+  } catch (error: any) {
+    console.error(`Error syncing claims for user ${userId} (Firestore read):`, error);
+    throw new HttpsError("internal", `Failed to read user document during claim sync. Check logs. Code: ${error.code || "N/A"}`);
+  }
 
-    const firestoreRole = userDoc.data()?.role;
+  const firestoreRole = userDoc.data()?.role;
 
-    if (currentTokenRole === firestoreRole) {
-      return {status: "already_in_sync"};
-    }
+  if (currentTokenRole === firestoreRole) {
+    return {status: "already_in_sync", role: firestoreRole};
+  }
 
-    // 2. Roles are out of sync, update the custom claims to match Firestore.
+  console.log(`Syncing claims for user ${userId}. Token role: '${currentTokenRole}', Firestore role: '${firestoreRole}'.`);
+
+  try {
     await admin.auth().setCustomUserClaims(userId, {role: firestoreRole});
+    console.log(`Successfully synced claims for user ${userId} to '${firestoreRole}'.`);
     return {status: "synced", newRole: firestoreRole};
-  } catch (error) {
-    console.error(`Error syncing claims for user ${userId}:`, error);
-    throw new HttpsError(
-        "internal",
-        "An error occurred while syncing user claims.",
-    );
+  } catch (error: any) {
+    console.error(`CRITICAL ERROR syncing claims for user ${userId} (setCustomUserClaims):`, {
+        errorMessage: error.message,
+        errorCode: error.code,
+    });
+    throw new HttpsError("internal", `Failed to set custom claims during sync. Likely an IAM permission issue. Check logs. Code: ${error.code || "N/A"}`);
   }
 });
+
 
 /**
  * Grants admin role to a user. This is a powerful utility function.
@@ -212,37 +216,46 @@ export const grantAdminRole = onCall(functionOptions, async (request) => {
   if (typeof email !== "string" || !email) {
     throw new HttpsError("invalid-argument", "Email is required in the request data.");
   }
-
-  // Security check: Make sure the caller is authenticated and is the one being promoted.
   if (!request.auth || request.auth.token.email !== email) {
-      throw new HttpsError("permission-denied", "You can only use this utility to grant admin role to your own account.");
+    throw new HttpsError("permission-denied", "You can only grant admin role to your own account.");
+  }
+
+  let user: admin.auth.UserRecord;
+  try {
+    console.log(`[Step 1/3] Getting user by email: ${email}`);
+    user = await admin.auth().getUserByEmail(email);
+    console.log(`[Step 1/3] Success. Found user UID: ${user.uid}`);
+  } catch (error: any) {
+    console.error("CRITICAL ERROR in grantAdminRole (getUserByEmail):", {
+        errorMessage: error.message,
+        errorCode: error.code,
+    });
+    throw new HttpsError("internal", `Failed at step 1: Could not retrieve user. Check logs for details. Code: ${error.code || "N/A"}`);
   }
 
   try {
-    console.log(`Attempting to grant admin role to user with email: ${email}`);
-    const user = await admin.auth().getUserByEmail(email);
-    console.log(`Found user UID: ${user.uid} for email: ${email}`);
-    
-    console.log(`Setting custom claims for UID: ${user.uid}`);
+    console.log(`[Step 2/3] Setting custom claims for UID: ${user.uid}`);
     await admin.auth().setCustomUserClaims(user.uid, { role: "Admin" });
-    console.log(`Successfully set custom claims for UID: ${user.uid}`);
-
-    console.log(`Updating Firestore document for UID: ${user.uid}`);
-    await db.collection("users").doc(user.uid).update({ role: "Admin" });
-    console.log(`Successfully updated Firestore document for UID: ${user.uid}`);
-
-    return { message: `Success! ${email} has been made an admin.` };
+    console.log(`[Step 2/3] Success. Custom claims set.`);
   } catch (error: any) {
-    // Enhanced logging for better debugging in Firebase Functions logs
-    console.error("CRITICAL ERROR in grantAdminRole:", {
+    console.error("CRITICAL ERROR in grantAdminRole (setCustomUserClaims):", {
         errorMessage: error.message,
         errorCode: error.code,
-        errorStack: error.stack,
-        fullError: JSON.stringify(error, Object.getOwnPropertyNames(error), 2),
     });
-    
-    // Throw a generic internal error to avoid leaking implementation details.
-    // The detailed error is now available in the Firebase Function logs.
-    throw new HttpsError("internal", `An unexpected server error occurred. Please check the function logs.`);
+    throw new HttpsError("internal", `Failed at step 2: Could not set claims. This is likely an IAM permission issue. Check logs. Code: ${error.code || "N/A"}`);
   }
+  
+  try {
+    console.log(`[Step 3/3] Updating Firestore document for UID: ${user.uid}`);
+    await db.collection("users").doc(user.uid).update({ role: "Admin" });
+    console.log(`[Step 3/3] Success. Firestore document updated.`);
+  } catch (error: any) {
+    console.error("CRITICAL ERROR in grantAdminRole (updateFirestore):", {
+        errorMessage: error.message,
+        errorCode: error.code,
+    });
+    throw new HttpsError("internal", `Failed at step 3: Could not update Firestore. Check logs. Code: ${error.code || "N/A"}`);
+  }
+
+  return { message: `Success! ${email} has been made an admin.` };
 });
