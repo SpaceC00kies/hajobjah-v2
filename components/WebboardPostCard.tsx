@@ -5,7 +5,6 @@ import { UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES }
 from '../types';
 // Button component might be used for consistency if styled appropriately, or use raw <button> for icons
 // import { Button } from './Button';
-import { triggerHapticFeedback } from '@/utils/haptics'; // Import haptic utility
 import { motion, AnimatePresence, type Transition } from 'framer-motion';
 
 
@@ -78,7 +77,6 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
       requestLoginForAction(View.Webboard, { action: 'like', postId: post.id });
     } else {
       onToggleLike(post.id);
-      triggerHapticFeedback(15);
     }
   };
 
