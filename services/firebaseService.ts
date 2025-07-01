@@ -41,9 +41,10 @@ import {
   deleteObject,
   uploadString,
 } from '@firebase/storage';
-import { httpsCallable } from 'firebase/functions'; // Import httpsCallable
+// This line has been corrected
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
-import { auth, db, storage, functions } from '../firebase'; // Corrected Path
+import { auth, db, storage } from '../firebase'; // Corrected Path
 import {
   USER_LEVELS,
   UserRole,
@@ -72,6 +73,8 @@ import {
 } from '../types'; // Corrected Path
 import { logFirebaseError } from '../firebase/logging'; // Corrected Path
 
+// Initialize functions here, as it's a client-side import
+const functions = getFunctions();
 
 // Collection Names
 const USERS_COLLECTION = 'users';
