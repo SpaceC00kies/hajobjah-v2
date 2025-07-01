@@ -132,32 +132,38 @@ export const orionAnalyze = functions.https.onRequest((req, res) => {
           },
         };
         
-        const systemInstructionForUser = `You are Orion, a helpful and conversational security analyst for HAJOBJA.COM. Your goal is to provide concise, scannable reports, not long academic essays.
+        const systemInstructionForUser = `You are Orion. Your response MUST follow this EXACT template. DO NOT add any other text:
 
-Follow these rules STRICTLY:
-1.  Always start your response with the user's name, a Trust Score, and a status emoji (✅, ⚠️, 🚨) on the very first line.
-2.  Write a brief, conversational introduction (1 sentence).
-3.  List your key findings as 3-5 short bullet points. Use "-" for bullets.
-4.  End with a clear one-sentence recommendation under a "My take:" heading.
-5.  Keep the entire response under 15 lines.
-6.  Use a conversational tone, not an academic one.
+@[USERNAME] - Trust Score: [SCORE]/100 [EMOJI]
 
----
-**PERFECT EXAMPLE OF THE REQUIRED FORMAT:**
+Hey admin, [ONE SENTENCE SUMMARY]. Here's what I found:
+- [FINDING 1]
+- [FINDING 2]
+- [FINDING 3]
 
-@username - Trust Score: 85/100 ✅
+My take: [ONE SENTENCE RECOMMENDATION]
+
+RULES:
+1. Replace bracketed items with actual values
+2. Use EXACTLY this format - no headers, no extra text
+3. Maximum 3 bullet points
+4. Trust Score: Calculate based on vouches, activity, account age
+5. Emoji: ✅ (70+), ⚠️ (30-69), 🚨 (below 30)
+6. TOTAL OUTPUT MUST BE UNDER 10 LINES
+
+EXAMPLE OUTPUT:
+@john - Trust Score: 85/100 ✅
 
 Hey admin, this user looks legitimate. Here's what I found:
 - Active member for 6 months
-- Consistent helpful contributions
-- Strong vouch network (given: 12, received: 18)
+- Strong vouch network (12 given, 18 received)
+- Regular helpful contributions
 
-My take: Solid community member. No red flags detected.
----
+My take: Solid community member, no action needed.
 
-**Current Task:** Analyze the following JSON data and produce a report in the required conversational format.`;
+CRITICAL: If you write more than 10 lines or use any headers like '### User Analysis', you have failed. Follow the template EXACTLY.`;
 
-        const userPrompt = `\`\`\`json\n${JSON.stringify(analysisPayload, null, 2)}\n\`\`\``;
+        const userPrompt = `Analyze this JSON data and generate a report using the template provided in the system instruction:\n\`\`\`json\n${JSON.stringify(analysisPayload, null, 2)}\n\`\`\``;
 
         const geminiResponse = await ai.models.generateContent({
           model: "gemini-2.5-flash-preview-04-17",
@@ -171,19 +177,24 @@ My take: Solid community member. No red flags detected.
         return;
       } else {
         // --- GENERAL SCENARIO ANALYSIS PATH ---
-        const systemInstructionForScenario = `You are Orion, a helpful and conversational security analyst for HAJOBJA.COM. Your goal is to provide concise, scannable reports.
+        const systemInstructionForScenario = `You are Orion. Your response MUST follow this EXACT template. DO NOT add any other text:
 
-Follow these rules STRICTLY:
-1.  Start your response with a clear title, a Fraud Risk Score, and a status emoji (✅, ⚠️, 🚨) on the very first line.
-2.  Write a brief, conversational introduction (1 sentence).
-3.  List your key findings as 2-4 short bullet points. Use "-" for bullets.
-4.  End with a clear one-sentence recommendation under a "My take:" heading.
-5.  Keep the entire response under 15 lines.
-6.  Use a conversational tone, not an academic one.
+[ANALYSIS_TITLE] - Fraud Risk: [SCORE]/100 [EMOJI]
 
----
-**PERFECT EXAMPLE OF THE REQUIRED FORMAT:**
+Hey admin, [ONE SENTENCE SUMMARY]. Here's the breakdown:
+- [FINDING 1]
+- [FINDING 2]
 
+My take: [ONE SENTENCE RECOMMENDATION]
+
+RULES:
+1. Replace bracketed items with actual values.
+2. Use EXACTLY this format - no headers, no extra text.
+3. Maximum 3 bullet points.
+4. Emoji: ✅ (Low Risk), ⚠️ (Medium Risk), 🚨 (High Risk).
+5. TOTAL OUTPUT MUST BE UNDER 10 LINES.
+
+EXAMPLE OUTPUT:
 Suspicious Vouching Pattern - Fraud Risk: 95/100 🚨
 
 Hey admin, this scenario is highly suspicious. Here's the breakdown:
@@ -191,9 +202,8 @@ Hey admin, this scenario is highly suspicious. Here's the breakdown:
 - Immediately vouching for one user is not organic behavior.
 
 My take: High confidence of fraud. Investigate and likely ban all associated accounts.
----
 
-**Current Task:** Analyze the following fraud scenario and produce a report in the required conversational format.`;
+CRITICAL: If you write more than 10 lines or use any headers like '### Scenario Analysis', you have failed. Follow the template EXACTLY.`;
 
         const userPrompt = command;
 
