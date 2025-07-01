@@ -1,8 +1,9 @@
-=import {onCall, HttpsError} from "firebase-functions/v2/https";
+
+import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {setGlobalOptions} from "firebase-functions/v2";
 import * as admin from "firebase-admin";
 import { GoogleGenAI } from "@google/genai";
-import type { User, Vouch, WebboardPost, WebboardComment } from "../../types.ts";
+import type { User, Vouch, WebboardPost, WebboardComment } from "./types.ts";
 
 admin.initializeApp();
 const db = admin.firestore();
