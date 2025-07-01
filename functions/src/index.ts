@@ -213,19 +213,36 @@ export const grantAdminRole = onCall(functionOptions, async (request) => {
     throw new HttpsError("invalid-argument", "Email is required in the request data.");
   }
 
+  // Security check: Make sure the caller is authenticated and is the one being promoted.
+  if (!request.auth || request.auth.token.email !== email) {
+      throw new HttpsError("permission-denied", "You can only use this utility to grant admin role to your own account.");
+  }
+
   try {
-    // Get the user by email
+    console.log(`Attempting to grant admin role to user with email: ${email}`);
     const user = await admin.auth().getUserByEmail(email);
+    console.log(`Found user UID: ${user.uid} for email: ${email}`);
     
-    // Set custom claims
+    console.log(`Setting custom claims for UID: ${user.uid}`);
     await admin.auth().setCustomUserClaims(user.uid, { role: "Admin" });
-    
-    // Update the role in the user's Firestore document for consistency
+    console.log(`Successfully set custom claims for UID: ${user.uid}`);
+
+    console.log(`Updating Firestore document for UID: ${user.uid}`);
     await db.collection("users").doc(user.uid).update({ role: "Admin" });
+    console.log(`Successfully updated Firestore document for UID: ${user.uid}`);
 
     return { message: `Success! ${email} has been made an admin.` };
-  } catch (error) {
-    console.error("Error granting admin role:", error);
-    throw new HttpsError("internal", `Failed to grant admin role to ${email}.`);
+  } catch (error: any) {
+    // Enhanced logging for better debugging in Firebase Functions logs
+    console.error("CRITICAL ERROR in grantAdminRole:", {
+        errorMessage: error.message,
+        errorCode: error.code,
+        errorStack: error.stack,
+        fullError: JSON.stringify(error, Object.getOwnPropertyNames(error), 2),
+    });
+    
+    // Throw a generic internal error to avoid leaking implementation details.
+    // The detailed error is now available in the Firebase Function logs.
+    throw new HttpsError("internal", `An unexpected server error occurred. Please check the function logs.`);
   }
 });
