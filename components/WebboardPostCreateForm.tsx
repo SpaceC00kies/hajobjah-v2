@@ -1,11 +1,11 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import type { WebboardPost, User } from '../types'; // Added User
-import { WebboardCategory } from '../types'; 
-import { Button } from './Button';
-import { Modal } from './Modal';
-import { containsBlacklistedWords } from '../App'; 
-import { motion, type Transition } from 'framer-motion'; // Import motion
+import { motion } from 'framer-motion';
+import type { WebboardPost, User } from '../types.ts'; // Added User, Fixed path
+import { WebboardCategory } from '../types.ts'; // Fixed path
+import { Button } from './Button.tsx'; // Fixed path
+import { Modal } from './Modal.tsx'; // Fixed path
+import { containsBlacklistedWords } from '../App.tsx'; // Fixed path
+import { getJobTemplateForCategory } from '../utils/templates.ts'; // Fixed path
 
 interface WebboardPostCreateFormProps {
   isOpen: boolean;
@@ -35,7 +35,7 @@ const WebboardRules: React.FC = () => {
       className="my-6 p-3 sm:p-4 bg-amber-50 border border-amber-300 rounded-lg shadow-sm"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2, duration: 0.4, ease: "easeOut" } as Transition}
+      transition={{ delay: 0.2, duration: 0.4, ease: "easeOut" } as import('framer-motion').Transition}
     >
       <h4 className="text-md sm:text-lg font-sans font-semibold text-amber-700 mb-2 text-center">
         📝 กฎพื้นฐานของกระดานพูดคุย
