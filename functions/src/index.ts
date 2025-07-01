@@ -3,7 +3,7 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { GoogleGenAI } from "@google/genai";
 import type { User, Vouch, WebboardPost, WebboardComment } from "./types.ts";
-import cors from "cors";
+import * as cors from "cors";
 
 
 admin.initializeApp();
@@ -113,18 +113,22 @@ export const orionAnalyze = functions.https.onRequest((req, res) => {
           },
         };
 
-        const systemInstruction = `You are Orion, a world-class security and behavior analyst for the HAJOBJA.COM platform. Your task is to analyze the provided JSON data about a user and generate a concise, actionable report for the administrator. Focus on patterns of trust, risk, and platform engagement. Provide a 'Genuineness Score' from 0 (highly suspicious) to 100 (highly trustworthy) and a clear recommendation. Format your response in Markdown with headings.`;
-        const prompt = `${systemInstruction}\n\nAnalyze the following data:\n${JSON.stringify(analysisPayload, null, 2)}\n\nYour Analysis:`;
+        const systemInstruction = `You are Orion, a specialized security and behavior analyst AI built exclusively for the HAJOBJA.COM platform. Your entire knowledge base about the user is limited to the JSON data provided in the prompt. You MUST base your analysis solely and exclusively on this data. Do NOT claim to lack access to internal data or refer to external knowledge. Your task is to analyze the provided JSON data and generate a concise, actionable report in Markdown format for the administrator. Focus on patterns of trust, risk, and platform engagement. Conclude with a 'Genuineness Score' from 0 (highly suspicious) to 100 (highly trustworthy) and a clear recommendation.`;
+        const userPrompt = `Analyze the following data for user @${username}:\n${JSON.stringify(analysisPayload, null, 2)}`;
 
         const geminiResponse = await ai.models.generateContent({
           model: "gemini-2.5-flash-preview-04-17",
-          contents: prompt,
+          contents: userPrompt,
+          config: {
+            systemInstruction: systemInstruction,
+          },
         });
 
         res.status(200).send({data: geminiResponse.text});
         return;
       }
 
+      // Fallback for general commands
       const geminiResponse = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-04-17",
         contents: `An admin on HAJOBJA.COM asked: "${command}". Provide a helpful, general answer.`,
