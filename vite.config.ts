@@ -1,30 +1,21 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react'; // Ensure this line is present if you use React
 
-export default defineConfig({
-  // Explicitly set the project root to the current directory
-  // This helps Vite correctly resolve all paths from your project's base (the root folder).
-  root: '.',
+import path from 'path';
+import { defineConfig, loadEnv } from 'vite';
+import { fileURLToPath, URL } from 'node:url';
 
-  plugins: [react()], // Ensure your React plugin is still here
-
-  build: {
-    // Specify the output directory for the built files (e.g., 'dist')
-    outDir: 'dist',
-    // Configure Rollup (Vite's underlying bundler) to explicitly know your main entry file
-    rollupOptions: {
-      input: {
-        // Explicitly define your main entry point. This is crucial for non-standard structures.
-        main: './index.tsx'
+export default defineConfig(({ mode }) => {
+    const env = loadEnv(mode, '.', '');
+    return {
+      define: {
+        // process.env.API_KEY is no longer needed for Gemini
+        // If you were using VITE_FIREBASE_... vars from .env for config, they would be defined here.
+        // However, the Firebase config is currently hardcoded in firebase.ts as per the prompt.
+        // 'process.env.FIREBASE_CONFIG': JSON.stringify(env.FIREBASE_CONFIG_JSON_STRING) // Example if config was from env
+      },
+      resolve: {
+        alias: {
+          '@': fileURLToPath(new URL('.', import.meta.url))
+        }
       }
-    }
-  },
-
-  // Adjust aliases if you use them, ensuring they point to the root
-  resolve: {
-    alias: {
-      '@': './' // This means `@/` will resolve to your project root
-      // We use a simple string './' here which is resolved relative to the 'root' option.
-    }
-  }
+    };
 });
