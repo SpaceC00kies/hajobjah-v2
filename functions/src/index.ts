@@ -69,9 +69,11 @@ export const orionAnalyze = functions.https.onRequest((req, res) => {
 
     // 3. Main Logic
     try {
-      const analyzeUserMatch = command.match(/analyze user @(\w+)/i);
-      if (analyzeUserMatch && analyzeUserMatch[1]) {
-        const username = analyzeUserMatch[1];
+      const usernameMatch = command.match(/@(\w+)/);
+
+      if (usernameMatch && usernameMatch[1]) {
+        // --- USER-SPECIFIC ANALYSIS PATH ---
+        const username = usernameMatch[1];
         const usersRef = db.collection("users");
         const userQuery = await usersRef.where("username", "==", username).limit(1).get();
 
@@ -112,9 +114,41 @@ export const orionAnalyze = functions.https.onRequest((req, res) => {
             latestPosts: posts.map((p) => p.title).slice(0, 5),
           },
         };
+        
+        // Updated System Instruction for User Analysis with strict formatting
+        const systemInstruction = `You are Orion, a security analysis AI for HAJOBJA.COM. Your ONLY function is to analyze the JSON data provided and generate a report in the EXACT format below.
 
-        const systemInstruction = `You are Orion, a specialized security and behavior analyst AI built exclusively for the HAJOBJA.COM platform. Your entire knowledge base about the user is limited to the JSON data provided in the prompt. You MUST base your analysis solely and exclusively on this data. Do NOT claim to lack access to internal data or refer to external knowledge. Your task is to analyze the provided JSON data and generate a concise, actionable report in Markdown format for the administrator. Focus on patterns of trust, risk, and platform engagement. Conclude with a 'Genuineness Score' from 0 (highly suspicious) to 100 (highly trustworthy) and a clear recommendation.`;
-        const userPrompt = `Analyze the following data for user @${username}:\n${JSON.stringify(analysisPayload, null, 2)}`;
+**FORMAT TEMPLATE:**
+🔍 **Analysis: @[username]**
+━━━━━━━━━━━━━━━━━━━━━━
+
+📊 **Trust Score: [score]/100** [star_rating]
+
+**Status:** [status_emoji] [Status Text]
+**Account Age:** [age]
+**Activity:** [level] (**[X]** posts, **[Y]** comments)
+**Vouches:** Given: **[A]** | Received: **[B]**
+
+🚨 **Key Findings:** (OMIT this section entirely if no warnings)
+- [Bullet point finding 1]
+- [Bullet point finding 2]
+
+💡 **Recommendation:**
+[A short, direct recommendation.]
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+**FORMATTING RULES:**
+- **DO NOT** deviate from the template.
+- **Trust Score:** Calculate a score from 0-100 based on the data (age, activity, vouch ratio).
+- **Star Rating:** Convert the score to a 5-star rating (e.g., 85/100 is ⭐⭐⭐⭐☆).
+- **Status:** Choose ONE: ✅ Trusted, ⚠️ Monitor, or 🚨 Suspicious.
+- **Key Findings:** Use bullet points for CRITICAL warnings only (e.g., IP match, suspicious vouch patterns). If none, OMIT the entire "Key Findings" section.
+- **Conciseness:** The entire response MUST be under 15 lines.
+- **Bold** all numbers.`;
+
+        const userPrompt = `Perform a security analysis on the following user data payload:\n\n\`\`\`json\n${JSON.stringify(analysisPayload, null, 2)}\n\`\`\``;
+
 
         const geminiResponse = await ai.models.generateContent({
           model: "gemini-2.5-flash-preview-04-17",
@@ -126,14 +160,44 @@ export const orionAnalyze = functions.https.onRequest((req, res) => {
 
         res.status(200).send({data: geminiResponse.text});
         return;
-      }
+      } else {
+        // --- GENERAL SCENARIO ANALYSIS PATH ---
+        const systemInstruction = `You are Orion, a security analysis AI for HAJOBJA.COM. Your ONLY function is to analyze the user's text-based fraud scenario and generate a report in the EXACT format below.
 
-      // Fallback for general commands
-      const geminiResponse = await ai.models.generateContent({
-        model: "gemini-2.5-flash-preview-04-17",
-        contents: `An admin on HAJOBJA.COM asked: "${command}". Provide a helpful, general answer.`,
-      });
-      res.status(200).send({data: geminiResponse.text});
+**FORMAT TEMPLATE:**
+🔍 **Scenario Analysis**
+━━━━━━━━━━━━━━━━━━━━━━
+
+📊 **Fraud Risk: [score]/100** [star_rating]
+
+🚨 **Key Findings:**
+- [Bullet point explaining finding 1]
+- [Bullet point explaining finding 2]
+
+💡 **Recommendation:**
+[A short, direct recommendation.]
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+**FORMATTING RULES:**
+- **DO NOT** deviate from the template.
+- **Fraud Risk:** Calculate a score from 0-100 based on the described scenario.
+- **Star Rating:** Convert the score to a 5-star rating (e.g., 70/100 is ⭐⭐⭐⭐☆).
+- **Key Findings:** Use bullet points to explain your reasoning.
+- **Conciseness:** The entire response MUST be under 15 lines.`;
+
+        const userPrompt = command;
+
+        const geminiResponse = await ai.models.generateContent({
+          model: "gemini-2.5-flash-preview-04-17",
+          contents: userPrompt,
+          config: {
+            systemInstruction: systemInstruction,
+          },
+        });
+        res.status(200).send({data: geminiResponse.text});
+        return;
+      }
     } catch (error) {
       console.error("Error in orionAnalyze function logic:", error);
       res.status(500).send({error: {status: "INTERNAL", message: "An internal error occurred while processing your request."}});
