@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   onAuthChangeService,
@@ -2668,13 +2669,21 @@ const handleDeleteBlogComment = async (commentId: string) => {
         {currentViewContent}
       </main>
       <footer className="bg-neutral-light/50 text-center p-6 text-sm text-neutral-medium">
-        <div className="space-x-6 mb-3">
+        <div className="space-x-6 mb-4">
             <button onClick={() => navigateTo(View.AboutUs)} className="hover:text-secondary-hover transition-colors">เกี่ยวกับเรา</button>
             <button onClick={() => navigateTo(View.Safety)} className="hover:text-secondary-hover transition-colors">ความปลอดภัย</button>
             <button onClick={() => setIsFeedbackModalOpen(true)} className="hover:text-secondary-hover transition-colors">ส่ง Feedback</button>
         </div>
-        <div className="mb-3">
-            Created by <a href="https://www.facebook.com/bluecathousestudio/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">🐾 Blue Cat House</a>
+        <div className="mb-4">
+          <span className="font-sans">Created by</span>
+          <a href="https://www.facebook.com/bluecathousestudio/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline inline-flex items-center align-middle ml-1.5 font-sans font-medium">
+              <img 
+                src="https://i.postimg.cc/wxrcQPHV/449834128-122096458958403535-3024125841409891827-n-1-removebg-preview.png"
+                alt="Blue Cat House Logo" 
+                className="h-5 w-auto mr-1"
+              />
+              <span>Blue Cat House</span>
+          </a>
         </div>
         <div className="text-xs text-neutral-medium/80">
             © 2025 HAJOBJA.COM - All rights reserved.

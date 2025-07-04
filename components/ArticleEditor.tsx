@@ -41,12 +41,12 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ onSubmit, onCancel
   useEffect(() => {
     if (isEditing && initialData) {
       setFormData({
-        title: initialData.title,
-        content: initialData.content,
-        excerpt: initialData.excerpt,
-        category: initialData.category,
-        tagsInput: initialData.tags.join(', '),
-        status: initialData.status,
+        title: initialData.title || '',
+        content: initialData.content || '',
+        excerpt: initialData.excerpt || '',
+        category: initialData.category || '',
+        tagsInput: (initialData.tags || []).join(', '),
+        status: initialData.status || 'draft',
         coverImageURL: initialData.coverImageURL,
         newCoverImagePreview: initialData.coverImageURL,
       });
