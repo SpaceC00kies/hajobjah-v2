@@ -46,13 +46,10 @@ export const BlogCard: React.FC<BlogCardProps> = ({ post, onSelectPost }) => {
         />
       </div>
       <div className="p-6 flex flex-col flex-grow">
-        <p className="text-sm font-medium text-secondary-hover mb-2">{post.category}</p>
+        <p className="text-sm font-semibold text-rose-700 mb-2">{post.category}</p>
         <h3 className="text-xl font-bold font-sans text-neutral-dark group-hover:text-primary transition-colors duration-200 flex-grow">
           {post.title}
         </h3>
-        <p className="mt-2 text-neutral-medium font-serif text-sm line-clamp-3">
-            {post.excerpt}
-        </p>
         <div className="mt-6 pt-4 border-t border-neutral-DEFAULT/50 flex items-center">
             {post.authorPhotoURL ? (
                  <img src={post.authorPhotoURL} alt={post.authorDisplayName} className="w-10 h-10 rounded-full object-cover mr-3"/>

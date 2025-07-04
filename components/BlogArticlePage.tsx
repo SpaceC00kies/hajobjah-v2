@@ -52,40 +52,49 @@ export const BlogArticlePage: React.FC<BlogArticlePageProps> = ({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
     >
-        <Button onClick={onBack} variant="outline" colorScheme="neutral" size="sm" className="mb-8">
+        <Button onClick={onBack} variant="outline" colorScheme="neutral" size="sm" className="mb-4">
             &larr; กลับไปหน้ารวมบทความ
         </Button>
+        
+        {/* METADATA BAR - MOVED OUTSIDE/ABOVE THE ARTICLE CARD */}
+        <div className="max-w-3xl mx-auto px-6 sm:px-10 mb-4">
+            <div className="flex justify-between items-center text-sm text-neutral-medium font-sans">
+                <div className="flex items-center">
+                    {post.authorPhotoURL ? (
+                        <img src={post.authorPhotoURL} alt={post.authorDisplayName} className="w-8 h-8 rounded-full object-cover mr-3"/>
+                    ) : (
+                        <div className="w-8 h-8 rounded-full bg-neutral-light flex items-center justify-center mr-3 text-sm font-bold text-neutral-dark">
+                            {post.authorDisplayName.charAt(0)}
+                        </div>
+                    )}
+                    <span className="font-semibold text-neutral-dark">{post.authorDisplayName}</span>
+                </div>
+                <span>{formatDate(post.publishedAt)}</span>
+            </div>
+        </div>
+
 
       <article className="max-w-3xl mx-auto bg-white p-6 sm:p-10 rounded-xl shadow-lg border border-neutral-DEFAULT/30">
-        <header className="mb-8 text-center">
+        
+        {/* HERO IMAGE */}
+        {post.coverImageURL && (
+          <div className="mb-8 -mx-6 -mt-6 sm:-mx-10 sm:-mt-10">
+            <img 
+              src={post.coverImageURL} 
+              alt={post.title} 
+              className="w-full h-auto max-h-[450px] object-cover rounded-t-xl" 
+            />
+          </div>
+        )}
+
+        <header className="mb-8">
           <p className="text-base font-semibold text-secondary-hover uppercase tracking-wider mb-2">
             {post.category}
           </p>
           <h1 className="text-3xl sm:text-4xl font-bold font-sans text-neutral-dark leading-tight">
             {post.title}
           </h1>
-          <div className="mt-6 flex justify-center items-center">
-             {post.authorPhotoURL ? (
-                 <img src={post.authorPhotoURL} alt={post.authorDisplayName} className="w-12 h-12 rounded-full object-cover mr-4"/>
-            ) : (
-                <div className="w-12 h-12 rounded-full bg-neutral-light flex items-center justify-center mr-4 text-xl font-bold text-neutral-dark">
-                    {post.authorDisplayName.charAt(0)}
-                </div>
-            )}
-            <div>
-                <p className="text-md font-semibold font-sans text-neutral-dark">{post.authorDisplayName}</p>
-                <p className="text-sm text-neutral-medium">{formatDate(post.publishedAt)}</p>
-            </div>
-          </div>
         </header>
-
-        <div className="mb-8">
-          <img 
-            src={post.coverImageURL} 
-            alt={post.title} 
-            className="w-full h-auto max-h-96 object-cover rounded-lg shadow-md" 
-          />
-        </div>
 
         <div 
           className="prose prose-lg max-w-none font-serif text-neutral-dark leading-relaxed"

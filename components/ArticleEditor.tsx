@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { BlogPost, User } from '../types.ts';
+import { BlogCategory } from '../types.ts'; // Import the enum
 import { Button } from './Button.tsx';
-import { AISuggestionsModal } from './AISuggestionsModal.tsx'; // Import the new modal
+import { AISuggestionsModal } from './AISuggestionsModal.tsx';
 
-type BlogPostFormData = Partial<Omit<BlogPost, 'id' | 'authorId' | 'authorDisplayName' | 'authorPhotoURL' | 'createdAt' | 'updatedAt' | 'publishedAt' | 'slug'>> & {
+type BlogPostFormData = Partial<Omit<BlogPost, 'id' | 'authorId' | 'authorDisplayName' | 'authorPhotoURL' | 'createdAt' | 'updatedAt' | 'publishedAt' | 'slug' | 'tags'>> & {
   newCoverImageBase64?: string | null;
   newCoverImagePreview?: string | null;
   tagsInput: string;
@@ -45,7 +46,8 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ onSubmit, onCancel
         content: initialData.content || '',
         excerpt: initialData.excerpt || '',
         category: initialData.category || '',
-        tagsInput: (initialData.tags || []).join(', '),
+        // FIX: Use optional chaining to prevent crash if initialData or initialData.tags is undefined.
+        tagsInput: (initialData?.tags || []).join(', '), 
         status: initialData.status || 'draft',
         coverImageURL: initialData.coverImageURL,
         newCoverImagePreview: initialData.coverImageURL,
@@ -196,7 +198,12 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ onSubmit, onCancel
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
                 <label htmlFor="category" className="block text-sm font-sans font-medium text-neutral-dark mb-1">Category</label>
-                <input type="text" name="category" id="category" value={formData.category} onChange={handleChange} required className={`${inputBaseStyle} ${inputFocusStyle}`} />
+                <select name="category" id="category" value={formData.category} onChange={handleChange} required className={`${selectBaseStyle} ${inputFocusStyle}`}>
+                  <option value="" disabled>Select a category</option>
+                  {Object.values(BlogCategory).map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
             </div>
              <div>
                 <label htmlFor="tagsInput" className="block text-sm font-sans font-medium text-neutral-dark mb-1">Tags (comma-separated)</label>

@@ -490,6 +490,17 @@ export interface WebboardComment {
 }
 
 // New Types for Blog/Journal feature
+export enum BlogCategory {
+    JobTips = "เคล็ดลับหางาน",
+    SuccessStories = "เรื่องราวความสำเร็จ",
+    CareerAdvice = "แนะนำอาชีพ",
+    Finance = "การเงินและการลงทุน",
+    SelfDevelopment = "พัฒนาตัวเอง",
+    IndustryNews = "ข่าวสารในวงการ",
+    Interviews = "สัมภาษณ์บุคคลน่าสนใจ",
+    Lifestyle = "ไลฟ์สไตล์และการทำงาน",
+}
+
 export interface BlogPost {
   id: string;
   title: string;
@@ -501,7 +512,7 @@ export interface BlogPost {
   authorDisplayName: string; // Denormalized for performance
   authorPhotoURL?: string; // Denormalized
   status: 'draft' | 'published' | 'archived';
-  category: string;
+  category: BlogCategory | '';
   tags: string[];
   createdAt: string | Date;
   publishedAt?: string | Date; // Set only when status becomes 'published'
