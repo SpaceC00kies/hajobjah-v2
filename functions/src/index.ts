@@ -2,8 +2,8 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { GoogleGenAI } from "@google/genai";
-import type { User, Vouch, WebboardPost, WebboardComment } from "./types.ts";
-import * as cors from "cors";
+import type { User, Vouch, WebboardPost, WebboardComment } from "./types";
+import cors from "cors";
 
 
 admin.initializeApp();
@@ -89,16 +89,22 @@ export const orionAnalyze = functions.https.onRequest((req, res) => {
         // Pre-calculate account age
         let accountAge = "N/A";
         if (userData.createdAt) {
-            const createdAt = (userData.createdAt as admin.firestore.Timestamp).toDate();
-            const now = new Date();
-            const diffTime = Math.abs(now.getTime() - createdAt.getTime());
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            if (diffDays < 30) {
-                accountAge = `${diffDays} days`;
-            } else if (diffDays < 365) {
-                accountAge = `${Math.floor(diffDays / 30)} months`;
-            } else {
-                accountAge = `${Math.floor(diffDays / 365)} years`;
+            // Safely convert createdAt (which can be Timestamp, Date, or string) to a Date object.
+            const createdAt = userData.createdAt instanceof admin.firestore.Timestamp
+                ? userData.createdAt.toDate()
+                : new Date(userData.createdAt as string | Date);
+
+            if (!isNaN(createdAt.getTime())) { // Check for valid date
+                const now = new Date();
+                const diffTime = Math.abs(now.getTime() - createdAt.getTime());
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                if (diffDays < 30) {
+                    accountAge = `${diffDays} days`;
+                } else if (diffDays < 365) {
+                    accountAge = `${Math.floor(diffDays / 30)} months`;
+                } else {
+                    accountAge = `${Math.floor(diffDays / 365)} years`;
+                }
             }
         }
 
@@ -131,79 +137,74 @@ export const orionAnalyze = functions.https.onRequest((req, res) => {
             commentCount: comments.length,
           },
         };
-        
-        const systemInstructionForUser = `You are Orion. Your response MUST follow this EXACT template. DO NOT add any other text:
 
-@[USERNAME] - Trust Score: [SCORE]/100 [EMOJI]
+        const systemInstructionForUserJSON = `You are Orion, a world-class security and behavior analyst for the HAJOBJA.COM platform.
+Your response MUST be a valid JSON object matching this exact schema. Do not add any other text, markdown, or explanations.
 
-Hey admin, [ONE SENTENCE SUMMARY]. Here's what I found:
-- [FINDING 1]
-- [FINDING 2]
-- [FINDING 3]
+{
+  "username": string,
+  "trustScore": number, // A value between 0 and 100. Calculate this based on all provided data points like vouches, activity, and account age.
+  "emoji": "✅" | "⚠️" | "🚨", // Use ✅ for scores 70+, ⚠️ for 30-69, and 🚨 for below 30.
+  "summary": string, // A single, concise sentence that summarizes the user's overall status.
+  "findings": string[], // An array of 2 to 4 concise bullet points detailing key observations.
+  "recommendation": string // A single, concise sentence suggesting a course of action for the admin.
+}
 
-My take: [ONE SENTENCE RECOMMENDATION]
+Analyze the user data and populate this JSON object.`;
 
-RULES:
-1. Replace bracketed items with actual values
-2. Use EXACTLY this format - no headers, no extra text
-3. Maximum 3 bullet points
-4. Trust Score: Calculate based on vouches, activity, account age
-5. Emoji: ✅ (70+), ⚠️ (30-69), 🚨 (below 30)
-6. TOTAL OUTPUT MUST BE UNDER 10 LINES
-
-EXAMPLE OUTPUT:
-@john - Trust Score: 85/100 ✅
-
-Hey admin, this user looks legitimate. Here's what I found:
-- Active member for 6 months
-- Strong vouch network (12 given, 18 received)
-- Regular helpful contributions
-
-My take: Solid community member, no action needed.
-
-CRITICAL: If you write more than 10 lines or use any headers like '### User Analysis', you have failed. Follow the template EXACTLY.`;
-
-        const userPrompt = `Analyze this JSON data and generate a report using the template provided in the system instruction:\n\`\`\`json\n${JSON.stringify(analysisPayload, null, 2)}\n\`\`\``;
+        const userPrompt = `Analyze this JSON data and generate a report using the schema provided in the system instruction:\n\`\`\`json\n${JSON.stringify(analysisPayload, null, 2)}\n\`\`\``;
 
         const geminiResponse = await ai.models.generateContent({
           model: "gemini-2.5-flash-preview-04-17",
           contents: userPrompt,
           config: {
-            systemInstruction: systemInstructionForUser,
+            systemInstruction: systemInstructionForUserJSON,
+            responseMimeType: "application/json",
+            temperature: 0.1,
           },
         });
+        
+        // Parse the JSON response from the model
+        const responseText = geminiResponse.text;
+        if (!responseText) {
+            console.error("Orion AI returned an empty response for user analysis.");
+            res.status(500).send({data: "Orion AI returned an empty response."});
+            return;
+        }
 
-        res.status(200).send({data: geminiResponse.text});
+        let jsonStr = responseText.trim();
+        const fenceRegex = /^```(\w*)?\s*\n?(.*?)\n?\s*```$/s;
+        const match = jsonStr.match(fenceRegex);
+        if (match && match[2]) {
+            jsonStr = match[2].trim();
+        }
+
+        const parsedData = JSON.parse(jsonStr);
+        
+        // Format the parsed data into the desired string template
+        const formattedReply = `
+@${parsedData.username} - Trust Score: ${parsedData.trustScore}/100 ${parsedData.emoji}
+
+Hey admin, ${parsedData.summary}. Here's what I found:
+${parsedData.findings.map((f: string) => `- ${f}`).join("\n")}
+
+My take: ${parsedData.recommendation}
+`.trim();
+
+        res.status(200).send({data: formattedReply});
         return;
       } else {
         // --- GENERAL SCENARIO ANALYSIS PATH ---
-        const systemInstructionForScenario = `You are Orion. Your response MUST follow this EXACT template. DO NOT add any other text:
+         const systemInstructionForScenarioJSON = `You are Orion, an AI analyst. Your response must be a valid JSON object. Do not add other text.
 
-[ANALYSIS_TITLE] - Fraud Risk: [SCORE]/100 [EMOJI]
-
-Hey admin, [ONE SENTENCE SUMMARY]. Here's the breakdown:
-- [FINDING 1]
-- [FINDING 2]
-
-My take: [ONE SENTENCE RECOMMENDATION]
-
-RULES:
-1. Replace bracketed items with actual values.
-2. Use EXACTLY this format - no headers, no extra text.
-3. Maximum 3 bullet points.
-4. Emoji: ✅ (Low Risk), ⚠️ (Medium Risk), 🚨 (High Risk).
-5. TOTAL OUTPUT MUST BE UNDER 10 LINES.
-
-EXAMPLE OUTPUT:
-Suspicious Vouching Pattern - Fraud Risk: 95/100 🚨
-
-Hey admin, this scenario is highly suspicious. Here's the breakdown:
-- Multiple new accounts from a single IP is a classic sign of a sock puppet or collusion ring.
-- Immediately vouching for one user is not organic behavior.
-
-My take: High confidence of fraud. Investigate and likely ban all associated accounts.
-
-CRITICAL: If you write more than 10 lines or use any headers like '### Scenario Analysis', you have failed. Follow the template EXACTLY.`;
+{
+  "analysisTitle": string,
+  "fraudRisk": number, // A score from 0 (low) to 100 (high)
+  "riskEmoji": "✅" | "⚠️" | "🚨", // ✅ (0-29), ⚠️ (30-69), 🚨 (70+)
+  "summary": string, // A single, concise sentence summary.
+  "findings": string[], // An array of 2 to 3 key findings.
+  "recommendation": string // A single, concise recommendation.
+}`;
 
         const userPrompt = command;
 
@@ -211,10 +212,38 @@ CRITICAL: If you write more than 10 lines or use any headers like '### Scenario 
           model: "gemini-2.5-flash-preview-04-17",
           contents: userPrompt,
           config: {
-            systemInstruction: systemInstructionForScenario,
+            systemInstruction: systemInstructionForScenarioJSON,
+            responseMimeType: "application/json",
+            temperature: 0.1,
           },
         });
-        res.status(200).send({data: geminiResponse.text});
+        
+        const responseText = geminiResponse.text;
+        if (!responseText) {
+            console.error("Orion AI returned an empty response for general analysis.");
+            res.status(500).send({data: "Orion AI returned an empty response."});
+            return;
+        }
+        
+        let jsonStr = responseText.trim();
+        const fenceRegex = /^```(\w*)?\s*\n?(.*?)\n?\s*```$/s;
+        const match = jsonStr.match(fenceRegex);
+        if (match && match[2]) {
+            jsonStr = match[2].trim();
+        }
+
+        const parsedData = JSON.parse(jsonStr);
+
+        const formattedReply = `
+${parsedData.analysisTitle} - Fraud Risk: ${parsedData.fraudRisk}/100 ${parsedData.riskEmoji}
+
+Hey admin, ${parsedData.summary}. Here's the breakdown:
+${parsedData.findings.map((f: string) => `- ${f}`).join("\n")}
+
+My take: ${parsedData.recommendation}
+`.trim();
+
+        res.status(200).send({data: formattedReply});
         return;
       }
     } catch (error) {

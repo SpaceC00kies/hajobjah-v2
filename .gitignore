@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+setAdmin.cjs
+service-account.json
+functions/lib/index.js
+functions/lib/index.js.map
+functions/lib/types.js
+functions/lib/types.js.map
+functions/package-lock.json
