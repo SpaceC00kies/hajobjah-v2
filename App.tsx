@@ -2456,7 +2456,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
         onToggleHiredStatus={handleToggleItemStatusFromMyRoom}
         onUpdateUserProfile={handleUpdateUserProfile}
         getUserDisplayBadge={getUserDisplayBadge}
-        onSavePost={onSavePost}
+        onSavePost={handleSaveWebboardPost}
         onBumpProfile={(id) => handleBumpHelperProfile(id, loadHelpers)}
         onNavigateToPublicProfile={handleNavigateToPublicProfile}
         initialTab={myRoomInitialTabOverride}
