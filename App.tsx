@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   onAuthChangeService,
@@ -174,7 +175,7 @@ export const checkProfileCompleteness = (user: User): boolean => {
 
 export const calculateUserLevel = (userId: string, posts: WebboardPost[], comments: WebboardComment[]): UserLevel => {
   const userPostsCount = posts.filter(p => p.userId === userId).length;
-  const userCommentsCount = comments.filter(c => c.userId === userId).length;
+  const userCommentsCount = comments.filter(c => c.postId === userId).length;
   const score = (userPostsCount * 2) + (userCommentsCount * 0.5);
   for (let i = USER_LEVELS.length - 1; i >= 0; i--) {
     if (USER_LEVELS[i].minScore !== undefined && score >= USER_LEVELS[i].minScore!) {
@@ -506,7 +507,7 @@ const App: React.FC = () => {
 
             if (allWebboardPostsForAdmin.length > 0 || webboardComments.length > 0) {
                 const userPostsLast30Days = allWebboardPostsForAdmin.filter(p => p.userId === u.id && p.createdAt && new Date(p.createdAt as string) >= thirtyDaysAgo).length;
-                const userCommentsLast30Days = webboardComments.filter(c => c.userId === u.id && c.createdAt && new Date(c.createdAt as string) >= thirtyDaysAgo).length;
+                const userCommentsLast30Days = webboardComments.filter(c => c.postId === u.id && c.createdAt && new Date(c.createdAt as string) >= thirtyDaysAgo).length;
                 last30DaysActivity = userPostsLast30Days + userCommentsLast30Days;
             }
 
@@ -1259,7 +1260,7 @@ const App: React.FC = () => {
     try {
         await logHelperContactInteractionService(helperProfileId, currentUser.id, helperProfile.userId);
         
-        // The interestedCount is now managed by the toggleInterestService, not here.
+        // The interestedCount is now managed by the handleToggleInterest, not here.
         // This function is purely for logging the contact event itself.
 
     } catch(error: any) {
@@ -2460,7 +2461,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
         initialTab={myRoomInitialTabOverride}
         onInitialTabProcessed={() => setMyRoomInitialTabOverride(null)}
         getAuthorDisplayName={getAuthorDisplayName}
-        onToggleInterest={onToggleInterest}
+        onToggleInterest={handleToggleInterest}
         requestLoginForAction={requestLoginForAction}
         onEditJobFromFindView={handleEditOwnJobFromFindView}
         onEditHelperProfileFromFindView={handleEditOwnHelperProfileFromFindView}
@@ -2666,11 +2667,18 @@ const handleDeleteBlogComment = async (commentId: string) => {
       <main className="flex-grow flex flex-col justify-center container mx-auto p-4 sm:p-6 lg:p-8">
         {currentViewContent}
       </main>
-      <footer className="bg-headerBlue-DEFAULT text-center p-4 text-xs text-neutral-dark">
-        © {new Date().getFullYear()} HAJOBJA.COM - All Rights Reserved. 
-        <button onClick={() => navigateTo(View.AboutUs)} className="ml-4 hover:underline">เกี่ยวกับเรา</button>
-        <button onClick={() => navigateTo(View.Safety)} className="ml-4 hover:underline">ความปลอดภัย</button>
-        <button onClick={() => setIsFeedbackModalOpen(true)} className="ml-4 hover:underline">ส่งฟีดแบค</button>
+      <footer className="bg-neutral-light/50 text-center p-6 text-sm text-neutral-medium">
+        <div className="space-x-6 mb-3">
+            <button onClick={() => navigateTo(View.AboutUs)} className="hover:text-secondary-hover transition-colors">เกี่ยวกับเรา</button>
+            <button onClick={() => navigateTo(View.Safety)} className="hover:text-secondary-hover transition-colors">ความปลอดภัย</button>
+            <button onClick={() => setIsFeedbackModalOpen(true)} className="hover:text-secondary-hover transition-colors">ส่ง Feedback</button>
+        </div>
+        <div className="mb-3">
+            Created by <a href="https://www.facebook.com/bluecathousestudio/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">🐾 Blue Cat House</a>
+        </div>
+        <div className="text-xs text-neutral-medium/80">
+            © 2025 HAJOBJA.COM - All rights reserved.
+        </div>
       </footer>
       <ConfirmModal isOpen={isConfirmModalOpen} onClose={closeConfirmModal} onConfirm={handleConfirmDeletion} title={confirmModalTitle} message={confirmModalMessage} />
       <FeedbackForm isOpen={isFeedbackModalOpen} onClose={() => setIsFeedbackModalOpen(false)} currentUserEmail={currentUser?.email} />

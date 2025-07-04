@@ -1029,7 +1029,7 @@ export const addOrUpdateBlogPostService = async (
       likes: [],
       likeCount: 0,
     };
-    await setDoc(docRef, newPost);
+    await setDoc(docRef, cleanDataForFirestore(newPost as Record<string, any>));
   } else {
     const dataToUpdate: Partial<BlogPost> = {
       ...blogPostData,
@@ -1583,6 +1583,8 @@ export const toggleWebboardPostLikeService = async (postId: string, userId: stri
       }
       const postData = postDoc.data() as WebboardPost;
       const currentLikes = postData.likes || [];
+      const userRef = doc(db, USERS_COLLECTION, userId); // Add this
+      
       if (currentLikes.includes(userId)) {
         transaction.update(postRef, { likes: admin.firestore.FieldValue.arrayRemove(userId) });
       } else {
