@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect } from 'react';
 import type { User, Job, HelperProfile, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, Interest, EnrichedHelperProfile } from '../types.ts';
 import { View, UserTier } from '../types.ts';
@@ -8,7 +9,7 @@ import { WebboardPostCard } from './WebboardPostCard.tsx';
 import { JobCard } from './JobCard.tsx';
 import { HelperCard } from './HelperCard.tsx';
 import { isDateInPast, calculateDaysRemaining } from '../App.tsx';
-import { motion, AnimatePresence, type Variants, type Transition } from 'framer-motion';
+import { motion, AnimatePresence, Variants, Transition } from 'framer-motion';
 
 // Import icons
 const ProfileIcon = () => <span role="img" aria-label="Profile" className="mr-1.5 sm:mr-2">👤</span>;
@@ -272,23 +273,34 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
   );
 
   return (
-    <div className="flex flex-col md:flex-row gap-8">
-      <aside className="md:w-1/4 lg:w-1/5">
-        <nav className="sticky top-24 space-y-2">
+    <div className="w-full">
+      {/* Horizontal Scrollable Tab Bar */}
+      <div className="border-b border-neutral-DEFAULT mb-6">
+        <nav className="flex space-x-1 overflow-x-auto pb-px -mb-px" aria-label="Tabs">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`w-full flex items-center p-3 text-sm font-sans font-medium rounded-md transition-colors duration-200 ${activeTab === tab.id ? 'bg-secondary text-neutral-dark shadow' : 'text-neutral-medium hover:bg-secondary-hover/20 hover:text-neutral-dark'}`}
+              className={`
+                whitespace-nowrap flex items-center py-3 px-4 text-sm font-sans font-medium rounded-t-lg
+                border-b-2 transition-colors duration-200
+                focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-secondary/50
+                ${
+                  activeTab === tab.id
+                    ? 'border-secondary text-secondary'
+                    : 'border-transparent text-neutral-medium hover:text-neutral-dark'
+                }
+              `}
+              aria-current={activeTab === tab.id ? 'page' : undefined}
             >
               {tab.icon}
               <span>{tab.label}</span>
             </button>
           ))}
         </nav>
-      </aside>
+      </div>
 
-      <main className="flex-1 min-w-0">
+      <main className="min-w-0">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -298,7 +310,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
             transition={{ duration: 0.2 }}
           >
             {activeTab === 'profile' && (
-                <UserProfilePage currentUser={currentUser} onUpdateProfile={onUpdateUserProfile} onCancel={() => {}} />
+                <UserProfilePage currentUser={currentUser} onUpdateUserProfile={onUpdateUserProfile} onCancel={() => {}} />
             )}
 
             {activeTab === 'myJobs' && (
