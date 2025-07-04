@@ -1,7 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { GoogleGenAI } from "@google/genai";
-import type { User, Vouch, WebboardPost, WebboardComment, BlogPost } from "./types";
+import type { User, Vouch, WebboardPost, WebboardComment } from "./types";
 import cors from "cors";
 
 
@@ -77,7 +77,7 @@ export const orionAnalyze = functions.https.onRequest((req, res) => {
         const userQuery = await usersRef.where("username", "==", username).limit(1).get();
 
         if (userQuery.empty) {
-          res.status(200).send({data: `User @${username} not found.`});
+          res.status(200).send({data: { reply: `User @${username} not found.`}});
           return;
         }
 
@@ -183,9 +183,7 @@ Calculate the final score and cap it between 0 and 100. The emoji and summary MU
         // Parse the JSON response from the model
         const responseText = geminiResponse.text;
         if (!responseText) {
-            console.error("Orion AI returned an empty response for user analysis.");
-            res.status(500).send({data: "Orion AI returned an empty response."});
-            return;
+          throw new Error("Orion AI returned an empty response for user analysis.");
         }
 
         let jsonStr = responseText.trim();
@@ -209,7 +207,7 @@ ${parsedData.findings.map((f: string) => `• ${f}`).join("\n")}
 My take: ${parsedData.recommendation}
 `.trim().replace(/^\s*[\r\n]/gm, ""); // Also remove blank lines at the start
 
-        res.status(200).send({data: formattedReply});
+        res.status(200).send({data: { reply: formattedReply }});
         return;
       } else {
         // --- GENERAL SCENARIO ANALYSIS PATH ---
@@ -238,9 +236,7 @@ My take: ${parsedData.recommendation}
         
         const responseText = geminiResponse.text;
         if (!responseText) {
-            console.error("Orion AI returned an empty response for general analysis.");
-            res.status(500).send({data: "Orion AI returned an empty response."});
-            return;
+            throw new Error("Orion AI returned an empty response for general analysis.");
         }
         
         let jsonStr = responseText.trim();
@@ -263,7 +259,7 @@ ${parsedData.findings.map((f: string) => `• ${f}`).join("\n")}
 My take: ${parsedData.recommendation}
 `.trim().replace(/^\s*[\r\n]/gm, ""); // Also remove blank lines at the start
 
-        res.status(200).send({data: formattedReply});
+        res.status(200).send({data: { reply: formattedReply }});
         return;
       }
     } catch (error) {

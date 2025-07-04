@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { orionAnalyzeService } from '../services/firebaseService.ts';
 import type { OrionMessage } from '../types.ts';
@@ -68,17 +67,10 @@ export const OrionCommandCenter: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const reply = await orionAnalyzeService(command);
-
-      // The service function now returns a string which can be the result or an error message.
-      // We check if the reply starts with "Error:" to style it correctly.
-      if (reply.startsWith('Error:')) {
-         appendMessage({ text: reply, from: 'orion', isError: true });
-      } else {
-         appendMessage({ text: reply, from: 'orion' });
-      }
-
-    } catch (e: any) { // This catch block might not be hit if the service catches all errors, but it's good practice to keep it.
+      const result = await orionAnalyzeService({ command });
+      const reply = result.data.reply;
+      appendMessage({ text: reply, from: 'orion' });
+    } catch (e: any) {
       const errorMessage = e.message || 'An unknown error occurred.';
       appendMessage({ text: "Error: " + errorMessage, from: 'orion', isError: true });
     } finally {

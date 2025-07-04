@@ -1,4 +1,3 @@
-
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -959,7 +958,7 @@ export const getWebboardPostsPaginated = async (
 };
 
 // ... (Other services up to this point) ...
-export const orionAnalyzeService = httpsCallable<{ command: string }, { data: string }>(functions, 'orionAnalyze');
+export const orionAnalyzeService = httpsCallable<{ command: string }, { reply: string }>(functions, 'orionAnalyze');
 
 // Blog Posts Services
 export const getAllBlogPosts = async (): Promise<BlogPost[]> => {
