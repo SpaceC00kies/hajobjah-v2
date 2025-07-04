@@ -109,7 +109,7 @@ export const OrionCommandCenter: React.FC = () => {
             >
               {message.sender === 'orion' && <span className="text-xl">🤖</span>}
               <div
-                className={`max-w-xl p-3 rounded-lg prose prose-sm ${
+                className={`max-w-xl p-3 rounded-lg prose prose-sm whitespace-pre-wrap ${
                   message.sender === 'user'
                     ? 'bg-blue-100 text-neutral-dark'
                     : message.isError

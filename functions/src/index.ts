@@ -202,12 +202,13 @@ Calculate the final score and cap it between 0 and 100. The emoji and summary MU
         const formattedReply = `
 @${parsedData.username} - Trust Score: ${parsedData.trustScore}/100 ${parsedData.emoji}
 
-Hey admin, ${parsedData.summary}. Here's what I found:
+Hey admin, ${parsedData.summary}.
 
+Here's what I found:
 ${parsedData.findings.map((f: string) => `• ${f}`).join("\n")}
 
 My take: ${parsedData.recommendation}
-`.trim();
+`.trim().replace(/^\s*[\r\n]/gm, ""); // Also remove blank lines at the start
 
         res.status(200).send({data: formattedReply});
         return;
@@ -255,12 +256,13 @@ My take: ${parsedData.recommendation}
         const formattedReply = `
 ${parsedData.analysisTitle} - Fraud Risk: ${parsedData.fraudRisk}/100 ${parsedData.riskEmoji}
 
-Hey admin, ${parsedData.summary}. Here's the breakdown:
+Hey admin, ${parsedData.summary}.
 
+Here's the breakdown:
 ${parsedData.findings.map((f: string) => `• ${f}`).join("\n")}
 
 My take: ${parsedData.recommendation}
-`.trim();
+`.trim().replace(/^\s*[\r\n]/gm, ""); // Also remove blank lines at the start
 
         res.status(200).send({data: formattedReply});
         return;
