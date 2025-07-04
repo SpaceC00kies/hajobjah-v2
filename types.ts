@@ -101,6 +101,7 @@ export interface HelperProfile {
 export enum UserRole {
   Admin = 'Admin',
   Moderator = 'Moderator',
+  Writer = 'Writer', // New role for blog authors
   Member = 'Member',
 }
 
@@ -212,6 +213,8 @@ export enum View {
   Safety = 'SAFETY',
   Webboard = 'WEBBOARD',
   PasswordReset = 'PASSWORD_RESET',
+  Blog = 'BLOG', // New view for the blog/journal
+  ArticleEditor = 'ARTICLE_EDITOR', // New view for the blog post editor
 }
 
 export interface EnrichedHelperProfile extends HelperProfile {
@@ -485,6 +488,44 @@ export interface WebboardComment {
   createdAt: string | Date;
   updatedAt: string | Date;
 }
+
+// New Types for Blog/Journal feature
+export interface BlogPost {
+  id: string;
+  title: string;
+  slug: string; // e.g., "how-to-write-a-great-resume"
+  content: string; // Storing HTML or JSON from the rich text editor
+  excerpt: string;
+  coverImageURL?: string; // Optional now
+  authorId: string; // The User ID of the writer
+  authorDisplayName: string; // Denormalized for performance
+  authorPhotoURL?: string; // Denormalized
+  status: 'draft' | 'published' | 'archived';
+  category: string;
+  tags: string[];
+  createdAt: string | Date;
+  publishedAt?: string | Date; // Set only when status becomes 'published'
+  updatedAt: string | Date;
+  likes: string[]; // Array of user IDs
+  likeCount: number; // Denormalized count
+}
+
+export interface BlogComment {
+    id: string;
+    postId: string;
+    userId: string;
+    authorDisplayName: string;
+    authorPhotoURL?: string;
+    text: string;
+    createdAt: string | Date;
+    updatedAt: string | Date;
+}
+
+
+export interface EnrichedBlogPost extends BlogPost {
+    author?: User; // The full author object, if available
+}
+
 
 export enum UserLevelName {
   Level1_NewbiePoster = "🐣 มือใหม่หัดโพสต์",

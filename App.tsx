@@ -1,5 +1,3 @@
-
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   onAuthChangeService,
@@ -47,9 +45,19 @@ import {
   reportVouchService, // New service
   subscribeToWebboardCommentsService,
   orionAnalyzeService, // New Orion service
+  getAllBlogPosts, // New service for blog posts
+  getBlogPostsForAdmin, // New service for admin
+  addOrUpdateBlogPostService, // New service for blog post creation/editing
+  deleteBlogPostService, // New service for deleting blog posts
+  starlightWriterService, // New AI service for blog
+  subscribeToBlogCommentsService, // New subscription service for blog comments
+  addBlogCommentService,
+  updateBlogCommentService,
+  deleteBlogCommentService,
+  toggleBlogPostLikeService,
 } from './services/firebaseService.ts';
 import type { DocumentSnapshot, DocumentData } from 'firebase/firestore';
-import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier, Interest, VouchType, Vouch, VouchReport, VouchReportStatus, OrionMessage } from './types.ts'; // Added Vouch, OrionMessage
+import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier, Interest, VouchType, Vouch, VouchReport, VouchReportStatus, OrionMessage, BlogPost, EnrichedBlogPost, BlogComment } from './types.ts'; // Added Vouch, OrionMessage, BlogPost, BlogComment
 import type { AdminItem as AdminItemType } from './components/AdminDashboard.tsx';
 import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP, ACTIVITY_BADGE_DETAILS, Province, JOB_SUBCATEGORIES_MAP } from './types.ts';
 import { PostJobForm } from './components/PostJobForm.tsx';
@@ -72,6 +80,9 @@ import { PublicProfilePage } from './components/PublicProfilePage.tsx';
 import { SafetyPage } from './components/SafetyPage.tsx';
 import { FeedbackForm } from './components/FeedbackForm.tsx';
 import { WebboardPage } from './components/WebboardPage.tsx';
+import { BlogPage } from './components/BlogPage.tsx'; // New Blog Page
+import { BlogArticlePage } from './components/BlogArticlePage.tsx'; // New Blog Article Page
+import { ArticleEditor } from './components/ArticleEditor.tsx'; // New Article Editor
 import { UserLevelBadge } from './components/UserLevelBadge.tsx';
 import { SiteLockOverlay } from './components/SiteLockOverlay.tsx';
 import { CategoryFilterBar } from './components/CategoryFilterBar.tsx';
@@ -266,6 +277,12 @@ const App: React.FC = () => {
   const [vouchListModalData, setVouchListModalData] = useState<{ userToList: User } | null>(null);
   const [reportVouchModalData, setReportVouchModalData] = useState<{ vouchToReport: Vouch } | null>(null);
 
+  // New states for Blog
+  const [allBlogPosts, setAllBlogPosts] = useState<BlogPost[]>([]);
+  const [allBlogPostsForAdmin, setAllBlogPostsForAdmin] = useState<BlogPost[]>([]);
+  const [selectedBlogPostSlug, setSelectedBlogPostSlug] = useState<string | null>(null);
+  const [blogComments, setBlogComments] = useState<BlogComment[]>([]);
+
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
@@ -284,8 +301,8 @@ const App: React.FC = () => {
   const [webboardComments, setWebboardComments] = useState<WebboardComment[]>([]);
 
 
-  const [itemToEdit, setItemToEdit] = useState<Job | HelperProfile | WebboardPost | null>(null);
-  const [editingItemType, setEditingItemType] = useState<'job' | 'profile' | 'webboardPost' | null>(null);
+  const [itemToEdit, setItemToEdit] = useState<Job | HelperProfile | WebboardPost | BlogPost | null>(null);
+  const [editingItemType, setEditingItemType] = useState<'job' | 'profile' | 'webboardPost' | 'blogPost' | null>(null);
   const [sourceViewForForm, setSourceViewForForm] = useState<View | null>(null);
 
   // Filters and search terms
@@ -321,7 +338,8 @@ const App: React.FC = () => {
     const mode = params.get('mode');
     const oobCode = params.get('oobCode');
     const viewFromUrl = params.get('view') as View | null;
-    const idFromUrl = params.get('id'); // Generic ID from URL (postId, userId for PublicProfile)
+    const idFromUrl = params.get('id'); // Generic ID from URL (postId)
+    const slugFromUrl = params.get('slug'); // Slug for Blog posts
 
     if (window.location.pathname.endsWith('/reset-password') && mode === 'resetPassword' && oobCode) {
       setCurrentView(View.PasswordReset);
@@ -334,6 +352,8 @@ const App: React.FC = () => {
       setCurrentView(viewFromUrl);
       if (viewFromUrl === View.Webboard && idFromUrl) {
         setSelectedPostId(idFromUrl);
+      } else if (viewFromUrl === View.Blog && slugFromUrl) {
+        setSelectedBlogPostSlug(slugFromUrl);
       } else if (viewFromUrl === View.PublicProfile && idFromUrl) {
         setViewingProfileInfo({ userId: idFromUrl }); // Only userId from URL
         const referrerView = params.get('from') as View | null;
@@ -345,11 +365,13 @@ const App: React.FC = () => {
       } else {
         setSelectedPostId(null);
         setViewingProfileInfo(null);
+        setSelectedBlogPostSlug(null);
       }
     } else {
       setCurrentView(View.Home); 
       setSelectedPostId(null);
       setViewingProfileInfo(null);
+      setSelectedBlogPostSlug(null);
     }
   }, []);
 
@@ -433,10 +455,18 @@ const App: React.FC = () => {
         }
         setAllWebboardPostsForAdmin(allPosts);
     };
+    const fetchBlogPosts = async () => {
+      const posts = await getAllBlogPosts();
+      setAllBlogPosts(posts);
+      const adminPosts = await getBlogPostsForAdmin();
+      setAllBlogPostsForAdmin(adminPosts);
+    };
+
 
     fetchAllJobsForAdminAndMyPosts();
     fetchAllHelperProfilesForAdminAndMyPosts();
     fetchAllWebboardPostsForAdminAndLevels();
+    fetchBlogPosts(); // Fetch blog posts on initial load
 
     // Handle browser back/forward
     const handlePopState = (event: PopStateEvent) => {
@@ -544,6 +574,19 @@ const App: React.FC = () => {
     }
   }, [allWebboardPostsForAdmin, webboardComments, isLoadingAuth, currentUser?.id, userSavedPosts]);
 
+  // Subscription for Blog Comments
+  useEffect(() => {
+    if (selectedBlogPostSlug) {
+      const selectedPost = allBlogPosts.find(p => p.slug === selectedBlogPostSlug);
+      if (selectedPost) {
+        const unsubscribe = subscribeToBlogCommentsService(selectedPost.id, setBlogComments);
+        return () => unsubscribe();
+      }
+    }
+    setBlogComments([]); // Clear comments if no post is selected
+  }, [selectedBlogPostSlug, allBlogPosts]);
+
+
   const requestLoginForAction = (originalView: View, originalPayload?: any) => {
     if (!currentUser) {
       setLoginRedirectInfo({ view: originalView, payload: originalPayload });
@@ -559,7 +602,7 @@ const App: React.FC = () => {
   const navigateTo = (view: View, payload?: any) => {
     const fromView = currentView;
     setIsMobileMenuOpen(false); window.scrollTo(0, 0);
-    const protectedViews: View[] = [View.PostJob, View.OfferHelp, View.UserProfile, View.MyPosts, View.AdminDashboard, View.MyRoom];
+    const protectedViews: View[] = [View.PostJob, View.OfferHelp, View.UserProfile, View.MyPosts, View.AdminDashboard, View.MyRoom, View.ArticleEditor];
 
     if (view === View.PublicProfile) {
       let profileInfo: { userId: string; helperProfileId?: string } | null = null;
@@ -597,11 +640,16 @@ const App: React.FC = () => {
     }
 
     let newSelectedPostId = null;
+    let newSelectedBlogPostSlug = null;
     if (view === View.Webboard) {
       if (typeof payload === 'string') newSelectedPostId = payload;
       else if (payload && typeof payload === 'object' && payload.postId) newSelectedPostId = payload.postId;
+    } else if (view === View.Blog) {
+      if (typeof payload === 'string') newSelectedBlogPostSlug = payload;
+      else if (payload && typeof payload === 'object' && payload.slug) newSelectedBlogPostSlug = payload.slug;
     }
     setSelectedPostId(newSelectedPostId);
+    setSelectedBlogPostSlug(newSelectedBlogPostSlug);
 
     setCurrentView(view);
 
@@ -615,9 +663,13 @@ const App: React.FC = () => {
     const params = new URLSearchParams();
     params.set('view', view);
     let idForUrl: string | null = null;
+    let slugForUrl: string | null = null;
+
 
     if (view === View.Webboard && newSelectedPostId && newSelectedPostId !== 'create') {
       idForUrl = newSelectedPostId;
+    } else if (view === View.Blog && newSelectedBlogPostSlug) {
+      slugForUrl = newSelectedBlogPostSlug;
     } else if (view === View.PublicProfile) {
         // URL only contains userId for simplicity and direct linking
         if (typeof payload === 'string') idForUrl = payload;
@@ -625,9 +677,9 @@ const App: React.FC = () => {
     }
     
 
-    if (idForUrl) {
-      params.set('id', idForUrl);
-    }
+    if (idForUrl) params.set('id', idForUrl);
+    if (slugForUrl) params.set('slug', slugForUrl);
+
     if(view === View.PublicProfile && fromView !== View.PublicProfile) {
         params.set('from', fromView); // Keep track of where user came from to public profile
     }
@@ -745,7 +797,7 @@ const App: React.FC = () => {
     if (!currentUser) return false;
     if (currentUser.role === UserRole.Admin) return true;
     const itemAuthor = users.find(u => u.id === itemUserId);
-    if (currentUser.role === UserRole.Moderator) {
+    if (currentUser.role === UserRole.Moderator || currentUser.role === UserRole.Writer) {
         return itemAuthor?.role !== UserRole.Admin;
     }
     return currentUser.id === itemUserId || currentUser.id === itemOwnerId;
@@ -758,6 +810,8 @@ const App: React.FC = () => {
         setItemToEdit(item.originalItem as HelperProfile); setEditingItemType('profile'); setSourceViewForForm(View.AdminDashboard); navigateTo(View.OfferHelp);
     } else if (item.itemType === 'webboardPost') {
         setItemToEdit({ ...(item.originalItem as WebboardPost), isEditing: true }); setEditingItemType('webboardPost'); setSourceViewForForm(View.AdminDashboard); navigateTo(View.Webboard, 'create');
+    } else if (item.itemType === 'blogPost') {
+        setItemToEdit(item.originalItem as BlogPost); setEditingItemType('blogPost'); setSourceViewForForm(View.AdminDashboard); navigateTo(View.ArticleEditor);
     }
  };
   // Modified to use MyRoom as source for edits initiated from there
@@ -790,6 +844,8 @@ const App: React.FC = () => {
 
   type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'posterIsAdminVerified' | 'interestedCount'>;
   type HelperProfileFormData = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt'>;
+  type BlogPostFormData = Partial<Omit<BlogPost, 'id' | 'authorDisplayName' | 'authorPhotoURL' | 'createdAt' | 'updatedAt' | 'publishedAt'>> & { newCoverImageBase64?: string | null };
+
 
   const generateContactString = (user: User): string => {
     let contactParts: string[] = [];
@@ -1029,6 +1085,8 @@ const App: React.FC = () => {
       targetView = sourceViewForForm;
     } else if (editingItemType === null && currentView === View.Webboard && currentSelectedPostIdForNav === 'create') {
       targetView = View.Webboard;
+    } else if (editingItemType === 'blogPost') {
+      targetView = View.AdminDashboard;
     } else if (currentView === View.Webboard && currentSelectedPostIdForNav && currentSelectedPostIdForNav !== 'create') {
       targetView = View.Webboard;
     } else {
@@ -1061,11 +1119,15 @@ const App: React.FC = () => {
   const closeConfirmModal = () => { setIsConfirmModalOpen(false); setConfirmModalMessage(''); setConfirmModalTitle(''); setOnConfirmAction(null); };
   const handleConfirmDeletion = () => { if (onConfirmAction) onConfirmAction(); closeConfirmModal(); };
 
-  const handleDeleteItem = async (itemId: string, itemType: 'job' | 'profile' | 'webboardPost' | 'webboardComment', itemTitle: string, itemUserId: string, itemOwnerId?: string, loadItemsFn?: (isInitialLoad?: boolean) => void) => {
+  const handleDeleteItem = async (itemId: string, itemType: 'job' | 'profile' | 'webboardPost' | 'webboardComment' | 'blogPost', itemTitle: string, itemUserId: string, itemOwnerId?: string, loadItemsFn?: (isInitialLoad?: boolean) => void) => {
     if (!canEditOrDelete(itemUserId, itemOwnerId)) { alert('คุณไม่มีสิทธิ์ลบรายการนี้'); return; }
+    let confirmMessage = `คุณแน่ใจหรือไม่ว่าต้องการลบ "${itemTitle}"? การกระทำนี้ไม่สามารถย้อนกลับได้`;
+    if (itemType === 'webboardPost') confirmMessage += ' และจะลบคอมเมนต์ทั้งหมดที่เกี่ยวข้องด้วย';
+    if (itemType === 'blogPost') confirmMessage += ' และจะลบภาพหน้าปกออกจากระบบด้วย';
+
     openConfirmModal(
-      `ยืนยันการลบ${itemType === 'job' ? 'ประกาศงาน' : itemType === 'profile' ? 'โปรไฟล์' : itemType === 'webboardPost' ? 'กระทู้' : 'คอมเมนต์'}`,
-      `คุณแน่ใจหรือไม่ว่าต้องการลบ "${itemTitle}"? การกระทำนี้ไม่สามารถย้อนกลับได้${itemType === 'webboardPost' ? ' และจะลบคอมเมนต์ทั้งหมดที่เกี่ยวข้องด้วย' : ''}`,
+      `ยืนยันการลบ`,
+      confirmMessage,
       async () => {
         try {
           if (itemType === 'job') {
@@ -1083,6 +1145,11 @@ const App: React.FC = () => {
             if (selectedPostId === itemId) { setSelectedPostId(null); navigateTo(View.Webboard); }
           } else if (itemType === 'webboardComment') {
             await deleteWebboardCommentService(itemId);
+          } else if (itemType === 'blogPost') {
+              const postToDelete = allBlogPostsForAdmin.find(p => p.id === itemId);
+              await deleteBlogPostService(itemId, postToDelete?.coverImageURL);
+              setAllBlogPosts(prev => prev.filter(p => p.id !== itemId));
+              setAllBlogPostsForAdmin(prev => prev.filter(p => p.id !== itemId));
           }
           alert(`ลบ "${itemTitle}" เรียบร้อยแล้ว`);
         } catch (error: any) {
@@ -1105,6 +1172,11 @@ const App: React.FC = () => {
     const post = allWebboardPostsForAdmin.find(p => p.id === postId);
     if (post) handleDeleteItem(postId, 'webboardPost', post.title, post.userId, post.ownerId, loadWebboardFn);
   };
+  const handleDeleteBlogPost = (postId: string, coverImageURL?: string) => {
+      const post = allBlogPostsForAdmin.find(p => p.id === postId);
+      if(post) handleDeleteItem(postId, 'blogPost', post.title, post.authorId, post.authorId);
+  };
+
   const handleDeleteWebboardComment = (commentId: string) => { // Now standalone
     const comment = webboardComments.find(c => c.id === commentId);
     if (comment) handleDeleteItem(commentId, 'webboardComment', `คอมเมนต์โดย ${getAuthorDisplayName(comment.userId, comment.authorDisplayName)}`, comment.userId, comment.ownerId);
@@ -1466,6 +1538,98 @@ const App: React.FC = () => {
         alert(`เกิดข้อผิดพลาดในการเปลี่ยนสถานะระบบ: ${error.message}`);
     }
   };
+  
+  const handleAddOrUpdateBlogPost = async (blogPostData: BlogPostFormData, existingPostId?: string) => {
+    if (!currentUser || !(currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer)) {
+        alert("คุณไม่มีสิทธิ์ดำเนินการนี้");
+        return;
+    }
+    try {
+        const { newCoverImageBase64, ...dataToSave } = blogPostData;
+        const newPostId = await addOrUpdateBlogPostService(
+            { ...dataToSave, id: existingPostId },
+            { id: currentUser.id, publicDisplayName: currentUser.publicDisplayName, photo: currentUser.photo },
+            newCoverImageBase64
+        );
+        // Re-fetch all blog posts for admin to update the list
+        const adminPosts = await getBlogPostsForAdmin();
+        setAllBlogPosts(await getAllBlogPosts());
+        setAllBlogPostsForAdmin(adminPosts);
+
+        alert(`บทความ "${dataToSave.title}" ถูก${existingPostId ? 'อัปเดต' : 'สร้าง'}เรียบร้อยแล้ว`);
+        setItemToEdit(null);
+        setEditingItemType(null);
+        navigateTo(View.AdminDashboard);
+    } catch (error: any) {
+        logFirebaseError("handleAddOrUpdateBlogPost", error);
+        alert(`เกิดข้อผิดพลาด: ${error.message}`);
+    }
+};
+
+const handleToggleBlogPostLike = async (postId: string) => {
+  if (!currentUser) { requestLoginForAction(View.Blog, { action: 'like', postId: postId }); return; }
+  try {
+      await toggleBlogPostLikeService(postId, currentUser.id);
+      const updatedPosts = allBlogPosts.map(p => {
+          if (p.id === postId) {
+              const hasLiked = p.likes.includes(currentUser.id);
+              const newLikes = hasLiked ? p.likes.filter(id => id !== currentUser.id) : [...p.likes, currentUser.id];
+              return { ...p, likes: newLikes, likeCount: newLikes.length };
+          }
+          return p;
+      });
+      setAllBlogPosts(updatedPosts);
+      setAllBlogPostsForAdmin(updatedPosts);
+  } catch (error: any) {
+      logFirebaseError("handleToggleBlogPostLike", error);
+      alert(`เกิดข้อผิดพลาดในการกดไลค์บทความ: ${error.message}`);
+  }
+};
+
+const handleAddBlogComment = async (postId: string, text: string) => {
+  if (!currentUser) { requestLoginForAction(View.Blog, { action: 'comment', postId: postId }); return; }
+  if (containsBlacklistedWords(text)) { alert('เนื้อหาคอมเมนต์มีคำที่ไม่เหมาะสม'); return; }
+  try {
+    await addBlogCommentService(postId, text, { userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, photoURL: currentUser.photo });
+  } catch (error: any) {
+    logFirebaseError("handleAddBlogComment", error);
+    alert(`เกิดข้อผิดพลาดในการเพิ่มคอมเมนต์: ${error.message}`);
+  }
+};
+
+const handleUpdateBlogComment = async (commentId: string, newText: string) => {
+  if (!currentUser) { alert("คุณต้องเข้าสู่ระบบเพื่อแก้ไขคอมเมนต์"); return; }
+  if (containsBlacklistedWords(newText)) { alert('เนื้อหาคอมเมนต์มีคำที่ไม่เหมาะสม'); return; }
+  const comment = blogComments.find(c => c.id === commentId);
+  if (!comment || !canEditOrDelete(comment.userId)) { alert("คุณไม่มีสิทธิ์แก้ไขคอมเมนต์นี้"); return; }
+  try {
+      await updateBlogCommentService(commentId, newText);
+      alert('แก้ไขคอมเมนต์เรียบร้อยแล้ว');
+  } catch (error: any) {
+      logFirebaseError("handleUpdateBlogComment", error);
+      alert(`เกิดข้อผิดพลาดในการแก้ไขคอมเมนต์: ${error.message}`);
+  }
+};
+
+const handleDeleteBlogComment = async (commentId: string) => {
+  const comment = blogComments.find(c => c.id === commentId);
+  if (!comment || !canEditOrDelete(comment.userId)) { alert("คุณไม่มีสิทธิ์ลบคอมเมนต์นี้"); return; }
+  openConfirmModal(
+      `ยืนยันการลบ`,
+      `คุณแน่ใจหรือไม่ว่าต้องการลบคอมเมนต์นี้?`,
+      async () => {
+          try {
+              await deleteBlogCommentService(commentId);
+              alert("ลบคอมเมนต์เรียบร้อยแล้ว");
+          } catch (error: any) {
+              logFirebaseError("handleDeleteBlogComment", error);
+              alert(`เกิดข้อผิดพลาดในการลบคอมเมนต์: ${error.message}`);
+          }
+      }
+  );
+};
+
+
 
   const renderNavLinks = (isMobile: boolean) => {
     const displayBadgeForProfile = getUserDisplayBadge(currentUser);
@@ -1511,10 +1675,16 @@ const App: React.FC = () => {
 
             {/* UserProfile and MyPosts links are removed as they are part of MyRoom */}
 
-            {currentUser.role === UserRole.Admin && currentView !== View.AdminDashboard && (
+            {(currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer) && currentView !== View.AdminDashboard && (
               <Button onClick={() => navigateAndCloseMenu(View.AdminDashboard)} variant="accent" {...commonButtonPropsBase}>
                  <span className={navItemSpanClass}><span>🔐</span><span>Admin</span></span>
               </Button>
+            )}
+            
+            {currentView !== View.Blog && (
+               <Button onClick={() => navigateAndCloseMenu(View.Blog)} variant="outline" colorScheme="neutral" {...commonButtonPropsBase}>
+                 <span className={navItemSpanClass}><span>📖</span><span>บทความ</span></span>
+               </Button>
             )}
 
             {currentView !== View.Webboard && (
@@ -1574,6 +1744,11 @@ const App: React.FC = () => {
                 <Button onClick={() => navigateAndCloseMenu(View.Home)} variant="outline" colorScheme="neutral" {...commonButtonPropsBase}>
                    <span className={navItemSpanClass}><span>🏠</span><span>หน้าแรก</span></span>
                 </Button>
+              )}
+              {currentView !== View.Blog && (
+                 <Button onClick={() => navigateAndCloseMenu(View.Blog)} variant="outline" colorScheme="neutral" {...commonButtonPropsBase}>
+                   <span className={navItemSpanClass}><span>📖</span><span>บทความ</span></span>
+                 </Button>
               )}
               <Button
                 onClick={() => navigateAndCloseMenu(View.Login)}
@@ -2285,7 +2460,7 @@ const App: React.FC = () => {
         initialTab={myRoomInitialTabOverride}
         onInitialTabProcessed={() => setMyRoomInitialTabOverride(null)}
         getAuthorDisplayName={getAuthorDisplayName}
-        onToggleInterest={handleToggleInterest}
+        onToggleInterest={onToggleInterest}
         requestLoginForAction={requestLoginForAction}
         onEditJobFromFindView={handleEditOwnJobFromFindView}
         onEditHelperProfileFromFindView={handleEditOwnHelperProfileFromFindView}
@@ -2294,10 +2469,11 @@ const App: React.FC = () => {
   };
 
   const renderAdminDashboard = () => {
-    if (currentUser?.role !== UserRole.Admin) return <p className="text-center p-8 font-serif">คุณไม่มีสิทธิ์เข้าถึงหน้านี้...</p>;
+    if (!currentUser || (currentUser.role !== UserRole.Admin && currentUser.role !== UserRole.Writer)) return <p className="text-center p-8 font-serif">คุณไม่มีสิทธิ์เข้าถึงหน้านี้...</p>;
     return (<AdminDashboard
         jobs={allJobsForAdmin} helperProfiles={allHelperProfilesForAdmin} users={users} interactions={interactions}
         webboardPosts={allWebboardPostsForAdmin} webboardComments={webboardComments}
+        allBlogPostsForAdmin={allBlogPostsForAdmin}
         onDeleteJob={(id) => handleDeleteJob(id, loadJobs)}
         onDeleteHelperProfile={(id) => handleDeleteHelperProfile(id, loadHelpers)}
         onToggleSuspiciousJob={(id) => handleToggleSuspiciousJob(id, loadJobs)}
@@ -2319,6 +2495,8 @@ const App: React.FC = () => {
         onResolveVouchReport={handleResolveVouchReport}
         getVouchDocument={getVouchDocument}
         orionAnalyzeService={orionAnalyzeService} // Pass new service
+        onDeleteBlogPost={handleDeleteBlogPost}
+        onAddOrUpdateBlogPost={handleAddOrUpdateBlogPost}
     />);
   };
   // MyPostsPage is replaced by MyRoomPage
@@ -2392,153 +2570,117 @@ const App: React.FC = () => {
     />);};
   const renderPasswordResetPage = () => <PasswordResetPage navigateTo={navigateTo} />;
 
+  const renderBlogPage = () => {
+    const enrichedBlogPosts: EnrichedBlogPost[] = allBlogPosts.map(post => ({
+      ...post,
+      author: users.find(u => u.id === post.authorId),
+    }));
+    if (selectedBlogPostSlug) {
+      const selectedPost = enrichedBlogPosts.find(p => p.slug === selectedBlogPostSlug);
+      return selectedPost ? <BlogArticlePage
+                                post={selectedPost} 
+                                onBack={() => navigateTo(View.Blog)}
+                                comments={blogComments}
+                                currentUser={currentUser}
+                                onToggleLike={handleToggleBlogPostLike}
+                                onAddComment={handleAddBlogComment}
+                                onUpdateComment={handleUpdateBlogComment}
+                                onDeleteComment={handleDeleteBlogComment}
+                                canEditOrDelete={canEditOrDelete}
+                             /> : <p>Article not found.</p>;
+    }
+    return <BlogPage posts={enrichedBlogPosts} onSelectPost={(slug) => navigateTo(View.Blog, { slug })} />;
+  };
+
+  const renderArticleEditor = () => {
+    if (!currentUser || !(currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer)) {
+        return <p className="text-center p-8 font-serif">คุณไม่มีสิทธิ์เข้าถึงหน้านี้...</p>;
+    }
+    return (
+        <ArticleEditor
+            onSubmit={handleAddOrUpdateBlogPost}
+            onCancel={handleCancelEditOrPost}
+            initialData={editingItemType === 'blogPost' ? itemToEdit as BlogPost : undefined}
+            isEditing={!!itemToEdit && editingItemType === 'blogPost'}
+            currentUser={currentUser}
+            onGenerateSuggestions={starlightWriterService}
+        />
+    );
+  };
+
+
   let currentViewContent;
   if (isLoadingAuth) {
     currentViewContent = (<div className="flex justify-center items-center h-screen"><p className="text-xl font-sans text-neutral-dark">กำลังโหลด...</p></div>);
   } else {
-    if (currentView === View.PasswordReset) {
+    if (currentView === View.PasswordReset && !currentUser) {
       currentViewContent = renderPasswordResetPage();
     } else if (isSiteLocked && currentUser?.role !== UserRole.Admin) {
       return <SiteLockOverlay />;
     } else {
       switch (currentView) {
           case View.Home: currentViewContent = renderHome(); break;
-          case View.PostJob: currentViewContent = <PostJobForm onSubmitJob={handleSubmitJobForm} onCancel={handleCancelEditOrPost} initialData={editingItemType === 'job' ? itemToEdit as Job : undefined} isEditing={!!itemToEdit && editingItemType === 'job'} currentUser={currentUser} jobs={allJobsForAdmin} />; break;
+          case View.PostJob: currentViewContent = renderPostJob(); break;
           case View.FindJobs: currentViewContent = renderFindJobs(); break;
-          case View.OfferHelp: currentViewContent = <OfferHelpForm onSubmitProfile={handleSubmitHelperProfileForm} onCancel={handleCancelEditOrPost} initialData={editingItemType === 'profile' ? itemToEdit as HelperProfile : undefined} isEditing={!!itemToEdit && editingItemType === 'profile'} currentUser={currentUser} helperProfiles={allHelperProfilesForAdmin} />; break;
+          case View.OfferHelp: currentViewContent = renderOfferHelpForm(); break;
           case View.FindHelpers: currentViewContent = renderFindHelpers(); break;
-          case View.Register: currentViewContent = renderRegister(); break;
           case View.Login: currentViewContent = renderLogin(); break;
+          case View.Register: currentViewContent = renderRegister(); break;
           case View.AdminDashboard: currentViewContent = renderAdminDashboard(); break;
-          // case View.MyPosts: currentViewContent = renderMyPostsPage(); break; // Replaced by MyRoom
-          // case View.UserProfile: currentViewContent = renderUserProfile(); break; // Replaced by MyRoom's profile tab
-          case View.MyRoom: currentViewContent = renderMyRoomPage(); break; // New case
+          case View.MyRoom: currentViewContent = renderMyRoomPage(); break;
           case View.AboutUs: currentViewContent = renderAboutUsPage(); break;
           case View.PublicProfile: currentViewContent = renderPublicProfile(); break;
           case View.Safety: currentViewContent = renderSafetyPage(); break;
           case View.Webboard: currentViewContent = renderWebboardPage(); break;
-          default: currentViewContent = renderHome();
+          case View.PasswordReset: currentViewContent = renderPasswordResetPage(); break;
+          case View.Blog: currentViewContent = renderBlogPage(); break;
+          case View.ArticleEditor: currentViewContent = renderArticleEditor(); break;
+          default:
+            const exhaustiveCheck: never = currentView;
+            currentViewContent = <p>Unknown view: {exhaustiveCheck}</p>;
       }
     }
   }
 
+  // AnimatePresence for CopiedLinkNotification
+  const CopiedNotification = () => (
+      <AnimatePresence>
+          {copiedLinkNotification && (
+              <motion.div
+                  initial={{ opacity: 0, y: 50, scale: 0.3 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 20, scale: 0.5 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                  className="fixed bottom-10 right-10 bg-neutral-dark text-white text-sm font-sans font-medium px-4 py-2 rounded-lg shadow-xl z-50"
+              >
+                  {copiedLinkNotification}
+              </motion.div>
+          )}
+      </AnimatePresence>
+  );
+
   return (
-    <div className="flex flex-col min-h-screen bg-neutral-light font-serif text-neutral-dark">
-      {!(currentView === View.PasswordReset && !currentUser) && renderHeader()}
+    <div className={`font-serif bg-neutral-light min-h-screen flex flex-col`}>
+      {renderHeader()}
       {renderMobileMenu()}
-      <main className={`flex-grow container mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 ${ (currentView !== View.PasswordReset) ? 'py-6 sm:py-8 lg:py-10 xl:py-12' : ''}`}>
+      <main className="flex-grow flex flex-col justify-center container mx-auto p-4 sm:p-6 lg:p-8">
         {currentViewContent}
       </main>
-      {!(currentView === View.PasswordReset && !currentUser) && (
-        <footer className="bg-neutral-light text-neutral-dark pt-16 pb-8 px-4 text-center font-sans">
-          <motion.div
-            className="container mx-auto"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" } as Transition}
-          >
-            <nav className="mb-3 flex justify-center items-center flex-wrap gap-x-1">
-              <button 
-                onClick={() => navigateTo(View.AboutUs)} 
-                className="text-xs text-neutral-medium hover:text-neutral-dark transition-colors duration-300 ease-in-out px-2 py-1"
-              >
-                เกี่ยวกับเรา
-              </button>
-              <button 
-                onClick={() => navigateTo(View.Safety)} 
-                className="text-xs text-neutral-medium hover:text-neutral-dark transition-colors duration-300 ease-in-out px-2 py-1"
-              >
-                ความปลอดภัย
-              </button>
-              <button 
-                onClick={() => setIsFeedbackModalOpen(true)} 
-                className="text-xs text-neutral-medium hover:text-neutral-dark transition-colors duration-300 ease-in-out px-2 py-1"
-              >
-                ส่ง Feedback
-              </button>
-            </nav>
-
-            <div className="mb-3 text-xs text-neutral-medium flex items-center justify-center">
-              <span className="mr-1.5">Created by</span>
-              <motion.a
-                href="https://bluecathouse.com" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center group"
-                whileHover={{ scale: 1.02 }}
-                transition={{ duration: 0.3, ease: "easeOut" } as Transition}
-              >
-                <img 
-                  src="https://i.postimg.cc/wxrcQPHV/449834128-122096458958403535-3024125841409891827-n-1-removebg-preview.png" 
-                  alt="Blue Cat House Logo" 
-                  className="h-4 w-auto inline-block align-middle mr-1" 
-                />
-                <span className="text-neutral-medium group-hover:text-primary transition-colors duration-300 ease-in-out">
-                  Blue Cat House
-                </span>
-              </motion.a>
-            </div>
-            
-            <p className="text-[11px] text-gray-400 mt-0">
-              © {new Date().getFullYear()} HAJOBJA.COM - All rights reserved.
-            </p>
-          </motion.div>
-        </footer>
-      )}
-      <AnimatePresence>
-       {copiedLinkNotification && (
-        <motion.div
-          initial={{ opacity: 0, y: 20, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 20, scale: 0.9 }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 } as Transition}
-          className="fixed bottom-5 left-1/2 -translate-x-1/2 bg-neutral-dark text-white px-4 py-2 rounded-md shadow-lg text-sm z-50"
-        >
-          {copiedLinkNotification}
-        </motion.div>
-      )}
-      </AnimatePresence>
+      <footer className="bg-headerBlue-DEFAULT text-center p-4 text-xs text-neutral-dark">
+        © {new Date().getFullYear()} HAJOBJA.COM - All Rights Reserved. 
+        <button onClick={() => navigateTo(View.AboutUs)} className="ml-4 hover:underline">เกี่ยวกับเรา</button>
+        <button onClick={() => navigateTo(View.Safety)} className="ml-4 hover:underline">ความปลอดภัย</button>
+        <button onClick={() => setIsFeedbackModalOpen(true)} className="ml-4 hover:underline">ส่งฟีดแบค</button>
+      </footer>
       <ConfirmModal isOpen={isConfirmModalOpen} onClose={closeConfirmModal} onConfirm={handleConfirmDeletion} title={confirmModalTitle} message={confirmModalMessage} />
-      <FeedbackForm
-        isOpen={isFeedbackModalOpen}
-        onClose={() => setIsFeedbackModalOpen(false)}
-        currentUserEmail={currentUser?.email}
-      />
-      <ForgotPasswordModal
-        isOpen={isForgotPasswordModalOpen}
-        onClose={() => setIsForgotPasswordModalOpen(false)}
-        onSendResetEmail={handleSendPasswordResetEmail}
-      />
-      {vouchModalData && currentUser && (
-        <VouchModal
-          isOpen={!!vouchModalData}
-          onClose={handleCloseVouchModal}
-          onSubmit={handleVouchSubmit}
-          userToVouch={vouchModalData.userToVouch}
-          currentUser={currentUser}
-        />
-      )}
-      {vouchListModalData && (
-        <VouchesListModal
-          isOpen={!!vouchListModalData}
-          onClose={handleCloseVouchesListModal}
-          userToList={vouchListModalData.userToList}
-          navigateToPublicProfile={(userId) => {
-            handleCloseVouchesListModal();
-            navigateTo(View.PublicProfile, userId);
-          }}
-          onReportVouch={handleOpenReportVouchModal}
-          currentUser={currentUser}
-        />
-      )}
-      {reportVouchModalData && currentUser && (
-        <ReportVouchModal
-          isOpen={!!reportVouchModalData}
-          onClose={handleCloseReportVouchModal}
-          onSubmitReport={(comment) => handleReportVouchSubmit(reportVouchModalData.vouchToReport, comment)}
-          vouchToReport={reportVouchModalData.vouchToReport}
-        />
-      )}
+      <FeedbackForm isOpen={isFeedbackModalOpen} onClose={() => setIsFeedbackModalOpen(false)} currentUserEmail={currentUser?.email} />
+      <ForgotPasswordModal isOpen={isForgotPasswordModalOpen} onClose={() => setIsForgotPasswordModalOpen(false)} onSendResetEmail={handleSendPasswordResetEmail} />
+
+      {vouchModalData && currentUser && <VouchModal isOpen={!!vouchModalData} onClose={handleCloseVouchModal} userToVouch={vouchModalData.userToVouch} currentUser={currentUser} onSubmit={handleVouchSubmit} />}
+      {vouchListModalData && <VouchesListModal isOpen={!!vouchListModalData} onClose={handleCloseVouchesListModal} userToList={vouchListModalData.userToList} navigateToPublicProfile={(id) => navigateTo(View.PublicProfile, id)} onReportVouch={handleOpenReportVouchModal} currentUser={currentUser} />}
+      {reportVouchModalData && <ReportVouchModal isOpen={!!reportVouchModalData} onClose={handleCloseReportVouchModal} vouchToReport={reportVouchModalData.vouchToReport} onSubmitReport={(comment) => handleReportVouchSubmit(reportVouchModalData.vouchToReport, comment)} />}
+
+      <CopiedNotification />
     </div>
   );
 };

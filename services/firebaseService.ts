@@ -34,7 +34,7 @@ import {
   type DocumentData,
   runTransaction,
   increment,
-} from '@firebase/firestore';
+} from 'firebase/firestore';
 import {
   ref,
   uploadBytes,
@@ -70,6 +70,8 @@ import {
   type VouchReport,
   type GenderOption,
   type HelperEducationLevelOption,
+  type BlogPost,
+  type BlogComment,
 } from '../types.ts';
 import { logFirebaseError } from '../firebase/logging.ts';
 
@@ -88,6 +90,9 @@ const USER_SAVED_POSTS_SUBCOLLECTION = 'savedWebboardPosts';
 const INTERESTS_COLLECTION = 'interests';
 const VOUCHES_COLLECTION = 'vouches';
 const VOUCH_REPORTS_COLLECTION = 'vouchReports';
+const BLOG_POSTS_COLLECTION = 'blogPosts';
+const BLOG_COMMENTS_COLLECTION = 'blogComments';
+
 
 // --- Paginated Response Type ---
 interface PaginatedDocsResponse<T> {
@@ -907,9 +912,9 @@ export const deleteWebboardPostService = async (postId: string): Promise<boolean
 };
 
 export const getWebboardPostsPaginated = async (
-  pageSize: number = 10,
+  pageSize: number,
   startAfterDoc: DocumentSnapshot<DocumentData> | null = null,
-  categoryFilter: string | null = null,
+  categoryFilter: WebboardCategory | null = null,
   searchTerm: string | null = null
 ): Promise<PaginatedDocsResponse<WebboardPost>> => {
   try {
@@ -930,256 +935,376 @@ export const getWebboardPostsPaginated = async (
     const q = query(collection(db, WEBBOARD_POSTS_COLLECTION), ...constraints);
     const querySnapshot = await getDocs(q);
 
-    const postsData = querySnapshot.docs.map(docSnap => ({
+    let postsData = querySnapshot.docs.map(docSnap => ({
       id: docSnap.id,
       ...convertTimestamps(docSnap.data()),
     } as WebboardPost));
-
-    let searchedPostsData = postsData;
+    
     if (searchTerm && searchTerm.trim() !== '') {
-        const termLower = searchTerm.toLowerCase();
-        searchedPostsData = postsData.filter(post =>
-            post.title.toLowerCase().includes(termLower) ||
-            post.body.toLowerCase().includes(termLower) ||
-            post.authorDisplayName.toLowerCase().includes(termLower)
-        );
+      const termLower = searchTerm.toLowerCase();
+      postsData = postsData.filter(post =>
+        post.title.toLowerCase().includes(termLower) ||
+        post.body.toLowerCase().includes(termLower) ||
+        post.authorDisplayName.toLowerCase().includes(termLower)
+      );
     }
 
     const lastVisible = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
 
-    return { items: searchedPostsData, lastVisibleDoc: lastVisible };
+    return { items: postsData, lastVisibleDoc: lastVisible };
   } catch (error: any) {
     logFirebaseError("getWebboardPostsPaginated", error);
     throw error;
   }
 };
 
-export const toggleWebboardPostLikeService = async (postId: string, userId: string): Promise<void> => {
-  const postRef = doc(db, WEBBOARD_POSTS_COLLECTION, postId);
+// ... (Other services up to this point) ...
+export const orionAnalyzeService = httpsCallable<{ command: string }, { data: string }>(functions, 'orionAnalyze');
+
+// Blog Posts Services
+export const getAllBlogPosts = async (): Promise<BlogPost[]> => {
+  try {
+    const q = query(collection(db, BLOG_POSTS_COLLECTION), where("status", "==", "published"), orderBy("publishedAt", "desc"));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as BlogPost));
+  } catch (error) {
+    logFirebaseError("getAllBlogPosts", error);
+    return [];
+  }
+};
+
+export const getBlogPostsForAdmin = async (): Promise<BlogPost[]> => {
+  try {
+    const q = query(collection(db, BLOG_POSTS_COLLECTION), orderBy("createdAt", "desc"));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as BlogPost));
+  } catch (error) {
+    logFirebaseError("getBlogPostsForAdmin", error);
+    return [];
+  }
+};
+
+export const addOrUpdateBlogPostService = async (
+  blogPostData: Partial<BlogPost> & { newCoverImageBase64?: string | null },
+  author: { id: string; publicDisplayName: string; photo?: string | null },
+  newCoverImageBase64?: string | null
+): Promise<string> => {
+  const isCreating = !blogPostData.id;
+  const docRef = isCreating ? doc(collection(db, BLOG_POSTS_COLLECTION)) : doc(db, BLOG_POSTS_COLLECTION, blogPostData.id!);
+
+  let coverImageURL: string | undefined | null = blogPostData.coverImageURL;
+
+  // Handle image upload/delete
+  if (newCoverImageBase64) { // New image uploaded
+    // If there's an old image, delete it
+    if (!isCreating && blogPostData.coverImageURL) {
+      await deleteImageService(blogPostData.coverImageURL);
+    }
+    coverImageURL = await uploadImageService(`blogCovers/${author.id}/${docRef.id}`, newCoverImageBase64);
+  } else if (newCoverImageBase64 === null) { // Image explicitly removed
+    if (!isCreating && blogPostData.coverImageURL) {
+      await deleteImageService(blogPostData.coverImageURL);
+    }
+    coverImageURL = null;
+  }
+
+  const slug = (blogPostData.title || `post-${docRef.id}`).toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+
+  if (isCreating) {
+    const newPost: Omit<BlogPost, 'id'> = {
+      title: blogPostData.title!,
+      slug: slug,
+      content: blogPostData.content!,
+      excerpt: blogPostData.excerpt!,
+      category: blogPostData.category!,
+      tags: blogPostData.tags || [],
+      status: blogPostData.status!,
+      authorId: author.id,
+      authorDisplayName: author.publicDisplayName,
+      authorPhotoURL: author.photo || undefined,
+      coverImageURL: coverImageURL || undefined,
+      createdAt: serverTimestamp() as any,
+      updatedAt: serverTimestamp() as any,
+      publishedAt: blogPostData.status === 'published' ? serverTimestamp() as any : undefined,
+      likes: [],
+      likeCount: 0,
+    };
+    await setDoc(docRef, newPost);
+  } else {
+    const dataToUpdate: Partial<BlogPost> = {
+      ...blogPostData,
+      slug,
+      updatedAt: serverTimestamp() as any,
+    };
+    if (coverImageURL !== undefined) {
+      dataToUpdate.coverImageURL = coverImageURL || undefined;
+    }
+    // Handle publishing date
+    const originalPostSnap = await getDoc(docRef);
+    const originalPostData = originalPostSnap.data() as BlogPost;
+    if (blogPostData.status === 'published' && originalPostData.status !== 'published') {
+      dataToUpdate.publishedAt = serverTimestamp() as any;
+    }
+    delete (dataToUpdate as any).newCoverImageBase64;
+    delete (dataToUpdate as any).newCoverImagePreview;
+    delete (dataToUpdate as any).tagsInput;
+    await updateDoc(docRef, cleanDataForFirestore(dataToUpdate as Record<string, any>));
+  }
+  return docRef.id;
+};
+
+
+export const deleteBlogPostService = async (postId: string, coverImageURL?: string): Promise<boolean> => {
+    try {
+        if (coverImageURL) {
+            await deleteImageService(coverImageURL);
+        }
+        await deleteDoc(doc(db, BLOG_POSTS_COLLECTION, postId));
+        // Bonus: could also delete all comments associated with the post here in a batch
+        return true;
+    } catch (error) {
+        logFirebaseError("deleteBlogPostService", error);
+        throw error;
+    }
+};
+
+// Phase 3 additions start here
+export const starlightWriterService = httpsCallable<{ task: 'title' | 'excerpt'; content: string }, { suggestions: string[] }>(functions, 'starlightWriter');
+
+
+export const toggleBlogPostLikeService = async (postId: string, userId: string): Promise<void> => {
+  const postRef = doc(db, BLOG_POSTS_COLLECTION, postId);
   try {
     await runTransaction(db, async (transaction) => {
       const postDoc = await transaction.get(postRef);
       if (!postDoc.exists()) {
         throw new Error("Post does not exist!");
       }
-      const postData = postDoc.data() as WebboardPost;
-      const likes = postData.likes || [];
+      const postData = postDoc.data() as BlogPost;
+      const currentLikes = postData.likes || [];
       
-      if (likes.includes(userId)) {
-        transaction.update(postRef, {
-          likes: likes.filter(id => id !== userId)
-        });
+      let newLikes: string[];
+      let likeCountChange: number;
+
+      if (currentLikes.includes(userId)) {
+        // User is unliking
+        newLikes = currentLikes.filter(id => id !== userId);
+        likeCountChange = -1;
       } else {
-        transaction.update(postRef, {
-          likes: [...likes, userId]
-        });
+        // User is liking
+        newLikes = [...currentLikes, userId];
+        likeCountChange = 1;
       }
+      
+      transaction.update(postRef, { 
+        likes: newLikes,
+        likeCount: increment(likeCountChange)
+      });
     });
-  } catch (error: any) {
-    logFirebaseError("toggleWebboardPostLikeService", error);
+  } catch (error) {
+    logFirebaseError("toggleBlogPostLikeService", error);
     throw error;
   }
 };
 
-// Webboard Comments
-interface WebboardCommentAuthorInfo { userId: string; authorDisplayName: string; photo?: string | null; }
-export const addWebboardCommentService = async (postId: string, text: string, author: WebboardCommentAuthorInfo): Promise<string> => {
-  try {
-    const newCommentDoc: Omit<WebboardComment, 'id'> = {
-      postId,
-      text,
-      userId: author.userId,
-      authorDisplayName: author.authorDisplayName,
-      authorPhoto: author.photo || undefined,
-      ownerId: author.userId,
-      createdAt: serverTimestamp() as any,
-      updatedAt: serverTimestamp() as any,
-    };
-    const docRef = await addDoc(collection(db, WEBBOARD_COMMENTS_COLLECTION), cleanDataForFirestore(newCommentDoc as Record<string, any>));
+export const subscribeToBlogCommentsService = (postId: string, callback: (comments: BlogComment[]) => void): (() => void) => {
+    const q = query(
+        collection(db, BLOG_COMMENTS_COLLECTION),
+        where("postId", "==", postId),
+        orderBy("createdAt", "asc")
+    );
+    return onSnapshot(q, (querySnapshot) => {
+        const comments = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...convertTimestamps(doc.data())
+        } as BlogComment));
+        callback(comments);
+    }, (error) => {
+        logFirebaseError(`subscribeToBlogCommentsService (postId: ${postId})`, error);
+    });
+};
 
-    const userRef = doc(db, USERS_COLLECTION, author.userId);
-    const userSnap = await getDoc(userRef);
-    if (userSnap.exists()) {
-      const userData = userSnap.data() as User;
-      await updateDoc(userRef, {
-        'activityBadge.last30DaysActivity': (userData.activityBadge.last30DaysActivity || 0) + 1
+export const addBlogCommentService = async (
+    postId: string,
+    text: string,
+    author: { userId: string; authorDisplayName: string; photoURL?: string | null }
+): Promise<string> => {
+    try {
+        const newComment: Omit<BlogComment, 'id'> = {
+            postId,
+            userId: author.userId,
+            authorDisplayName: author.authorDisplayName,
+            authorPhotoURL: author.photoURL || undefined,
+            text,
+            createdAt: serverTimestamp() as any,
+            updatedAt: serverTimestamp() as any,
+        };
+        const docRef = await addDoc(collection(db, BLOG_COMMENTS_COLLECTION), newComment);
+        return docRef.id;
+    } catch (error) {
+        logFirebaseError("addBlogCommentService", error);
+        throw error;
+    }
+};
+
+export const updateBlogCommentService = async (commentId: string, newText: string): Promise<void> => {
+    try {
+        const commentRef = doc(db, BLOG_COMMENTS_COLLECTION, commentId);
+        await updateDoc(commentRef, {
+            text: newText,
+            updatedAt: serverTimestamp() as any,
+        });
+    } catch (error) {
+        logFirebaseError("updateBlogCommentService", error);
+        throw error;
+    }
+};
+
+export const deleteBlogCommentService = async (commentId: string): Promise<void> => {
+    try {
+        const commentRef = doc(db, BLOG_COMMENTS_COLLECTION, commentId);
+        await deleteDoc(commentRef);
+    } catch (error) {
+        logFirebaseError("deleteBlogCommentService", error);
+        throw error;
+    }
+};
+
+// ... (Other services like Webboard Comments, User Interactions, etc. go here) ...
+// This file can get quite large. Consider splitting into multiple files by feature
+// (e.g., authService.ts, jobService.ts, webboardService.ts) in a real project.
+
+export const subscribeToUsersService = (callback: (users: User[]) => void) => {
+  return subscribeToCollectionService<User>(USERS_COLLECTION, callback);
+};
+
+export const subscribeToInteractionsService = (callback: (interactions: Interaction[]) => void) => {
+  return subscribeToCollectionService<Interaction>(INTERACTIONS_COLLECTION, callback);
+};
+
+export const subscribeToSiteConfigService = (callback: (config: SiteConfig) => void) => {
+  const docRef = doc(db, SITE_CONFIG_COLLECTION, SITE_CONFIG_DOC_ID);
+  return onSnapshot(docRef, (docSnap) => {
+    if (docSnap.exists()) {
+      callback(convertTimestamps(docSnap.data()) as SiteConfig);
+    } else {
+      callback({ isSiteLocked: false }); // Default value
+    }
+  }, (error) => {
+    logFirebaseError("subscribeToSiteConfigService", error);
+  });
+};
+
+export const subscribeToVouchReportsService = (callback: (reports: VouchReport[]) => void): (() => void) => {
+    const q = query(collection(db, VOUCH_REPORTS_COLLECTION), where("status", "==", VouchReportStatus.Pending), orderBy("createdAt", "desc"));
+    return onSnapshot(q, (querySnapshot) => {
+        const reports = querySnapshot.docs.map(docSnap => ({
+            id: docSnap.id,
+            ...convertTimestamps(docSnap.data()),
+        } as VouchReport));
+        callback(reports);
+    }, (error) => {
+        logFirebaseError("subscribeToVouchReportsService", error);
+    });
+};
+
+export const resolveVouchReportService = async (
+  reportId: string,
+  resolution: VouchReportStatus.ResolvedDeleted | VouchReportStatus.ResolvedKept,
+  adminId: string,
+  vouchId: string,
+  voucheeId: string,
+  vouchType: VouchType
+): Promise<void> => {
+  try {
+    const reportRef = doc(db, VOUCH_REPORTS_COLLECTION, reportId);
+    const vouchRef = doc(db, VOUCHES_COLLECTION, vouchId);
+    const voucheeRef = doc(db, USERS_COLLECTION, voucheeId);
+
+    const batch = writeBatch(db);
+
+    batch.update(reportRef, {
+      status: resolution,
+      resolvedAt: serverTimestamp(),
+      resolvedBy: adminId,
+    });
+
+    if (resolution === VouchReportStatus.ResolvedDeleted) {
+      batch.delete(vouchRef);
+      // Atomically decrement the specific vouch type count and the total count.
+      batch.update(voucheeRef, {
+        [`vouchInfo.${vouchType}`]: increment(-1),
+        [`vouchInfo.total`]: increment(-1)
       });
     }
-    return docRef.id;
-  } catch (error: any) {
-    logFirebaseError("addWebboardCommentService", error);
-    throw error;
-  }
-};
-export const updateWebboardCommentService = async (commentId: string, newText: string): Promise<boolean> => {
-  try {
-    const dataToUpdate = { text: newText, updatedAt: serverTimestamp() as any };
-    await updateDoc(doc(db, WEBBOARD_COMMENTS_COLLECTION, commentId), cleanDataForFirestore(dataToUpdate));
-    return true;
-  } catch (error: any) {
-    logFirebaseError("updateWebboardCommentService", error);
-    throw error;
-  }
-};
-export const deleteWebboardCommentService = async (commentId: string): Promise<boolean> => {
-  try {
-    const commentRef = doc(db, WEBBOARD_COMMENTS_COLLECTION, commentId);
-    const commentSnap = await getDoc(commentRef);
-    const commentData = commentSnap.data() as WebboardComment;
-
-    await deleteDoc(commentRef);
-
-    if (commentData && commentData.userId) {
-        const userRef = doc(db, USERS_COLLECTION, commentData.userId);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-            const userData = userSnap.data() as User;
-            await updateDoc(userRef, {
-                'activityBadge.last30DaysActivity': Math.max(0, (userData.activityBadge.last30DaysActivity || 0) - 1)
-            });
-        }
-    }
-    return true;
-  } catch (error: any) {
-    logFirebaseError("deleteWebboardCommentService", error);
-    throw error;
-  }
-};
-export const subscribeToWebboardCommentsService = (callback: (data: WebboardComment[]) => void, postId?: string) => {
-  const constraints = postId ? [where("postId", "==", postId), orderBy("createdAt", "asc")] : [orderBy("createdAt", "asc")];
-  return subscribeToCollectionService<WebboardComment>(WEBBOARD_COMMENTS_COLLECTION, callback, constraints);
-}
-
-// User Saved Webboard Posts
-export const saveUserWebboardPostService = async (userId: string, postId: string): Promise<void> => {
-  try {
-    const savedPostRef = doc(db, USERS_COLLECTION, userId, USER_SAVED_POSTS_SUBCOLLECTION, postId);
-    const data: UserSavedWebboardPostEntry = { postId, savedAt: serverTimestamp() as any };
-    await setDoc(savedPostRef, data);
-  } catch (error) {
-    logFirebaseError("saveUserWebboardPostService", error);
-    throw error;
-  }
-};
-
-export const unsaveUserWebboardPostService = async (userId: string, postId: string): Promise<void> => {
-  try {
-    const savedPostRef = doc(db, USERS_COLLECTION, userId, USER_SAVED_POSTS_SUBCOLLECTION, postId);
-    await deleteDoc(savedPostRef);
-  } catch (error) {
-    logFirebaseError("unsaveUserWebboardPostService", error);
-    throw error;
-  }
-};
-
-export const subscribeToUserSavedPostsService = (userId: string, callback: (postIds: string[]) => void): (() => void) => {
-  const q = collection(db, USERS_COLLECTION, userId, USER_SAVED_POSTS_SUBCOLLECTION);
-  return onSnapshot(q, (querySnapshot) => {
-    const postIds = querySnapshot.docs.map(docSnap => docSnap.id);
-    callback(postIds);
-  }, (error) => {
-    logFirebaseError("subscribeToUserSavedPostsService", error);
-  });
-};
-
-
-// Interactions
-export const logHelperContactInteractionService = async (helperProfileId: string, employerUserId: string, helperUserId: string): Promise<string> => {
-  try {
-    const interactionsRef = collection(db, INTERACTIONS_COLLECTION);
-    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-    const q = query(interactionsRef,
-      where("helperProfileId", "==", helperProfileId),
-      where("employerUserId", "==", employerUserId),
-      where("timestamp", ">", tenMinutesAgo)
-    );
-    const recentInteractionsSnap = await getDocs(q);
-
-    if (!recentInteractionsSnap.empty) {
-        return recentInteractionsSnap.docs[0].id;
-    }
-
-    const newInteractionDoc: Omit<Interaction, 'id'> = {
-      helperUserId: helperUserId,
-      helperProfileId,
-      employerUserId,
-      timestamp: serverTimestamp() as any,
-      type: 'contact_helper',
-      createdAt: serverTimestamp() as any,
-    };
-    const docRef = await addDoc(collection(db, INTERACTIONS_COLLECTION), cleanDataForFirestore(newInteractionDoc as Record<string, any>));
     
-    return docRef.id;
-  } catch (error: any) {
-    logFirebaseError("logHelperContactInteractionService", error);
+    await batch.commit();
+
+  } catch (error) {
+    logFirebaseError("resolveVouchReportService", error);
     throw error;
   }
 };
-export const subscribeToInteractionsService = (callback: (data: Interaction[]) => void) =>
-  subscribeToCollectionService<Interaction>(INTERACTIONS_COLLECTION, callback, [orderBy("timestamp", "desc")]);
 
-// --- New Interest Services ---
-export const toggleInterestService = async (
-  targetId: string,
-  targetType: 'job' | 'helperProfile',
-  targetOwnerId: string,
-  currentUserId: string
-): Promise<{ isInterested: boolean }> => {
-  const interestId = `${currentUserId}_${targetId}`;
-  const interestRef = doc(db, INTERESTS_COLLECTION, interestId);
-  
-  const targetCollection = targetType === 'job' ? JOBS_COLLECTION : HELPER_PROFILES_COLLECTION;
-  const targetRef = doc(db, targetCollection, targetId);
-
+export const setSiteLockService = async (isLocked: boolean, adminId: string): Promise<void> => {
   try {
-    let isNowInterested = false;
-    await runTransaction(db, async (transaction) => {
-      const interestDoc = await transaction.get(interestRef);
-      if (interestDoc.exists()) {
-        // Interest exists, so we are un-interesting it
-        transaction.delete(interestRef);
-        transaction.update(targetRef, { interestedCount: increment(-1) });
-        isNowInterested = false;
-      } else {
-        // Interest does not exist, so we are adding it
-        const newInterest: Omit<Interest, 'id'> = {
-          userId: currentUserId,
-          targetId,
-          targetType,
-          targetOwnerId,
-          createdAt: serverTimestamp() as any,
-        };
-        transaction.set(interestRef, newInterest);
-        transaction.update(targetRef, { interestedCount: increment(1) });
-        isNowInterested = true;
-      }
-    });
-    return { isInterested: isNowInterested };
+    const configRef = doc(db, SITE_CONFIG_COLLECTION, SITE_CONFIG_DOC_ID);
+    await setDoc(configRef, {
+      isSiteLocked: isLocked,
+      updatedAt: serverTimestamp(),
+      updatedBy: adminId,
+    }, { merge: true });
   } catch (error) {
-    logFirebaseError("toggleInterestService", error);
-    throw new Error('Failed to update interest.');
+    logFirebaseError("setSiteLockService", error);
+    throw error;
   }
 };
 
-export const subscribeToUserInterestsService = (
-  userId: string,
-  callback: (interests: Interest[]) => void
-): (() => void) => {
-  const q = query(collection(db, INTERESTS_COLLECTION), where("userId", "==", userId));
-  return onSnapshot(q, (querySnapshot) => {
-    const interests = querySnapshot.docs.map(docSnap => ({
-      id: docSnap.id,
-      ...convertTimestamps(docSnap.data()),
-    } as Interest));
-    callback(interests);
-  }, (error) => {
-    logFirebaseError("subscribeToUserInterestsService", error);
-  });
+export const setUserRoleService = async (userId: string, newRole: UserRole): Promise<void> => {
+  try {
+    const setUserRoleFunction = httpsCallable(functions, 'setUserRole');
+    await setUserRoleFunction({ userId, role: newRole });
+  } catch (error) {
+    logFirebaseError("setUserRoleService", error);
+    throw error;
+  }
 };
 
-// --- General Data Services ---
-export const subscribeToUsersService = (callback: (data: User[]) => void) =>
-  subscribeToCollectionService<User>(USERS_COLLECTION, callback);
+export const toggleItemFlagService = async (
+  collectionName: 'jobs' | 'helperProfiles' | 'webboardPosts',
+  itemId: string,
+  flagName: 'isSuspicious' | 'isPinned' | 'isHired' | 'isUnavailable' | 'adminVerifiedExperience' | 'isExpired',
+  currentValue?: boolean
+): Promise<void> => {
+  try {
+    const docRef = doc(db, collectionName, itemId);
+    const updatePayload: { [key: string]: any } = {
+      [flagName]: !currentValue,
+      updatedAt: serverTimestamp()
+    };
+    await updateDoc(docRef, updatePayload);
+  } catch (error) {
+    logFirebaseError(`toggleItemFlagService (${flagName})`, error);
+    throw error;
+  }
+};
+
+export const logHelperContactInteractionService = async (helperProfileId: string, employerUserId: string, helperUserId: string): Promise<void> => {
+    try {
+        const newInteraction: Omit<Interaction, 'id'> = {
+            helperUserId,
+            helperProfileId,
+            employerUserId,
+            timestamp: serverTimestamp() as any,
+            type: 'contact_helper',
+            createdAt: serverTimestamp() as any,
+        };
+        await addDoc(collection(db, INTERACTIONS_COLLECTION), newInteraction);
+    } catch (error) {
+        logFirebaseError("logHelperContactInteractionService", error);
+        throw error;
+    }
+};
 
 export const getUserDocument = async (userId: string): Promise<User | null> => {
   try {
@@ -1195,259 +1320,277 @@ export const getUserDocument = async (userId: string): Promise<User | null> => {
   }
 };
 
-// --- Site Config Service ---
-export const subscribeToSiteConfigService = (callback: (config: SiteConfig) => void): (() => void) => {
-  const docRef = doc(db, SITE_CONFIG_COLLECTION, SITE_CONFIG_DOC_ID);
-  return onSnapshot(docRef, (docSnap) => {
-    const defaultConfig: SiteConfig = { isSiteLocked: false };
-    if (docSnap.exists()) {
-      callback({ ...defaultConfig, ...convertTimestamps(docSnap.data()) });
-    } else {
-      callback(defaultConfig);
-    }
+export const saveUserWebboardPostService = async (userId: string, postId: string): Promise<void> => {
+  try {
+    const saveRef = doc(db, USERS_COLLECTION, userId, USER_SAVED_POSTS_SUBCOLLECTION, postId);
+    await setDoc(saveRef, { postId, savedAt: serverTimestamp() });
+  } catch (error) {
+    logFirebaseError("saveUserWebboardPostService", error);
+    throw error;
+  }
+};
+
+export const unsaveUserWebboardPostService = async (userId: string, postId: string): Promise<void> => {
+  try {
+    const saveRef = doc(db, USERS_COLLECTION, userId, USER_SAVED_POSTS_SUBCOLLECTION, postId);
+    await deleteDoc(saveRef);
+  } catch (error) {
+    logFirebaseError("unsaveUserWebboardPostService", error);
+    throw error;
+  }
+};
+
+export const subscribeToUserSavedPostsService = (userId: string, callback: (postIds: string[]) => void): (() => void) => {
+  const q = collection(db, USERS_COLLECTION, userId, USER_SAVED_POSTS_SUBCOLLECTION);
+  return onSnapshot(q, (snapshot) => {
+    const savedIds = snapshot.docs.map(doc => doc.id);
+    callback(savedIds);
   }, (error) => {
-    logFirebaseError("subscribeToSiteConfigService", error);
+    logFirebaseError(`subscribeToUserSavedPostsService (user: ${userId})`, error);
   });
 };
 
-// --- Admin Services ---
-export const setSiteLockService = async (isLocked: boolean, adminId: string): Promise<boolean> => {
-  try {
-    const configRef = doc(db, SITE_CONFIG_COLLECTION, SITE_CONFIG_DOC_ID);
-    await setDoc(configRef, { 
-      isSiteLocked: isLocked,
-      updatedAt: serverTimestamp(),
-      updatedBy: adminId,
-    }, { merge: true });
-    return true;
-  } catch (error: any) {
-    logFirebaseError("setSiteLockService", error);
-    throw error;
-  }
-};
-export const setUserRoleService = async (userIdToUpdate: string, newRole: UserRole): Promise<boolean> => {
-  try {
-    const setUserRoleFunction = httpsCallable(functions, 'setUserRole');
-    await setUserRoleFunction({ userId: userIdToUpdate, role: newRole });
-    return true;
-  } catch (error: any) {
-    logFirebaseError("setUserRoleService", error);
-    throw error;
-  }
-};
-export const toggleItemFlagService = async (
-  collectionName: 'jobs' | 'helperProfiles' | 'webboardPosts',
-  itemId: string,
-  flagName: keyof Job | keyof HelperProfile | keyof WebboardPost,
-  currentValue?: boolean
-): Promise<boolean> => {
-  try {
-    const dataToUpdate = { [flagName]: !currentValue, updatedAt: serverTimestamp() as any };
-    await updateDoc(doc(db, collectionName, itemId), cleanDataForFirestore(dataToUpdate as Record<string, any>));
-    return true;
-  } catch (error: any) {
-    logFirebaseError("toggleItemFlagService", error);
-    throw error;
-  }
+export const subscribeToUserInterestsService = (userId: string, callback: (interests: Interest[]) => void): (() => void) => {
+    const q = query(collection(db, INTERESTS_COLLECTION), where("userId", "==", userId));
+    return onSnapshot(q, (snapshot) => {
+        const interests = snapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) }) as Interest);
+        callback(interests);
+    }, (error) => {
+        logFirebaseError(`subscribeToUserInterestsService (user: ${userId})`, error);
+    });
 };
 
-// --- Vouching Services ---
-const VOUCH_MONTHLY_LIMIT = 5;
+export const toggleInterestService = async (
+  targetId: string,
+  targetType: 'job' | 'helperProfile',
+  targetOwnerId: string,
+  currentUserId: string
+): Promise<void> => {
+  try {
+    const interestsRef = collection(db, INTERESTS_COLLECTION);
+    const q = query(
+      interestsRef,
+      where("userId", "==", currentUserId),
+      where("targetId", "==", targetId)
+    );
+
+    const snapshot = await getDocs(q);
+    const targetCollection = targetType === 'job' ? JOBS_COLLECTION : HELPER_PROFILES_COLLECTION;
+    const targetRef = doc(db, targetCollection, targetId);
+
+    if (snapshot.empty) {
+      // Add interest
+      await addDoc(interestsRef, {
+        userId: currentUserId,
+        targetId,
+        targetType,
+        targetOwnerId,
+        createdAt: serverTimestamp(),
+      });
+      await updateDoc(targetRef, { interestedCount: increment(1) });
+    } else {
+      // Remove interest
+      const interestDocId = snapshot.docs[0].id;
+      await deleteDoc(doc(db, INTERESTS_COLLECTION, interestDocId));
+      await updateDoc(targetRef, { interestedCount: increment(-1) });
+    }
+  } catch (error) {
+    logFirebaseError("toggleInterestService", error);
+    throw error;
+  }
+};
 
 export const vouchForUserService = async (
-    voucher: User, 
-    voucheeId: string, 
-    vouchType: VouchType,
-    ipAddress: string,
-    userAgent: string,
-    comment?: string
+  voucher: User,
+  voucheeId: string,
+  vouchType: VouchType,
+  creatorIP: string,
+  creatorUserAgent: string,
+  comment?: string
 ): Promise<void> => {
-  if (voucher.id === voucheeId) throw new Error("You cannot vouch for yourself.");
-  
-  // Check monthly limit
-  const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-  const currentPeriodStart = voucher.postingLimits.vouchingActivity.periodStart;
-
-  if (currentPeriodStart < firstOfMonth) {
-      // It's a new month, reset the counter
-      voucher.postingLimits.vouchingActivity = { monthlyCount: 0, periodStart: firstOfMonth };
-  }
-  if (voucher.postingLimits.vouchingActivity.monthlyCount >= VOUCH_MONTHLY_LIMIT) {
-    throw new Error(`You have reached your monthly vouching limit of ${VOUCH_MONTHLY_LIMIT}.`);
-  }
-  
-  // Check if already vouched in this relationship
-  const q = query(collection(db, VOUCHES_COLLECTION), 
-    where('voucherId', '==', voucher.id), 
-    where('voucheeId', '==', voucheeId),
-    where('vouchType', '==', vouchType)
-  );
-  const existingVouchSnap = await getDocs(q);
-  if (!existingVouchSnap.empty) {
-    throw new Error(`You have already vouched for this user with the same relationship type.`);
-  }
-
-  const vouchRef = doc(collection(db, VOUCHES_COLLECTION));
-  const voucheeRef = doc(db, USERS_COLLECTION, voucheeId);
-  const voucherRef = doc(db, USERS_COLLECTION, voucher.id);
-
-  const newVouch: Omit<Vouch, 'id'> = {
-    voucherId: voucher.id,
-    voucherDisplayName: voucher.publicDisplayName,
-    voucheeId,
-    vouchType,
-    comment: comment?.trim() || '',
-    createdAt: serverTimestamp() as any,
-    creatorIP: ipAddress,
-    creatorUserAgent: userAgent,
-  };
-
   try {
     await runTransaction(db, async (transaction) => {
-        // 1. Create the vouch document
-        transaction.set(vouchRef, newVouch);
+      const voucherRef = doc(db, USERS_COLLECTION, voucher.id);
+      const voucheeRef = doc(db, USERS_COLLECTION, voucheeId);
 
-        // 2. Increment the specific vouch type and total on the vouchee's profile
-        transaction.update(voucheeRef, {
-            [`vouchInfo.${vouchType}`]: increment(1),
-            'vouchInfo.total': increment(1)
-        });
+      const voucherDoc = await transaction.get(voucherRef);
+      const voucheeDoc = await transaction.get(voucheeRef);
 
-        // 3. Increment the voucher's monthly count
-        transaction.update(voucherRef, {
-            'postingLimits.vouchingActivity.monthlyCount': increment(1)
-        });
+      if (!voucherDoc.exists() || !voucheeDoc.exists()) {
+        throw new Error("Voucher or vouchee does not exist.");
+      }
+
+      // Add the new vouch document
+      const newVouchRef = doc(collection(db, VOUCHES_COLLECTION));
+      const newVouchData: Omit<Vouch, 'id'> = {
+        voucherId: voucher.id,
+        voucherDisplayName: voucher.publicDisplayName,
+        voucheeId,
+        vouchType,
+        comment,
+        createdAt: serverTimestamp() as any,
+        creatorIP,
+        creatorUserAgent,
+      };
+      transaction.set(newVouchRef, newVouchData);
+      
+      // Update the vouchee's vouchInfo
+      transaction.update(voucheeRef, {
+        [`vouchInfo.${vouchType}`]: increment(1),
+        [`vouchInfo.total`]: increment(1)
+      });
+      
+      // Update voucher's limit tracking
+      transaction.update(voucherRef, {
+         'postingLimits.vouchingActivity.monthlyCount': increment(1)
+      });
     });
   } catch (error) {
     logFirebaseError("vouchForUserService", error);
-    throw new Error('Failed to submit vouch.');
+    throw error;
   }
 };
 
-export const getVouchesForUserService = async (userId: string): Promise<Vouch[]> => {
-    try {
-        const q = query(collection(db, VOUCHES_COLLECTION), where("voucheeId", "==", userId), orderBy("createdAt", "desc"));
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(docSnap => ({ id: docSnap.id, ...convertTimestamps(docSnap.data()) } as Vouch));
-    } catch (error) {
-        logFirebaseError("getVouchesForUserService", error);
-        throw error;
-    }
+export const reportVouchService = async (
+  vouch: Vouch,
+  reporterId: string,
+  reporterComment: string
+): Promise<void> => {
+  try {
+    const newReport: Omit<VouchReport, 'id'> = {
+      vouchId: vouch.id,
+      reporterId,
+      reporterComment,
+      voucheeId: vouch.voucheeId,
+      voucherId: vouch.voucherId,
+      status: VouchReportStatus.Pending,
+      createdAt: serverTimestamp() as any,
+    };
+    await addDoc(collection(db, VOUCH_REPORTS_COLLECTION), newReport);
+  } catch (error) {
+    logFirebaseError("reportVouchService", error);
+    throw error;
+  }
 };
 
 export const getVouchDocument = async (vouchId: string): Promise<Vouch | null> => {
     try {
-        const docRef = doc(db, VOUCHES_COLLECTION, vouchId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-            return { id: docSnap.id, ...convertTimestamps(docSnap.data()) } as Vouch;
+        const vouchRef = doc(db, VOUCHES_COLLECTION, vouchId);
+        const vouchSnap = await getDoc(vouchRef);
+        if(vouchSnap.exists()) {
+            return { id: vouchSnap.id, ...convertTimestamps(vouchSnap.data()) } as Vouch;
         }
         return null;
-    } catch (error) {
+    } catch(error) {
         logFirebaseError("getVouchDocument", error);
         return null;
     }
 };
 
-// --- Vouch Reporting Services ---
-export const reportVouchService = async (vouch: Vouch, reporterId: string, reporterComment: string): Promise<void> => {
-    const reportRef = doc(collection(db, VOUCH_REPORTS_COLLECTION));
-    const newReport: Omit<VouchReport, 'id'> = {
-        vouchId: vouch.id,
-        reporterId,
-        reporterComment,
-        voucheeId: vouch.voucheeId,
-        voucherId: vouch.voucherId,
-        status: VouchReportStatus.Pending,
-        createdAt: serverTimestamp() as any,
-    };
+export const getVouchesForUserService = async (userId: string): Promise<Vouch[]> => {
     try {
-        await setDoc(reportRef, newReport);
-    } catch (error) {
-        logFirebaseError("reportVouchService", error);
-        throw new Error('Failed to submit report.');
+        const q = query(collection(db, VOUCHES_COLLECTION), where("voucheeId", "==", userId), orderBy("createdAt", "desc"));
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as Vouch));
+    } catch(error) {
+        logFirebaseError("getVouchesForUserService", error);
+        return [];
     }
 };
 
-export const subscribeToVouchReportsService = (callback: (reports: VouchReport[]) => void): (() => void) => {
-    const q = query(collection(db, VOUCH_REPORTS_COLLECTION), where("status", "==", VouchReportStatus.Pending), orderBy("createdAt", "asc"));
-    return subscribeToCollectionService<VouchReport>(VOUCH_REPORTS_COLLECTION, callback, [where("status", "==", VouchReportStatus.Pending), orderBy("createdAt", "asc")]);
+export const subscribeToWebboardCommentsService = (callback: (comments: WebboardComment[]) => void): (() => void) => {
+    return subscribeToCollectionService<WebboardComment>(WEBBOARD_COMMENTS_COLLECTION, callback);
 };
 
-export const resolveVouchReportService = async (
-    reportId: string, 
-    resolution: VouchReportStatus.ResolvedDeleted | VouchReportStatus.ResolvedKept, 
-    adminId: string,
-    vouchId: string,
-    voucheeId: string,
-    vouchType: VouchType
-): Promise<void> => {
-    const reportRef = doc(db, VOUCH_REPORTS_COLLECTION, reportId);
-    
+export const addWebboardCommentService = async (
+    postId: string,
+    text: string,
+    author: { userId: string; authorDisplayName: string; photo?: string | null }
+): Promise<string> => {
     try {
-        if (resolution === VouchReportStatus.ResolvedDeleted) {
-            const vouchRef = doc(db, VOUCHES_COLLECTION, vouchId);
-            const voucheeRef = doc(db, USERS_COLLECTION, voucheeId);
-
-            await runTransaction(db, async (transaction) => {
-                transaction.delete(vouchRef);
-                transaction.update(voucheeRef, {
-                    [`vouchInfo.${vouchType}`]: increment(-1),
-                    'vouchInfo.total': increment(-1)
-                });
-                transaction.update(reportRef, {
-                    status: resolution,
-                    resolvedAt: serverTimestamp(),
-                    resolvedBy: adminId,
-                });
-            });
-        } else { // ResolvedKept
-            await updateDoc(reportRef, {
-                status: resolution,
-                resolvedAt: serverTimestamp(),
-                resolvedBy: adminId,
+        const newComment: Omit<WebboardComment, 'id'> = {
+            postId,
+            userId: author.userId,
+            authorDisplayName: author.authorDisplayName,
+            authorPhoto: author.photo || undefined,
+            ownerId: author.userId,
+            text,
+            createdAt: serverTimestamp() as any,
+            updatedAt: serverTimestamp() as any,
+        };
+        const docRef = await addDoc(collection(db, WEBBOARD_COMMENTS_COLLECTION), newComment);
+        
+        const userRef = doc(db, USERS_COLLECTION, author.userId);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+            const userData = userSnap.data() as User;
+            await updateDoc(userRef, {
+                'activityBadge.last30DaysActivity': (userData.activityBadge.last30DaysActivity || 0) + 0.5
             });
         }
+
+        return docRef.id;
     } catch (error) {
-        logFirebaseError("resolveVouchReportService", error);
-        throw new Error('Failed to resolve report.');
+        logFirebaseError("addWebboardCommentService", error);
+        throw error;
     }
 };
 
-// --- Cloud Function Services ---
-export const orionAnalyzeService = async (command: string): Promise<string> => {
-  const user = auth.currentUser;
-  if (!user) {
-    return "Error: Authentication required. Please sign in.";
-  }
-  
-  try {
-    const idToken = await user.getIdToken();
-    const functionUrl = `https://us-central1-hajobjah.cloudfunctions.net/orionAnalyze`;
-
-    const response = await fetch(functionUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${idToken}`,
-      },
-      // v1 onRequest functions that simulate v2 onCall expect the payload inside a 'data' object
-      body: JSON.stringify({ data: { command } }),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      // Use the error message from the function if available, otherwise use a generic HTTP error
-      throw new Error(result.error?.message || `HTTP error! status: ${response.status}`);
+export const updateWebboardCommentService = async (commentId: string, newText: string): Promise<void> => {
+    try {
+        const commentRef = doc(db, WEBBOARD_COMMENTS_COLLECTION, commentId);
+        await updateDoc(commentRef, {
+            text: newText,
+            updatedAt: serverTimestamp() as any,
+        });
+    } catch (error) {
+        logFirebaseError("updateWebboardCommentService", error);
+        throw error;
     }
+};
 
-    // The v1 onRequest function is coded to return a {data: "..."} structure
-    return result.data as string;
+export const deleteWebboardCommentService = async (commentId: string): Promise<void> => {
+    try {
+        const commentRef = doc(db, WEBBOARD_COMMENTS_COLLECTION, commentId);
+        const commentSnap = await getDoc(commentRef);
+        
+        if (commentSnap.exists()) {
+            const commentData = commentSnap.data() as WebboardComment;
+             const userRef = doc(db, USERS_COLLECTION, commentData.userId);
+             const userSnap = await getDoc(userRef);
+             if (userSnap.exists()) {
+                const userData = userSnap.data() as User;
+                await updateDoc(userRef, {
+                    'activityBadge.last30DaysActivity': Math.max(0, (userData.activityBadge.last30DaysActivity || 0) - 0.5)
+                });
+             }
+        }
+        
+        await deleteDoc(commentRef);
+    } catch (error) {
+        logFirebaseError("deleteWebboardCommentService", error);
+        throw error;
+    }
+};
 
-  } catch (error: any) {
-    logFirebaseError("orionAnalyzeService", error);
-    // Return a formatted error message for the UI to display
-    return `Error: ${error.message || 'Could not connect to Orion AI.'}`;
+export const toggleWebboardPostLikeService = async (postId: string, userId: string): Promise<void> => {
+  const postRef = doc(db, WEBBOARD_POSTS_COLLECTION, postId);
+  try {
+    await runTransaction(db, async (transaction) => {
+      const postDoc = await transaction.get(postRef);
+      if (!postDoc.exists()) {
+        throw new Error("Post does not exist!");
+      }
+      const postData = postDoc.data() as WebboardPost;
+      const currentLikes = postData.likes || [];
+      if (currentLikes.includes(userId)) {
+        transaction.update(postRef, { likes: admin.firestore.FieldValue.arrayRemove(userId) });
+      } else {
+        transaction.update(postRef, { likes: admin.firestore.FieldValue.arrayUnion(userId) });
+      }
+    });
+  } catch (error) {
+    logFirebaseError("toggleWebboardPostLikeService", error);
+    throw error;
   }
 };

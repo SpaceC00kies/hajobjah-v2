@@ -1,3 +1,6 @@
+import * as admin from "firebase-admin";
+
+type DateLike = string | Date | admin.firestore.Timestamp;
 
 export enum Province {
   ChiangMai = 'เชียงใหม่',
@@ -23,15 +26,15 @@ export interface Job {
   dateNeededTo?: string | Date;
   timeNeededStart?: string;
   timeNeededEnd?: string;
-  postedAt?: string | Date;
+  postedAt?: DateLike;
   userId: string;
   authorDisplayName: string;
   ownerId?: string;
   isSuspicious?: boolean;
   isPinned?: boolean;
   isHired?: boolean;
-  createdAt?: string | Date;
-  updatedAt?: string | Date;
+  createdAt?: DateLike;
+  updatedAt?: DateLike;
 
   // New fields for expiration
   expiresAt?: string | Date; // Date when the job expires
@@ -81,7 +84,7 @@ export interface HelperProfile {
   availabilityDateFrom?: string | Date;
   availabilityDateTo?: string | Date;
   availabilityTimeDetails?: string;
-  postedAt?: string | Date;
+  postedAt?: DateLike;
   userId: string;
   authorDisplayName: string;
   ownerId?: string;
@@ -90,44 +93,45 @@ export interface HelperProfile {
   isUnavailable?: boolean;
   adminVerifiedExperience?: boolean;
   interestedCount?: number;
-  createdAt?: string | Date;
-  updatedAt?: string | Date;
+  createdAt?: DateLike;
+  updatedAt?: DateLike;
 
   // New fields for expiration and bump feature
   expiresAt?: string | Date;   // Date when the profile expires
   isExpired?: boolean;       // Flag indicating if the profile has expired
-  lastBumpedAt?: string | Date; // Timestamp of the last successful bump
+  lastBumpedAt?: DateLike; // Timestamp of the last successful bump
 }
 
 export enum UserRole {
   Admin = 'Admin',
   Moderator = 'Moderator',
+  Writer = 'Writer',
   Member = 'Member',
 }
 
 export interface UserPostingLimits {
-  lastJobPostDate?: string | Date; // Cooldown for jobs
-  lastHelperProfileDate?: string | Date; // Cooldown for helper profiles
+  lastJobPostDate?: DateLike; // Cooldown for jobs
+  lastHelperProfileDate?: DateLike; // Cooldown for helper profiles
   dailyWebboardPosts: { // Retained for structure, not active limiting
     count: number;
-    resetDate: string | Date; 
+    resetDate: DateLike; 
   };
   hourlyComments: { // Retained for structure, not active limiting
     count: number;
-    resetTime: string | Date; 
+    resetTime: DateLike; 
   };
   lastBumpDates: { 
-    [profileId: string]: string | Date;
+    [profileId: string]: DateLike;
   };
   vouchingActivity: { // For monthly vouch limit
     monthlyCount: number;
-    periodStart: string | Date;
+    periodStart: DateLike;
   };
 }
 
 export interface UserActivityBadge {
   isActive: boolean; 
-  lastActivityCheck?: string | Date; 
+  lastActivityCheck?: DateLike; 
   last30DaysActivity: number; 
 }
 
@@ -169,8 +173,8 @@ export interface User {
   profileComplete?: boolean;
   userLevel: UserLevel; // This general user level badge remains for profiles etc.
   isMuted?: boolean;
-  createdAt?: string | Date;
-  updatedAt?: string | Date;
+  createdAt?: DateLike;
+  updatedAt?: DateLike;
 
   postingLimits: UserPostingLimits;
   activityBadge: UserActivityBadge;
@@ -186,7 +190,7 @@ export interface User {
   aboutBusiness?: string;
 
   // Fields for display name change cooldown
-  lastPublicDisplayNameChangeAt?: string | Date;
+  lastPublicDisplayNameChangeAt?: DateLike;
   publicDisplayNameUpdateCount?: number;
   
   vouchInfo?: VouchInfo; // New field for community verification
@@ -228,9 +232,9 @@ export interface Interaction {
   helperUserId: string;
   helperProfileId?: string;
   employerUserId: string;
-  timestamp: string | Date;
+  timestamp: DateLike;
   type: 'contact_helper';
-  createdAt?: string | Date;
+  createdAt?: DateLike;
 }
 
 export interface Interest {
@@ -239,7 +243,7 @@ export interface Interest {
     targetId: string; // The ID of the Job or HelperProfile
     targetType: 'job' | 'helperProfile';
     targetOwnerId: string; // The ID of the user who owns the target
-    createdAt: string | Date;
+    createdAt: DateLike;
 }
 
 export enum VouchType {
@@ -263,7 +267,7 @@ export interface Vouch {
   voucheeId: string;
   vouchType: VouchType;
   comment?: string;
-  createdAt: string | Date;
+  createdAt: DateLike;
   creatorIP?: string; // For moderation HUD
   creatorUserAgent?: string; // For moderation HUD
 }
@@ -282,8 +286,8 @@ export interface VouchReport {
   voucheeId: string; // Denormalized for easier querying
   voucherId: string; // Denormalized for easier querying
   status: VouchReportStatus;
-  createdAt: string | Date;
-  resolvedAt?: string | Date;
+  createdAt: DateLike;
+  resolvedAt?: DateLike;
   resolvedBy?: string; // Admin ID
 }
 
@@ -467,12 +471,12 @@ export interface WebboardPost {
   authorDisplayName: string;
   ownerId?: string; // Retained for consistency, usually same as userId
   authorPhoto?: string; // URL of author's profile photo
-  createdAt: string | Date;
-  updatedAt: string | Date;
+  createdAt: DateLike;
+  updatedAt: DateLike;
   likes: string[]; // Array of user IDs who liked the post
   isPinned?: boolean;
   isEditing?: boolean; // UI state, not stored in DB
-  savedAt?: string | Date; // Timestamp for when it was saved by current user (not directly on post doc)
+  savedAt?: DateLike; // Timestamp for when it was saved by current user (not directly on post doc)
 }
 
 export interface WebboardComment {
@@ -483,8 +487,8 @@ export interface WebboardComment {
   ownerId?: string; // Retained for consistency, usually same as userId
   authorPhoto?: string; // URL of author's profile photo
   text: string;
-  createdAt: string | Date;
-  updatedAt: string | Date;
+  createdAt: DateLike;
+  updatedAt: DateLike;
 }
 
 export enum UserLevelName {
@@ -546,14 +550,14 @@ export interface EnrichedWebboardComment extends WebboardComment {
 
 export interface SiteConfig {
     isSiteLocked: boolean;
-    updatedAt?: string | Date;
+    updatedAt?: DateLike;
     updatedBy?: string;
 }
 
 // For storing user's saved posts in Firestore
 export interface UserSavedWebboardPostEntry {
   postId: string;
-  savedAt: string | Date;
+  savedAt: DateLike;
 }
 
 // For Orion Command Center
@@ -562,4 +566,36 @@ export interface OrionMessage {
   text: string;
   sender: 'user' | 'orion';
   isError?: boolean;
+}
+
+// New Types for Blog/Journal feature
+export interface BlogPost {
+  id: string;
+  title: string;
+  slug: string; // e.g., "how-to-write-a-great-resume"
+  content: string; // Storing HTML or JSON from the rich text editor
+  excerpt: string;
+  coverImageURL?: string; // Optional now
+  authorId: string; // The User ID of the writer
+  authorDisplayName: string; // Denormalized for performance
+  authorPhotoURL?: string; // Denormalized
+  status: 'draft' | 'published' | 'archived';
+  category: string;
+  tags: string[];
+  createdAt: DateLike;
+  publishedAt?: DateLike; // Set only when status becomes 'published'
+  updatedAt: DateLike;
+  likes: string[]; // Array of user IDs
+  likeCount: number; // Denormalized count
+}
+
+export interface BlogComment {
+    id: string;
+    postId: string;
+    userId: string;
+    authorDisplayName: string;
+    authorPhotoURL?: string;
+    text: string;
+    createdAt: DateLike;
+    updatedAt: DateLike;
 }

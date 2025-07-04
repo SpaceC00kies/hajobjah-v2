@@ -1,8 +1,7 @@
-
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { GoogleGenAI } from "@google/genai";
-import type { User, Vouch, WebboardPost, WebboardComment } from "./types";
+import type { User, Vouch, WebboardPost, WebboardComment, BlogPost } from "./types";
 import cors from "cors";
 
 
@@ -332,4 +331,55 @@ export const syncUserClaims = functions.https.onCall(async (data, context) => {
     });
     throw new functions.https.HttpsError("internal", `Failed to set custom claims. This is likely an IAM permission issue. Error: ${error.message} (Code: ${error.code || "N/A"})`);
   }
+});
+
+// New function for Starlight Writer (AI blog assistant)
+export const starlightWriter = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError("unauthenticated", "Authentication is required.");
+    }
+
+    const userRole = context.auth.token.role;
+    if (userRole !== "Admin" && userRole !== "Writer") {
+        throw new functions.https.HttpsError("permission-denied", "You do not have permission to use this feature.");
+    }
+
+    const {task, content} = data;
+    if (!task || !content || (task !== "title" && task !== "excerpt")) {
+        throw new functions.https.HttpsError("invalid-argument", "The function requires a 'task' ('title' or 'excerpt') and 'content'.");
+    }
+
+    let prompt = "";
+    if (task === "title") {
+        prompt = `Based on the following article content, generate 5 catchy, engaging, and SEO-friendly titles in Thai. The titles should be concise and relevant to the content. Return the result as a JSON object with a single key "suggestions" which is an array of strings. Content: """${content}"""`;
+    } else { // task === "excerpt"
+        prompt = `Based on the following article content, generate a concise and compelling summary of no more than 160 characters in Thai. The summary should entice users to click and read the full article. Return the result as a JSON object with a single key "suggestions" which is an array containing one summary string. Content: """${content}"""`;
+    }
+
+    try {
+        const geminiResponse = await ai.models.generateContent({
+            model: "gemini-2.5-flash-preview-04-17",
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                temperature: 0.7,
+            },
+        });
+        const responseText = geminiResponse.text;
+        if (!responseText) {
+            throw new functions.https.HttpsError("internal", "AI model returned an empty response.");
+        }
+
+        let jsonStr = responseText.trim();
+        const fenceRegex = /^```(\w*)?\s*\n?(.*?)\n?\s*```$/s;
+        const match = jsonStr.match(fenceRegex);
+        if (match && match[2]) {
+            jsonStr = match[2].trim();
+        }
+        
+        return JSON.parse(jsonStr);
+    } catch (error) {
+        console.error("Error in starlightWriter function:", error);
+        throw new functions.https.HttpsError("internal", "Failed to generate AI suggestions.");
+    }
 });
