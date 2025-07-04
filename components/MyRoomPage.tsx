@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import type { User, Job, HelperProfile, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, Interest, EnrichedHelperProfile } from '../types.ts';
 import { View, UserTier } from '../types.ts';
@@ -300,14 +299,13 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
       </div>
 
       <main className="min-w-0">
-        <motion.div layout transition={{ type: "spring", stiffness: 300, damping: 30 }}>
+        <motion.div layout transition={{ duration: 0.5, type: 'spring', bounce: 0.2 }}>
           <AnimatePresence initial={false}>
             <motion.div
               key={activeTab}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
+              transition={{ duration: 0.3 }}
             >
               {activeTab === 'profile' && (
                   <UserProfilePage currentUser={currentUser} onUpdateUserProfile={onUpdateUserProfile} onCancel={() => {}} />
