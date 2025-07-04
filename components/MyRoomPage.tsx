@@ -272,7 +272,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
   return (
     <div className="w-full h-full flex flex-col">
       {/* Fixed Tab Bar Container */}
-      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm">
+      <div className="sticky top-0 z-10 glass-morphism">
         <div className="border-b border-neutral-DEFAULT">
           <nav className="flex space-x-1 overflow-x-auto pb-px -mb-px" aria-label="Tabs">
             {tabs.map(tab => (
