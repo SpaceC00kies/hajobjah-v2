@@ -143,14 +143,31 @@ Your response MUST be a valid JSON object matching this exact schema. Do not add
 
 {
   "username": string,
-  "trustScore": number, // A value between 0 and 100. Calculate this based on all provided data points like vouches, activity, and account age.
-  "emoji": "✅" | "⚠️" | "🚨", // Use ✅ for scores 70+, ⚠️ for 30-69, and 🚨 for below 30.
-  "summary": string, // A single, concise sentence that summarizes the user's overall status.
-  "findings": string[], // An array of 2 to 4 concise bullet points detailing key observations.
-  "recommendation": string // A single, concise sentence suggesting a course of action for the admin.
+  "trustScore": number, // A value between 0 and 100.
+  "emoji": "✅" | "⚠️" | "🚨", // ✅ for scores 70+, ⚠️ for 30-69, 🚨 for below 30.
+  "summary": string, // A single, concise sentence summarizing the user's status.
+  "findings": string[], // An array of 2-4 key observations.
+  "recommendation": string // A single, concise recommendation.
 }
 
-Analyze the user data and populate this JSON object.`;
+Analyze the user data and populate the JSON. To ensure consistency, you MUST calculate the trustScore using the following rubric:
+1.  **Start with a base score of 50.**
+2.  **Account Age:**
+    - If account age is less than 30 days, subtract 20 points.
+    - If account age is 6-12 months, add 10 points.
+    - If account age is over 1 year, add 20 points.
+3.  **Vouches Received:**
+    - Add 5 points for each 'worked_together' vouch.
+    - Add 3 points for each 'colleague' or 'community' vouch.
+    - Add 1 point for each 'personal' vouch.
+4.  **Platform Activity (cap at +15 points):**
+    - Add 2 points per post.
+    - Add 0.5 points per comment.
+5.  **Red Flags (Deductions):**
+    - If vouches given are high but vouches received are zero, subtract 10 points.
+    - If the user's lastLoginIP matches the IP of a user who vouched for them, note this as a high-risk finding and subtract 15 points.
+
+Calculate the final score and cap it between 0 and 100. The emoji and summary MUST reflect this calculated score.`;
 
         const userPrompt = `Analyze this JSON data and generate a report using the schema provided in the system instruction:\n\`\`\`json\n${JSON.stringify(analysisPayload, null, 2)}\n\`\`\``;
 
@@ -160,7 +177,7 @@ Analyze the user data and populate this JSON object.`;
           config: {
             systemInstruction: systemInstructionForUserJSON,
             responseMimeType: "application/json",
-            temperature: 0.1,
+            temperature: 0,
           },
         });
         
@@ -186,7 +203,8 @@ Analyze the user data and populate this JSON object.`;
 @${parsedData.username} - Trust Score: ${parsedData.trustScore}/100 ${parsedData.emoji}
 
 Hey admin, ${parsedData.summary}. Here's what I found:
-${parsedData.findings.map((f: string) => `- ${f}`).join("\n")}
+
+${parsedData.findings.map((f: string) => `• ${f}`).join("\n")}
 
 My take: ${parsedData.recommendation}
 `.trim();
@@ -214,7 +232,7 @@ My take: ${parsedData.recommendation}
           config: {
             systemInstruction: systemInstructionForScenarioJSON,
             responseMimeType: "application/json",
-            temperature: 0.1,
+            temperature: 0,
           },
         });
         
@@ -238,7 +256,8 @@ My take: ${parsedData.recommendation}
 ${parsedData.analysisTitle} - Fraud Risk: ${parsedData.fraudRisk}/100 ${parsedData.riskEmoji}
 
 Hey admin, ${parsedData.summary}. Here's the breakdown:
-${parsedData.findings.map((f: string) => `- ${f}`).join("\n")}
+
+${parsedData.findings.map((f: string) => `• ${f}`).join("\n")}
 
 My take: ${parsedData.recommendation}
 `.trim();
