@@ -2456,13 +2456,13 @@ const handleDeleteBlogComment = async (commentId: string) => {
         onToggleHiredStatus={handleToggleItemStatusFromMyRoom}
         onUpdateUserProfile={handleUpdateUserProfile}
         getUserDisplayBadge={getUserDisplayBadge}
-        onSavePost={handleSaveWebboardPost}
+        onSavePost={onSavePost}
         onBumpProfile={(id) => handleBumpHelperProfile(id, loadHelpers)}
         onNavigateToPublicProfile={handleNavigateToPublicProfile}
         initialTab={myRoomInitialTabOverride}
         onInitialTabProcessed={() => setMyRoomInitialTabOverride(null)}
         getAuthorDisplayName={getAuthorDisplayName}
-        onToggleInterest={handleToggleInterest}
+        onToggleInterest={onToggleInterest}
         requestLoginForAction={requestLoginForAction}
         onEditJobFromFindView={handleEditOwnJobFromFindView}
         onEditHelperProfileFromFindView={handleEditOwnHelperProfileFromFindView}
@@ -2661,11 +2661,13 @@ const handleDeleteBlogComment = async (commentId: string) => {
       </AnimatePresence>
   );
 
+  const isFullPageLayout = [View.MyRoom, View.FindJobs, View.FindHelpers].includes(currentView);
+
   return (
     <div className={`font-serif bg-neutral-light min-h-screen flex flex-col`}>
       {renderHeader()}
       {renderMobileMenu()}
-      <main className="flex-grow flex flex-col justify-center container mx-auto p-4 sm:p-6 lg:p-8">
+      <main className={`flex-grow flex flex-col ${isFullPageLayout ? '' : 'justify-center container mx-auto p-4 sm:p-6 lg:p-8'}`}>
         {currentViewContent}
       </main>
       <footer className="bg-neutral-light/50 text-center p-6 text-sm text-neutral-medium">
