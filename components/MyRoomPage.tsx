@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo, useEffect } from 'react';
 import type { User, Job, HelperProfile, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, Interest, EnrichedHelperProfile } from '../types.ts';
 import { View, UserTier } from '../types.ts';
@@ -301,143 +300,145 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
       </div>
 
       <main className="min-w-0">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            {activeTab === 'profile' && (
-                <UserProfilePage currentUser={currentUser} onUpdateUserProfile={onUpdateUserProfile} onCancel={() => {}} />
-            )}
+        <motion.div layout transition={{ duration: 0.4, ease: "easeInOut" }}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {activeTab === 'profile' && (
+                  <UserProfilePage currentUser={currentUser} onUpdateUserProfile={onUpdateUserProfile} onCancel={() => {}} />
+              )}
 
-            {activeTab === 'myJobs' && (
-              <div>
-                <div className="mb-6 p-4 bg-white shadow-md rounded-lg border border-neutral-DEFAULT">
-                  <h3 className="text-xl font-sans font-semibold text-neutral-dark mb-3 text-center">📊 สถานะประกาศงาน</h3>
-                  <div className="space-y-2 text-sm font-sans text-neutral-dark">
-                    <div className="flex justify-between items-center p-2 bg-neutral-light/50 rounded">
-                      <span>ประกาศงานที่ใช้งานอยู่: {userActiveJobsCount}/{maxJobsAllowed}</span>
-                      {jobCanCreate ? <span className="text-green-600 font-medium">(พร้อมสร้าง)</span> : <span className="text-orange-600 font-medium">(เหลืออีก {jobCooldownHoursRemaining} ชม.)</span>}
-                    </div>
-                  </div>
-                </div>
-                {userJobs.length === 0 ? renderEmptyState("คุณยังไม่มีประกาศงาน", "+ สร้างประกาศงานใหม่", View.PostJob) : (
-                  <div className="space-y-4">
-                    {userJobs.map(job => (
-                      <div key={job.id} className="bg-white p-4 rounded-lg shadow border">
-                        <h4 className="font-semibold text-lg text-neutral-dark">{job.title}</h4>
-                        <p className="text-xs text-neutral-medium mb-2">โพสต์เมื่อ: {formatDateDisplay(job.postedAt)}</p>
-                        <div className="flex items-center gap-2 mb-3">
-                          {renderItemStatus(job)}
-                          <span className="text-amber-600 text-xs font-medium">{getExpiryWarning(job.expiresAt, job.isHired, job.isSuspicious)}</span>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <Button onClick={() => onToggleHiredStatus(job.id, 'job')} variant="outline" size="sm" disabled={job.isSuspicious || isDateInPast(job.expiresAt)}>{job.isHired ? '🔄 แจ้งว่ายังหางาน' : '✅ แจ้งว่าได้งานแล้ว'}</Button>
-                          <Button onClick={() => onEditItem(job.id, 'job', 'myJobs')} variant="outline" size="sm" disabled={job.isSuspicious}>✏️ แก้ไข</Button>
-                          <Button onClick={() => onDeleteItem(job.id, 'job')} variant="outline" colorScheme="accent" size="sm">🗑️ ลบ</Button>
-                        </div>
+              {activeTab === 'myJobs' && (
+                <div>
+                  <div className="mb-6 p-4 bg-white shadow-md rounded-lg border border-neutral-DEFAULT">
+                    <h3 className="text-xl font-sans font-semibold text-neutral-dark mb-3 text-center">📊 สถานะประกาศงาน</h3>
+                    <div className="space-y-2 text-sm font-sans text-neutral-dark">
+                      <div className="flex justify-between items-center p-2 bg-neutral-light/50 rounded">
+                        <span>ประกาศงานที่ใช้งานอยู่: {userActiveJobsCount}/{maxJobsAllowed}</span>
+                        {jobCanCreate ? <span className="text-green-600 font-medium">(พร้อมสร้าง)</span> : <span className="text-orange-600 font-medium">(เหลืออีก {jobCooldownHoursRemaining} ชม.)</span>}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'myHelperServices' && (
-              <div>
-                <div className="mb-6 p-4 bg-white shadow-md rounded-lg border border-neutral-DEFAULT">
-                  <h3 className="text-xl font-sans font-semibold text-neutral-dark mb-3 text-center">📊 สถานะโปรไฟล์ผู้ช่วย</h3>
-                  <div className="space-y-2 text-sm font-sans text-neutral-dark">
-                    <div className="flex justify-between items-center p-2 bg-neutral-light/50 rounded">
-                      <span>โปรไฟล์ที่ใช้งานอยู่: {userActiveHelperProfilesCount}/{maxHelperProfilesAllowed}</span>
-                      {profileCanCreate ? <span className="text-green-600 font-medium">(พร้อมสร้าง)</span> : <span className="text-orange-600 font-medium">(เหลืออีก {helperProfileCooldownHoursRemaining} ชม.)</span>}
                     </div>
                   </div>
-                </div>
-                {userHelperProfiles.length === 0 ? renderEmptyState("คุณยังไม่มีโปรไฟล์ผู้ช่วย", "+ สร้างโปรไฟล์ใหม่", View.OfferHelp) : (
-                  <div className="space-y-4">
-                    {userHelperProfiles.map(profile => {
-                      const bumpDaysRemaining = profile.lastBumpedAt ? calculateDaysRemaining(new Date(new Date(profile.lastBumpedAt as string).getTime() + BUMP_COOLDOWN_DAYS_MY_ROOM * 24 * 60 * 60 * 1000)) : 0;
-                      const canBump = bumpDaysRemaining <= 0 && !isDateInPast(profile.expiresAt);
-                      return (
-                        <div key={profile.id} className="bg-white p-4 rounded-lg shadow border">
-                          <h4 className="font-semibold text-lg text-neutral-dark">{profile.profileTitle}</h4>
-                          <p className="text-xs text-neutral-medium mb-2">โพสต์เมื่อ: {formatDateDisplay(profile.postedAt)}</p>
+                  {userJobs.length === 0 ? renderEmptyState("คุณยังไม่มีประกาศงาน", "+ สร้างประกาศงานใหม่", View.PostJob) : (
+                    <div className="space-y-4">
+                      {userJobs.map(job => (
+                        <div key={job.id} className="bg-white p-4 rounded-lg shadow border">
+                          <h4 className="font-semibold text-lg text-neutral-dark">{job.title}</h4>
+                          <p className="text-xs text-neutral-medium mb-2">โพสต์เมื่อ: {formatDateDisplay(job.postedAt)}</p>
                           <div className="flex items-center gap-2 mb-3">
-                            {renderItemStatus(profile)}
-                            <span className="text-amber-600 text-xs font-medium">{getExpiryWarning(profile.expiresAt, profile.isUnavailable, profile.isSuspicious)}</span>
+                            {renderItemStatus(job)}
+                            <span className="text-amber-600 text-xs font-medium">{getExpiryWarning(job.expiresAt, job.isHired, job.isSuspicious)}</span>
                           </div>
                           <div className="flex flex-wrap gap-2">
-                            <Button onClick={() => onToggleHiredStatus(profile.id, 'profile')} variant="outline" size="sm" disabled={profile.isSuspicious || isDateInPast(profile.expiresAt)}>{profile.isUnavailable ? '🟢 แจ้งว่ากลับมาว่าง' : '🔴 แจ้งว่าไม่ว่างแล้ว'}</Button>
-                            <Button onClick={() => onBumpProfile(profile.id)} variant="outline" colorScheme="secondary" size="sm" disabled={!canBump || profile.isSuspicious || isDateInPast(profile.expiresAt)}>🚀 Bump {canBump ? '' : `(${bumpDaysRemaining}d)`}</Button>
-                            <Button onClick={() => onEditItem(profile.id, 'profile', 'myHelperServices')} variant="outline" size="sm" disabled={profile.isSuspicious}>✏️ แก้ไข</Button>
-                            <Button onClick={() => onDeleteItem(profile.id, 'profile')} variant="outline" colorScheme="accent" size="sm">🗑️ ลบ</Button>
+                            <Button onClick={() => onToggleHiredStatus(job.id, 'job')} variant="outline" size="sm" disabled={job.isSuspicious || isDateInPast(job.expiresAt)}>{job.isHired ? '🔄 แจ้งว่ายังหางาน' : '✅ แจ้งว่าได้งานแล้ว'}</Button>
+                            <Button onClick={() => onEditItem(job.id, 'job', 'myJobs')} variant="outline" size="sm" disabled={job.isSuspicious}>✏️ แก้ไข</Button>
+                            <Button onClick={() => onDeleteItem(job.id, 'job')} variant="outline" colorScheme="accent" size="sm">🗑️ ลบ</Button>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'interests' && (
-              <div>
-                <div className="flex border-b border-neutral-DEFAULT mb-4">
-                  <button onClick={() => handleSubTabChange('jobs')} className={`py-2 px-4 text-sm font-medium ${activeSubTab === 'jobs' ? 'border-b-2 border-secondary text-secondary' : 'text-neutral-medium hover:text-secondary'}`}>งานที่สนใจ ({interestedJobs.length})</button>
-                  <button onClick={() => handleSubTabChange('helpers')} className={`py-2 px-4 text-sm font-medium ${activeSubTab === 'helpers' ? 'border-b-2 border-secondary text-secondary' : 'text-neutral-medium hover:text-secondary'}`}>ผู้ช่วยที่สนใจ ({interestedHelpers.length})</button>
-                  <button onClick={() => handleSubTabChange('posts')} className={`py-2 px-4 text-sm font-medium ${activeSubTab === 'posts' ? 'border-b-2 border-secondary text-secondary' : 'text-neutral-medium hover:text-secondary'}`}>กระทู้ที่บันทึก ({savedWebboardPosts.length})</button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <AnimatePresence mode="wait">
-                  <motion.div key={activeSubTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-                    {activeSubTab === 'jobs' && (
-                      interestedJobs.length === 0 ? <p className="text-center p-6 text-neutral-medium">ยังไม่มีงานที่สนใจ</p> : 
-                      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                        {interestedJobs.map(job => <JobCard key={job.id} job={job} navigateTo={navigateTo} currentUser={currentUser} requestLoginForAction={requestLoginForAction} onEditJobFromFindView={onEditJobFromFindView} getAuthorDisplayName={getAuthorDisplayName} onToggleInterest={onToggleInterest} isInterested={userInterests.some(i => i.targetId === job.id)} />)}
+              )}
+
+              {activeTab === 'myHelperServices' && (
+                <div>
+                  <div className="mb-6 p-4 bg-white shadow-md rounded-lg border border-neutral-DEFAULT">
+                    <h3 className="text-xl font-sans font-semibold text-neutral-dark mb-3 text-center">📊 สถานะโปรไฟล์ผู้ช่วย</h3>
+                    <div className="space-y-2 text-sm font-sans text-neutral-dark">
+                      <div className="flex justify-between items-center p-2 bg-neutral-light/50 rounded">
+                        <span>โปรไฟล์ที่ใช้งานอยู่: {userActiveHelperProfilesCount}/{maxHelperProfilesAllowed}</span>
+                        {profileCanCreate ? <span className="text-green-600 font-medium">(พร้อมสร้าง)</span> : <span className="text-orange-600 font-medium">(เหลืออีก {helperProfileCooldownHoursRemaining} ชม.)</span>}
                       </div>
-                    )}
-                    {activeSubTab === 'helpers' && (
-                      interestedHelpers.length === 0 ? <p className="text-center p-6 text-neutral-medium">ยังไม่มีผู้ช่วยที่สนใจ</p> :
-                      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                        {interestedHelpers.map(profile => <HelperCard key={profile.id} profile={profile} onNavigateToPublicProfile={onNavigateToPublicProfile} navigateTo={navigateTo} onLogHelperContact={onLogHelperContact} currentUser={currentUser} requestLoginForAction={requestLoginForAction} onBumpProfile={onBumpProfile} onEditProfileFromFindView={onEditHelperProfileFromFindView} getAuthorDisplayName={getAuthorDisplayName} onToggleInterest={onToggleInterest} isInterested={userInterests.some(i => i.targetId === profile.id)} />)}
-                      </div>
-                    )}
-                    {activeSubTab === 'posts' && (
-                      savedWebboardPosts.length === 0 ? <p className="text-center p-6 text-neutral-medium">ยังไม่มีกระทู้ที่บันทึกไว้</p> :
-                      <div className="space-y-4">
-                        {savedWebboardPosts.map(post => <WebboardPostCard key={post.id} post={post} currentUser={currentUser} onViewPost={(id) => navigateTo(View.Webboard, id)} onToggleLike={onToggleInterest as any} onSavePost={onSavePost} onSharePost={() => {}} requestLoginForAction={requestLoginForAction} onNavigateToPublicProfile={(info) => onNavigateToPublicProfile(info)} getAuthorDisplayName={getAuthorDisplayName}/>)}
-                      </div>
-                    )}
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-            )}
-            
-            {activeTab === 'myWebboardPosts' && (
-              <div>
-                {userWebboardPosts.length === 0 ? renderEmptyState("คุณยังไม่มีกระทู้", "+ สร้างกระทู้ใหม่", View.Webboard) : (
-                  <div className="space-y-4">
-                    {userWebboardPosts.map(post => (
-                      <div key={post.id} className="bg-white p-4 rounded-lg shadow border">
-                        <h4 className="font-semibold text-lg text-neutral-dark">{post.title}</h4>
-                        <p className="text-xs text-neutral-medium mb-2">โพสต์เมื่อ: {formatDateDisplay(post.createdAt)}</p>
-                        <p className="text-xs font-sans text-neutral-medium mb-2"> ❤️ {post.likes.length} ไลค์ | 💬 {post.commentCount} คอมเมนต์ </p>
-                        <div className="flex flex-wrap gap-2">
-                          <Button onClick={() => navigateTo(View.Webboard, post.id)} variant="outline" colorScheme="neutral" size="sm">👁️ ดูกระทู้</Button>
-                          <Button onClick={() => onEditItem(post.id, 'webboardPost', 'myWebboardPosts')} variant="outline" size="sm">✏️ แก้ไข</Button>
-                          <Button onClick={() => onDeleteItem(post.id, 'webboardPost')} variant="outline" colorScheme="accent" size="sm">🗑️ ลบ</Button>
-                        </div>
-                      </div>
-                    ))}
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
+                  {userHelperProfiles.length === 0 ? renderEmptyState("คุณยังไม่มีโปรไฟล์ผู้ช่วย", "+ สร้างโปรไฟล์ใหม่", View.OfferHelp) : (
+                    <div className="space-y-4">
+                      {userHelperProfiles.map(profile => {
+                        const bumpDaysRemaining = profile.lastBumpedAt ? calculateDaysRemaining(new Date(new Date(profile.lastBumpedAt as string).getTime() + BUMP_COOLDOWN_DAYS_MY_ROOM * 24 * 60 * 60 * 1000)) : 0;
+                        const canBump = bumpDaysRemaining <= 0 && !isDateInPast(profile.expiresAt);
+                        return (
+                          <div key={profile.id} className="bg-white p-4 rounded-lg shadow border">
+                            <h4 className="font-semibold text-lg text-neutral-dark">{profile.profileTitle}</h4>
+                            <p className="text-xs text-neutral-medium mb-2">โพสต์เมื่อ: {formatDateDisplay(profile.postedAt)}</p>
+                            <div className="flex items-center gap-2 mb-3">
+                              {renderItemStatus(profile)}
+                              <span className="text-amber-600 text-xs font-medium">{getExpiryWarning(profile.expiresAt, profile.isUnavailable, profile.isSuspicious)}</span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <Button onClick={() => onToggleHiredStatus(profile.id, 'profile')} variant="outline" size="sm" disabled={profile.isSuspicious || isDateInPast(profile.expiresAt)}>{profile.isUnavailable ? '🟢 แจ้งว่ากลับมาว่าง' : '🔴 แจ้งว่าไม่ว่างแล้ว'}</Button>
+                              <Button onClick={() => onBumpProfile(profile.id)} variant="outline" colorScheme="secondary" size="sm" disabled={!canBump || profile.isSuspicious || isDateInPast(profile.expiresAt)}>🚀 Bump {canBump ? '' : `(${bumpDaysRemaining}d)`}</Button>
+                              <Button onClick={() => onEditItem(profile.id, 'profile', 'myHelperServices')} variant="outline" size="sm" disabled={profile.isSuspicious}>✏️ แก้ไข</Button>
+                              <Button onClick={() => onDeleteItem(profile.id, 'profile')} variant="outline" colorScheme="accent" size="sm">🗑️ ลบ</Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'interests' && (
+                <div>
+                  <div className="flex border-b border-neutral-DEFAULT mb-4">
+                    <button onClick={() => handleSubTabChange('jobs')} className={`py-2 px-4 text-sm font-medium ${activeSubTab === 'jobs' ? 'border-b-2 border-secondary text-secondary' : 'text-neutral-medium hover:text-secondary'}`}>งานที่สนใจ ({interestedJobs.length})</button>
+                    <button onClick={() => handleSubTabChange('helpers')} className={`py-2 px-4 text-sm font-medium ${activeSubTab === 'helpers' ? 'border-b-2 border-secondary text-secondary' : 'text-neutral-medium hover:text-secondary'}`}>ผู้ช่วยที่สนใจ ({interestedHelpers.length})</button>
+                    <button onClick={() => handleSubTabChange('posts')} className={`py-2 px-4 text-sm font-medium ${activeSubTab === 'posts' ? 'border-b-2 border-secondary text-secondary' : 'text-neutral-medium hover:text-secondary'}`}>กระทู้ที่บันทึก ({savedWebboardPosts.length})</button>
+                  </div>
+                  <AnimatePresence mode="wait">
+                    <motion.div key={activeSubTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                      {activeSubTab === 'jobs' && (
+                        interestedJobs.length === 0 ? <p className="text-center p-6 text-neutral-medium">ยังไม่มีงานที่สนใจ</p> : 
+                        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                          {interestedJobs.map(job => <JobCard key={job.id} job={job} navigateTo={navigateTo} currentUser={currentUser} requestLoginForAction={requestLoginForAction} onEditJobFromFindView={onEditJobFromFindView} getAuthorDisplayName={getAuthorDisplayName} onToggleInterest={onToggleInterest} isInterested={userInterests.some(i => i.targetId === job.id)} />)}
+                        </div>
+                      )}
+                      {activeSubTab === 'helpers' && (
+                        interestedHelpers.length === 0 ? <p className="text-center p-6 text-neutral-medium">ยังไม่มีผู้ช่วยที่สนใจ</p> :
+                        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                          {interestedHelpers.map(profile => <HelperCard key={profile.id} profile={profile} onNavigateToPublicProfile={onNavigateToPublicProfile} navigateTo={navigateTo} onLogHelperContact={onLogHelperContact} currentUser={currentUser} requestLoginForAction={requestLoginForAction} onBumpProfile={onBumpProfile} onEditProfileFromFindView={onEditHelperProfileFromFindView} getAuthorDisplayName={getAuthorDisplayName} onToggleInterest={onToggleInterest} isInterested={userInterests.some(i => i.targetId === profile.id)} />)}
+                        </div>
+                      )}
+                      {activeSubTab === 'posts' && (
+                        savedWebboardPosts.length === 0 ? <p className="text-center p-6 text-neutral-medium">ยังไม่มีกระทู้ที่บันทึกไว้</p> :
+                        <div className="space-y-4">
+                          {savedWebboardPosts.map(post => <WebboardPostCard key={post.id} post={post} currentUser={currentUser} onViewPost={(id) => navigateTo(View.Webboard, id)} onToggleLike={onToggleInterest as any} onSavePost={onSavePost} onSharePost={() => {}} requestLoginForAction={requestLoginForAction} onNavigateToPublicProfile={(info) => onNavigateToPublicProfile(info)} getAuthorDisplayName={getAuthorDisplayName}/>)}
+                        </div>
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
+              )}
+              
+              {activeTab === 'myWebboardPosts' && (
+                <div>
+                  {userWebboardPosts.length === 0 ? renderEmptyState("คุณยังไม่มีกระทู้", "+ สร้างกระทู้ใหม่", View.Webboard) : (
+                    <div className="space-y-4">
+                      {userWebboardPosts.map(post => (
+                        <div key={post.id} className="bg-white p-4 rounded-lg shadow border">
+                          <h4 className="font-semibold text-lg text-neutral-dark">{post.title}</h4>
+                          <p className="text-xs text-neutral-medium mb-2">โพสต์เมื่อ: {formatDateDisplay(post.createdAt)}</p>
+                          <p className="text-xs font-sans text-neutral-medium mb-2"> ❤️ {post.likes.length} ไลค์ | 💬 {post.commentCount} คอมเมนต์ </p>
+                          <div className="flex flex-wrap gap-2">
+                            <Button onClick={() => navigateTo(View.Webboard, post.id)} variant="outline" colorScheme="neutral" size="sm">👁️ ดูกระทู้</Button>
+                            <Button onClick={() => onEditItem(post.id, 'webboardPost', 'myWebboardPosts')} variant="outline" size="sm">✏️ แก้ไข</Button>
+                            <Button onClick={() => onDeleteItem(post.id, 'webboardPost')} variant="outline" colorScheme="accent" size="sm">🗑️ ลบ</Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </motion.div>
       </main>
     </div>
   );
