@@ -271,34 +271,37 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
   );
 
   return (
-    <div className="w-full">
-      {/* Horizontal Scrollable Tab Bar */}
-      <div className="border-b border-neutral-DEFAULT mb-6">
-        <nav className="flex space-x-1 overflow-x-auto pb-px -mb-px" aria-label="Tabs">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`
-                whitespace-nowrap flex items-center py-3 px-4 text-sm font-sans font-medium rounded-t-lg
-                border-b-2 transition-colors duration-200
-                focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-secondary/50
-                ${
-                  activeTab === tab.id
-                    ? 'border-secondary text-secondary'
-                    : 'border-transparent text-neutral-medium hover:text-neutral-dark'
-                }
-              `}
-              aria-current={activeTab === tab.id ? 'page' : undefined}
-            >
-              {tab.icon}
-              <span>{tab.label}</span>
-            </button>
-          ))}
-        </nav>
+    <div className="w-full h-full flex flex-col">
+      {/* Fixed Tab Bar Container */}
+      <div className="sticky top-0 z-10 bg-white">
+        <div className="border-b border-neutral-DEFAULT">
+          <nav className="flex space-x-1 overflow-x-auto pb-px -mb-px" aria-label="Tabs">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`
+                  whitespace-nowrap flex items-center py-3 px-4 text-sm font-sans font-medium rounded-t-lg
+                  border-b-2 transition-colors duration-200
+                  focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-secondary/50
+                  ${
+                    activeTab === tab.id
+                      ? 'border-secondary text-secondary'
+                      : 'border-transparent text-neutral-medium hover:text-neutral-dark'
+                  }
+                `}
+                aria-current={activeTab === tab.id ? 'page' : undefined}
+              >
+                {tab.icon}
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
       </div>
 
-      <main className="min-w-0">
+      {/* Scrollable Content Area */}
+      <main className="flex-1 overflow-y-auto px-4 py-6">
         <motion.div layout transition={{ duration: 0.5, type: 'spring', bounce: 0.2 }}>
           <AnimatePresence initial={false}>
             <motion.div
