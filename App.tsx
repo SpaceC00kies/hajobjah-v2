@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   onAuthChangeService,
@@ -2662,11 +2663,17 @@ const handleDeleteBlogComment = async (commentId: string) => {
 
   const isFullPageLayout = [View.MyRoom, View.FindJobs, View.FindHelpers].includes(currentView);
 
+  // The main layout class determines padding and centering for different views.
+  const mainLayoutClasses = isFullPageLayout 
+    ? '' 
+    : 'justify-center container mx-auto';
+
+
   return (
     <div className={`font-serif bg-neutral-light min-h-screen flex flex-col`}>
       {renderHeader()}
       {renderMobileMenu()}
-      <main className={`flex-grow flex flex-col ${isFullPageLayout ? '' : 'justify-center container mx-auto p-4 sm:p-6 lg:p-8'}`}>
+      <main className={`flex-grow flex flex-col p-4 sm:p-6 lg:p-8 ${mainLayoutClasses}`}>
         {currentViewContent}
       </main>
       <footer className="bg-neutral-light/50 text-center p-6 text-sm text-neutral-medium">
