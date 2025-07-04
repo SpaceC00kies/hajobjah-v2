@@ -300,14 +300,14 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
       </div>
 
       <main className="min-w-0">
-        <motion.div layout transition={{ duration: 0.4, ease: "easeInOut" }}>
-          <AnimatePresence mode="wait">
+        <motion.div layout transition={{ type: "spring", stiffness: 300, damping: 30 }}>
+          <AnimatePresence initial={false}>
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
             >
               {activeTab === 'profile' && (
                   <UserProfilePage currentUser={currentUser} onUpdateUserProfile={onUpdateUserProfile} onCancel={() => {}} />
