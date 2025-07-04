@@ -1,5 +1,4 @@
 
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   onAuthChangeService,
@@ -2462,7 +2461,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
         initialTab={myRoomInitialTabOverride}
         onInitialTabProcessed={() => setMyRoomInitialTabOverride(null)}
         getAuthorDisplayName={getAuthorDisplayName}
-        onToggleInterest={onToggleInterest}
+        onToggleInterest={handleToggleInterest}
         requestLoginForAction={requestLoginForAction}
         onEditJobFromFindView={handleEditOwnJobFromFindView}
         onEditHelperProfileFromFindView={handleEditOwnHelperProfileFromFindView}
