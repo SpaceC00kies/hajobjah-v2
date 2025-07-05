@@ -310,7 +310,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
       <main className="flex-1 overflow-y-auto px-4 py-6">
         <div>
           {activeTab === 'profile' && (
-              <UserProfilePage currentUser={currentUser} onUpdateUserProfile={onUpdateUserProfile} onCancel={() => {}} />
+              <UserProfilePage currentUser={currentUser} onUpdateProfile={onUpdateUserProfile} onCancel={() => {}} />
           )}
 
           {activeTab === 'myJobs' && (

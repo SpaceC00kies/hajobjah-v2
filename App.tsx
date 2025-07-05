@@ -757,10 +757,10 @@ const App: React.FC = () => {
     }
   };
 
-  const handleUpdateUserProfile = async (updatedProfileData: Pick<User, 'publicDisplayName' | 'mobile' | 'lineId' | 'facebook' | 'gender' | 'birthdate' | 'educationLevel' | 'photo' | 'address' | 'nickname' | 'firstName' | 'lastName' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'isBusinessProfile' | 'businessName' | 'businessType' | 'businessAddress' | 'businessWebsite' | 'businessSocialProfileLink' | 'aboutBusiness'>): Promise<boolean> => {
+  const handleUpdateUserProfile = async (updatedProfileData: Partial<User>): Promise<boolean> => {
     if (!currentUser) { alert('ผู้ใช้ไม่ได้เข้าสู่ระบบ'); return false; }
     try {
-      if (!isValidThaiMobileNumberUtil(updatedProfileData.mobile)) { alert('รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง'); return false; }
+      if (!updatedProfileData.mobile || !isValidThaiMobileNumberUtil(updatedProfileData.mobile)) { alert('รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง'); return false; }
       if (!updatedProfileData.gender || updatedProfileData.gender === GenderOption.NotSpecified) { alert('กรุณาเลือกเพศ'); return false; }
       if (!updatedProfileData.birthdate) { alert('กรุณาเลือกวันเกิด'); return false; }
       if (!updatedProfileData.educationLevel || updatedProfileData.educationLevel === HelperEducationLevelOption.NotStated) { alert('กรุณาเลือกระดับการศึกษา'); return false; }
@@ -2499,6 +2499,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
         orionAnalyzeService={orionAnalyzeService} // Pass new service
         onDeleteBlogPost={handleDeleteBlogPost}
         onAddOrUpdateBlogPost={handleAddOrUpdateBlogPost}
+        getUserDocument={getUserDocument}
     />);
   };
   // MyPostsPage is replaced by MyRoomPage
@@ -2629,6 +2630,8 @@ const handleDeleteBlogComment = async (commentId: string) => {
           case View.Login: currentViewContent = renderLogin(); break;
           case View.Register: currentViewContent = renderRegister(); break;
           case View.AdminDashboard: currentViewContent = renderAdminDashboard(); break;
+          case View.MyPosts: currentViewContent = renderMyRoomPage(); break;
+          case View.UserProfile: currentViewContent = renderMyRoomPage(); break;
           case View.MyRoom: currentViewContent = renderMyRoomPage(); break;
           case View.AboutUs: currentViewContent = renderAboutUsPage(); break;
           case View.PublicProfile: currentViewContent = renderPublicProfile(); break;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { Job, HelperProfile, User, Interaction, WebboardPost, WebboardComment, UserLevel, VouchReport, Vouch, VouchType, BlogPost, AdminAlert } from '../types.ts';
+import type { Job, HelperProfile, User, Interaction, WebboardPost, WebboardComment, UserLevel, VouchReport, Vouch, VouchType, BlogPost } from '../types.ts';
 import { UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, USER_LEVELS, VouchReportStatus, VOUCH_TYPE_LABELS } from '../types.ts';
 import { Button } from './Button.tsx';
 import { checkProfileCompleteness } from '../App.tsx';
@@ -138,48 +138,62 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [selectedReport, setSelectedReport] = useState<VouchReport | null>(null);
   const [selectedVouch, setSelectedVouch] = useState<Vouch | null>(null);
   const [isHudLoading, setIsHudLoading] = useState(false);
-  const [hudAnalysis, setHudAnalysis] = useState<{ ipMatch: boolean | null; voucherIsNew: boolean | null; }>({ ipMatch: null, voucherIsNew: null });
+  const [hudAnalysis, setHudAnalysis] = useState<{ ipMatch: boolean | null; voucherIsNew: boolean | null; error?: string | null }>({ ipMatch: null, voucherIsNew: null, error: null });
 
   useEffect(() => {
     setSearchTerm('');
   }, [activeTab]);
 
   useEffect(() => {
-    setHudAnalysis({ ipMatch: null, voucherIsNew: null });
+    setHudAnalysis({ ipMatch: null, voucherIsNew: null, error: null });
     setSelectedVouch(null);
-
-    if (selectedReport) {
-      setIsHudLoading(true);
-      const analyzeReport = async () => {
-        try {
-          const vouch = await getVouchDocument(selectedReport.vouchId);
-          setSelectedVouch(vouch);
-  
-          if (vouch && getUserDocument) { // Check if getUserDocument exists
-            const voucherUser = await getUserDocument(vouch.voucherId);
-            const voucheeUser = await getUserDocument(vouch.voucheeId);
-  
-            const ipMatch = !!(voucherUser?.lastLoginIP && voucheeUser?.lastLoginIP && voucherUser.lastLoginIP === voucheeUser.lastLoginIP);
-            
-            let voucherIsNew = false;
-            if (voucherUser?.createdAt) {
-              const accountAge = new Date().getTime() - new Date(voucherUser.createdAt as string).getTime();
-              const sevenDaysInMillis = 7 * 24 * 60 * 60 * 1000;
-              if (accountAge < sevenDaysInMillis) {
-                voucherIsNew = true;
-              }
-            }
-            setHudAnalysis({ ipMatch, voucherIsNew });
-          }
-        } catch (err) {
-          console.error("Error fetching data for HUD analysis:", err);
-          setHudAnalysis({ ipMatch: null, voucherIsNew: null }); // Reset on error
-        } finally {
-          setIsHudLoading(false);
-        }
-      };
-      analyzeReport();
+    
+    if (!selectedReport) {
+      setIsHudLoading(false);
+      return;
     }
+
+    setIsHudLoading(true);
+    const analyzeReport = async () => {
+      try {
+        const vouch = await getVouchDocument(selectedReport.vouchId);
+        setSelectedVouch(vouch);
+        
+        if (!vouch) {
+            throw new Error("Vouch document could not be found.");
+        }
+        
+        if (!getUserDocument) {
+            throw new Error("getUserDocument service is not available.");
+        }
+
+        const voucherUser = await getUserDocument(vouch.voucherId);
+        const voucheeUser = await getUserDocument(vouch.voucheeId);
+
+        if (!voucherUser || !voucheeUser) {
+            throw new Error(`Could not fetch full user data. Voucher: ${voucherUser ? 'OK' : 'Not Found'}, Vouchee: ${voucheeUser ? 'OK' : 'Not Found'}.`);
+        }
+
+        const ipMatch = !!(voucherUser.lastLoginIP && voucheeUser.lastLoginIP && voucherUser.lastLoginIP === voucheeUser.lastLoginIP);
+        
+        let voucherIsNew = false;
+        if (voucherUser.createdAt) {
+          const accountAge = new Date().getTime() - new Date(voucherUser.createdAt as string).getTime();
+          const sevenDaysInMillis = 7 * 24 * 60 * 60 * 1000;
+          if (accountAge < sevenDaysInMillis) {
+            voucherIsNew = true;
+          }
+        }
+        setHudAnalysis({ ipMatch, voucherIsNew, error: null });
+      } catch (err: any) {
+        console.error("Error in HUD analysis:", err);
+        setHudAnalysis({ ipMatch: null, voucherIsNew: null, error: err.message || "An unexpected error occurred." });
+      } finally {
+        setIsHudLoading(false);
+      }
+    };
+    
+    analyzeReport();
   }, [selectedReport, getVouchDocument, getUserDocument]);
 
 
@@ -551,7 +565,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                     <hr className="my-2" />
                     <p className="font-semibold">Risk Signals:</p>
-                    {isHudLoading ? <p>Analyzing...</p> : (
+                    {isHudLoading ? <p>Analyzing...</p> : hudAnalysis.error ? (
+                        <p className="font-bold text-red-500">⚠️ Analysis Error: {hudAnalysis.error}</p>
+                    ) : (
                       <div className="text-sm space-y-1 mt-1">
                         {hudAnalysis.ipMatch === null ? <p className="text-neutral-medium">IP check pending...</p> : hudAnalysis.ipMatch ? <p className="font-bold text-red-500">⚠️ IP ADDRESS MATCH</p> : <p className="text-green-600">✅ IP addresses do not match.</p>}
                         {hudAnalysis.voucherIsNew === null ? <p className="text-neutral-medium">Account age check pending...</p> : hudAnalysis.voucherIsNew ? <p className="font-bold text-orange-500">⚠️ VOUCHER IS NEW ACCOUNT (&lt;7 days)</p> : <p className="text-green-600">✅ Voucher account is not new.</p>}
