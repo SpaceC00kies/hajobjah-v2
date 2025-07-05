@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import type { Job, HelperProfile, User, Interaction, WebboardPost, WebboardComment, UserLevel, VouchReport, Vouch, VouchType, BlogPost } from '../types.ts';
 import { UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, USER_LEVELS, VouchReportStatus, VOUCH_TYPE_LABELS } from '../types.ts';
@@ -379,9 +378,58 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     {item.isHiredOrUnavailable && <span>Hired/Unavailable</span>}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2 justify-end">
                         <Button onClick={() => onStartEditItem(item)} size="sm">Edit</Button>
-                        <Button onClick={() => { item.itemType === 'job' ? onDeleteJob(item.id) : item.itemType === 'profile' ? onDeleteHelperProfile(item.id) : onDeleteWebboardPost(item.id) }} size="sm" colorScheme="accent">Delete</Button>
+                        <Button 
+                          onClick={() => { 
+                            item.itemType === 'job' 
+                              ? onDeleteJob(item.id) 
+                              : item.itemType === 'profile' 
+                              ? onDeleteHelperProfile(item.id) 
+                              : onDeleteWebboardPost(item.id) 
+                          }} 
+                          size="sm" 
+                          colorScheme="accent"
+                        >
+                          Delete
+                        </Button>
+                        
+                        {item.itemType === 'job' && (
+                          <>
+                            <Button onClick={() => onToggleSuspiciousJob(item.id)} size="sm" variant="outline" colorScheme="accent">
+                              {item.isSuspicious ? 'Unsuspicious' : 'Suspicious'}
+                            </Button>
+                            <Button onClick={() => onTogglePinnedJob(item.id)} size="sm" variant="outline">
+                              {item.isPinned ? 'Unpin' : 'Pin'}
+                            </Button>
+                            <Button onClick={() => onToggleHiredJob(item.id)} size="sm" variant="outline">
+                              {item.isHiredOrUnavailable ? 'Set Available' : 'Set Hired'}
+                            </Button>
+                          </>
+                        )}
+
+                        {item.itemType === 'profile' && (
+                          <>
+                            <Button onClick={() => onToggleSuspiciousHelperProfile(item.id)} size="sm" variant="outline" colorScheme="accent">
+                              {item.isSuspicious ? 'Unsuspicious' : 'Suspicious'}
+                            </Button>
+                            <Button onClick={() => onTogglePinnedHelperProfile(item.id)} size="sm" variant="outline">
+                              {item.isPinned ? 'Unpin' : 'Pin'}
+                            </Button>
+                            <Button onClick={() => onToggleUnavailableHelperProfile(item.id)} size="sm" variant="outline">
+                              {item.isHiredOrUnavailable ? 'Set Available' : 'Set Unavailable'}
+                            </Button>
+                            <Button onClick={() => onToggleVerifiedExperience(item.id)} size="sm" variant="outline">
+                              {item.adminVerifiedExperience ? 'Unverify' : 'Verify Exp.'}
+                            </Button>
+                          </>
+                        )}
+
+                        {item.itemType === 'webboardPost' && (
+                          <Button onClick={() => onPinWebboardPost(item.id)} size="sm" variant="outline">
+                            {item.isPinned ? 'Unpin' : 'Pin'}
+                          </Button>
+                        )}
                     </div>
                   </td>
                 </tr>
