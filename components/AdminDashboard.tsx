@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
-import type { Job, HelperProfile, User, Interaction, WebboardPost, WebboardComment, UserLevel, VouchReport, Vouch, VouchType, BlogPost } from '../types.ts';
+import type { Job, HelperProfile, User, Interaction, WebboardPost, WebboardComment, UserLevel, VouchReport, Vouch, VouchType, BlogPost, AdminAlert } from '../types.ts';
 import { UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, USER_LEVELS, VouchReportStatus, VOUCH_TYPE_LABELS } from '../types.ts';
 import { Button } from './Button.tsx';
 import { checkProfileCompleteness } from '../App.tsx';
 import { OrionCommandCenter } from './OrionCommandCenter.tsx';
+import type { orionAnalyzeService as OrionAnalyzeServiceType } from '../services/firebaseService.ts'; // Correctly import the type
 
 export interface AdminItem {
   id: string;
@@ -57,9 +57,11 @@ interface AdminDashboardProps {
   getUserDisplayBadge: (user: User) => UserLevel;
   onResolveVouchReport: (reportId: string, resolution: VouchReportStatus.ResolvedDeleted | VouchReportStatus.ResolvedKept, vouchId: string, voucheeId: string, vouchType: VouchType) => void;
   getVouchDocument: (vouchId: string) => Promise<Vouch | null>;
-  orionAnalyzeService: (command: string) => Promise<string>;
+  orionAnalyzeService: typeof OrionAnalyzeServiceType;
   onDeleteBlogPost: (postId: string, coverImageURL?: string) => void;
-  onAddOrUpdateBlogPost: (blogPostData: Partial<BlogPost> & { newCoverImageBase64?: string | null }, existingPostId?: string) => void; // Added for ArticleEditor
+  onAddOrUpdateBlogPost: (blogPostData: Partial<BlogPost> & { newCoverImageBase64?: string | null }, existingPostId?: string) => void;
+  // This prop type was missing from the original file, it's added now for HUD analysis
+  getUserDocument: (userId: string) => Promise<User | null>; 
 }
 
 const formatDateDisplay = (dateInput?: string | Date | null): string => {
@@ -129,28 +131,57 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   orionAnalyzeService,
   onDeleteBlogPost,
   onAddOrUpdateBlogPost,
+  getUserDocument, // Added for HUD
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('orion_command_center');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedReport, setSelectedReport] = useState<VouchReport | null>(null);
   const [selectedVouch, setSelectedVouch] = useState<Vouch | null>(null);
   const [isHudLoading, setIsHudLoading] = useState(false);
+  const [hudAnalysis, setHudAnalysis] = useState<{ ipMatch: boolean | null; voucherIsNew: boolean | null; }>({ ipMatch: null, voucherIsNew: null });
 
   useEffect(() => {
     setSearchTerm('');
   }, [activeTab]);
 
   useEffect(() => {
+    setHudAnalysis({ ipMatch: null, voucherIsNew: null });
+    setSelectedVouch(null);
+
     if (selectedReport) {
       setIsHudLoading(true);
-      getVouchDocument(selectedReport.vouchId)
-        .then(vouch => setSelectedVouch(vouch))
-        .catch(err => console.error("Error fetching vouch for HUD:", err))
-        .finally(() => setIsHudLoading(false));
-    } else {
-      setSelectedVouch(null);
+      const analyzeReport = async () => {
+        try {
+          const vouch = await getVouchDocument(selectedReport.vouchId);
+          setSelectedVouch(vouch);
+  
+          if (vouch && getUserDocument) { // Check if getUserDocument exists
+            const voucherUser = await getUserDocument(vouch.voucherId);
+            const voucheeUser = await getUserDocument(vouch.voucheeId);
+  
+            const ipMatch = !!(voucherUser?.lastLoginIP && voucheeUser?.lastLoginIP && voucherUser.lastLoginIP === voucheeUser.lastLoginIP);
+            
+            let voucherIsNew = false;
+            if (voucherUser?.createdAt) {
+              const accountAge = new Date().getTime() - new Date(voucherUser.createdAt as string).getTime();
+              const sevenDaysInMillis = 7 * 24 * 60 * 60 * 1000;
+              if (accountAge < sevenDaysInMillis) {
+                voucherIsNew = true;
+              }
+            }
+            setHudAnalysis({ ipMatch, voucherIsNew });
+          }
+        } catch (err) {
+          console.error("Error fetching data for HUD analysis:", err);
+          setHudAnalysis({ ipMatch: null, voucherIsNew: null }); // Reset on error
+        } finally {
+          setIsHudLoading(false);
+        }
+      };
+      analyzeReport();
     }
-  }, [selectedReport, getVouchDocument]);
+  }, [selectedReport, getVouchDocument, getUserDocument]);
+
 
   if (currentUser?.role !== UserRole.Admin && currentUser?.role !== UserRole.Writer) {
     return <div className="p-8 text-center text-red-500 font-sans">คุณไม่มีสิทธิ์เข้าถึงหน้านี้</div>;
@@ -256,13 +287,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return true;
   });
   
+  const pendingVouchReportsCount = vouchReports.filter(r => r.status === 'pending_review').length;
+
   let TABS: { id: AdminTab; label: string, badgeCount?: number }[] = [
     { id: 'orion_command_center', label: 'Orion 🤖' },
+    { id: 'vouch_reports', label: '🛡️ รายงาน Vouch', badgeCount: pendingVouchReportsCount },
     { id: 'jobs', label: '📢 งาน' },
     { id: 'profiles', label: '🧑‍🔧 โปรไฟล์ผู้ช่วย' },
     { id: 'webboard', label: '💬 กระทู้' },
     { id: 'articles', label: '📖 บทความ' },
-    { id: 'vouch_reports', label: '🛡️ รายงาน Vouch', badgeCount: vouchReports.length },
     { id: 'users', label: '👥 จัดการผู้ใช้' },
     { id: 'site_controls', label: '⚙️ ควบคุมระบบ' },
   ];
@@ -490,37 +523,47 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {activeTab === 'vouch_reports' && currentUser?.role === UserRole.Admin && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-1">
-            <h3 className="text-lg font-semibold text-neutral-700 mb-3">Pending Reports ({vouchReports.length})</h3>
+            <h3 className="text-lg font-semibold text-neutral-700 mb-3">Pending Reports ({pendingVouchReportsCount})</h3>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {vouchReports.map(report => (
                 <button key={report.id} onClick={() => setSelectedReport(report)} className={`block w-full text-left p-3 rounded-md ${selectedReport?.id === report.id ? 'bg-blue-100' : 'bg-neutral-light/50 hover:bg-neutral-light'}`}>
                   <p className="text-sm font-semibold truncate">Report on Vouch <code className="text-xs">{report.vouchId.substring(0, 6)}...</code></p>
-                  <p className="text-xs text-neutral-medium">By: {report.reporterId.substring(0, 6)}...</p>
+                  <p className="text-xs text-neutral-medium">By: {getAuthorDisplayName(report.reporterId).substring(0, 15)}...</p>
                 </button>
               ))}
             </div>
           </div>
           <div className="md:col-span-2 p-4 bg-neutral-light/50 rounded-lg">
             <h3 className="text-lg font-semibold text-neutral-700 mb-3">Report Details & HUD</h3>
-            {selectedReport && !isHudLoading ? (
+            {selectedReport ? (
                 <div>
                     <p><strong>Reporter Comment:</strong> {selectedReport.reporterComment}</p>
                     <hr className="my-2" />
-                    <p><strong>Vouch Info:</strong></p>
-                    {selectedVouch ? (
-                        <div>
-                            <p>From: {selectedVouch.voucherDisplayName} ({selectedVouch.voucherId})</p>
-                            <p>To: {selectedVouch.voucheeId}</p>
+                    <p className="font-semibold">Vouch Info:</p>
+                    {isHudLoading ? <p>Loading Vouch Details...</p> : selectedVouch ? (
+                        <div className="text-sm">
+                            <p>From: {selectedVouch.voucherDisplayName} ({selectedVouch.voucherId.substring(0,10)}...)</p>
+                            <p>To: {getAuthorDisplayName(selectedVouch.voucheeId)} ({selectedVouch.voucheeId.substring(0,10)}...)</p>
                             <p>Type: {VOUCH_TYPE_LABELS[selectedVouch.vouchType]}</p>
                             <p>Vouch Comment: "{selectedVouch.comment}"</p>
                         </div>
-                    ) : <p>Vouch data not found.</p>}
+                    ) : <p className="text-red-500">Vouch data not found.</p>}
+
+                    <hr className="my-2" />
+                    <p className="font-semibold">Risk Signals:</p>
+                    {isHudLoading ? <p>Analyzing...</p> : (
+                      <div className="text-sm space-y-1 mt-1">
+                        {hudAnalysis.ipMatch === null ? <p className="text-neutral-medium">IP check pending...</p> : hudAnalysis.ipMatch ? <p className="font-bold text-red-500">⚠️ IP ADDRESS MATCH</p> : <p className="text-green-600">✅ IP addresses do not match.</p>}
+                        {hudAnalysis.voucherIsNew === null ? <p className="text-neutral-medium">Account age check pending...</p> : hudAnalysis.voucherIsNew ? <p className="font-bold text-orange-500">⚠️ VOUCHER IS NEW ACCOUNT (&lt;7 days)</p> : <p className="text-green-600">✅ Voucher account is not new.</p>}
+                      </div>
+                    )}
+
                     <div className="mt-4 flex gap-4">
-                        <Button onClick={() => onResolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedKept, selectedReport.vouchId, selectedReport.voucheeId, selectedVouch!.vouchType)} colorScheme="primary">Keep Vouch</Button>
-                        <Button onClick={() => onResolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedDeleted, selectedReport.vouchId, selectedReport.voucheeId, selectedVouch!.vouchType)} colorScheme="accent">Delete Vouch</Button>
+                        <Button onClick={() => onResolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedKept, selectedReport.vouchId, selectedReport.voucheeId, selectedVouch!.vouchType)} colorScheme="primary" disabled={isHudLoading || !selectedVouch}>Keep Vouch</Button>
+                        <Button onClick={() => onResolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedDeleted, selectedReport.vouchId, selectedReport.voucheeId, selectedVouch!.vouchType)} colorScheme="accent" disabled={isHudLoading || !selectedVouch}>Delete Vouch</Button>
                     </div>
                 </div>
-            ) : isHudLoading ? <p>Loading HUD...</p> : <p>Select a report to view details.</p>}
+            ) : <p>Select a report to view details.</p>}
           </div>
         </div>
       )}
