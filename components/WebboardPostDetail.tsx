@@ -146,7 +146,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
       <article>
         {/* Post Header */}
         <header className="mb-4">
-          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-2">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
             <span
               className={`text-xs font-medium px-2 py-0.5 rounded-full inline-block ${categoryStyle.bg} ${categoryStyle.text} ${categoryStyle.border ? `border ${categoryStyle.border}`: ''}`}
             >
