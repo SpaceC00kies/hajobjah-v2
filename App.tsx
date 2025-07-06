@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   onAuthChangeService,
@@ -1636,7 +1637,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
     const displayBadgeForProfile = getUserDisplayBadge(currentUser);
     const commonButtonPropsBase = isMobile
       ? { size: 'md' as const, className: 'w-full text-left justify-start py-3 px-4 text-base' }
-      : { size: 'sm' as const, className: 'flex-shrink-0' };
+      : { size: 'sm' as const, className: 'flex-shrink-0 nav-pill' };
 
     const navigateAndCloseMenu = (view: View, payload?: any) => {
       navigateTo(view, payload);
@@ -1716,11 +1717,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
                    <span className={navItemSpanClass}><span>🏠</span><span>หน้าแรก</span></span>
                 </Button>
               )}
-              {currentView !== View.Blog && (
-                 <Button onClick={() => navigateAndCloseMenu(View.Blog)} variant="outline" colorScheme="neutral" {...commonButtonPropsBase}>
-                   <span className={navItemSpanClass}><span>📖</span><span>บทความ</span></span>
-                 </Button>
-              )}
+              
               <Button
                 onClick={() => navigateAndCloseMenu(View.Login)}
                 variant="primary"
@@ -1731,6 +1728,10 @@ const handleDeleteBlogComment = async (commentId: string) => {
               </Button>
               <Button onClick={() => navigateAndCloseMenu(View.Register)} variant="outline" colorScheme="primary" {...commonButtonPropsBase}>
                  <span className={navItemSpanClass}><span>📝</span><span>ลงทะเบียน</span></span>
+              </Button>
+
+              <Button onClick={() => navigateTo(View.Blog)} variant="outline" colorScheme="neutral" {...commonButtonPropsBase}>
+                <span className={navItemSpanClass}><span>📖</span><span>บทความ</span></span>
               </Button>
             </>
         );
@@ -1795,7 +1796,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
       }
       return (
       <header
-        className="sticky top-0 z-30 w-full bg-white text-primary-dark p-4 sm:p-5 lg:p-6 shadow-md border-b border-primary-light"
+        className="main-navbar sticky top-0 z-30 w-full bg-white text-primary-dark p-4 sm:p-5 lg:p-6 shadow-md border-b border-primary-light"
       >
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex-shrink-0">
@@ -1869,34 +1870,34 @@ const handleDeleteBlogComment = async (commentId: string) => {
 
   const renderHome = () => {
     return (
-      <div className="w-full bg-primary-light flex-grow flex items-center justify-center">
+      <div className="w-full flex-grow flex items-center justify-center">
         <div className="container mx-auto flex flex-col items-center px-6 sm:px-8 text-center py-20">
-          <h2 className="text-4xl sm:text-5xl font-sans font-bold text-primary-dark mb-4 tracking-tight leading-tight">
+          <h1 className="hero-title font-sans">
             ✨ หาจ๊อบจ้า ✨
-          </h2>
-          <p className="text-lg sm:text-xl text-neutral-gray max-w-2xl leading-relaxed mb-12 font-serif">
+          </h1>
+          <p className="hero-subtitle font-sans">
             แพลตฟอร์มที่อยู่เคียงข้างคนขยัน
           </p>
           <div className="w-full max-w-3xl lg:max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
-            <div className="bg-white p-8 rounded-2xl shadow-lg border border-primary-light hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-              <h3 className="text-xl font-sans font-semibold text-primary-dark mb-6">ประกาศงาน</h3>
+            <div className="home-card">
+              <h3 className="card-section-title font-sans">ประกาศงาน</h3>
               <div className="space-y-4">
                 <Button onClick={() => navigateTo(View.FindJobs)} variant="primary" size="lg" className="w-full">
-                  <span className="flex items-center justify-center gap-2">📢 ดูประกาศงานทั้งหมด</span>
+                  <span className="flex items-center justify-center"><span className="button-icon">📢</span> ดูประกาศงานทั้งหมด</span>
                 </Button>
                 <Button onClick={() => { setSourceViewForForm(View.Home); navigateTo(View.PostJob); }} variant="secondary" size="lg" className="w-full">
-                  <span className="flex items-center justify-center gap-2">📝 ลงประกาศงาน</span>
+                  <span className="flex items-center justify-center"><span className="button-icon">📝</span> ลงประกาศงาน</span>
                 </Button>
               </div>
             </div>
-            <div className="bg-white p-8 rounded-2xl shadow-lg border border-primary-light hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-              <h3 className="text-xl font-sans font-semibold text-primary-dark mb-6">โปรไฟล์ผู้ช่วยและบริการ</h3>
+            <div className="home-card">
+              <h3 className="card-section-title font-sans">โปรไฟล์ผู้ช่วยและบริการ</h3>
               <div className="space-y-4">
                 <Button onClick={() => navigateTo(View.FindHelpers)} variant="primary" size="lg" className="w-full">
-                  <span className="flex items-center justify-center gap-2">👥 ดูโปรไฟล์ทั้งหมด</span>
+                  <span className="flex items-center justify-center"><span className="button-icon">👥</span> ดูโปรไฟล์ทั้งหมด</span>
                 </Button>
                 <Button onClick={() => { setSourceViewForForm(View.Home); navigateTo(View.OfferHelp); }} variant="secondary" size="lg" className="w-full">
-                  <span className="flex items-center justify-center gap-2">🙋 สร้างโปรไฟล์</span>
+                  <span className="flex items-center justify-center"><span className="button-icon">🙋</span> สร้างโปรไฟล์</span>
                 </Button>
               </div>
             </div>
@@ -2429,7 +2430,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
         requestLoginForAction={requestLoginForAction}
         onEditJobFromFindView={handleEditOwnJobFromFindView}
         onEditHelperProfileFromFindView={handleEditOwnHelperProfileFromFindView}
-        onLogHelperContact={handleLogHelperContactInteraction}
+        onLogHelperContact={onLogHelperContactInteraction}
       />);
   };
 
@@ -2639,10 +2640,10 @@ const handleDeleteBlogComment = async (commentId: string) => {
     <div className={`font-serif bg-neutral-light min-h-screen flex flex-col`}>
       {renderHeader()}
       {renderMobileMenu()}
-      <main className={`flex-grow flex flex-col ${mainLayoutClasses}`}>
+      <main className={`flex-grow flex flex-col ${mainLayoutClasses} ${currentView === View.Home ? 'hero-section' : ''}`}>
         {currentViewContent}
       </main>
-      <footer className="bg-white text-center p-6 text-sm text-neutral-medium border-t border-primary-light">
+      <footer className="main-footer bg-white text-center p-6 text-sm text-neutral-medium border-t border-primary-light">
         <div className="flex justify-center items-center space-x-2 mb-4">
           <button onClick={() => navigateTo(View.AboutUs)} className="hover:text-primary transition-colors">
             เกี่ยวกับเรา

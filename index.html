@@ -22,7 +22,7 @@
 
         /* Supporting Colors */
         --accent-peach: #FFE5B4;      /* Soft Peach - Reverted as per user request */
-        --accent-peach-hover: #e6cd9f; /* Darker Peach - Hover for peach elements */
+        --accent-peach-hover: #FFD9A3; /* Darker Peach - Hover for peach elements */
         --success-green: #98D8C8;     /* Mint Green - Success states */
         --error-red: #FFB5B5;         /* Soft Red - Errors */
         --neutral-gray: #666666;      /* Body text */
@@ -31,16 +31,13 @@
       }
       
       html {
-        height: 100%;
         background-color: var(--neutral-light);
       }
       body {
-        height: 100%;
+        /* height: 100%; REMOVED */
       }
       #root {
-        height: 100%;
-        display: flex;
-        flex-direction: column;
+        /* height: 100%; REMOVED */
       }
 
       /* --- Base Form Element Styles (Pastel Blue Theme) --- */
@@ -119,6 +116,143 @@
         box-shadow: 0 4px 20px rgba(135, 206, 235, 0.2);
         border-color: var(--primary-blue);
       }
+      
+       /* --- Homepage Polish Styles --- */
+      .home-card {
+        background: #FFFFFF;
+        border: 1px solid #E6F4FF;
+        border-radius: 16px;
+        box-shadow: 0 2px 12px rgba(135, 206, 235, 0.15);
+        transition: all 0.3s ease;
+        cursor: pointer;
+        padding: 2rem; /* p-8 */
+      }
+
+      .home-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 6px 24px rgba(135, 206, 235, 0.25);
+          border-color: #87CEEB;
+      }
+
+      .btn-primary {
+          transition: all 0.3s ease;
+          position: relative;
+          overflow: hidden;
+      }
+      .btn-primary:hover {
+          background: #6BB6D6;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(135, 206, 235, 0.3);
+      }
+      .btn-secondary {
+          transition: all 0.3s ease;
+      }
+      .btn-secondary:hover {
+          background: #FFD9A3;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(255, 229, 180, 0.3);
+      }
+      .nav-pill:hover {
+          background-color: var(--primary-medium);
+          transform: scale(1.02);
+      }
+      
+      .hero-title {
+          font-size: 48px;
+          font-weight: 700;
+          color: #4A90A4;
+          margin-bottom: 20px;
+          line-height: 1.2;
+      }
+      .hero-subtitle {
+          font-size: 18px;
+          color: #666666;
+          margin-bottom: 48px;
+          line-height: 1.6;
+      }
+      .card-section-title {
+          font-size: 20px;
+          font-weight: 600;
+          color: #4A90A4;
+          margin-bottom: 20px;
+      }
+
+      .hero-section {
+          background: linear-gradient(180deg, #E6F4FF 0%, #F0F9FF 80%, #FFFFFF 100%);
+          position: relative;
+          overflow: hidden;
+      }
+      .hero-section::before {
+          content: '';
+          position: absolute;
+          top: -50%;
+          right: -10%;
+          width: 500px;
+          height: 500px;
+          background: radial-gradient(circle, rgba(135, 206, 235, 0.1) 0%, transparent 70%);
+          border-radius: 50%;
+          pointer-events: none;
+      }
+      .main-footer {
+          padding-top: 60px;
+          padding-bottom: 40px;
+          background: #F8F9FA;
+      }
+
+      @keyframes fadeInUp {
+          from {
+              opacity: 0;
+              transform: translateY(20px);
+          }
+          to {
+              opacity: 1;
+              transform: translateY(0);
+          }
+      }
+      .home-card {
+        animation: fadeInUp 0.6s ease-out;
+      }
+      .home-card:nth-child(2) {
+          animation-delay: 0.1s;
+      }
+      * { scroll-behavior: smooth; }
+
+      .button-icon {
+          font-size: 18px;
+          margin-right: 8px;
+          vertical-align: middle;
+      }
+
+       @media (max-width: 768px) {
+          .container {
+              padding: 0 16px;
+          }
+          .home-card {
+              margin-bottom: 24px;
+              padding: 24px;
+          }
+          .btn-primary,
+          .btn-secondary {
+              min-height: 48px;
+              font-size: 16px !important; /* Overriding button component */
+              padding: 12px 24px;
+              width: 100%;
+          }
+          .main-navbar {
+              padding: 12px 16px;
+          }
+          .hero-section {
+              padding: 40px 0;
+          }
+          .hero-title {
+              font-size: 32px;
+              margin-bottom: 16px;
+          }
+          .main-footer {
+              padding-top: 40px;
+          }
+       }
+
 
       .helper-card-header, .job-card-header {
         background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-blue) 100%);
