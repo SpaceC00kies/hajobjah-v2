@@ -1689,7 +1689,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
               </Button>
             )}
             
-            <Button onClick={() => navigateTo(View.MyRoom)} variant="outline" colorScheme="secondary" {...commonButtonPropsBase} className={`${commonButtonPropsBase.className} ${currentView === View.MyRoom ? 'bg-secondary text-color-mix(in srgb, var(--accent-peach) 40%, black)' : ''}`}>
+            <Button onClick={() => navigateTo(View.MyRoom)} variant="outline" colorScheme="secondary" {...commonButtonPropsBase} className={`${commonButtonPropsBase.className} ${currentView === View.MyRoom ? 'bg-secondary text-neutral-dark' : ''}`}>
               <span className={navItemSpanClass}><span>🛋️</span><span>ห้องของฉัน</span></span>
             </Button>
 
@@ -1697,7 +1697,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
               onClick={handleLogout}
               variant="outline"
               colorScheme="accent"
-              className={`${commonButtonPropsBase.className} border-error-red text-color-mix(in srgb, var(--error-red) 40%, black) hover:bg-error-red hover:text-white focus:ring-error-red`}
+              className={`${commonButtonPropsBase.className} border-error-red text-red-700 hover:bg-error-red hover:text-white focus:ring-error-red`}
               size={commonButtonPropsBase.size}
             >
               <span className={navItemSpanClass}><span>🔓</span><span>ออกจากระบบ</span></span>
@@ -1883,7 +1883,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
                 <Button onClick={() => navigateTo(View.FindJobs)} variant="primary" size="lg" className="w-full">
                   <span className="flex items-center justify-center gap-2">📢 ดูประกาศงานทั้งหมด</span>
                 </Button>
-                <Button onClick={() => { setSourceViewForForm(View.Home); navigateTo(View.PostJob); }} variant="outline" colorScheme="primary" size="lg" className="w-full">
+                <Button onClick={() => { setSourceViewForForm(View.Home); navigateTo(View.PostJob); }} variant="secondary" size="lg" className="w-full">
                   <span className="flex items-center justify-center gap-2">📝 ลงประกาศงาน</span>
                 </Button>
               </div>
@@ -1894,7 +1894,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
                 <Button onClick={() => navigateTo(View.FindHelpers)} variant="primary" size="lg" className="w-full">
                   <span className="flex items-center justify-center gap-2">👥 ดูโปรไฟล์ทั้งหมด</span>
                 </Button>
-                <Button onClick={() => { setSourceViewForForm(View.Home); navigateTo(View.OfferHelp); }} variant="outline" colorScheme="primary" size="lg" className="w-full">
+                <Button onClick={() => { setSourceViewForForm(View.Home); navigateTo(View.OfferHelp); }} variant="secondary" size="lg" className="w-full">
                   <span className="flex items-center justify-center gap-2">🙋 สร้างโปรไฟล์</span>
                 </Button>
               </div>

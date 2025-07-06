@@ -567,8 +567,8 @@ export const USER_LEVELS: UserLevel[] = [
 
 export const ADMIN_BADGE_DETAILS: UserLevel = {
   name: "🌟 ผู้พิทักษ์จักรวาล",
-  colorClass: 'bg-accent-peach',
-  textColorClass: 'text-color-mix(in srgb, var(--accent-peach) 30%, black)',
+  colorClass: 'bg-secondary',
+  textColorClass: 'text-neutral-dark',
 };
 
 export const MODERATOR_BADGE_DETAILS: UserLevel = {
