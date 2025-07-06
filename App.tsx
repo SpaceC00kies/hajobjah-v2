@@ -1,5 +1,4 @@
 
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   onAuthChangeService,
@@ -1669,30 +1668,32 @@ const handleDeleteBlogComment = async (commentId: string) => {
               </Button>
             )}
             
+            {(currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer) && (
+              <Button onClick={() => navigateAndCloseMenu(View.AdminDashboard)} variant="outline" colorScheme="secondary" {...commonButtonPropsBase} className={`${commonButtonPropsBase.className} ${currentView === View.AdminDashboard ? 'bg-secondary text-neutral-dark' : ''}`}>
+                 <span className={navItemSpanClass}><span>🔐</span><span>Admin</span></span>
+              </Button>
+            )}
+
+            <Button onClick={() => navigateTo(View.MyRoom)} variant="outline" colorScheme="secondary" {...commonButtonPropsBase} className={`${commonButtonPropsBase.className} ${currentView === View.MyRoom ? 'bg-secondary text-neutral-dark' : ''}`}>
+              <span className={navItemSpanClass}><span>🛋️</span><span>ห้องของฉัน</span></span>
+            </Button>
+            
             <Button onClick={() => navigateTo(View.FindJobs)} variant="outline" colorScheme="primary" {...commonButtonPropsBase} className={`${commonButtonPropsBase.className} ${currentView === View.FindJobs ? activeClass : ''}`}>
               <span className={navItemSpanClass}><span>📢</span><span>ประกาศงาน</span></span>
             </Button>
+            
             <Button onClick={() => navigateTo(View.FindHelpers)} variant="outline" colorScheme="primary" {...commonButtonPropsBase} className={`${commonButtonPropsBase.className} ${currentView === View.FindHelpers ? activeClass : ''}`}>
               <span className={navItemSpanClass}><span>👥</span><span>โปรไฟล์ผู้ช่วย</span></span>
             </Button>
-             <Button onClick={() => navigateTo(View.Webboard)} variant="outline" colorScheme="primary" {...commonButtonPropsBase} className={`${commonButtonPropsBase.className} ${currentView === View.Webboard ? activeClass : ''}`}>
-              <span className={navItemSpanClass}><span>💬</span><span>กระทู้พูดคุย</span></span>
-            </Button>
+            
             <Button onClick={() => navigateTo(View.Blog)} variant="outline" colorScheme="primary" {...commonButtonPropsBase} className={`${commonButtonPropsBase.className} ${currentView === View.Blog ? activeClass : ''}`}>
               <span className={navItemSpanClass}><span>📖</span><span>บทความ</span></span>
             </Button>
             
-            {/* MyRoom and Admin buttons can use accent colors */}
-            {(currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer) && currentView !== View.AdminDashboard && (
-              <Button onClick={() => navigateAndCloseMenu(View.AdminDashboard)} variant="outline" colorScheme="accent" {...commonButtonPropsBase}>
-                 <span className={navItemSpanClass}><span>🔐</span><span>Admin</span></span>
-              </Button>
-            )}
-            
-            <Button onClick={() => navigateTo(View.MyRoom)} variant="outline" colorScheme="secondary" {...commonButtonPropsBase} className={`${commonButtonPropsBase.className} ${currentView === View.MyRoom ? 'bg-secondary text-neutral-dark' : ''}`}>
-              <span className={navItemSpanClass}><span>🛋️</span><span>ห้องของฉัน</span></span>
+            <Button onClick={() => navigateTo(View.Webboard)} variant="outline" colorScheme="primary" {...commonButtonPropsBase} className={`${commonButtonPropsBase.className} ${currentView === View.Webboard ? activeClass : ''}`}>
+              <span className={navItemSpanClass}><span>💬</span><span>กระทู้พูดคุย</span></span>
             </Button>
-
+            
             <Button
               onClick={handleLogout}
               variant="outline"
@@ -2423,7 +2424,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
         initialTab={myRoomInitialTabOverride}
         onInitialTabProcessed={() => setMyRoomInitialTabOverride(null)}
         getAuthorDisplayName={getAuthorDisplayName}
-        onToggleInterest={handleToggleInterest}
+        onToggleInterest={onToggleInterest}
         onToggleLike={handleToggleWebboardPostLike}
         requestLoginForAction={requestLoginForAction}
         onEditJobFromFindView={handleEditOwnJobFromFindView}
