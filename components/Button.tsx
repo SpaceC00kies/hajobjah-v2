@@ -28,13 +28,13 @@ export const Button: React.FC<ButtonProps> = ({
       variantStyle = `bg-primary text-white hover:bg-primary-hover focus:ring-primary`;
       break;
     case 'secondary':
-      variantStyle = `bg-secondary text-color-mix(in srgb, var(--accent-peach) 40%, black) hover:bg-secondary-hover focus:ring-secondary`;
+      variantStyle = `bg-secondary text-neutral-dark hover:bg-secondary-hover focus:ring-secondary`;
       break;
     case 'accent':
-      variantStyle = `bg-accent text-white hover:bg-accent-hover focus:ring-accent`;
+      variantStyle = `bg-accent text-white hover:bg-accent focus:ring-accent`;
       break;
     case 'login': // Alias for brandGreen
-      variantStyle = `bg-brandGreen text-white hover:bg-brandGreen-hover focus:ring-brandGreen`;
+      variantStyle = `bg-brandGreen text-white hover:bg-brandGreen focus:ring-brandGreen`;
       break;
     case 'outline': {
       const scheme = colorScheme;
@@ -51,12 +51,12 @@ export const Button: React.FC<ButtonProps> = ({
       } else if (scheme === 'secondary') {
         variantStyle = `
           bg-transparent border
-          border-secondary text-color-mix(in srgb, var(--accent-peach) 40%, black) hover:bg-secondary hover:text-white focus:ring-secondary
+          border-secondary text-neutral-dark hover:bg-secondary-hover hover:text-white focus:ring-secondary
         `;
       } else { // primary, accent
         variantStyle = `
           bg-primary-light border border-primary text-primary-dark
-          hover:bg-primary hover:text-white focus:ring-primary
+          hover:bg-primary-hover hover:text-white focus:ring-primary
         `;
       }
       break;

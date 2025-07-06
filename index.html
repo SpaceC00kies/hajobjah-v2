@@ -21,7 +21,8 @@
         --primary-dark: #4A90A4;      /* Deep Sky - Headers/Important text */
 
         /* Supporting Colors */
-        --accent-peach: #FFE5B4;      /* Soft Peach - Special highlights */
+        --accent-peach: #FFE5B4;      /* Soft Peach - Reverted as per user request */
+        --accent-peach-hover: #e6cd9f; /* Darker Peach - Hover for peach elements */
         --success-green: #98D8C8;     /* Mint Green - Success states */
         --error-red: #FFB5B5;         /* Soft Red - Errors */
         --neutral-gray: #666666;      /* Body text */
@@ -80,7 +81,7 @@
       select:focus {
         outline: none;
         border-color: var(--primary-blue);
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-blue) 25%, transparent);
+        box-shadow: 0 0 0 3px rgba(135, 206, 235, 0.25);
         background-color: var(--white);
       }
 
@@ -90,7 +91,7 @@
       }
       .input-error:focus {
         border-color: var(--error-red) !important;
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--error-red) 25%, transparent) !important;
+        box-shadow: 0 0 0 3px rgba(255, 181, 181, 0.25) !important;
       }
 
       /* Select arrow styling - Pastel Blue Theme */
@@ -107,7 +108,7 @@
         background: var(--white);
         border: 1px solid var(--primary-light);
         border-radius: 16px;
-        box-shadow: 0 2px 12px color-mix(in srgb, var(--primary-blue) 10%, transparent);
+        box-shadow: 0 2px 12px rgba(135, 206, 235, 0.1);
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -115,7 +116,7 @@
       }
       .helper-card-redesigned:hover, .job-card-redesigned:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 20px color-mix(in srgb, var(--primary-blue) 20%, transparent);
+        box-shadow: 0 4px 20px rgba(135, 206, 235, 0.2);
         border-color: var(--primary-blue);
       }
 
@@ -162,7 +163,7 @@
       }
       .helper-card-name, .job-card-author-name {
         font-weight: 500;
-        color: color-mix(in srgb, var(--primary-dark) 80%, black);
+        color: rgba(74, 144, 164, 0.8); /* Derived from primary-dark */
         cursor: pointer;
         display: inline-flex;
         align-items: center;
@@ -265,7 +266,7 @@
         align-items: center;
         gap: 3px;
         background: var(--accent-peach);
-        color: color-mix(in srgb, var(--accent-peach) 30%, black);
+        color: var(--neutral-dark);
       }
 
       .helper-card-status-banner, .job-card-status-banner {
@@ -275,10 +276,10 @@
         text-align: center;
         border-bottom: 1px solid;
       }
-      .status-banner-pinned { background-color: color-mix(in srgb, var(--accent-peach) 50%, white); color: color-mix(in srgb, var(--accent-peach) 30%, black); border-color: var(--accent-peach); }
-      .status-banner-unavailable, .status-banner-suspicious { background-color: color-mix(in srgb, var(--error-red) 50%, white); color: color-mix(in srgb, var(--error-red) 40%, black); border-color: var(--error-red); }
-      .status-banner-hired { background-color: color-mix(in srgb, var(--success-green) 50%, white); color: color-mix(in srgb, var(--success-green) 40%, black); border-color: var(--success-green); }
-      .status-banner-expired { background-color: var(--neutral-light); color: var(--neutral-gray); border-color: color-mix(in srgb, var(--neutral-gray) 20%, transparent); }
+      .status-banner-pinned { background-color: rgba(255, 229, 180, 0.6); color: var(--neutral-dark); border-color: var(--accent-peach); }
+      .status-banner-unavailable, .status-banner-suspicious { background-color: #FFDADA; color: #996D6D; border-color: var(--error-red); }
+      .status-banner-hired { background-color: #CCECE4; color: #5B8278; border-color: var(--success-green); }
+      .status-banner-expired { background-color: var(--neutral-light); color: var(--neutral-gray); border-color: rgba(102, 102, 102, 0.2); }
       
       .details-line-clamp {
         display: -webkit-box;
@@ -325,12 +326,11 @@
                 light: 'var(--primary-light)',
               },
               secondary: {
-                DEFAULT: 'var(--accent-peach)', // Replaced yellow with peach
-                hover: 'color-mix(in srgb, var(--accent-peach) 90%, black)',
+                DEFAULT: 'var(--accent-peach)',
+                hover: 'var(--accent-peach-hover)',
               },
               accent: {
-                DEFAULT: 'var(--error-red)', // Replaced pink with soft red
-                hover: 'color-mix(in srgb, var(--error-red) 90%, black)',
+                DEFAULT: 'var(--error-red)',
               },
               neutral: {
                 light: 'var(--neutral-light)',
@@ -340,10 +340,8 @@
                 700: '#3B3B3B',
                 800: '#2D2D2D',
               },
-              brandGreen: { // Kept for login button, can be renamed
+              brandGreen: {
                 DEFAULT: 'var(--success-green)',
-                hover: 'color-mix(in srgb, var(--success-green) 90%, black)',
-                text: 'color-mix(in srgb, var(--success-green) 40%, black)',
               },
               white: 'var(--white)',
               black: '#000000',
@@ -391,8 +389,7 @@
   }
 }
 </script>
-  <link rel="stylesheet" href="/index.css">
-</head>
+  </head>
   <body class="bg-neutral-light font-serif text-neutral-dark">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
