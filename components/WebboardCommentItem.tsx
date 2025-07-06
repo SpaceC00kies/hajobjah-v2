@@ -1,11 +1,12 @@
 
+
 import React, { useState } from 'react';
 import type { EnrichedWebboardComment, User, View } from '../types.ts'; // Added View
 import { UserRole } from '../types.ts';
 // UserLevelBadge is removed as it's no longer displayed here
 import { Button } from './Button.tsx';
 import { containsBlacklistedWords } from '../App.tsx';
-import { motion, type Variants, type Transition } from 'framer-motion'; // Import motion
+import { motion, Variants, Transition } from 'framer-motion'; // Import motion
 
 interface WebboardCommentItemProps {
   comment: EnrichedWebboardComment;
@@ -36,12 +37,12 @@ const commentItemVariants: Variants = {
       type: "spring",
       stiffness: 150,
       damping: 20,
-    } as Transition,
+    },
   },
   exit: { 
     opacity: 0,
     y: -15, 
-    transition: { duration: 0.2 } as Transition,
+    transition: { duration: 0.2 },
   }
 };
 
@@ -178,16 +179,22 @@ export const WebboardCommentItem: React.FC<WebboardCommentItemProps> = ({ commen
                                       : 'border-neutral-DEFAULT focus:border-blue-400 focus:ring-blue-400/50'}`}
               aria-label="แก้ไขเนื้อหาคอมเมนต์"
               aria-invalid={!!editError}
-              aria-describedby={editError ? "edit-comment-error" : undefined}
+              aria-describedby={editError ? "comment-edit-error" : undefined}
             />
-            {editError && <p id="edit-comment-error" className="text-red-500 text-xs mt-1">{editError}</p>}
-            <div className="flex justify-end space-x-2 mt-2">
-              <Button onClick={handleCancelEdit} variant="outline" colorScheme="neutral" size="sm" className="text-xs">ยกเลิก</Button>
-              <Button onClick={handleSaveEdit} variant="primary" size="sm" className="text-xs">บันทึก</Button>
+            {editError && <p id="comment-edit-error" className="text-red-500 text-xs mt-1">{editError}</p>}
+            <div className="flex items-center gap-2 mt-2">
+              <Button onClick={handleSaveEdit} size="sm" colorScheme="primary">
+                บันทึก
+              </Button>
+              <Button onClick={handleCancelEdit} size="sm" variant="outline" colorScheme="neutral">
+                ยกเลิก
+              </Button>
             </div>
           </div>
         ) : (
-          <p className="text-sm text-neutral-dark whitespace-pre-wrap font-normal py-1">{comment.text}</p>
+          <p className="text-sm font-serif text-neutral-dark whitespace-pre-wrap leading-relaxed">
+            {comment.text}
+          </p>
         )}
       </div>
     </motion.div>

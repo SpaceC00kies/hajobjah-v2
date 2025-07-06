@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import type { User } from '../types.ts';
 import { GenderOption, HelperEducationLevelOption } from '../types.ts'; // Keep for default values, not for form inputs
@@ -48,8 +47,6 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
     number: false,
     symbol: false,
   });
-
-  const brandGreenFocusStyle = "focus:!border-brandGreen focus:!ring-1 focus:!ring-brandGreen focus:!bg-gray-50/70";
 
   useEffect(() => {
     const newCriteria: PasswordCriteria = {
@@ -130,7 +127,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
   };
 
   const PasswordCriteriaDisplay: React.FC<{ criteria: PasswordCriteria }> = ({ criteria }) => {
-    const getItemClass = (isMet: boolean) => isMet ? 'text-green-600' : 'text-red-500';
+    const getItemClass = (isMet: boolean) => isMet ? 'text-brandGreen-text' : 'text-accent';
     const getIcon = (isMet: boolean) => isMet ? '✓' : '✗';
 
     return (
@@ -147,13 +144,13 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
 
   return (
     <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg mx-auto my-10 border border-neutral-DEFAULT">
-      <h2 className="text-3xl font-sans font-semibold text-brandGreen mb-6 text-center">สร้างบัญชีใหม่</h2>
+      <h2 className="text-3xl font-sans font-semibold text-primary-dark mb-6 text-center">สร้างบัญชีใหม่</h2>
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
             <label htmlFor="publicDisplayName" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อที่แสดงบนเว็บไซต์ (สาธารณะ) <span className="text-red-500">*</span></label>
             <input type="text" id="publicDisplayName" value={publicDisplayName} onChange={(e) => setPublicDisplayName(e.target.value)}
-                    className={`w-full ${errors.publicDisplayName ? 'input-error' : brandGreenFocusStyle}`} placeholder="เช่น Sunny Y., ช่างภาพใจดี123"/>
+                    className={`w-full ${errors.publicDisplayName ? 'input-error' : ''}`} placeholder="เช่น Sunny Y., ช่างภาพใจดี123"/>
             <p className="text-xs font-sans text-neutral-medium mt-1">
               ชื่อแสดงสาธารณะ (2-30 ตัวอักษร): ไทย/อังกฤษ, ตัวเลข, เว้นวรรค, จุด (.) เท่านั้น เช่น Sunny J. 123
             </p>
@@ -162,7 +159,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
             <div>
             <label htmlFor="username" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อผู้ใช้ (สำหรับเข้าระบบ) <span className="text-red-500">*</span></label>
             <input type="text" id="username" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())}
-                    className={`w-full ${errors.username ? 'input-error' : brandGreenFocusStyle}`} placeholder="เช่น somchai_j (อังกฤษ/ตัวเลข)"/>
+                    className={`w-full ${errors.username ? 'input-error' : ''}`} placeholder="เช่น somchai_j (อังกฤษ/ตัวเลข)"/>
             {errors.username && <p className="text-red-500 font-sans text-xs mt-1">{errors.username}</p>}
             </div>
         </div>
@@ -170,7 +167,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
         <div>
           <label htmlFor="email" className="block text-sm font-sans font-medium text-neutral-dark mb-1">อีเมล <span className="text-red-500">*</span></label>
           <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                 className={`w-full ${errors.email ? 'input-error' : brandGreenFocusStyle}`} placeholder="เช่น user@example.com"/>
+                 className={`w-full ${errors.email ? 'input-error' : ''}`} placeholder="เช่น user@example.com"/>
           {errors.email && <p className="text-red-500 font-sans text-xs mt-1">{errors.email}</p>}
         </div>
 
@@ -181,7 +178,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
             <div>
             <label htmlFor="mobile" className="block text-sm font-sans font-medium text-neutral-dark mb-1">เบอร์โทรศัพท์ <span className="text-red-500">*</span></label>
             <input type="tel" id="mobile" value={mobile} onChange={(e) => setMobile(e.target.value)}
-                    className={`w-full ${errors.mobile ? 'input-error' : brandGreenFocusStyle}`} placeholder="เช่น 0812345678"/>
+                    className={`w-full ${errors.mobile ? 'input-error' : ''}`} placeholder="เช่น 0812345678"/>
             {errors.mobile && <p className="text-red-500 font-sans text-xs mt-1">{errors.mobile}</p>}
             </div>
             {/* LINE ID and Facebook inputs are removed */}
@@ -193,24 +190,24 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
                 <div>
                 <label htmlFor="password" className="block text-sm font-sans font-medium text-neutral-dark mb-1">รหัสผ่าน <span className="text-red-500">*</span></label>
                 <input type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                        className={`w-full ${errors.password ? 'input-error' : brandGreenFocusStyle}`} placeholder="9-12 ตัวอักษร, ตัวใหญ่/เล็ก, เลข, สัญลักษณ์"/>
+                        className={`w-full ${errors.password ? 'input-error' : ''}`} placeholder="9-12 ตัวอักษร, ตัวใหญ่/เล็ก, เลข, สัญลักษณ์"/>
                 {errors.password && <p className="text-red-500 font-sans text-xs mt-1">{errors.password}</p>}
                 <PasswordCriteriaDisplay criteria={passwordCriteria} />
                 </div>
                 <div>
                 <label htmlFor="confirmPassword" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ยืนยันรหัสผ่าน <span className="text-red-500">*</span></label>
                 <input type="password" id="confirmPassword" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-                        className={`w-full ${errors.confirmPassword ? 'input-error' : brandGreenFocusStyle}`} placeholder="กรอกรหัสผ่านอีกครั้ง"/>
+                        className={`w-full ${errors.confirmPassword ? 'input-error' : ''}`} placeholder="กรอกรหัสผ่านอีกครั้ง"/>
                 {errors.confirmPassword && <p className="text-red-500 font-sans text-xs mt-1">{errors.confirmPassword}</p>}
                 </div>
             </div>
         </div>
 
         {errors.general && <p className="text-red-500 font-sans text-sm text-center">{errors.general}</p>}
-        <Button type="submit" variant="login" size="lg" className="w-full mt-6">ลงทะเบียน</Button>
+        <Button type="submit" variant="primary" size="lg" className="w-full mt-6">ลงทะเบียน</Button>
         <p className="text-center text-sm font-serif text-neutral-dark font-normal">
           มีบัญชีอยู่แล้ว?{' '}
-          <button type="button" onClick={onSwitchToLogin} className="font-sans font-medium text-brandGreen hover:underline">
+          <button type="button" onClick={onSwitchToLogin} className="font-sans font-medium text-primary hover:underline">
             เข้าสู่ระบบที่นี่
           </button>
         </p>

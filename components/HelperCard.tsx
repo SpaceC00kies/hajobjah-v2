@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import type { EnrichedHelperProfile, User } from '../types.ts';
 import { View, Province, ACTIVITY_BADGE_DETAILS } from '../types.ts';
@@ -6,7 +7,7 @@ import { Modal } from './Modal.tsx';
 import { Button } from './Button.tsx'; // Import Button
 import { isDateInPast, calculateDaysRemaining } from '../App.tsx';
 import { UserLevelBadge } from './UserLevelBadge.tsx';
-import { motion, type Transition } from 'framer-motion';
+import { motion, Transition } from 'framer-motion';
 
 interface HelperCardProps {
   profile: EnrichedHelperProfile;
@@ -25,7 +26,7 @@ interface HelperCardProps {
 const FallbackAvatarDisplay: React.FC<{ name?: string, size?: string, className?: string }> = ({ name, size = "w-[80px] h-[80px]", className = "" }) => {
   const initial = name ? name.charAt(0).toUpperCase() : '👤';
   return (
-    <div className={`${size} rounded-full bg-neutral flex items-center justify-center text-3xl font-sans text-white ${className}`}>
+    <div className={`${size} rounded-full bg-neutral-light flex items-center justify-center text-3xl font-sans text-primary-dark ${className}`}>
       {initial}
     </div>
   );
@@ -48,29 +49,29 @@ const TrustBadgesCompact: React.FC<{ profile: EnrichedHelperProfile, user: User 
   const badges = [];
   if (profile.adminVerifiedExperience) {
     badges.push(
-      <span key="verified" className="helper-card-trust-badge bg-yellow-200 text-yellow-800">ยืนยันตัวตน</span>
+      <span key="verified" className="helper-card-trust-badge">ยืนยันตัวตน</span>
     );
   }
   if (user?.profileComplete) {
      badges.push(
-      <span key="complete" className="helper-card-trust-badge bg-green-100 text-green-700">โปรไฟล์ครบ</span>
+      <span key="complete" className="helper-card-trust-badge" style={{backgroundColor: 'var(--success-green)', color: 'color-mix(in srgb, var(--success-green) 40%, black)'}}>โปรไฟล์ครบ</span>
     );
   }
   if ((profile.interestedCount || 0) > 0) {
      badges.push(
-       <span key="interested" className="helper-card-trust-badge bg-sky-100 text-sky-700">
+       <span key="interested" className="helper-card-trust-badge" style={{backgroundColor: 'var(--primary-light)', color: 'var(--primary-dark)'}}>
         คนสนใจ {profile.interestedCount}
       </span>
     );
   }
    if (user?.activityBadge?.isActive) {
      badges.push(
-       <span key="activity" className="helper-card-trust-badge bg-orange-100 text-orange-700">ขยันใช้เว็บ</span>
+       <span key="activity" className="helper-card-trust-badge" style={{backgroundColor: 'var(--primary-light)', color: 'var(--primary-dark)'}}>ขยันใช้เว็บ</span>
     );
   }
   if (profile.isSuspicious) {
      badges.push(
-      <span key="suspicious" className="helper-card-trust-badge bg-red-100 text-red-700">ระวัง</span>
+      <span key="suspicious" className="helper-card-trust-badge" style={{backgroundColor: 'var(--error-red)', color: 'color-mix(in srgb, var(--error-red) 40%, black)'}}>ระวัง</span>
     );
   }
 
@@ -175,13 +176,11 @@ export const HelperCard: React.FC<HelperCardProps> = ({
         className="helper-card-redesigned font-sans h-full"
         whileHover={{
           y: -5,
-          boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
-          rotate: 0.3,
-          transition: { duration: 0.2, ease: "easeOut" } as Transition
+          transition: { duration: 0.2, ease: "easeOut" },
         }}
         initial={{ scale: 0.97, filter: 'brightness(0.95)' }}
         whileInView={{ scale: 1, filter: 'brightness(1)' }}
-        transition={{ duration: 0.4, ease: "easeOut" } as Transition}
+        transition={{ duration: 0.4, ease: "easeOut" }}
         viewport={{ once: true, amount: 0.2 }}
       >
         {profile.isPinned && (
@@ -217,7 +216,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({
                         const fallbackNode = document.createElement('div');
                         fallbackNode.className = 'helper-card-avatar fallback-avatar-rendered';
                         const initial = authorActualDisplayName ? authorActualDisplayName.charAt(0).toUpperCase() : '👤';
-                        fallbackNode.innerHTML = `<div class="w-full h-full rounded-full bg-neutral flex items-center justify-center text-3xl font-sans text-white">${initial}</div>`;
+                        fallbackNode.innerHTML = `<div class="w-full h-full rounded-full bg-neutral-light flex items-center justify-center text-3xl font-sans text-primary-dark">${initial}</div>`;
                         avatarImg.parentNode?.insertBefore(fallbackNode, avatarImg.nextSibling);
                     }
                 }} />
@@ -274,7 +273,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({
           {detailsNeedsTruncation && !(currentUser && !profileIsTrulyExpired) && (
              <button
                 onClick={toggleShowFullDetails}
-                className="text-xs text-yellow-600 hover:underline mt-1 font-medium"
+                className="text-xs text-primary-dark hover:underline mt-1 font-medium"
                 aria-expanded={showFullDetails}
               >
                 {showFullDetails ? "แสดงน้อยลง" : "ดูเพิ่มเติม"}
@@ -290,8 +289,8 @@ export const HelperCard: React.FC<HelperCardProps> = ({
             {currentUser?.id !== profile.userId && (
                 <Button
                     onClick={handleInterestClick}
-                    variant={isInterested ? "secondary" : "outline"}
-                    colorScheme="secondary"
+                    variant={isInterested ? "primary" : "outline"}
+                    colorScheme="primary"
                     size="sm"
                     disabled={profile.isUnavailable || profileIsTrulyExpired}
                     className="!px-2.5"
@@ -324,7 +323,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({
             ) : (
                 <Button
                   onClick={handleContact}
-                  variant="secondary"
+                  variant="primary"
                   size="sm"
                   disabled={profile.isUnavailable || profileIsTrulyExpired}
                 >
@@ -361,10 +360,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({
               <div className="bg-neutral-light p-4 rounded-md border border-neutral-DEFAULT whitespace-pre-wrap font-sans">
                 <p>{profile.contact}</p>
               </div>
-              <p className="text-xs text-neutral-medium mt-4 text-center">
-                (การคลิก "ดำเนินการต่อ" ในหน้าก่อนหน้านี้ ได้บันทึกการติดต่อของคุณแล้ว เพื่อให้ผู้ช่วยทราบว่ามีคนสนใจ)
-              </p>
-              <Button onClick={closeContactModal} variant="secondary" className="w-full mt-6">
+              <Button onClick={closeContactModal} variant="primary" className="w-full mt-6">
                 ปิดหน้าต่างนี้
               </Button>
             </div>

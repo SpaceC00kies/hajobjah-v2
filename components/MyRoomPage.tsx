@@ -40,6 +40,7 @@ interface MyRoomPageProps {
   onInitialTabProcessed?: () => void;
   getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
   onToggleInterest: (targetId: string, targetType: 'job' | 'helperProfile', targetOwnerId: string) => void;
+  onToggleLike: (postId: string) => void;
   requestLoginForAction: (view: View, payload?: any) => void;
   onEditJobFromFindView?: (jobId: string) => void;
   onEditHelperProfileFromFindView?: (profileId: string) => void;
@@ -98,6 +99,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
   onInitialTabProcessed,
   getAuthorDisplayName,
   onToggleInterest,
+  onToggleLike,
   requestLoginForAction,
   onEditJobFromFindView,
   onEditHelperProfileFromFindView,
@@ -407,7 +409,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
                 {activeSubTab === 'posts' && (
                   savedWebboardPosts.length === 0 ? <p className="text-center p-6 text-neutral-medium">ยังไม่มีกระทู้ที่บันทึกไว้</p> :
                   <div className="space-y-4">
-                    {savedWebboardPosts.map(post => <WebboardPostCard key={post.id} post={post} currentUser={currentUser} onViewPost={(id) => navigateTo(View.Webboard, id)} onToggleLike={onToggleInterest as any} onSavePost={onSavePost} onSharePost={() => {}} requestLoginForAction={requestLoginForAction} onNavigateToPublicProfile={(info) => onNavigateToPublicProfile(info)} getAuthorDisplayName={getAuthorDisplayName}/>)}
+                    {savedWebboardPosts.map(post => <WebboardPostCard key={post.id} post={post} currentUser={currentUser} onViewPost={(id) => navigateTo(View.Webboard, id)} onToggleLike={onToggleLike} onSavePost={onSavePost} onSharePost={() => {}} requestLoginForAction={requestLoginForAction} onNavigateToPublicProfile={(info) => onNavigateToPublicProfile(info)} getAuthorDisplayName={getAuthorDisplayName}/>)}
                   </div>
                 )}
               </div>

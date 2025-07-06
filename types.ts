@@ -299,11 +299,11 @@ export enum WebboardCategory {
 }
 
 export const WEBBOARD_CATEGORY_STYLES: Record<WebboardCategory, { bg: string; text: string; border?: string }> = {
-  [WebboardCategory.QA]: { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-300' },
-  [WebboardCategory.Knowledge]: { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-300' },
-  [WebboardCategory.HowTo]: { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-300' },
-  [WebboardCategory.General]: { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-300' },
-  [WebboardCategory.Other]: { bg: 'bg-pink-100', text: 'text-pink-700', border: 'border-pink-300' },
+  [WebboardCategory.QA]: { bg: 'bg-primary-light', text: 'text-primary-dark', border: 'border-primary' },
+  [WebboardCategory.Knowledge]: { bg: 'bg-brandGreen/20', text: 'text-brandGreen-text', border: 'border-brandGreen' },
+  [WebboardCategory.HowTo]: { bg: 'bg-secondary/40', text: 'text-neutral-700', border: 'border-secondary' },
+  [WebboardCategory.General]: { bg: 'bg-neutral-light', text: 'text-neutral-dark', border: 'border-neutral-dark/30' },
+  [WebboardCategory.Other]: { bg: 'bg-neutral-light', text: 'text-neutral-dark', border: 'border-neutral-dark/30' },
 };
 
 export enum JobCategory {
@@ -336,16 +336,16 @@ export const JOB_CATEGORY_EMOJIS_MAP: Record<JobCategory, string> = {
 
 
 export const JOB_CATEGORY_STYLES: Record<JobCategory, { bg: string; text: string; border?: string }> = {
-  [JobCategory.DigitalCreative]: { bg: 'bg-violet-100', text: 'text-violet-700', border: 'border-violet-300' },
-  [JobCategory.EducationTutoring]: { bg: 'bg-teal-100', text: 'text-teal-700', border: 'border-teal-300' },
-  [JobCategory.BusinessAdminSupport]: { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-300' },
-  [JobCategory.ITTechnical]: { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-300' },
-  [JobCategory.SalesEventsPromotion]: { bg: 'bg-rose-100', text: 'text-rose-700', border: 'border-rose-300' },
-  [JobCategory.HomeDeliveryLifestyle]: { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-300' },
-  [JobCategory.FoodService]: { bg: 'bg-lime-100', text: 'text-lime-700', border: 'border-lime-300' },
-  [JobCategory.HealthFitnessWellness]: { bg: 'bg-cyan-100', text: 'text-cyan-700', border: 'border-cyan-300' },
-  [JobCategory.ArtsCraftsPerformance]: { bg: 'bg-fuchsia-100', text: 'text-fuchsia-700', border: 'border-fuchsia-300' },
-  [JobCategory.ShortTermMisc]: { bg: 'bg-pink-100', text: 'text-pink-700', border: 'border-pink-300' },
+  [JobCategory.DigitalCreative]: { bg: 'bg-primary-light', text: 'text-primary-dark', border: 'border-primary' },
+  [JobCategory.EducationTutoring]: { bg: 'bg-brandGreen/20', text: 'text-brandGreen-text', border: 'border-brandGreen' },
+  [JobCategory.BusinessAdminSupport]: { bg: 'bg-neutral-light', text: 'text-neutral-dark', border: 'border-neutral-dark/30' },
+  [JobCategory.ITTechnical]: { bg: 'bg-primary-light', text: 'text-primary-dark', border: 'border-primary' },
+  [JobCategory.SalesEventsPromotion]: { bg: 'bg-secondary/40', text: 'text-neutral-700', border: 'border-secondary' },
+  [JobCategory.HomeDeliveryLifestyle]: { bg: 'bg-brandGreen/20', text: 'text-brandGreen-text', border: 'border-brandGreen' },
+  [JobCategory.FoodService]: { bg: 'bg-secondary/40', text: 'text-neutral-700', border: 'border-secondary' },
+  [JobCategory.HealthFitnessWellness]: { bg: 'bg-brandGreen/20', text: 'text-brandGreen-text', border: 'border-brandGreen' },
+  [JobCategory.ArtsCraftsPerformance]: { bg: 'bg-secondary/40', text: 'text-neutral-700', border: 'border-secondary' },
+  [JobCategory.ShortTermMisc]: { bg: 'bg-neutral-light', text: 'text-neutral-dark', border: 'border-neutral-dark/30' },
 };
 
 export enum JobSubCategory {
@@ -556,31 +556,31 @@ export interface UserLevel {
 }
 
 export const USER_LEVELS: UserLevel[] = [
-  { name: UserLevelName.Level1_NewbiePoster, minScore: 0, colorClass: 'bg-green-200', textColorClass: 'text-green-800' },
-  { name: UserLevelName.Level2_FieryNewbie, minScore: 5, colorClass: 'bg-lime-200', textColorClass: 'text-lime-800' },
-  { name: UserLevelName.Level3_RegularSenior, minScore: 15, colorClass: 'bg-cyan-200', textColorClass: 'text-cyan-800' },
-  { name: UserLevelName.Level4_ClassTeacher, minScore: 30, colorClass: 'bg-amber-300', textColorClass: 'text-amber-800' },
-  { name: UserLevelName.Level5_KnowledgeGuru, minScore: 50, colorClass: 'bg-violet-300', textColorClass: 'text-violet-800' },
-  { name: UserLevelName.Level6_BoardFavorite, minScore: 80, colorClass: 'bg-pink-300', textColorClass: 'text-pink-800' },
-  { name: UserLevelName.Level7_LegendOfHajobjah, minScore: 120, colorClass: 'bg-teal-300', textColorClass: 'text-teal-800' },
+  { name: UserLevelName.Level1_NewbiePoster, minScore: 0, colorClass: 'bg-primary-light', textColorClass: 'text-primary-dark' },
+  { name: UserLevelName.Level2_FieryNewbie, minScore: 5, colorClass: 'bg-green-100', textColorClass: 'text-green-800' },
+  { name: UserLevelName.Level3_RegularSenior, minScore: 15, colorClass: 'bg-blue-100', textColorClass: 'text-blue-800' },
+  { name: UserLevelName.Level4_ClassTeacher, minScore: 30, colorClass: 'bg-purple-100', textColorClass: 'text-purple-800' },
+  { name: UserLevelName.Level5_KnowledgeGuru, minScore: 50, colorClass: 'bg-yellow-100', textColorClass: 'text-yellow-800' },
+  { name: UserLevelName.Level6_BoardFavorite, minScore: 80, colorClass: 'bg-pink-100', textColorClass: 'text-pink-800' },
+  { name: UserLevelName.Level7_LegendOfHajobjah, minScore: 120, colorClass: 'bg-teal-100', textColorClass: 'text-teal-800' },
 ];
 
 export const ADMIN_BADGE_DETAILS: UserLevel = {
   name: "🌟 ผู้พิทักษ์จักรวาล",
-  colorClass: 'bg-yellow-100',
-  textColorClass: 'text-yellow-800',
+  colorClass: 'bg-accent-peach',
+  textColorClass: 'text-color-mix(in srgb, var(--accent-peach) 30%, black)',
 };
 
 export const MODERATOR_BADGE_DETAILS: UserLevel = {
   name: "👮 ผู้ตรวจการ",
-  colorClass: 'bg-blue-400',
-  textColorClass: 'text-blue-900',
+  colorClass: 'bg-primary',
+  textColorClass: 'text-white',
 };
 
-export const ACTIVITY_BADGE_DETAILS: UserLevel = { // For "🔥 ขยันใช้เว็บ"
+export const ACTIVITY_BADGE_DETAILS: UserLevel = {
     name: "🔥 ขยันใช้เว็บ",
-    colorClass: 'bg-orange-200',
-    textColorClass: 'text-orange-800',
+    colorClass: 'bg-red-200',
+    textColorClass: 'text-red-800',
 };
 
 // Enriched types for Webboard - authorLevel is removed as badges are not shown on webboard items

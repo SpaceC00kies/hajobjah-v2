@@ -1,11 +1,12 @@
 
+
 import React, { useState } from 'react';
 import type { Job, User } from '../types.ts';
-import { View, JobCategory, JOB_CATEGORY_STYLES, JOB_CATEGORY_EMOJIS_MAP, JobDesiredEducationLevelOption, Province } from '../types.ts';
+import { View, JobCategory, JOB_CATEGORY_EMOJIS_MAP, JobDesiredEducationLevelOption, Province } from '../types.ts';
 import { Button } from './Button.tsx'; // Import Button
 import { Modal } from './Modal.tsx';
 import { isDateInPast } from '../App.tsx';
-import { motion, type Transition } from 'framer-motion';
+import { motion, Transition } from 'framer-motion';
 
 interface JobCardProps {
   job: Job; // Already includes posterIsAdminVerified?
@@ -62,7 +63,6 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
   };
 
   const categoryEmoji = JOB_CATEGORY_EMOJIS_MAP[job.category] || '💼';
-  const categoryStyle = JOB_CATEGORY_STYLES[job.category] || { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-300' };
 
   const postedAtDate = job.postedAt ? (job.postedAt instanceof Date ? job.postedAt : new Date(job.postedAt as string)) : null;
   const formattedPostedAt = postedAtDate && !isNaN(postedAtDate.getTime()) ? formatDateDisplay(postedAtDate) : "N/A";
@@ -98,12 +98,11 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
         className="job-card-redesigned font-sans h-full"
         whileHover={{
           y: -5,
-          boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
-          transition: { duration: 0.2, ease: "easeOut" } as Transition
+          transition: { duration: 0.2, ease: "easeOut" },
         }}
         initial={{ scale: 0.97, filter: 'brightness(0.95)' }}
         whileInView={{ scale: 1, filter: 'brightness(1)' }}
-        transition={{ duration: 0.4, ease: "easeOut" } as Transition}
+        transition={{ duration: 0.4, ease: "easeOut" }}
         viewport={{ once: true, amount: 0.2 }}
       >
         {job.isPinned && (
@@ -136,7 +135,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
                         <span className="name-arrow">→</span>
                     </h3>
                     {job.posterIsAdminVerified && (
-                        <span className="ml-1.5 bg-yellow-200 text-yellow-800 text-xs px-1.5 py-0.5 rounded-full font-medium">
+                        <span className="ml-1.5 bg-accent-peach text-color-mix(in srgb, var(--accent-peach) 30%, black) text-xs px-1.5 py-0.5 rounded-full font-medium">
                             ⭐ ยืนยันตัวตน
                         </span>
                     )}
@@ -179,7 +178,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
           {detailsNeedsTruncation && !(currentUser && !jobIsTrulyExpired) && (
             <button
                 onClick={toggleShowFullDetails}
-                className="text-xs text-blue-600 hover:underline mt-1 font-medium"
+                className="text-xs text-primary-dark hover:underline mt-1 font-medium"
                 aria-expanded={showFullDetails}
               >
                 {showFullDetails ? "แสดงน้อยลง" : "ดูเพิ่มเติม"}

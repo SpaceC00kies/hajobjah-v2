@@ -1636,27 +1636,28 @@ const handleDeleteBlogComment = async (commentId: string) => {
   const renderNavLinks = (isMobile: boolean) => {
     const displayBadgeForProfile = getUserDisplayBadge(currentUser);
     const commonButtonPropsBase = isMobile
-      ? { size: 'md' as const, className: 'font-medium w-full text-left justify-start py-3 px-4 text-base' }
-      : { size: 'sm' as const, className: 'font-medium flex-shrink-0' };
+      ? { size: 'md' as const, className: 'w-full text-left justify-start py-3 px-4 text-base' }
+      : { size: 'sm' as const, className: 'flex-shrink-0' };
 
     const navigateAndCloseMenu = (view: View, payload?: any) => {
       navigateTo(view, payload);
     };
 
     const navItemSpanClass = "inline-flex items-center gap-1.5";
+    const activeClass = "bg-primary text-white"; // Unified active state
 
     if (currentUser) {
         return (
           <>
             {isMobile && (
-              <div className={`font-sans font-medium text-base mb-3 py-2 px-4 border-b border-neutral-DEFAULT/50 w-full text-center`}>
+              <div className={`font-sans font-medium text-base mb-3 py-2 px-4 border-b border-primary-light w-full text-center text-primary-dark`}>
                 สวัสดี, {currentUser.publicDisplayName}!
                 <UserLevelBadge level={displayBadgeForProfile} size="sm" />
                 {currentUser.activityBadge?.isActive && <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm" />}
               </div>
             )}
             {!isMobile && (
-               <div className={`font-sans font-medium mr-4 text-sm lg:text-base items-center flex gap-2`}>
+               <div className={`font-sans font-medium mr-4 text-sm lg:text-base items-center flex gap-2 text-primary-dark`}>
                 สวัสดี, {currentUser.publicDisplayName}!
                 {currentUser.activityBadge?.isActive && <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm" />}
               </div>
@@ -1667,69 +1668,36 @@ const handleDeleteBlogComment = async (commentId: string) => {
                 <span className={navItemSpanClass}><span>🏠</span><span>หน้าแรก</span></span>
               </Button>
             )}
-
-            {/* Combined MyRoom link */}
-            {currentView !== View.MyRoom && (
-              <Button onClick={() => navigateAndCloseMenu(View.MyRoom)} variant="outline" colorScheme="neutral" {...commonButtonPropsBase}>
-                <span className={navItemSpanClass}><span>🛋️</span><span>ห้องของฉัน</span></span>
-              </Button>
-            )}
-
-            {/* UserProfile and MyPosts links are removed as they are part of MyRoom */}
-
+            
+            <Button onClick={() => navigateTo(View.FindJobs)} variant="outline" colorScheme="primary" {...commonButtonPropsBase} className={`${commonButtonPropsBase.className} ${currentView === View.FindJobs ? activeClass : ''}`}>
+              <span className={navItemSpanClass}><span>📢</span><span>ประกาศงาน</span></span>
+            </Button>
+            <Button onClick={() => navigateTo(View.FindHelpers)} variant="outline" colorScheme="primary" {...commonButtonPropsBase} className={`${commonButtonPropsBase.className} ${currentView === View.FindHelpers ? activeClass : ''}`}>
+              <span className={navItemSpanClass}><span>👥</span><span>โปรไฟล์ผู้ช่วย</span></span>
+            </Button>
+             <Button onClick={() => navigateTo(View.Webboard)} variant="outline" colorScheme="primary" {...commonButtonPropsBase} className={`${commonButtonPropsBase.className} ${currentView === View.Webboard ? activeClass : ''}`}>
+              <span className={navItemSpanClass}><span>💬</span><span>กระทู้พูดคุย</span></span>
+            </Button>
+            <Button onClick={() => navigateTo(View.Blog)} variant="outline" colorScheme="primary" {...commonButtonPropsBase} className={`${commonButtonPropsBase.className} ${currentView === View.Blog ? activeClass : ''}`}>
+              <span className={navItemSpanClass}><span>📖</span><span>บทความ</span></span>
+            </Button>
+            
+            {/* MyRoom and Admin buttons can use accent colors */}
             {(currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer) && currentView !== View.AdminDashboard && (
-              <Button onClick={() => navigateAndCloseMenu(View.AdminDashboard)} variant="accent" {...commonButtonPropsBase}>
+              <Button onClick={() => navigateAndCloseMenu(View.AdminDashboard)} variant="outline" colorScheme="accent" {...commonButtonPropsBase}>
                  <span className={navItemSpanClass}><span>🔐</span><span>Admin</span></span>
               </Button>
             )}
             
-            {currentView !== View.Blog && (
-               <Button onClick={() => navigateAndCloseMenu(View.Blog)} variant="outline" colorScheme="neutral" {...commonButtonPropsBase}>
-                 <span className={navItemSpanClass}><span>📖</span><span>บทความ</span></span>
-               </Button>
-            )}
-
-            {currentView !== View.Webboard && (
-               <Button onClick={() => navigateAndCloseMenu(View.Webboard)} variant="outline" colorScheme="neutral" {...commonButtonPropsBase}>
-                 <span className={navItemSpanClass}><span>💬</span><span>กระทู้พูดคุย</span></span>
-               </Button>
-            )}
-
-            {currentView === View.FindJobs ? (
-              <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateAndCloseMenu(View.PostJob);}} variant="primary" {...commonButtonPropsBase}>
-                + ลงประกาศงาน
-              </Button>
-            ) : (currentView !== View.PostJob || (currentView === View.PostJob && itemToEdit)) && (
-              <Button onClick={() => navigateAndCloseMenu(View.FindJobs)} variant="primary" {...commonButtonPropsBase}>
-                <span className={navItemSpanClass}><span>📢</span><span>ประกาศงาน</span></span>
-              </Button>
-            )}
-            {isMobile && currentView === View.PostJob && !itemToEdit && (
-                <Button onClick={() => navigateAndCloseMenu(View.FindJobs)} variant="primary" {...commonButtonPropsBase}>
-                  <span className={navItemSpanClass}><span>📢</span><span>ประกาศงาน</span></span>
-                </Button>
-            )}
-
-            {currentView === View.FindHelpers ? (
-              <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateAndCloseMenu(View.OfferHelp);}} variant="secondary" {...commonButtonPropsBase}>
-                + สร้างโปรไฟล์
-              </Button>
-            ) : (currentView !== View.OfferHelp || (currentView === View.OfferHelp && itemToEdit )) && (
-              <Button onClick={() => navigateAndCloseMenu(View.FindHelpers)} variant="secondary" {...commonButtonPropsBase}>
-                <span className={navItemSpanClass}><span>👥</span><span>โปรไฟล์ผู้ช่วย</span></span>
-              </Button>
-            )}
-            {isMobile && currentView === View.OfferHelp && !itemToEdit && (
-                <Button onClick={() => navigateAndCloseMenu(View.FindHelpers)} variant="secondary" {...commonButtonPropsBase}>
-                  <span className={navItemSpanClass}><span>👥</span><span>โปรไฟล์ผู้ช่วย</span></span>
-                </Button>
-            )}
+            <Button onClick={() => navigateTo(View.MyRoom)} variant="outline" colorScheme="secondary" {...commonButtonPropsBase} className={`${commonButtonPropsBase.className} ${currentView === View.MyRoom ? 'bg-secondary text-color-mix(in srgb, var(--accent-peach) 40%, black)' : ''}`}>
+              <span className={navItemSpanClass}><span>🛋️</span><span>ห้องของฉัน</span></span>
+            </Button>
 
             <Button
               onClick={handleLogout}
               variant="outline"
               colorScheme="accent"
-              className={`${commonButtonPropsBase.className} border-red-500 text-red-500 hover:bg-red-500 hover:text-white focus:ring-red-500`}
+              className={`${commonButtonPropsBase.className} border-error-red text-color-mix(in srgb, var(--error-red) 40%, black) hover:bg-error-red hover:text-white focus:ring-error-red`}
               size={commonButtonPropsBase.size}
             >
               <span className={navItemSpanClass}><span>🔓</span><span>ออกจากระบบ</span></span>
@@ -1754,14 +1722,13 @@ const handleDeleteBlogComment = async (commentId: string) => {
               )}
               <Button
                 onClick={() => navigateAndCloseMenu(View.Login)}
-                variant="outline"
-                colorScheme="brandGreen"
+                variant="primary"
                 size={commonButtonPropsBase.size}
                 className={`${commonButtonPropsBase.className}`}
               >
                   <span className={navItemSpanClass}><span>🔑</span><span>เข้าสู่ระบบ</span></span>
               </Button>
-              <Button onClick={() => navigateAndCloseMenu(View.Register)} variant="outline" colorScheme="neutral" {...commonButtonPropsBase}>
+              <Button onClick={() => navigateAndCloseMenu(View.Register)} variant="outline" colorScheme="primary" {...commonButtonPropsBase}>
                  <span className={navItemSpanClass}><span>📝</span><span>ลงทะเบียน</span></span>
               </Button>
             </>
@@ -1785,7 +1752,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
     const lineStyle: React.CSSProperties = {
       width: '16px',
       height: '2px',
-      backgroundColor: 'currentColor',
+      backgroundColor: 'var(--primary-dark)',
       borderRadius: '1px',
       position: 'absolute',
       left: '4px', // (24 - 16) / 2
@@ -1827,13 +1794,13 @@ const handleDeleteBlogComment = async (commentId: string) => {
       }
       return (
       <header
-        className="sticky top-0 z-30 w-full bg-headerBlue-DEFAULT text-neutral-dark p-4 sm:p-5 lg:p-6 shadow-md"
+        className="sticky top-0 z-30 w-full bg-white text-primary-dark p-4 sm:p-5 lg:p-6 shadow-md border-b border-primary-light"
       >
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex-shrink-0">
             <span
               onClick={() => { navigateTo(View.Home); setIsMobileMenuOpen(false); }}
-              className="cursor-pointer font-sans font-bold text-lg sm:text-xl lg:text-2xl text-neutral-dark"
+              className="cursor-pointer font-sans font-bold text-lg sm:text-xl lg:text-2xl text-primary"
               aria-label="ไปหน้าแรก HAJOBJA.COM"
             >
               HAJOBJA.COM
@@ -1845,7 +1812,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
                 {renderNavLinks(false)}
               </nav>
 
-              <div className="lg:hidden ml-2 p-2 rounded-md text-neutral-dark hover:bg-neutral-DEFAULT/20 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-neutral-DEFAULT">
+              <div className="lg:hidden ml-2 p-2 rounded-md text-primary-dark hover:bg-primary-light/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-light">
                 <AnimatedHamburgerIcon />
               </div>
           </div>
@@ -1878,10 +1845,10 @@ const handleDeleteBlogComment = async (commentId: string) => {
               className="fixed top-0 right-0 h-full w-4/5 max-w-xs bg-white shadow-xl p-5 z-50 overflow-y-auto"
             >
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-lg font-sans font-semibold text-neutral-medium">เมนู</h2>
+                <h2 className="text-lg font-sans font-semibold text-primary-dark">เมนู</h2>
                 <button 
                   onClick={() => setIsMobileMenuOpen(false)} 
-                  className="p-1 rounded-md text-neutral-dark hover:bg-neutral-light/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-neutral-DEFAULT" 
+                  className="p-1 rounded-md text-primary-dark hover:bg-primary-light/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-light" 
                   aria-label="Close menu"
                 >
                   <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
@@ -1901,47 +1868,41 @@ const handleDeleteBlogComment = async (commentId: string) => {
 
   const renderHome = () => {
     return (
-    <div className="flex flex-col items-center justify-center px-6 sm:px-8 text-center">
-      <h2 className="text-3xl sm:text-4xl lg:text-5xl font-sans font-medium text-neutral-dark mb-2 tracking-tight leading-snug"> ✨ หาจ๊อบจ้า ✨ </h2>
-      <p className="text-base sm:text-lg lg:text-xl text-neutral-dark max-w-xl leading-relaxed mb-8 font-normal font-serif"> แพลตฟอร์มที่อยู่เคียงข้างคนขยัน </p>
-      <div className="w-full max-w-3xl lg:max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 lg:gap-14">
-        <div className="bg-white p-6 rounded-xl shadow-lg border border-primary/30">
-          <h3 className="text-lg font-sans font-semibold text-primary mb-4">ประกาศงาน</h3>
-          <div className="space-y-4">
-             <Button onClick={() => currentUser ? navigateTo(View.FindJobs) : requestLoginForAction(View.FindJobs)} variant="primary" size="md" className="w-full">
-              <span className="flex items-center justify-center gap-2"><span>📢</span><span>ดูประกาศงานทั้งหมด</span></span>
-            </Button>
-            <Button
-              onClick={() => { setSourceViewForForm(View.Home); navigateTo(View.PostJob); }}
-              variant="outline"
-              colorScheme="primary"
-              size="md"
-              className="w-full"
-            >
-              <span className="flex items-center justify-center gap-2"><span>📝</span><span>ลงประกาศงาน</span></span>
-            </Button>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-xl shadow-lg border border-secondary/30">
-          <h3 className="text-lg font-sans font-semibold text-secondary-hover mb-4">โปรไฟล์ผู้ช่วยและบริการ</h3>
-          <div className="space-y-4">
-             <Button onClick={() => currentUser ? navigateTo(View.FindHelpers) : requestLoginForAction(View.FindHelpers)} variant="secondary" size="md" className="w-full">
-              <span className="flex items-center justify-center gap-2"><span>👥</span><span>ดูโปรไฟล์ทั้งหมด</span></span>
-            </Button>
-            <Button
-               onClick={() => { setSourceViewForForm(View.Home); navigateTo(View.OfferHelp); }}
-              variant="outline"
-              colorScheme="secondary"
-              size="md"
-              className="w-full"
-            >
-              <span className="flex items-center justify-center gap-2"><span>🙋</span><span>สร้างโปรไฟล์</span></span>
-            </Button>
+      <div className="w-full bg-primary-light flex-grow flex items-center justify-center">
+        <div className="container mx-auto flex flex-col items-center px-6 sm:px-8 text-center py-20">
+          <h2 className="text-4xl sm:text-5xl font-sans font-bold text-primary-dark mb-4 tracking-tight leading-tight">
+            ✨ หาจ๊อบจ้า ✨
+          </h2>
+          <p className="text-lg sm:text-xl text-neutral-gray max-w-2xl leading-relaxed mb-12 font-serif">
+            แพลตฟอร์มที่อยู่เคียงข้างคนขยัน
+          </p>
+          <div className="w-full max-w-3xl lg:max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+            <div className="bg-white p-8 rounded-2xl shadow-lg border border-primary-light hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+              <h3 className="text-xl font-sans font-semibold text-primary-dark mb-6">ประกาศงาน</h3>
+              <div className="space-y-4">
+                <Button onClick={() => navigateTo(View.FindJobs)} variant="primary" size="lg" className="w-full">
+                  <span className="flex items-center justify-center gap-2">📢 ดูประกาศงานทั้งหมด</span>
+                </Button>
+                <Button onClick={() => { setSourceViewForForm(View.Home); navigateTo(View.PostJob); }} variant="outline" colorScheme="primary" size="lg" className="w-full">
+                  <span className="flex items-center justify-center gap-2">📝 ลงประกาศงาน</span>
+                </Button>
+              </div>
+            </div>
+            <div className="bg-white p-8 rounded-2xl shadow-lg border border-primary-light hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+              <h3 className="text-xl font-sans font-semibold text-primary-dark mb-6">โปรไฟล์ผู้ช่วยและบริการ</h3>
+              <div className="space-y-4">
+                <Button onClick={() => navigateTo(View.FindHelpers)} variant="primary" size="lg" className="w-full">
+                  <span className="flex items-center justify-center gap-2">👥 ดูโปรไฟล์ทั้งหมด</span>
+                </Button>
+                <Button onClick={() => { setSourceViewForForm(View.Home); navigateTo(View.OfferHelp); }} variant="outline" colorScheme="primary" size="lg" className="w-full">
+                  <span className="flex items-center justify-center gap-2">🙋 สร้างโปรไฟล์</span>
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
   };
 
   const renderPostJob = () => {
@@ -2095,9 +2056,9 @@ const handleDeleteBlogComment = async (commentId: string) => {
         return { ...job, posterIsAdminVerified };
       });
     
-    const inputBaseStyle = "w-full p-3 bg-white border border-[#CCCCCC] rounded-[10px] text-neutral-dark font-serif font-normal focus:outline-none transition-colors duration-150 ease-in-out";
+    const inputBaseStyle = "w-full p-3 bg-white border border-primary-light rounded-[10px] text-primary-dark font-serif font-normal focus:outline-none transition-colors duration-150 ease-in-out";
     const selectBaseStyle = `${inputBaseStyle} appearance-none`;
-    const inputFocusStyle = "focus:border-neutral-dark focus:ring-1 focus:ring-neutral-dark focus:ring-opacity-50";
+    const inputFocusStyle = "focus:border-primary-blue focus:ring-1 focus:ring-primary-blue focus:ring-opacity-50";
 
     const jobSubCategoryOptions = selectedJobCategoryFilter !== 'all' && JOB_SUBCATEGORIES_MAP[selectedJobCategoryFilter]
       ? JOB_SUBCATEGORIES_MAP[selectedJobCategoryFilter]
@@ -2107,23 +2068,23 @@ const handleDeleteBlogComment = async (commentId: string) => {
     return (
     <div className="p-4 sm:p-6">
       <div className="text-center mb-6 lg:mb-8">
-        <h2 className="text-3xl font-sans font-semibold text-primary mb-3">📢 ประกาศงาน</h2>
-        <p className="text-md font-serif text-neutral-dark mb-6 max-w-xl mx-auto font-normal">เวลาและทักษะตรงกับงานไหน ติดต่อเลย!</p>
+        <h2 className="text-3xl font-sans font-semibold text-primary-dark mb-3">📢 ประกาศงาน</h2>
+        <p className="text-md font-serif text-neutral-gray mb-6 max-w-xl mx-auto font-normal">เวลาและทักษะตรงกับงานไหน ติดต่อเลย!</p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-x-8">
         <aside className="lg:col-span-3 mb-8 lg:mb-0">
-          <div className="sticky top-24 space-y-6 p-4 bg-white rounded-xl shadow-lg border border-neutral-DEFAULT">
+          <div className="sticky top-24 space-y-6 p-4 bg-white rounded-xl shadow-lg border border-primary-light">
             <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedJobCategoryFilter} onSelectCategory={handleJobCategoryFilterChange} />
             
             <div>
-              <label htmlFor="job-subcategory-filter" className="block text-sm font-sans font-medium text-neutral-dark mb-1">
+              <label htmlFor="job-subcategory-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">
                 เลือกหมวดหมู่ย่อย:
               </label>
               <select
                 id="job-subcategory-filter"
                 value={selectedJobSubCategoryFilter}
                 onChange={(e) => setSelectedJobSubCategoryFilter(e.target.value as JobSubCategory | 'all')}
-                className={`${selectBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
+                className={`${selectBaseStyle} ${inputFocusStyle} focus:bg-white`}
                 disabled={selectedJobCategoryFilter === 'all' || jobSubCategoryOptions.length === 0}
                 aria-label="กรองตามหมวดหมู่ย่อยงาน"
               >
@@ -2135,14 +2096,14 @@ const handleDeleteBlogComment = async (commentId: string) => {
             </div>
 
             <div>
-              <label htmlFor="job-province-filter" className="block text-sm font-sans font-medium text-neutral-dark mb-1">
+              <label htmlFor="job-province-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">
                 เลือกจังหวัด:
               </label>
               <select
                 id="job-province-filter"
                 value={selectedJobProvinceFilter}
                 onChange={(e) => setSelectedJobProvinceFilter(e.target.value as Province | 'all')}
-                className={`${selectBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
+                className={`${selectBaseStyle} ${inputFocusStyle} focus:bg-white`}
                 aria-label="กรองตามจังหวัดสำหรับงาน"
               >
                 <option value="all">ทุกจังหวัด</option>
@@ -2164,9 +2125,9 @@ const handleDeleteBlogComment = async (commentId: string) => {
             <div className="text-center py-20"><p className="text-xl font-sans">✨ กำลังโหลดประกาศงาน...</p></div>
           )}
           {initialJobsLoaded && activeUserJobs.length === 0 && !hasMoreJobs && (
-            <div className="text-center py-10 bg-white p-6 rounded-lg shadow-md border border-neutral-DEFAULT">
-              <svg className="mx-auto h-24 w-24 text-neutral-DEFAULT" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
-              <p className="mt-3 text-xl font-serif text-neutral-dark font-normal"> {emptyStateMessage} </p>
+            <div className="text-center py-10 bg-white p-6 rounded-lg shadow-md border border-primary-light">
+              <svg className="mx-auto h-24 w-24 text-primary-light" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
+              <p className="mt-3 text-xl font-serif text-neutral-gray font-normal"> {emptyStateMessage} </p>
               {currentUser && jobsList.length === 0 && !jobSearchTerm.trim() && selectedJobCategoryFilter === 'all' && selectedJobSubCategoryFilter === 'all' && selectedJobProvinceFilter === 'all' && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="mt-6 font-medium"> เป็นคนแรกที่ลงประกาศงาน! </Button> )}
               {!currentUser && jobsList.length === 0 && !jobSearchTerm.trim() && selectedJobCategoryFilter === 'all' && selectedJobSubCategoryFilter === 'all' && selectedJobProvinceFilter === 'all' && (<Button onClick={() => requestLoginForAction(View.PostJob)} variant="primary" size="md" className="mt-6 font-medium"> เข้าสู่ระบบเพื่อลงประกาศงาน </Button>)}
             </div>
@@ -2321,9 +2282,9 @@ const handleDeleteBlogComment = async (commentId: string) => {
       return { ...hp, userPhoto: user?.photo, userAddress: user?.address, verifiedExperienceBadge: hp.adminVerifiedExperience || false, profileCompleteBadge: user?.profileComplete || false, warningBadge: hp.isSuspicious || false, interestedCount: hp.interestedCount || 0, };
     });
 
-    const inputBaseStyle = "w-full p-3 bg-white border border-[#CCCCCC] rounded-[10px] text-neutral-dark font-serif font-normal focus:outline-none transition-colors duration-150 ease-in-out";
+    const inputBaseStyle = "w-full p-3 bg-white border border-primary-light rounded-[10px] text-primary-dark font-serif font-normal focus:outline-none transition-colors duration-150 ease-in-out";
     const selectBaseStyle = `${inputBaseStyle} appearance-none`;
-    const inputFocusStyle = "focus:border-neutral-dark focus:ring-1 focus:ring-neutral-dark focus:ring-opacity-50";
+    const inputFocusStyle = "focus:border-primary-blue focus:ring-1 focus:ring-primary-blue focus:ring-opacity-50";
 
     const helperSubCategoryOptions = selectedHelperCategoryFilter !== 'all' && JOB_SUBCATEGORIES_MAP[selectedHelperCategoryFilter]
       ? JOB_SUBCATEGORIES_MAP[selectedHelperCategoryFilter]
@@ -2332,23 +2293,23 @@ const handleDeleteBlogComment = async (commentId: string) => {
     return (
     <div className="p-4 sm:p-6">
       <div className="text-center mb-6 lg:mb-8">
-        <h2 className="text-3xl font-sans font-semibold text-secondary-hover mb-3">👥 โปรไฟล์ผู้ช่วยและบริการ</h2>
-        <p className="text-md font-serif text-neutral-dark mb-6 max-w-xl mx-auto font-normal"> เลือกคนที่ตรงกับความต้องการ แล้วติดต่อได้เลย! </p>
+        <h2 className="text-3xl font-sans font-semibold text-primary-dark mb-3">👥 โปรไฟล์ผู้ช่วยและบริการ</h2>
+        <p className="text-md font-serif text-neutral-gray mb-6 max-w-xl mx-auto font-normal"> เลือกคนที่ตรงกับความต้องการ แล้วติดต่อได้เลย! </p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-x-8">
         <aside className="lg:col-span-3 mb-8 lg:mb-0">
-            <div className="sticky top-24 space-y-6 p-4 bg-white rounded-xl shadow-lg border border-neutral-DEFAULT">
+            <div className="sticky top-24 space-y-6 p-4 bg-white rounded-xl shadow-lg border border-primary-light">
                 <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedHelperCategoryFilter} onSelectCategory={handleHelperCategoryFilterChange} />
                 
                 <div>
-                  <label htmlFor="helper-subcategory-filter" className="block text-sm font-sans font-medium text-neutral-dark mb-1">
+                  <label htmlFor="helper-subcategory-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">
                     เลือกหมวดหมู่ย่อย:
                   </label>
                   <select
                     id="helper-subcategory-filter"
                     value={selectedHelperSubCategoryFilter}
                     onChange={(e) => setSelectedHelperSubCategoryFilter(e.target.value as JobSubCategory | 'all')}
-                    className={`${selectBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
+                    className={`${selectBaseStyle} ${inputFocusStyle} focus:bg-white`}
                     disabled={selectedHelperCategoryFilter === 'all' || helperSubCategoryOptions.length === 0}
                     aria-label="กรองตามหมวดหมู่ย่อยผู้ช่วย"
                   >
@@ -2360,14 +2321,14 @@ const handleDeleteBlogComment = async (commentId: string) => {
                 </div>
 
                 <div>
-                  <label htmlFor="helper-province-filter" className="block text-sm font-sans font-medium text-neutral-dark mb-1">
+                  <label htmlFor="helper-province-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">
                     เลือกจังหวัด:
                   </label>
                   <select
                     id="helper-province-filter"
                     value={selectedHelperProvinceFilter}
                     onChange={(e) => setSelectedHelperProvinceFilter(e.target.value as Province | 'all')}
-                    className={`${selectBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
+                    className={`${selectBaseStyle} ${inputFocusStyle} focus:bg-white`}
                     aria-label="กรองตามจังหวัดสำหรับผู้ช่วย"
                   >
                     <option value="all">ทุกจังหวัด</option>
@@ -2387,9 +2348,9 @@ const handleDeleteBlogComment = async (commentId: string) => {
               <div className="text-center py-20"><p className="text-xl font-sans">✨ กำลังค้นหาผู้ช่วย...</p></div>
             )}
             {initialHelpersLoaded && enrichedHelperProfilesList.length === 0 && !hasMoreHelpers && (
-            <div className="text-center py-10 bg-white p-6 rounded-lg shadow-md border border-neutral-DEFAULT">
-                <svg className="mx-auto h-24 w-24 text-neutral-DEFAULT" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-2.144M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
-                <p className="mt-3 text-xl font-serif text-neutral-dark font-normal"> {emptyStateMessage} </p>
+            <div className="text-center py-10 bg-white p-6 rounded-lg shadow-md border border-primary-light">
+                <svg className="mx-auto h-24 w-24 text-primary-light" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-2.144M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
+                <p className="mt-3 text-xl font-serif text-neutral-gray font-normal"> {emptyStateMessage} </p>
                 {currentUser && helperProfilesList.length === 0 && !helperSearchTerm.trim() && selectedHelperCategoryFilter === 'all' && selectedHelperSubCategoryFilter === 'all' && selectedHelperProvinceFilter === 'all' && ( <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateTo(View.OfferHelp);}} variant="secondary" size="md" className="mt-6 font-medium"> เป็นคนแรกที่เสนอตัวช่วยงาน! </Button> )}
                 {!currentUser && helperProfilesList.length === 0 && !helperSearchTerm.trim() && selectedHelperCategoryFilter === 'all' && selectedHelperSubCategoryFilter === 'all' && selectedHelperProvinceFilter === 'all' && (<Button onClick={() => requestLoginForAction(View.OfferHelp)} variant="secondary" size="md" className="mt-6 font-medium"> เข้าสู่ระบบเพื่อเสนอตัวช่วยงาน </Button>)}
             </div>
@@ -2463,6 +2424,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
         onInitialTabProcessed={() => setMyRoomInitialTabOverride(null)}
         getAuthorDisplayName={getAuthorDisplayName}
         onToggleInterest={handleToggleInterest}
+        onToggleLike={handleToggleWebboardPostLike}
         requestLoginForAction={requestLoginForAction}
         onEditJobFromFindView={handleEditOwnJobFromFindView}
         onEditHelperProfileFromFindView={handleEditOwnHelperProfileFromFindView}
@@ -2641,8 +2603,8 @@ const handleDeleteBlogComment = async (commentId: string) => {
           case View.Blog: currentViewContent = renderBlogPage(); break;
           case View.ArticleEditor: currentViewContent = renderArticleEditor(); break;
           default:
-            const exhaustiveCheck: never = currentView;
-            currentViewContent = <p>Unknown view: {exhaustiveCheck}</p>;
+            // const exhaustiveCheck: never = currentView;
+            currentViewContent = <p>Unknown view: {currentView}</p>;
       }
     }
   }
@@ -2664,40 +2626,53 @@ const handleDeleteBlogComment = async (commentId: string) => {
       </AnimatePresence>
   );
 
-  const isFullPageLayout = [View.MyRoom, View.FindJobs, View.FindHelpers].includes(currentView);
+  const isFullPageLayout = [View.MyRoom, View.FindJobs, View.FindHelpers, View.Home].includes(currentView);
 
   // The main layout class determines padding and centering for different views.
   const mainLayoutClasses = isFullPageLayout 
     ? '' 
-    : 'justify-center container mx-auto';
+    : 'justify-center container mx-auto p-4 sm:p-6 lg:p-8';
 
 
   return (
     <div className={`font-serif bg-neutral-light min-h-screen flex flex-col`}>
       {renderHeader()}
       {renderMobileMenu()}
-      <main className={`flex-grow flex flex-col p-4 sm:p-6 lg:p-8 ${mainLayoutClasses}`}>
+      <main className={`flex-grow flex flex-col ${mainLayoutClasses}`}>
         {currentViewContent}
       </main>
-      <footer className="bg-neutral-light/50 text-center p-6 text-sm text-neutral-medium">
-        <div className="space-x-6 mb-4">
-            <button onClick={() => navigateTo(View.AboutUs)} className="hover:text-secondary-hover transition-colors">เกี่ยวกับเรา</button>
-            <button onClick={() => navigateTo(View.Safety)} className="hover:text-secondary-hover transition-colors">ความปลอดภัย</button>
-            <button onClick={() => setIsFeedbackModalOpen(true)} className="hover:text-secondary-hover transition-colors">ส่ง Feedback</button>
+      <footer className="bg-white text-center p-6 text-sm text-neutral-medium border-t border-primary-light">
+        <div className="flex justify-center items-center space-x-2 mb-4">
+          <button onClick={() => navigateTo(View.AboutUs)} className="hover:text-primary transition-colors">
+            เกี่ยวกับเรา
+          </button>
+          <span className="text-neutral-DEFAULT">·</span>
+          <button onClick={() => navigateTo(View.Safety)} className="hover:text-primary transition-colors">
+            ความปลอดภัย
+          </button>
+          <span className="text-neutral-DEFAULT">·</span>
+          <button onClick={() => setIsFeedbackModalOpen(true)} className="hover:text-primary transition-colors">
+            Feedback
+          </button>
         </div>
-        <div className="mb-4">
-          <span className="font-sans">Created by</span>
-          <a href="https://www.facebook.com/bluecathousestudio/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline inline-flex items-center align-middle ml-1.5 font-sans font-medium">
+        <div className="text-xs text-neutral-medium/80 space-y-1">
+          <p>© 2025 HAJOBJA.COM - All rights reserved.</p>
+          <div className="flex justify-center items-center">
+            <span className="font-sans">Created by&nbsp;</span>
+            <a 
+              href="https://www.facebook.com/bluecathousestudio/" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="text-primary hover:underline inline-flex items-center align-middle font-sans font-medium"
+            >
               <img 
                 src="https://i.postimg.cc/wxrcQPHV/449834128-122096458958403535-3024125841409891827-n-1-removebg-preview.png"
                 alt="Blue Cat House Logo" 
-                className="h-5 w-auto mr-1"
+                className="h-4 w-auto mr-1"
               />
               <span>Blue Cat House</span>
-          </a>
-        </div>
-        <div className="text-xs text-neutral-medium/80">
-            © 2025 HAJOBJA.COM - All rights reserved.
+            </a>
+          </div>
         </div>
       </footer>
       <ConfirmModal isOpen={isConfirmModalOpen} onClose={closeConfirmModal} onConfirm={handleConfirmDeletion} title={confirmModalTitle} message={confirmModalMessage} />

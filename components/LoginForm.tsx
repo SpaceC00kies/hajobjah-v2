@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { Button } from './Button.tsx';
 
@@ -12,8 +13,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegiste
   const [loginIdentifier, setLoginIdentifier] = useState(''); 
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-
-  const brandGreenFocusStyle = "focus:!border-brandGreen focus:!ring-1 focus:!ring-brandGreen focus:!bg-gray-50/70";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +32,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegiste
 
   return (
     <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md mx-auto my-10 border border-neutral-DEFAULT">
-      <h2 className="text-3xl font-sans font-semibold text-brandGreen mb-6 text-center">เข้าสู่ระบบ</h2>
+      <h2 className="text-3xl font-sans font-semibold text-primary-dark mb-6 text-center">เข้าสู่ระบบ</h2>
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label htmlFor="loginIdentifier" className="block text-sm font-sans font-medium text-neutral-dark mb-1">
@@ -44,7 +43,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegiste
             id="loginIdentifier"
             value={loginIdentifier}
             onChange={(e) => setLoginIdentifier(e.target.value)}
-            className={`w-full ${error && !password ? 'input-error' : brandGreenFocusStyle}`} // Apply error only if loginIdentifier might be the cause
+            className={`w-full ${error && !password ? 'input-error' : ''}`}
             placeholder="กรอกชื่อผู้ใช้หรืออีเมลของคุณ"
           />
         </div>
@@ -56,7 +55,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegiste
             <button 
               type="button" 
               onClick={onForgotPassword} 
-              className="text-xs font-sans text-neutral-medium hover:text-brandGreen hover:underline focus:outline-none"
+              className="text-xs font-sans text-neutral-medium hover:text-primary hover:underline focus:outline-none"
             >
               ลืมรหัสผ่าน?
             </button>
@@ -66,17 +65,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegiste
             id="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className={`w-full ${error ? 'input-error' : brandGreenFocusStyle}`} // Apply error if any error exists
+            className={`w-full ${error ? 'input-error' : ''}`}
             placeholder="กรอกรหัสผ่าน"
           />
         </div>
         {error && <p className="text-red-500 font-sans text-sm text-center">{error}</p>}
-        <Button type="submit" variant="login" size="lg" className="w-full">
+        <Button type="submit" variant="primary" size="lg" className="w-full">
           เข้าสู่ระบบ
         </Button>
         <p className="text-center text-sm font-serif text-neutral-dark font-normal">
           ยังไม่มีบัญชี?{' '}
-          <button type="button" onClick={onSwitchToRegister} className="font-sans font-medium text-brandGreen hover:underline">
+          <button type="button" onClick={onSwitchToRegister} className="font-sans font-medium text-primary hover:underline">
             ลงทะเบียนที่นี่
           </button>
         </p>

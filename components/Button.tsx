@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { motion, type Transition } from 'framer-motion';
+import { motion, Transition } from 'framer-motion';
 
 // Define own props for the Button
 interface ButtonOwnProps {
@@ -21,36 +20,43 @@ export const Button: React.FC<ButtonProps> = ({
   className: passedClassName,
   ...restProps 
 }) => {
-  const baseStyle = 'font-sans font-medium rounded-md shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-opacity-50 active:shadow-sm';
+  const baseStyle = 'font-sans font-medium rounded-full shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-opacity-60 active:shadow-inner transition-all duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none';
 
   let variantStyle = '';
   switch (variant) {
     case 'primary':
-      variantStyle = `bg-primary text-neutral-dark hover:bg-primary-hover focus:ring-primary`;
+      variantStyle = `bg-primary text-white hover:bg-primary-hover focus:ring-primary`;
       break;
     case 'secondary':
-      variantStyle = `bg-secondary text-neutral-dark hover:bg-secondary-hover focus:ring-secondary`;
+      variantStyle = `bg-secondary text-color-mix(in srgb, var(--accent-peach) 40%, black) hover:bg-secondary-hover focus:ring-secondary`;
       break;
     case 'accent':
-      variantStyle = `bg-accent text-neutral-dark hover:bg-accent-hover focus:ring-accent`;
+      variantStyle = `bg-accent text-white hover:bg-accent-hover focus:ring-accent`;
       break;
-    case 'login':
-      variantStyle = `bg-brandGreen text-neutral-dark hover:bg-brandGreen-hover focus:ring-brandGreen`;
+    case 'login': // Alias for brandGreen
+      variantStyle = `bg-brandGreen text-white hover:bg-brandGreen-hover focus:ring-brandGreen`;
       break;
     case 'outline': {
       const scheme = colorScheme;
       if (scheme === 'neutral') {
         variantStyle = `
-          bg-transparent border-2
-          border-neutral text-neutral-dark hover:bg-neutral hover:text-neutral-dark focus:ring-neutral
+          bg-transparent border
+          border-neutral-dark/30 text-neutral-dark hover:bg-neutral-dark/5 hover:border-neutral-dark/50 focus:ring-neutral-dark
         `;
-      } else {
-        let lightHoverTextColor = 'hover:text-neutral-dark';
-
-        // Removed dark mode specific text color logic
+      } else if (scheme === 'brandGreen') {
         variantStyle = `
-          bg-transparent border-2
-          border-${scheme} text-${scheme} ${lightHoverTextColor} hover:bg-${scheme} focus:ring-${scheme}
+          bg-transparent border
+          border-brandGreen text-brandGreen-text hover:bg-brandGreen hover:text-white focus:ring-brandGreen
+        `;
+      } else if (scheme === 'secondary') {
+        variantStyle = `
+          bg-transparent border
+          border-secondary text-color-mix(in srgb, var(--accent-peach) 40%, black) hover:bg-secondary hover:text-white focus:ring-secondary
+        `;
+      } else { // primary, accent
+        variantStyle = `
+          bg-primary-light border border-primary text-primary-dark
+          hover:bg-primary hover:text-white focus:ring-primary
         `;
       }
       break;
@@ -60,13 +66,13 @@ export const Button: React.FC<ButtonProps> = ({
   let sizeStyle = '';
   switch (size) {
     case 'sm':
-      sizeStyle = 'py-2 px-3 text-xs'; // py: 8px, px: 12px, text: 12px
+      sizeStyle = 'py-1.5 px-4 text-xs';
       break;
     case 'md':
-      sizeStyle = 'py-2 px-4 text-sm'; // py: 8px, px: 16px, text: 14px
+      sizeStyle = 'py-2.5 px-6 text-sm';
       break;
     case 'lg':
-      sizeStyle = 'py-3 px-6 text-base'; // py: 12px, px: 24px, text: 16px
+      sizeStyle = 'py-3 px-8 text-base';
       break;
   }
 
@@ -77,9 +83,9 @@ export const Button: React.FC<ButtonProps> = ({
   return (
     <motion.button
       className={finalClassName}
-      whileHover={{ scale: 1.03, transition: { duration: 0.15, ease: "easeOut" } as Transition }}
-      whileTap={{ scale: 0.97, y: 1, transition: { duration: 0.1, ease: "easeOut" } as Transition }}
-      transition={{ duration: 0.15, ease: "easeOut" } as Transition}
+      whileHover={{ scale: 1.03, y: -1, transition: { duration: 0.2, ease: "easeOut" } }}
+      whileTap={{ scale: 0.97, y: 0, transition: { duration: 0.1, ease: "easeOut" } }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
       {...restProps}
     >
       {children}

@@ -1,6 +1,7 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, type Transition } from 'framer-motion'; // Added Transition
+import { motion, Transition } from 'framer-motion'; // Added Transition
 
 interface SearchInputWithRecentProps {
   searchTerm: string;
@@ -47,7 +48,7 @@ export const SearchInputWithRecent: React.FC<SearchInputWithRecentProps> = ({
         onFocus={() => setIsInputFocused(true)}
         onBlur={() => setIsInputFocused(false)} // Handle blur to hide underline
         placeholder={placeholder}
-        className="w-full p-3 bg-white border border-neutral-DEFAULT rounded-lg text-neutral-dark placeholder-neutral-medium text-base font-serif transition-colors duration-150 ease-in-out focus:outline-none focus:bg-gray-50" // Removed focus:ring styles
+        className="w-full p-3 bg-white border border-primary-light rounded-lg text-primary-dark placeholder-neutral-medium text-base font-serif transition-colors duration-150 ease-in-out focus:outline-none focus:bg-white" // Removed focus:ring styles
         aria-label={ariaLabel}
         autoComplete="off"
       />
@@ -59,11 +60,11 @@ export const SearchInputWithRecent: React.FC<SearchInputWithRecentProps> = ({
           scaleX: isInputFocused ? 1 : 0,
           opacity: isInputFocused ? 1 : 0,
         }}
-        transition={{ duration: 0.2, ease: "easeOut" } as Transition}
+        transition={{ duration: 0.2, ease: "easeOut" }}
       />
       {showRecentSearches && (
         <ul
-          className="absolute z-10 w-full mt-1 bg-white border border-neutral-DEFAULT rounded-md shadow-lg max-h-60 overflow-y-auto"
+          className="absolute z-10 w-full mt-1 bg-white border border-primary-light rounded-md shadow-lg max-h-60 overflow-y-auto"
           role="listbox"
           aria-label="Recent searches"
         >
@@ -74,7 +75,7 @@ export const SearchInputWithRecent: React.FC<SearchInputWithRecentProps> = ({
                 onRecentSearchSelect(recentTerm);
                 setIsInputFocused(false); 
               }}
-              className="px-4 py-2 text-sm text-neutral-dark hover:bg-neutral-light cursor-pointer font-serif"
+              className="px-4 py-2 text-sm text-neutral-dark hover:bg-primary-light cursor-pointer font-serif"
               role="option"
               aria-selected="false"
               tabIndex={0}

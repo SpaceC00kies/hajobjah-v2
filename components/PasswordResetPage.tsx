@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { auth } from '../firebase.ts'; // Firebase auth instance
 import { verifyPasswordResetCode, confirmPasswordReset, type AuthError } from '@firebase/auth';
@@ -129,7 +128,7 @@ export const PasswordResetPage: React.FC<PasswordResetPageProps> = ({ navigateTo
     if (verificationError) {
       return (
         <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md text-center border border-neutral-DEFAULT">
-          <h2 className="text-2xl font-sans font-semibold text-red-600 mb-4">เกิดข้อผิดพลาด</h2>
+          <h2 className="text-2xl font-sans font-semibold text-accent mb-4">เกิดข้อผิดพลาด</h2>
           <p className="text-neutral-dark mb-6 font-normal">{verificationError}</p>
           <Button onClick={() => navigateTo(View.Login)} variant="login" size="md">
             กลับไปหน้าเข้าสู่ระบบ
@@ -141,7 +140,7 @@ export const PasswordResetPage: React.FC<PasswordResetPageProps> = ({ navigateTo
     if (!isCodeVerified && !isLoadingVerification) { // Fallback for unhandled invalid states
         return (
              <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md text-center border border-neutral-DEFAULT">
-                <h2 className="text-2xl font-sans font-semibold text-red-600 mb-4">ลิงก์ไม่ถูกต้อง</h2>
+                <h2 className="text-2xl font-sans font-semibold text-accent mb-4">ลิงก์ไม่ถูกต้อง</h2>
                 <p className="text-neutral-dark mb-6 font-normal">
                     ลิงก์สำหรับรีเซ็ตรหัสผ่านนี้ไม่ถูกต้อง อาจเกิดจากการพิมพ์ผิด, ถูกใช้ไปแล้ว, หรือหมดอายุ
                 </p>
