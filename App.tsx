@@ -2425,7 +2425,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
         initialTab={myRoomInitialTabOverride}
         onInitialTabProcessed={() => setMyRoomInitialTabOverride(null)}
         getAuthorDisplayName={getAuthorDisplayName}
-        onToggleInterest={onToggleInterest}
+        onToggleInterest={handleToggleInterest}
         onToggleLike={handleToggleWebboardPostLike}
         requestLoginForAction={requestLoginForAction}
         onEditJobFromFindView={handleEditOwnJobFromFindView}
