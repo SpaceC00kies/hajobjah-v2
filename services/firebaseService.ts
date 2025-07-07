@@ -1514,37 +1514,43 @@ export const resolveVouchReportService = async (
     const voucheeRef = doc(db, USERS_COLLECTION, voucheeId);
 
     await runTransaction(db, async (transaction) => {
-      // Always update the report status first.
+      // --- READ PHASE ---
+      const vouchDoc = await transaction.get(vouchRef);
+      const vouchData = vouchDoc.exists() ? (vouchDoc.data() as Vouch) : null;
+      const reportDoc = await transaction.get(reportRef);
+
+      if (!reportDoc.exists() || (reportDoc.data() as VouchReport).status !== VouchReportStatus.Pending) {
+        console.warn(`Report ${reportId} already resolved. Aborting transaction.`);
+        return;
+      }
+
+      // --- WRITE PHASE ---
+      // 1. Always update the report status.
       transaction.update(reportRef, {
         status: resolution,
         resolvedAt: serverTimestamp(),
         resolvedBy: adminId,
       });
 
-      if (resolution === VouchReportStatus.ResolvedDeleted) {
-        const vouchDoc = await transaction.get(vouchRef);
-        // Only perform actions if the vouch document still exists.
-        if (vouchDoc.exists()) {
-          transaction.delete(vouchRef);
-          
-          const existingVouchType = vouchDoc.data().vouchType as VouchType | undefined;
-          if (existingVouchType) {
-            transaction.update(voucheeRef, {
-              [`vouchInfo.${existingVouchType}`]: increment(-1),
-              [`vouchInfo.total`]: increment(-1)
-            });
-          }
-        }
-        // If vouchDoc doesn't exist, we do nothing to it or the user,
-        // but the report status is still updated, resolving the issue.
+      // 2. If resolving by deletion and the vouch document exists...
+      if (resolution === VouchReportStatus.ResolvedDeleted && vouchData) {
+        transaction.delete(vouchRef); // Delete the vouch.
+        
+        // Decrement the user's vouch counts using the type from the document we read.
+        transaction.update(voucheeRef, {
+          [`vouchInfo.${vouchData.vouchType}`]: increment(-1),
+          [`vouchInfo.total`]: increment(-1),
+        });
       }
+      // If the vouch document doesn't exist (orphaned report), we do nothing further.
+      // The report status is still correctly updated, resolving the issue.
     });
-
   } catch (error) {
     logFirebaseError("resolveVouchReportService", error);
     throw error;
   }
 };
+
 
 export const setSiteLockService = async (isLocked: boolean, adminId: string): Promise<void> => {
   try {
