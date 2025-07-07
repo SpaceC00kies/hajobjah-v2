@@ -1,5 +1,4 @@
 
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   onAuthChangeService,
@@ -1347,7 +1346,7 @@ const App: React.FC = () => {
     resolution: VouchReportStatus.ResolvedDeleted | VouchReportStatus.ResolvedKept,
     vouchId: string,
     voucheeId: string,
-    vouchType: VouchType
+    vouchType?: VouchType
   ) => {
     if (!currentUser || currentUser.role !== UserRole.Admin) {
       alert("คุณไม่มีสิทธิ์ดำเนินการนี้");
@@ -1875,7 +1874,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
           <h1 className="hero-title font-sans">
             ✨ หาจ๊อบจ้า ✨
           </h1>
-          <p className="hero-subtitle font-serif">
+          <p className="hero-subtitle font-sans">
             แพลตฟอร์มที่อยู่เคียงข้างคนขยัน
           </p>
           <div className="w-full max-w-3xl lg:max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
@@ -2643,7 +2642,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
       <main className={`flex-grow flex flex-col ${mainLayoutClasses} ${currentView === View.Home ? 'hero-section' : ''}`}>
         {currentViewContent}
       </main>
-      <footer className="main-footer bg-white text-center p-6 text-sm text-neutral-medium border-t border-primary-light">
+      <footer className="bg-white text-center p-6 text-sm text-neutral-medium border-t border-primary-light">
         <div className="flex justify-center items-center space-x-2 mb-4">
           <button onClick={() => navigateTo(View.AboutUs)} className="hover:text-primary transition-colors">
             เกี่ยวกับเรา

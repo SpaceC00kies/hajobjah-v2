@@ -55,7 +55,7 @@ interface AdminDashboardProps {
   onToggleSiteLock: () => void;
   getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
   getUserDisplayBadge: (user: User) => UserLevel;
-  onResolveVouchReport: (reportId: string, resolution: VouchReportStatus.ResolvedDeleted | VouchReportStatus.ResolvedKept, vouchId: string, voucheeId: string, vouchType: VouchType) => void;
+  onResolveVouchReport: (reportId: string, resolution: VouchReportStatus.ResolvedDeleted | VouchReportStatus.ResolvedKept, vouchId: string, voucheeId: string, vouchType?: VouchType) => void;
   getVouchDocument: (vouchId: string) => Promise<Vouch | null>;
   orionAnalyzeService: typeof OrionAnalyzeServiceType;
   onDeleteBlogPost: (postId: string, coverImageURL?: string) => void;
@@ -561,7 +561,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <p>Type: {VOUCH_TYPE_LABELS[selectedVouch.vouchType]}</p>
                             <p>Vouch Comment: "{selectedVouch.comment}"</p>
                         </div>
-                    ) : <p className="text-red-500">Vouch data not found.</p>}
+                    ) : <p className="font-bold text-red-500">⚠️ Vouch data not found.</p>}
 
                     <hr className="my-2" />
                     <p className="font-semibold">Risk Signals:</p>
@@ -576,7 +576,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                     <div className="mt-4 flex gap-4">
                         <Button onClick={() => onResolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedKept, selectedReport.vouchId, selectedReport.voucheeId, selectedVouch!.vouchType)} colorScheme="primary" disabled={isHudLoading || !selectedVouch}>Keep Vouch</Button>
-                        <Button onClick={() => onResolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedDeleted, selectedReport.vouchId, selectedReport.voucheeId, selectedVouch!.vouchType)} colorScheme="accent" disabled={isHudLoading || !selectedVouch}>Delete Vouch</Button>
+                        <Button onClick={() => onResolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedDeleted, selectedReport.vouchId, selectedReport.voucheeId, selectedVouch?.vouchType)} colorScheme="accent" disabled={isHudLoading}>Delete Vouch</Button>
                     </div>
                 </div>
             ) : <p>Select a report to view details.</p>}

@@ -1014,7 +1014,7 @@ export const updateWebboardCommentService = async (commentId: string, newText: s
   try {
     const commentRef = doc(db, WEBBOARD_COMMENTS_COLLECTION, commentId);
     await updateDoc(commentRef, { text: newText, updatedAt: serverTimestamp() as any });
-  } catch (error) {
+  } catch (error: any) {
     logFirebaseError("updateWebboardCommentService", error);
     throw error;
   }
@@ -1024,7 +1024,7 @@ export const deleteWebboardCommentService = async (commentId: string): Promise<v
   try {
     const commentRef = doc(db, WEBBOARD_COMMENTS_COLLECTION, commentId);
     await deleteDoc(commentRef);
-  } catch (error) {
+  } catch (error: any) {
     logFirebaseError("deleteWebboardCommentService", error);
     throw error;
   }
@@ -1089,7 +1089,7 @@ export const getVouchDocument = async (vouchId: string): Promise<Vouch | null> =
     return null;
   } catch (error) {
     logFirebaseError(`getVouchDocument for ${vouchId}`, error);
-    throw error;
+    return null;
   }
 };
 
@@ -1506,31 +1506,39 @@ export const resolveVouchReportService = async (
   adminId: string,
   vouchId: string,
   voucheeId: string,
-  vouchType: VouchType
+  vouchType?: VouchType
 ): Promise<void> => {
   try {
     const reportRef = doc(db, VOUCH_REPORTS_COLLECTION, reportId);
     const vouchRef = doc(db, VOUCHES_COLLECTION, vouchId);
     const voucheeRef = doc(db, USERS_COLLECTION, voucheeId);
 
-    const batch = writeBatch(db);
-
-    batch.update(reportRef, {
-      status: resolution,
-      resolvedAt: serverTimestamp(),
-      resolvedBy: adminId,
-    });
-
-    if (resolution === VouchReportStatus.ResolvedDeleted) {
-      batch.delete(vouchRef);
-      // Atomically decrement the specific vouch type count and the total count.
-      batch.update(voucheeRef, {
-        [`vouchInfo.${vouchType}`]: increment(-1),
-        [`vouchInfo.total`]: increment(-1)
+    await runTransaction(db, async (transaction) => {
+      // Always update the report status first.
+      transaction.update(reportRef, {
+        status: resolution,
+        resolvedAt: serverTimestamp(),
+        resolvedBy: adminId,
       });
-    }
-    
-    await batch.commit();
+
+      if (resolution === VouchReportStatus.ResolvedDeleted) {
+        const vouchDoc = await transaction.get(vouchRef);
+        // Only perform actions if the vouch document still exists.
+        if (vouchDoc.exists()) {
+          transaction.delete(vouchRef);
+          
+          const existingVouchType = vouchDoc.data().vouchType as VouchType | undefined;
+          if (existingVouchType) {
+            transaction.update(voucheeRef, {
+              [`vouchInfo.${existingVouchType}`]: increment(-1),
+              [`vouchInfo.total`]: increment(-1)
+            });
+          }
+        }
+        // If vouchDoc doesn't exist, we do nothing to it or the user,
+        // but the report status is still updated, resolving the issue.
+      }
+    });
 
   } catch (error) {
     logFirebaseError("resolveVouchReportService", error);
@@ -1556,7 +1564,7 @@ export const setUserRoleService = async (userId: string, newRole: UserRole): Pro
   try {
     const setUserRoleFunction = httpsCallable(functions, 'setUserRole');
     await setUserRoleFunction({ userId, role: newRole });
-  } catch (error) {
+  } catch (error: any) {
     logFirebaseError("setUserRoleService", error);
     throw error;
   }
