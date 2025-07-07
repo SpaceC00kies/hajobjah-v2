@@ -1875,7 +1875,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
           <h1 className="hero-title font-sans">
             ✨ หาจ๊อบจ้า ✨
           </h1>
-          <p className="hero-subtitle font-sans">
+          <p className="hero-subtitle font-serif">
             แพลตฟอร์มที่อยู่เคียงข้างคนขยัน
           </p>
           <div className="w-full max-w-3xl lg:max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
