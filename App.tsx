@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   onAuthChangeService,
@@ -1874,7 +1875,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
           <h1 className="hero-title font-sans">
             ✨ หาจ๊อบจ้า ✨
           </h1>
-          <p className="hero-subtitle font-serif">
+          <p className="hero-subtitle font-sans">
             แพลตฟอร์มที่อยู่เคียงข้างคนขยัน
           </p>
           <div className="w-full max-w-3xl lg:max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
@@ -2424,12 +2425,12 @@ const handleDeleteBlogComment = async (commentId: string) => {
         initialTab={myRoomInitialTabOverride}
         onInitialTabProcessed={() => setMyRoomInitialTabOverride(null)}
         getAuthorDisplayName={getAuthorDisplayName}
-        onToggleInterest={onToggleInterest}
+        onToggleInterest={handleToggleInterest}
         onToggleLike={handleToggleWebboardPostLike}
         requestLoginForAction={requestLoginForAction}
         onEditJobFromFindView={handleEditOwnJobFromFindView}
         onEditHelperProfileFromFindView={handleEditOwnHelperProfileFromFindView}
-        onLogHelperContact={onLogHelperContactInteraction}
+        onLogHelperContact={handleLogHelperContactInteraction}
       />);
   };
 
