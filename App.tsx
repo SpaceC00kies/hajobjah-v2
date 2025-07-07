@@ -1664,7 +1664,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
             )}
 
             {currentView !== View.Home && (
-              <Button onClick={() => navigateAndCloseMenu(View.Home)} variant="outline" colorScheme="neutral" {...commonButtonPropsBase}>
+              <Button onClick={() => navigateAndCloseMenu(View.Home)} variant="outline" colorScheme="primary" {...commonButtonPropsBase}>
                 <span className={navItemSpanClass}><span>🏠</span><span>หน้าแรก</span></span>
               </Button>
             )}
@@ -1713,7 +1713,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
         return (
             <>
               {currentView !== View.Home && (
-                <Button onClick={() => navigateAndCloseMenu(View.Home)} variant="outline" colorScheme="neutral" {...commonButtonPropsBase}>
+                <Button onClick={() => navigateAndCloseMenu(View.Home)} variant="outline" colorScheme="primary" {...commonButtonPropsBase}>
                    <span className={navItemSpanClass}><span>🏠</span><span>หน้าแรก</span></span>
                 </Button>
               )}
@@ -2520,7 +2520,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
       onSavePost={handleSaveWebboardPost}
       onSharePost={handleShareWebboardPost}
       onDeletePost={handleDeleteWebboardPost}
-      onPinPost={handlePinWebboardPost}
+      onPinWebboardPost={handlePinWebboardPost}
       onEditPost={handleEditWebboardPostFromPage}
       onDeleteComment={handleDeleteWebboardComment} 
       onUpdateComment={handleUpdateWebboardComment}
