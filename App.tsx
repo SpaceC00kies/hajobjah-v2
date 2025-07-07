@@ -1644,7 +1644,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
     };
 
     const navItemSpanClass = "inline-flex items-center gap-1.5";
-    const activeClass = "bg-primary text-white"; // Unified active state
+    const activeClass = "active"; // Use CSS class for active state
 
     if (currentUser) {
         return (
@@ -2425,7 +2425,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
         initialTab={myRoomInitialTabOverride}
         onInitialTabProcessed={() => setMyRoomInitialTabOverride(null)}
         getAuthorDisplayName={getAuthorDisplayName}
-        onToggleInterest={handleToggleInterest}
+        onToggleInterest={onToggleInterest}
         onToggleLike={handleToggleWebboardPostLike}
         requestLoginForAction={requestLoginForAction}
         onEditJobFromFindView={handleEditOwnJobFromFindView}

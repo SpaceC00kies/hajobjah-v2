@@ -140,7 +140,7 @@
           overflow: hidden;
       }
       .btn-primary:hover {
-          background: #6BB6D6;
+          background: var(--primary-dark);
           transform: translateY(-1px);
           box-shadow: 0 4px 12px rgba(135, 206, 235, 0.3);
       }
@@ -152,11 +152,61 @@
           transform: translateY(-1px);
           box-shadow: 0 4px 12px rgba(255, 229, 180, 0.3);
       }
-      .nav-pill:hover {
-          background-color: var(--primary-medium);
-          transform: scale(1.02);
-      }
       
+      /* Navigation pill base state */
+      .nav-pill {
+          padding: 8px 20px;
+          border-radius: 20px;
+          background: var(--primary-light);  /* #E6F4FF - Very light */
+          color: var(--primary-dark);        /* #4A90A4 - Dark text */
+          text-decoration: none;
+          font-weight: 500;
+          font-size: 14px;
+          transition: all 0.3s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          border: 2px solid transparent;
+      }
+
+      /* Hover state - Medium intensity */
+      .nav-pill:hover {
+          background: var(--primary-medium);  /* #6BB6D6 - Medium blue */
+          color: white;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(135, 206, 235, 0.3);
+      }
+
+      /* Active/Selected state - Highest intensity */
+      .nav-pill.active {
+          background: var(--primary-dark);    /* #4A90A4 - Dark blue */
+          color: white;
+          font-weight: 600;
+          box-shadow: 0 2px 8px rgba(74, 144, 164, 0.2);
+          border-color: var(--primary-dark);
+      }
+
+      /* Focus state for keyboard navigation */
+      .nav-pill:focus {
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(135, 206, 235, 0.5);
+      }
+
+      @media (max-width: 768px) {
+          .nav-pill {
+              padding: 10px 16px;
+              font-size: 13px;
+              /* Ensure touch targets are at least 44x44px */
+              min-height: 44px;
+          }
+          
+          .nav-pill.active {
+              /* Even more prominent on mobile */
+              background: var(--primary-dark);
+              box-shadow: 0 4px 12px rgba(74, 144, 164, 0.3);
+          }
+      }
+
       .hero-title {
           font-size: 48px;
           font-weight: 700;

@@ -25,10 +25,10 @@ export const Button: React.FC<ButtonProps> = ({
   let variantStyle = '';
   switch (variant) {
     case 'primary':
-      variantStyle = `bg-primary text-white hover:bg-primary-hover focus:ring-primary`;
+      variantStyle = `bg-primary text-white hover:bg-primary-dark focus:ring-primary`;
       break;
     case 'secondary':
-      variantStyle = `bg-secondary text-neutral-dark hover:bg-secondary-hover focus:ring-secondary`;
+      variantStyle = `bg-secondary text-primary-dark hover:bg-secondary-hover focus:ring-secondary`;
       break;
     case 'accent':
       variantStyle = `bg-accent text-white hover:bg-accent focus:ring-accent`;
@@ -76,7 +76,14 @@ export const Button: React.FC<ButtonProps> = ({
       break;
   }
 
-  const finalClassName = [baseStyle, variantStyle, sizeStyle, passedClassName]
+  const finalClassName = [
+    baseStyle, 
+    variantStyle, 
+    sizeStyle, 
+    passedClassName,
+    variant === 'primary' ? 'btn-primary' : '',
+    variant === 'secondary' ? 'btn-secondary' : '',
+  ]
     .filter(Boolean)
     .join(' ');
 
