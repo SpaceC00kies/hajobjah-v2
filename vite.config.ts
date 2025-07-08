@@ -1,8 +1,11 @@
 import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig(() => {
     return {
-      // The configuration is kept minimal as path aliases are removed.
-      // Vite will use its default resolvers.
+      build: {
+        outDir: 'build',
+      },
+      plugins: [react()],
     };
 });

@@ -10,15 +10,16 @@
     "deploy:functions": "npm install --prefix functions && npm run build --prefix functions && firebase deploy --only functions"
   },
   "dependencies": {
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
     "firebase": "11.10.0",
-    "framer-motion": "^11.3.11"
+    "framer-motion": "^11.3.11",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^4.6.0",
+    "firebase-tools": "^13.13.2",
     "typescript": "~5.7.2",
-    "vite": "^6.3.5",
-    "firebase-tools": "^13.13.2"
+    "vite": "^6.3.5"
   }
 }
