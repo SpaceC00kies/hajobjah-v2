@@ -7,13 +7,15 @@ import { getFirestore, type Firestore } from "firebase/firestore";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 import { getFunctions, type Functions } from "firebase/functions";
 
+// Use environment variables for Firebase config, making it secure and deployable.
 const firebaseConfig = {
-  apiKey: "AIzaSyAmhIItKW9XR4cgtCxtTUm2EKCY17xNOlo",
-  authDomain: "hajobjah.firebaseapp.com",
-  projectId: "hajobjah",
-  storageBucket: "hajobjah.firebasestorage.app",
-  messagingSenderId: "441394350866",
-  appId: "1:441394350866:web:7b83583818449c0f3901cb",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 const app: FirebaseApp        = initializeApp(firebaseConfig);
