@@ -18,6 +18,10 @@ import {
   arrayUnion,
   arrayRemove,
   addDoc,
+  query,
+  where,
+  getDocs,
+  orderBy,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { User, Vouch, VouchType } from '../types/types.ts';
@@ -183,4 +187,16 @@ export const vouchForUserService = async (voucher: User, voucheeId: string, vouc
       'postingLimits.vouchingActivity.monthlyCount': increment(1)
     });
   });
+};
+
+export const getVouchesForUserService = async (userId: string): Promise<Vouch[]> => {
+  try {
+    const vouchesRef = collection(db, VOUCHES_COLLECTION);
+    const q = query(vouchesRef, where("voucheeId", "==", userId), orderBy("createdAt", "desc"));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(docSnap => ({ id: docSnap.id, ...convertTimestamps(docSnap.data()) } as Vouch));
+  } catch (error) {
+    logFirebaseError("getVouchesForUserService", error);
+    return [];
+  }
 };
