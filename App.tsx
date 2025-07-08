@@ -7,7 +7,7 @@ import { useWebboard } from './hooks/useWebboard.ts';
 import { useBlog } from './hooks/useBlog.ts';
 import { useAdmin } from './hooks/useAdmin.ts';
 import type { DocumentSnapshot } from 'firebase/firestore';
-import type { User, Job, HelperProfile, WebboardPost, BlogComment, Vouch, BlogPost, RegistrationDataType } from './types/types.ts';
+import type { User, Job, HelperProfile, WebboardPost, BlogComment, Vouch, BlogPost, RegistrationDataType, EnrichedHelperProfile, EnrichedWebboardPost } from './types/types.ts';
 import { View, UserRole, JobCategory, JobSubCategory, Province, FilterableCategory } from './types/types.ts';
 import type { AdminItem as AdminItemType } from './components/AdminDashboard.tsx';
 import { useAuth } from './context/AuthContext.tsx';
@@ -138,16 +138,37 @@ const App: React.FC = () => {
     window.scrollTo(0, 0);
     setIsMobileMenuOpen(false);
   };
+  
+  const requestLoginForAction = (originalView: View, originalPayload?: any) => {
+    if (!currentUser) {
+      setLoginRedirectInfo({ view: originalView, payload: originalPayload });
+      navigateTo(View.Login);
+    }
+  };
 
   const onLogin = async (loginIdentifier: string, passwordAttempt: string): Promise<boolean> => {
     const result = await authActions.login(loginIdentifier, passwordAttempt);
-    if (result.success) navigateTo(View.Home);
+    if (result.success) {
+      if (loginRedirectInfo) {
+        navigateTo(loginRedirectInfo.view, loginRedirectInfo.payload);
+        setLoginRedirectInfo(null);
+      } else {
+        navigateTo(View.Home);
+      }
+    }
     return result.success;
   };
 
   const onRegister = async (userData: RegistrationDataType): Promise<boolean> => {
     const success = await authActions.register(userData);
-    if (success) navigateTo(View.Home);
+    if (success) {
+      if (loginRedirectInfo) {
+        navigateTo(loginRedirectInfo.view, loginRedirectInfo.payload);
+        setLoginRedirectInfo(null);
+      } else {
+        navigateTo(View.Home);
+      }
+    }
     return success;
   };
 
@@ -166,6 +187,14 @@ const App: React.FC = () => {
     if (jobToEdit && currentUser && jobToEdit.userId === currentUser.id) {
         setItemToEdit(jobToEdit); setEditingItemType('job'); setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);
     } else alert("ไม่สามารถแก้ไขงานนี้ได้");
+  };
+
+  const onCancelEditOrPost = () => {
+    const targetView = sourceViewForForm || View.Home;
+    setItemToEdit(null);
+    setEditingItemType(null);
+    setSourceViewForForm(null);
+    navigateTo(targetView);
   };
 
   const renderHeader = () => (
@@ -215,12 +244,12 @@ const App: React.FC = () => {
       </div>
     </footer>
   );
-
+  
   const renderHome = () => (
-    <div className="text-center">
-      <h1 className="text-4xl font-bold text-primary-dark mb-4">ยินดีต้อนรับสู่ HAJOBJA</h1>
-      <p className="text-lg text-neutral-dark mb-8">แพลตฟอร์มสำหรับหางานและหาคนทำงานที่ใช่สำหรับคุณ</p>
-      <div className="space-x-4">
+    <div className="text-center py-16">
+      <h1 className="text-4xl md:text-5xl font-bold text-primary-dark mb-4">ยินดีต้อนรับสู่ HAJOBJA</h1>
+      <p className="text-lg text-neutral-dark mb-8 max-w-2xl mx-auto">แพลตฟอร์มสำหรับหางานและหาคนทำงานที่ใช่สำหรับคุณ</p>
+      <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
         <Button onClick={() => navigateTo(View.FindJobs)} variant="primary" size="lg">หาคนทำงาน</Button>
         <Button onClick={() => navigateTo(View.FindHelpers)} variant="secondary" size="lg">หางาน</Button>
       </div>
@@ -228,6 +257,12 @@ const App: React.FC = () => {
   );
 
   const renderFindJobs = () => {
+    // This component now manages its own state for jobs
+    return <FindJobsComponent />;
+  };
+  
+  // A new component to encapsulate the FindJobs logic
+  const FindJobsComponent = () => {
     const [jobsList, setJobsList] = useState<Job[]>([]);
     const [lastVisibleJob, setLastVisibleJob] = useState<DocumentSnapshot | null>(null);
     const [isLoadingJobs, setIsLoadingJobs] = useState(false);
@@ -237,28 +272,49 @@ const App: React.FC = () => {
     const loadJobs = useCallback(async (isInitialLoad = false) => {
         if (isLoadingJobs || (!isInitialLoad && !hasMoreJobs)) return;
         setIsLoadingJobs(true);
+        const lastDoc = isInitialLoad ? null : lastVisibleJob;
         try {
-            const result = await getJobsPaginated(JOBS_PAGE_SIZE, isInitialLoad ? null : lastVisibleJob, selectedJobCategoryFilter, jobSearchTerm, selectedJobSubCategoryFilter, selectedJobProvinceFilter);
+            const result = await getJobsPaginated(JOBS_PAGE_SIZE, lastDoc, selectedJobCategoryFilter, jobSearchTerm, selectedJobSubCategoryFilter, selectedJobProvinceFilter);
             setJobsList(prev => isInitialLoad ? result.items : [...prev, ...result.items]);
             setLastVisibleJob(result.lastVisibleDoc);
-            setHasMoreJobs(result.items.length === JOBS_PAGE_SIZE);
+            setHasMoreJobs(!!result.lastVisibleDoc);
         } finally {
             setIsLoadingJobs(false);
         }
     }, [isLoadingJobs, hasMoreJobs, lastVisibleJob, selectedJobCategoryFilter, jobSearchTerm, selectedJobSubCategoryFilter, selectedJobProvinceFilter]);
 
     useEffect(() => { loadJobs(true); }, [selectedJobCategoryFilter, jobSearchTerm, selectedJobSubCategoryFilter, selectedJobProvinceFilter]);
+    
+    useEffect(() => {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting && hasMoreJobs && !isLoadingJobs) {
+            loadJobs();
+          }
+        },
+        { threshold: 1.0 }
+      );
+      const currentLoader = jobsLoaderRef.current;
+      if (currentLoader) {
+        observer.observe(currentLoader);
+      }
+      return () => {
+        if (currentLoader) {
+          observer.unobserve(currentLoader);
+        }
+      };
+    }, [hasMoreJobs, isLoadingJobs, loadJobs]);
 
     return (
       <div className="p-4 sm:p-6">
         <div className="text-center mb-6 lg:mb-8">
           <h2 className="text-3xl font-sans font-semibold text-primary-dark mb-3">📢 ประกาศงาน</h2>
-          <p className="text-md font-serif text-neutral-gray mb-6 max-w-xl mx-auto font-normal">เวลาและทักษะตรงกับงานไหน ติดต่อเลย!</p>
+          <p className="text-md font-serif text-neutral-dark mb-6 max-w-xl mx-auto font-normal">เวลาและทักษะตรงกับงานไหน ติดต่อเลย!</p>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-x-8">
           <aside className="lg:col-span-3 mb-8 lg:mb-0">
             <div className="sticky top-24 space-y-6 p-4 bg-white rounded-xl shadow-lg border border-primary-light">
-              <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedJobCategoryFilter} onSelectCategory={(cat) => setSelectedJobCategoryFilter(cat)} />
+              <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedJobCategoryFilter} onSelectCategory={(cat) => setSelectedJobCategoryFilter(cat as FilterableCategory)} />
               <SearchInputWithRecent searchTerm={jobSearchTerm} onSearchTermChange={setJobSearchTerm} placeholder="ค้นหางาน..." recentSearches={recentJobSearches} onRecentSearchSelect={setJobSearchTerm} />
               {currentUser && (<Button onClick={() => navigateTo(View.PostJob)} variant="primary" className="w-full">ลงประกาศงาน</Button>)}
             </div>
@@ -270,7 +326,7 @@ const App: React.FC = () => {
               <motion.div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" variants={listVariants} initial="hidden" animate="visible">
                 {jobsList.map(job => (
                   <motion.div key={job.id} variants={itemVariants}>
-                    <JobCard job={job} navigateTo={navigateTo} currentUser={currentUser} getAuthorDisplayName={getAuthorDisplayName} onToggleInterest={userActions.toggleInterest} isInterested={userInterests.some(i => i.targetId === job.id)} onEditJobFromFindView={onEditOwnJobFromFindView} />
+                    <JobCard job={job} navigateTo={navigateTo} currentUser={currentUser} getAuthorDisplayName={getAuthorDisplayName} onToggleInterest={userActions.toggleInterest} isInterested={userInterests.some(i => i.targetId === job.id)} onEditJobFromFindView={onEditOwnJobFromFindView} requestLoginForAction={requestLoginForAction} />
                   </motion.div>
                 ))}
               </motion.div>
@@ -281,22 +337,26 @@ const App: React.FC = () => {
       </div>
     );
   };
-  
-  const viewMap: { [key in View]?: React.ReactNode } = {
-    [View.Home]: renderHome(),
-    [View.FindJobs]: renderFindJobs(),
-    [View.FindHelpers]: <div><h1>Find Helpers Page</h1></div>,
-    [View.Webboard]: <WebboardPage navigateTo={navigateTo} />,
-    [View.Blog]: <BlogPage navigateTo={navigateTo} />,
-    [View.Login]: <LoginForm onLogin={onLogin} navigateTo={navigateTo} />,
-    [View.Register]: <RegistrationForm onRegister={onRegister} />,
-    [View.MyRoom]: <MyRoomPage navigateTo={navigateTo} />,
-    [View.AboutUs]: <AboutUsPage />,
-    [View.Safety]: <SafetyPage />,
-    [View.AdminDashboard]: <AdminDashboard />,
-    [View.PasswordReset]: <PasswordResetPage />,
-    [View.PostJob]: <PostJobForm onPostJob={jobActions.postJob} onCancel={() => navigateTo(View.Home)} jobToEdit={editingItemType === 'job' ? itemToEdit as Job : null} />,
-    [View.OfferHelp]: <OfferHelpForm onOfferHelp={helperActions.offerHelp} onCancel={() => navigateTo(View.Home)} profileToEdit={editingItemType === 'profile' ? itemToEdit as HelperProfile : null} />,
+
+  const renderCurrentView = () => {
+    switch (currentView) {
+      case View.Home: return renderHome();
+      case View.FindJobs: return <FindJobsComponent />;
+      case View.FindHelpers: return <div><h1>Find Helpers Page</h1></div>; // Placeholder
+      case View.Webboard: return <WebboardPage navigateTo={navigateTo} />;
+      case View.Blog: return <BlogPage navigateTo={navigateTo} />;
+      case View.Login: return <LoginForm onLogin={onLogin} navigateTo={navigateTo} />;
+      case View.Register: return <RegistrationForm onRegister={onRegister} />;
+      case View.MyRoom: return <MyRoomPage navigateTo={navigateTo} />;
+      case View.AboutUs: return <AboutUsPage />;
+      case View.Safety: return <SafetyPage />;
+      case View.AdminDashboard: return <AdminDashboard />;
+      case View.PasswordReset: return <PasswordResetPage />;
+      case View.PostJob: return <PostJobForm onPostJob={jobActions.postJob} onCancel={onCancelEditOrPost} jobToEdit={editingItemType === 'job' ? itemToEdit as Job : null} />;
+      case View.OfferHelp: return <OfferHelpForm onOfferHelp={helperActions.offerHelp} onCancel={onCancelEditOrPost} profileToEdit={editingItemType === 'profile' ? itemToEdit as HelperProfile : null} />;
+      case View.PublicProfile: return viewingProfileInfo ? <PublicProfilePage userId={viewingProfileInfo.userId} navigateTo={navigateTo} /> : <div>Loading Profile...</div>;
+      default: return <div><h1>Page Not Found</h1></div>;
+    }
   };
 
   if (isLoadingAuth || isLoadingData) {
@@ -319,7 +379,7 @@ const App: React.FC = () => {
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.2 }}
           >
-            {viewMap[currentView] || <div><h1>Page Not Found</h1></div>}
+            {renderCurrentView()}
           </motion.div>
         </AnimatePresence>
       </main>
