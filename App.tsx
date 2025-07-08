@@ -1,14 +1,12 @@
 
-
-
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { useAuthActions } from './hooks/useAuthActions';
-import { useJobs } from './hooks/useJobs';
-import { useHelpers } from './hooks/useHelpers';
-import { useUser } from './hooks/useUser';
-import { useWebboard } from './hooks/useWebboard';
-import { useBlog } from './hooks/useBlog';
-import { useAdmin } from './hooks/useAdmin';
+import { useAuthActions } from './hooks/useAuthActions.ts';
+import { useJobs } from './hooks/useJobs.ts';
+import { useHelpers } from './hooks/useHelpers.ts';
+import { useUser } from './hooks/useUser.ts';
+import { useWebboard } from './hooks/useWebboard.ts';
+import { useBlog } from './hooks/useBlog.ts';
+import { useAdmin } from './hooks/useAdmin.ts';
 import type { DocumentSnapshot } from 'firebase/firestore';
 import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, Interest, Vouch, VouchReport, BlogPost, EnrichedBlogPost, BlogComment } from './types.ts';
 import type { AdminItem as AdminItemType } from './components/AdminDashboard.tsx';
