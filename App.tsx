@@ -183,7 +183,7 @@ const App: React.FC = () => {
   };
 
   const getAuthorDisplayName = useCallback((userId: string, fallbackName?: string): string => {
-    const author = allUsers.find(u => u.id === userId);
+    const author = allUsers.find(u => u && u.id === userId); // Safety check added
     return author?.publicDisplayName || fallbackName || "ผู้ใช้ไม่ทราบชื่อ";
   }, [allUsers]);
 
@@ -515,11 +515,11 @@ const App: React.FC = () => {
           job.isHired === false
       )
       .map(job => {
-        const posterUser = allUsers.find(u => u.id === job.userId);
+        const posterUser = allUsers.find(u => u && u.id === job.userId); // Safety check
         let posterIsAdminVerified = false;
         if (posterUser) {
           posterIsAdminVerified = allHelperProfilesForAdmin.some(
-            hp => hp.userId === posterUser.id && hp.adminVerifiedExperience === true
+            hp => hp && hp.userId === posterUser.id && hp.adminVerifiedExperience === true // Safety check
           );
         }
         return { ...job, posterIsAdminVerified };
@@ -616,7 +616,7 @@ const App: React.FC = () => {
     );
 
     const enrichedHelperProfilesList: EnrichedHelperProfile[] = activeAndAvailableHelperProfiles.map(hp => {
-      const user = allUsers.find(u => u.id === hp.userId);
+      const user = allUsers.find(u => u && u.id === hp.userId); // Safety check
       return { ...hp, userPhoto: user?.photo, userAddress: user?.address, verifiedExperienceBadge: hp.adminVerifiedExperience || false, profileCompleteBadge: user?.profileComplete || false, warningBadge: hp.isSuspicious || false, interestedCount: hp.interestedCount || 0, };
     });
 
