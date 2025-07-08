@@ -11,7 +11,7 @@ import { useAdmin } from './hooks/useAdmin';
 import type { DocumentSnapshot } from 'firebase/firestore';
 import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, Interest, Vouch, VouchReport, BlogPost, EnrichedBlogPost, BlogComment } from './types/types.ts';
 import type { AdminItem as AdminItemType } from './components/AdminDashboard';
-import { View, UserRole } from './types/types.ts';
+import { View, UserRole } from './types/types';
 import { useAuth } from './context/AuthContext';
 import { useData } from './context/DataContext';
 import { PostJobForm } from './components/PostJobForm';
