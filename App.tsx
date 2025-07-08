@@ -1260,7 +1260,7 @@ const App: React.FC = () => {
     try {
         await logHelperContactInteractionService(helperProfileId, currentUser.id, helperProfile.userId);
         
-        // The interestedCount is now managed by the handleToggleInterest, not here.
+        // The interestedCount is now managed by the onToggleInterest, not here.
         // This function is purely for logging the contact event itself.
 
     } catch(error: any) {
@@ -1269,7 +1269,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleToggleInterest = async (
+  const onToggleInterest = async (
     targetId: string,
     targetType: 'job' | 'helperProfile',
     targetOwnerId: string
@@ -1285,7 +1285,7 @@ const App: React.FC = () => {
       await toggleInterestService(targetId, targetType, targetOwnerId, currentUser.id);
       // The onSnapshot listener will automatically update the UI.
     } catch (error) {
-      logFirebaseError("handleToggleInterest", error);
+      logFirebaseError("onToggleInterest", error);
       alert(`เกิดข้อผิดพลาดในการบันทึกความสนใจ: ${error}`);
     }
   };
@@ -2150,7 +2150,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
                         requestLoginForAction={requestLoginForAction} 
                         onEditJobFromFindView={currentUser?.id === job.userId ? handleEditOwnJobFromFindView : undefined}
                         getAuthorDisplayName={getAuthorDisplayName}
-                        onToggleInterest={(targetId, targetType, targetOwnerId) => handleToggleInterest(targetId, targetType, targetOwnerId)}
+                        onToggleInterest={onToggleInterest}
                         isInterested={userInterests.some(i => i.targetId === job.id && i.targetType === 'job')}
                     />
                   </motion.div>
@@ -2376,7 +2376,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
                             onBumpProfile={(id) => handleBumpHelperProfile(id, loadHelpers)}
                             onEditProfileFromFindView={currentUser?.id === profile.userId ? handleEditOwnHelperProfileFromFindView : undefined}
                             getAuthorDisplayName={getAuthorDisplayName}
-                            onToggleInterest={(targetId, targetType, targetOwnerId) => handleToggleInterest(targetId, targetType, targetOwnerId)}
+                            onToggleInterest={onToggleInterest}
                             isInterested={userInterests.some(i => i.targetId === profile.id && i.targetType === 'helperProfile')}
                         />
                       </motion.div>
@@ -2424,7 +2424,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
         initialTab={myRoomInitialTabOverride}
         onInitialTabProcessed={() => setMyRoomInitialTabOverride(null)}
         getAuthorDisplayName={getAuthorDisplayName}
-        onToggleInterest={handleToggleInterest}
+        onToggleInterest={onToggleInterest}
         onToggleLike={handleToggleWebboardPostLike}
         requestLoginForAction={requestLoginForAction}
         onEditJobFromFindView={handleEditOwnJobFromFindView}
