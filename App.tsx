@@ -76,14 +76,10 @@ const App: React.FC = () => {
   const { currentUser, isLoadingAuth } = useAuth();
   const {
     users: allUsers,
-    interactions,
     allBlogPosts,
     allWebboardPostsForAdmin,
-    webboardComments,
     allJobsForAdmin,
     allHelperProfilesForAdmin,
-    vouchReports,
-    userSavedPosts,
     userInterests,
     isLoadingData,
   } = useData();
@@ -120,7 +116,6 @@ const App: React.FC = () => {
   const [selectedHelperProvinceFilter, setSelectedHelperProvinceFilter] = useState<Province | 'all'>('all');
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [selectedBlogPostSlug, setSelectedBlogPostSlug] = useState<string | null>(null);
-  const [blogComments, setBlogComments] = useState<BlogComment[]>([]);
   const [copiedLinkNotification, setCopiedLinkNotification] = useState<string | null>(null);
   const copiedNotificationTimerRef = useRef<number | null>(null);
 
@@ -557,7 +552,7 @@ const App: React.FC = () => {
               <motion.div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" variants={listVariants} initial="hidden" animate="visible">
                 {activeUserJobs.map(job => (
                   <motion.div key={job.id} variants={itemVariants}>
-                    <JobCard job={job} navigateTo={navigateTo} currentUser={currentUser} getAuthorDisplayName={getAuthorDisplayName} onToggleInterest={userActions.toggleInterest} isInterested={userInterests.some(i => i.targetId === job.id)} onEditJobFromFindView={jobActions.editJob} requestLoginForAction={requestLoginForAction} />
+                    <JobCard job={job} navigateTo={navigateTo} currentUser={currentUser} getAuthorDisplayName={getAuthorDisplayName} onToggleInterest={userActions.toggleInterest} isInterested={userInterests.some(i => i && i.targetId === job.id)} onEditJobFromFindView={jobActions.editJob} requestLoginForAction={requestLoginForAction} />
                   </motion.div>
                 ))}
               </motion.div>
@@ -667,7 +662,7 @@ const App: React.FC = () => {
                           onEditProfileFromFindView={helperActions.editProfile}
                           getAuthorDisplayName={getAuthorDisplayName}
                           onToggleInterest={userActions.toggleInterest}
-                          isInterested={userInterests.some(i => i.targetId === profile.id)}
+                          isInterested={userInterests.some(i => i && i.targetId === profile.id)}
                       />
                     </motion.div>
                   ))}
