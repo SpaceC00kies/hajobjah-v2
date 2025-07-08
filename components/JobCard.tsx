@@ -1,5 +1,4 @@
 
-
 import React, { useState } from 'react';
 import type { Job, User } from '../types/types';
 import { View, JobCategory, JOB_CATEGORY_EMOJIS_MAP, JobDesiredEducationLevelOption, Province } from '../types/types';
