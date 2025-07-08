@@ -27,7 +27,7 @@ export const calculateUserLevel = (userId: string, posts: WebboardPost[], commen
   return USER_LEVELS[0];
 };
 
-export const getUserDisplayBadge = (user: User | null | undefined, posts?: WebboardPost[], comments?: WebboardPost[]): UserLevel => {
+export const getUserDisplayBadge = (user: User | null | undefined, posts?: WebboardPost[], comments?: WebboardComment[]): UserLevel => {
   if (!user) return USER_LEVELS[0];
   if (user.role === 'Admin') return ADMIN_BADGE_DETAILS;
   if (user.role === 'Moderator') return MODERATOR_BADGE_DETAILS;

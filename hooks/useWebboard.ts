@@ -17,17 +17,17 @@ import type { User, WebboardCategory, WebboardPost } from '../types/types.ts';
 
 export const useWebboard = () => {
   const { currentUser, setCurrentUser } = useAuth();
-  const { allWebboardPostsForAdmin, webboardComments } = useData();
+  const { allWebboardPostsForAdmin, webboardComments, users } = useData();
 
   const canEditOrDelete = useCallback((itemUserId: string, itemOwnerId?: string): boolean => {
     if (!currentUser) return false;
     if (currentUser.role === 'Admin') return true;
     if (currentUser.role === 'Moderator') {
-        const itemAuthor = allWebboardPostsForAdmin.find(p => p.userId === itemUserId);
+        const itemAuthor = users.find(u => u.id === itemUserId);
         return itemAuthor?.role !== 'Admin';
     }
     return currentUser.id === itemUserId || currentUser.id === itemOwnerId;
-  }, [currentUser, allWebboardPostsForAdmin]);
+  }, [currentUser, users]);
   
   const checkWebboardPostLimits = useCallback((user: User): { canPost: boolean; message?: string | null } => {
     // This is a placeholder as per the plan to move limiting logic server-side.

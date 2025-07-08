@@ -173,5 +173,6 @@ export const useHelpers = () => {
     onTogglePinnedHelperProfile,
     onToggleVerifiedExperience,
     onToggleUnavailableHelperProfileForUserOrAdmin,
+    checkHelperProfilePostingLimits,
   };
 };

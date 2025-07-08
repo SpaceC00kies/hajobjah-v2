@@ -141,7 +141,7 @@ export const deleteWebboardPostService = async (postId: string): Promise<void> =
 export const getWebboardPostsPaginated = async (
   pageSize: number,
   startAfterDoc: DocumentSnapshot<DocumentData> | null = null,
-  categoryFilter: WebboardCategory | null = null,
+  categoryFilter: WebboardCategory | 'all' | null = null,
   searchTerm: string | null = null
 ): Promise<PaginatedDocsResponse<WebboardPost>> => {
   try {

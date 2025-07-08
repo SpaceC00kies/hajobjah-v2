@@ -6,10 +6,10 @@
  * privileged operations are isolated and consistently managed.
  */
 
-import { doc, onSnapshot, setDoc, updateDoc, collection, addDoc, orderBy, query, runTransaction, deleteDoc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, updateDoc, collection, addDoc, orderBy, query, runTransaction, deleteDoc, getDoc, increment } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../firebase';
-import type { SiteConfig, UserRole, Vouch, VouchReport, VouchReportStatus, VouchType, Job, HelperProfile, WebboardPost } from '../types/types.ts';
+import { type SiteConfig, type UserRole, type Vouch, type VouchReport, VouchReportStatus, type VouchType, type Job, type HelperProfile, type WebboardPost } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps } from './serviceUtils';
 
@@ -119,8 +119,8 @@ export const resolveVouchReportService = async (reportId: string, resolution: Vo
             const voucheeRef = doc(db, USERS_COLLECTION, voucheeId);
             transaction.delete(vouchRef);
             transaction.update(voucheeRef, {
-                [`vouchInfo.total`]: admin.firestore.FieldValue.increment(-1),
-                [`vouchInfo.${vouchType}`]: admin.firestore.FieldValue.increment(-1),
+                [`vouchInfo.total`]: increment(-1),
+                [`vouchInfo.${vouchType}`]: increment(-1),
             });
         }
     });

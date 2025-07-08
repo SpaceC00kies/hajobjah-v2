@@ -9,9 +9,9 @@ import { useWebboard } from './hooks/useWebboard';
 import { useBlog } from './hooks/useBlog';
 import { useAdmin } from './hooks/useAdmin';
 import type { DocumentSnapshot } from 'firebase/firestore';
-import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, Interest, Vouch, VouchReport, BlogPost, EnrichedBlogPost, BlogComment } from './types/types.ts';
+import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, Interest, Vouch, VouchReport, BlogPost, EnrichedBlogPost, BlogComment, RegistrationDataType } from './types/types.ts';
+import { View, UserRole, JobCategory, JobSubCategory, Province } from './types/types.ts';
 import type { AdminItem as AdminItemType } from './components/AdminDashboard';
-import { View, UserRole } from './types/types';
 import { useAuth } from './context/AuthContext';
 import { useData } from './context/DataContext';
 import { PostJobForm } from './components/PostJobForm';
@@ -56,8 +56,6 @@ import { checkProfileCompleteness, calculateUserLevel, getUserDisplayBadge } fro
 const JOBS_PAGE_SIZE = 9;
 const HELPERS_PAGE_SIZE = 9;
 const WEBBOARD_PAGE_SIZE = 10;
-
-export type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook' | 'isBusinessProfile' | 'businessName' | 'businessType' | 'businessAddress' | 'businessWebsite' | 'businessSocialProfileLink' | 'aboutBusiness' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount' | 'vouchInfo' | 'lastLoginIP' | 'lastLoginUserAgent'> & { password: string };
 
 const listVariants: Variants = {
   hidden: { opacity: 0 },
@@ -158,9 +156,9 @@ const App: React.FC = () => {
   const [helperSearchTerm, setHelperSearchTerm] = useState('');
   const [recentJobSearches, setRecentJobSearches] = useState<string[]>([]);
   const [recentHelperSearches, setRecentHelperSearches] = useState<string[]>([]);
-  const [selectedJobSubCategoryFilter, setSelectedJobSubCategoryFilter] = useState<string>('all');
+  const [selectedJobSubCategoryFilter, setSelectedJobSubCategoryFilter] = useState<JobSubCategory | 'all'>('all');
   const [selectedJobProvinceFilter, setSelectedJobProvinceFilter] = useState<string>('all');
-  const [selectedHelperSubCategoryFilter, setSelectedHelperSubCategoryFilter] = useState<string>('all');
+  const [selectedHelperSubCategoryFilter, setSelectedHelperSubCategoryFilter] = useState<JobSubCategory | 'all'>('all');
   const [selectedHelperProvinceFilter, setSelectedHelperProvinceFilter] = useState<string>('all');
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [selectedBlogPostSlug, setSelectedBlogPostSlug] = useState<string | null>(null);
@@ -480,14 +478,14 @@ const App: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-x-8">
         <aside className="lg:col-span-3 mb-8 lg:mb-0">
           <div className="sticky top-24 space-y-6 p-4 bg-white rounded-xl shadow-lg border border-primary-light">
-            <CategoryFilterBar categories={Object.values(jobActions.JobCategory)} selectedCategory={selectedJobCategoryFilter} onSelectCategory={onJobCategoryFilterChange} />
+            <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedJobCategoryFilter} onSelectCategory={onJobCategoryFilterChange} />
             <div>
               <label htmlFor="job-subcategory-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">เลือกหมวดหมู่ย่อย:</label>
-              <select id="job-subcategory-filter" value={selectedJobSubCategoryFilter} onChange={(e) => setSelectedJobSubCategoryFilter(e.target.value)} disabled={selectedJobCategoryFilter === 'all' || jobSubCategoryOptions.length === 0}><option value="all">หมวดหมู่ย่อยทั้งหมด</option>{[...new Set(jobSubCategoryOptions)].map(subCat => (<option key={subCat} value={subCat}>{subCat}</option>))}</select>
+              <select id="job-subcategory-filter" value={selectedJobSubCategoryFilter} onChange={(e) => setSelectedJobSubCategoryFilter(e.target.value as JobSubCategory | 'all')} disabled={selectedJobCategoryFilter === 'all' || jobSubCategoryOptions.length === 0}><option value="all">หมวดหมู่ย่อยทั้งหมด</option>{[...new Set(jobSubCategoryOptions)].map(subCat => (<option key={subCat} value={subCat}>{subCat}</option>))}</select>
             </div>
             <div>
               <label htmlFor="job-province-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">เลือกจังหวัด:</label>
-              <select id="job-province-filter" value={selectedJobProvinceFilter} onChange={(e) => setSelectedJobProvinceFilter(e.target.value)}><option value="all">ทุกจังหวัด</option>{Object.values(jobActions.Province).map(prov => (<option key={prov} value={prov}>{prov}</option>))}</select>
+              <select id="job-province-filter" value={selectedJobProvinceFilter} onChange={(e) => setSelectedJobProvinceFilter(e.target.value)}><option value="all">ทุกจังหวัด</option>{Object.values(Province).map(prov => (<option key={prov} value={prov as string}>{prov}</option>))}</select>
             </div>
             <SearchInputWithRecent searchTerm={jobSearchTerm} onSearchTermChange={onJobSearch} placeholder="ค้นหางาน, รายละเอียด..." recentSearches={recentJobSearches} onRecentSearchSelect={(term) => { setJobSearchTerm(term); addRecentSearch('recentJobSearches', term); setRecentJobSearches(getRecentSearches('recentJobSearches')); }} />
             {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="w-full sm:px-4 sm:text-sm"><span>ลงประกาศงาน</span></Button> )}

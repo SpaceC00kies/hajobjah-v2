@@ -6,6 +6,7 @@ import { JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '..
 import { Button } from './Button.tsx';
 import { useHelpers } from '../hooks/useHelpers.ts';
 import { logFirebaseError } from '../firebase/logging.ts';
+import { containsBlacklistedWords } from '../utils/validation.ts';
 
 type FormDataType = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt'>;
 

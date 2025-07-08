@@ -1,8 +1,8 @@
 
 
 import React, { useState, useCallback, useEffect } from 'react';
-import type { Job, User, View } from '../types/types.ts';
-import { JobDesiredEducationLevelOption, JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
+import type { Job, User } from '../types/types.ts';
+import { View, JobDesiredEducationLevelOption, JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
 import { Button } from './Button.tsx';
 import { containsBlacklistedWords } from '../utils/validation.ts';
 import { getJobTemplateForCategory } from '../utils/templates.ts';
