@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import type { EnrichedBlogPost } from '../types.ts';
+import { BlogCategory } from '../types.ts';
 import { BlogCard } from './BlogCard.tsx';
 import { motion } from 'framer-motion';
 
@@ -19,6 +20,17 @@ const containerVariants = {
 };
 
 export const BlogPage: React.FC<BlogPageProps> = ({ posts, onSelectPost }) => {
+  const [selectedCategory, setSelectedCategory] = useState<BlogCategory | 'all'>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredPosts = useMemo(() => {
+    return posts.filter(post => {
+      const categoryMatch = selectedCategory === 'all' || post.category === selectedCategory;
+      const searchMatch = !searchTerm || post.title.toLowerCase().includes(searchTerm.toLowerCase());
+      return categoryMatch && searchMatch;
+    });
+  }, [posts, selectedCategory, searchTerm]);
+
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="text-center mb-12">
@@ -30,9 +42,39 @@ export const BlogPage: React.FC<BlogPageProps> = ({ posts, onSelectPost }) => {
         </p>
       </div>
 
-      {posts.length === 0 ? (
+      {/* Filter and Search Bar */}
+      <div className="mb-8 p-4 bg-white/70 backdrop-blur-sm sticky top-20 z-10 rounded-xl shadow-md border border-primary-light flex flex-col sm:flex-row gap-4">
+        <div className="flex-1">
+          <label htmlFor="blog-category-filter" className="sr-only">Filter by category</label>
+          <select
+            id="blog-category-filter"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value as BlogCategory | 'all')}
+            className="w-full p-2 border border-neutral-DEFAULT rounded-md focus:ring-primary focus:border-primary font-sans"
+          >
+            <option value="all">ทุกหมวดหมู่</option>
+            {Object.values(BlogCategory).map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex-1">
+          <label htmlFor="blog-search" className="sr-only">Search articles</label>
+          <input
+            id="blog-search"
+            type="search"
+            placeholder="ค้นหาบทความ..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full p-2 border border-neutral-DEFAULT rounded-md focus:ring-primary focus:border-primary font-sans"
+          />
+        </div>
+      </div>
+
+
+      {filteredPosts.length === 0 ? (
         <div className="text-center py-16">
-          <p className="text-xl text-neutral-medium font-serif">ยังไม่มีบทความในขณะนี้...</p>
+          <p className="text-xl text-neutral-medium font-serif">ไม่พบบทความที่ตรงกับเกณฑ์ของคุณ</p>
         </div>
       ) : (
         <motion.div
@@ -41,7 +83,7 @@ export const BlogPage: React.FC<BlogPageProps> = ({ posts, onSelectPost }) => {
           initial="hidden"
           animate="visible"
         >
-          {posts.map(post => (
+          {filteredPosts.map(post => (
             <BlogCard key={post.id} post={post} onSelectPost={onSelectPost} />
           ))}
         </motion.div>

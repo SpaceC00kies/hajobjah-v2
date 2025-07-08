@@ -15,7 +15,7 @@ interface MyPostsPageProps {
   onDeleteItem: (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => void;
   onToggleHiredStatus: (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => void;
   navigateTo: (view: View, payload?: any) => void;
-  getUserDisplayBadge: (user: User | null | undefined, posts: WebboardPost[], comments: WebboardComment[]) => UserLevel;
+  getUserDisplayBadge: (user: User | null | undefined) => UserLevel;
 }
 
 interface UserPostItem {

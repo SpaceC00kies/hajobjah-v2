@@ -60,6 +60,7 @@ interface AdminDashboardProps {
   orionAnalyzeService: typeof OrionAnalyzeServiceType;
   onDeleteBlogPost: (postId: string, coverImageURL?: string) => void;
   onAddOrUpdateBlogPost: (blogPostData: Partial<BlogPost> & { newCoverImageBase64?: string | null }, existingPostId?: string) => void;
+  updateBlogPostStatus: (postId: string, status: 'draft' | 'published' | 'archived') => void; // New prop for moderation
   // This prop type was missing from the original file, it's added now for HUD analysis
   getUserDocument: (userId: string) => Promise<User | null>; 
 }
@@ -131,6 +132,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   orionAnalyzeService,
   onDeleteBlogPost,
   onAddOrUpdateBlogPost,
+  updateBlogPostStatus,
   getUserDocument, // Added for HUD
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('orion_command_center');
@@ -376,16 +378,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <tbody className="bg-white divide-y divide-neutral-DEFAULT">
                 {filteredItems.filter(item => item.itemType === 'blogPost').map(item => {
                   const canEdit = currentUser?.role === UserRole.Admin || (currentUser?.role === UserRole.Writer && item.userId === currentUser.id);
+                  const post = item.originalItem as BlogPost;
                   return(
                   <tr key={item.id}>
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-neutral-800">{item.title}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-neutral-dark">{item.authorDisplayName}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-neutral-dark">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            item.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                            {item.status}
-                        </span>
+                        <select
+                            value={post.status}
+                            onChange={(e) => updateBlogPostStatus(post.id, e.target.value as 'draft' | 'published' | 'archived')}
+                            disabled={!canEdit}
+                            className={`rounded-md border-gray-300 shadow-sm text-xs focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50
+                                ${post.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}
+                        >
+                            <option value="draft">Draft</option>
+                            <option value="published">Published</option>
+                            <option value="archived">Archived</option>
+                        </select>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-neutral-dark">{item.publishedAt ? formatDateDisplay(item.publishedAt) : '—'}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">

@@ -75,6 +75,7 @@ import {
   type HelperEducationLevelOption,
   type BlogPost,
   type BlogComment,
+  BlogCategory,
 } from '../types.ts';
 import { logFirebaseError } from '../firebase/logging.ts';
 
@@ -1258,11 +1259,31 @@ export const subscribeToWebboardCommentsService = (callback: (comments: Webboard
 export const orionAnalyzeService = httpsCallable<{ command: string }, { reply: string }>(functions, 'orionAnalyze');
 
 // Blog Posts Services
-export const getAllBlogPosts = async (): Promise<BlogPost[]> => {
+export const getAllBlogPosts = async (categoryFilter?: BlogCategory | 'all', searchTerm?: string): Promise<BlogPost[]> => {
   try {
-    const q = query(collection(db, BLOG_POSTS_COLLECTION), where("status", "==", "published"), orderBy("publishedAt", "desc"));
+    const constraints: QueryConstraint[] = [
+        where("status", "==", "published"),
+        orderBy("publishedAt", "desc")
+    ];
+
+    if (categoryFilter && categoryFilter !== 'all') {
+        constraints.unshift(where("category", "==", categoryFilter));
+    }
+
+    const q = query(collection(db, BLOG_POSTS_COLLECTION), ...constraints);
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as BlogPost));
+    
+    let posts = querySnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as BlogPost));
+
+    if (searchTerm && searchTerm.trim()) {
+        const lowerCaseSearchTerm = searchTerm.toLowerCase();
+        posts = posts.filter(post => 
+            post.title.toLowerCase().includes(lowerCaseSearchTerm) ||
+            post.excerpt.toLowerCase().includes(lowerCaseSearchTerm)
+        );
+    }
+    
+    return posts;
   } catch (error) {
     logFirebaseError("getAllBlogPosts", error);
     return [];
@@ -1282,8 +1303,7 @@ export const getBlogPostsForAdmin = async (): Promise<BlogPost[]> => {
 
 export const addOrUpdateBlogPostService = async (
   blogPostData: Partial<BlogPost> & { newCoverImageBase64?: string | null },
-  author: { id: string; publicDisplayName: string; photo?: string | null },
-  newCoverImageBase64?: string | null
+  author: { id: string; publicDisplayName: string; photo?: string | null }
 ): Promise<string> => {
   const isCreating = !blogPostData.id;
   const docRef = isCreating ? doc(collection(db, BLOG_POSTS_COLLECTION)) : doc(db, BLOG_POSTS_COLLECTION, blogPostData.id!);
@@ -1291,13 +1311,13 @@ export const addOrUpdateBlogPostService = async (
   let coverImageURL: string | undefined | null = blogPostData.coverImageURL;
 
   // Handle image upload/delete
-  if (newCoverImageBase64) { // New image uploaded
+  if (blogPostData.newCoverImageBase64) { // New image uploaded
     // If there's an old image, delete it
     if (!isCreating && blogPostData.coverImageURL) {
       await deleteImageService(blogPostData.coverImageURL);
     }
-    coverImageURL = await uploadImageService(`blogCovers/${author.id}/${docRef.id}`, newCoverImageBase64);
-  } else if (newCoverImageBase64 === null) { // Image explicitly removed
+    coverImageURL = await uploadImageService(`blogCovers/${author.id}/${docRef.id}`, blogPostData.newCoverImageBase64);
+  } else if (blogPostData.newCoverImageBase64 === null) { // Image explicitly removed
     if (!isCreating && blogPostData.coverImageURL) {
       await deleteImageService(blogPostData.coverImageURL);
     }
@@ -1349,6 +1369,26 @@ export const addOrUpdateBlogPostService = async (
   return docRef.id;
 };
 
+export const updateBlogPostStatusService = async (postId: string, status: 'draft' | 'published' | 'archived'): Promise<void> => {
+    try {
+        const postRef = doc(db, BLOG_POSTS_COLLECTION, postId);
+        const dataToUpdate: Partial<BlogPost> = { status, updatedAt: serverTimestamp() as any };
+        
+        // If transitioning to published for the first time, set publishedAt
+        if (status === 'published') {
+            const docSnap = await getDoc(postRef);
+            if (docSnap.exists() && docSnap.data().status !== 'published') {
+                dataToUpdate.publishedAt = serverTimestamp() as any;
+            }
+        }
+        
+        await updateDoc(postRef, dataToUpdate);
+    } catch (error) {
+        logFirebaseError("updateBlogPostStatusService", error);
+        throw error;
+    }
+};
+
 
 export const deleteBlogPostService = async (postId: string, coverImageURL?: string): Promise<boolean> => {
     try {
@@ -1363,10 +1403,6 @@ export const deleteBlogPostService = async (postId: string, coverImageURL?: stri
         throw error;
     }
 };
-
-// Phase 3 additions start here
-export const starlightWriterService = httpsCallable<{ task: 'title' | 'excerpt'; content: string }, { suggestions: string[] }>(functions, 'starlightWriter');
-
 
 export const toggleBlogPostLikeService = async (postId: string, userId: string): Promise<void> => {
   const postRef = doc(db, BLOG_POSTS_COLLECTION, postId);
