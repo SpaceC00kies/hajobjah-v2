@@ -76,15 +76,10 @@ const App: React.FC = () => {
   const { currentUser, isLoadingAuth } = useAuth();
   const {
     users: allUsers,
-    interactions,
     allBlogPosts,
-    allBlogPostsForAdmin,
     allWebboardPostsForAdmin,
-    webboardComments,
     allJobsForAdmin,
     allHelperProfilesForAdmin,
-    vouchReports,
-    userSavedPosts,
     userInterests,
     isLoadingData,
   } = useData();
