@@ -7,9 +7,9 @@ import { useWebboard } from './hooks/useWebboard.ts';
 import { useBlog } from './hooks/useBlog.ts';
 import { useAdmin } from './hooks/useAdmin.ts';
 import type { DocumentSnapshot } from 'firebase/firestore';
-import type { User, Job, HelperProfile, WebboardPost, BlogComment, Vouch, BlogPost, RegistrationDataType, EnrichedHelperProfile, EnrichedWebboardPost } from './types/types.ts';
-import { View, UserRole, JobCategory, JobSubCategory, Province, FilterableCategory } from './types/types.ts';
+import type { User, Job, HelperProfile, EnrichedHelperProfile, WebboardPost, WebboardComment, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, Vouch, VouchReport, BlogPost, EnrichedBlogPost, BlogComment, RegistrationDataType } from './types/types.ts';
 import type { AdminItem as AdminItemType } from './components/AdminDashboard.tsx';
+import { View, UserRole, JobCategory, JobSubCategory, Province } from './types/types.ts';
 import { useAuth } from './context/AuthContext.tsx';
 import { useData } from './context/DataContext.tsx';
 import { PostJobForm } from './components/PostJobForm.tsx';
@@ -256,12 +256,6 @@ const App: React.FC = () => {
     </div>
   );
 
-  const renderFindJobs = () => {
-    // This component now manages its own state for jobs
-    return <FindJobsComponent />;
-  };
-  
-  // A new component to encapsulate the FindJobs logic
   const FindJobsComponent = () => {
     const [jobsList, setJobsList] = useState<Job[]>([]);
     const [lastVisibleJob, setLastVisibleJob] = useState<DocumentSnapshot | null>(null);
@@ -295,14 +289,8 @@ const App: React.FC = () => {
         { threshold: 1.0 }
       );
       const currentLoader = jobsLoaderRef.current;
-      if (currentLoader) {
-        observer.observe(currentLoader);
-      }
-      return () => {
-        if (currentLoader) {
-          observer.unobserve(currentLoader);
-        }
-      };
+      if (currentLoader) observer.observe(currentLoader);
+      return () => { if (currentLoader) observer.unobserve(currentLoader); };
     }, [hasMoreJobs, isLoadingJobs, loadJobs]);
 
     return (
