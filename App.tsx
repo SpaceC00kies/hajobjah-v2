@@ -76,10 +76,14 @@ const App: React.FC = () => {
   const { currentUser, isLoadingAuth } = useAuth();
   const {
     users: allUsers,
+    interactions,
     allBlogPosts,
     allWebboardPostsForAdmin,
+    webboardComments,
     allJobsForAdmin,
     allHelperProfilesForAdmin,
+    vouchReports,
+    userSavedPosts,
     userInterests,
     isLoadingData,
   } = useData();
@@ -679,6 +683,21 @@ const App: React.FC = () => {
         </div>
       </div>);
   };
+
+  const renderFooter = () => (
+    <footer className="bg-white border-t border-gray-200">
+      <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="text-center text-sm text-gray-500">
+          <p>&copy; {new Date().getFullYear()} HAJOBJA.COM. All rights reserved.</p>
+          <div className="mt-4 space-x-4">
+            <button onClick={() => navigateTo(View.AboutUs)} className="hover:text-primary-dark">เกี่ยวกับเรา</button>
+            <button onClick={() => navigateTo(View.Safety)} className="hover:text-primary-dark">ความปลอดภัย</button>
+            <button onClick={() => setIsFeedbackModalOpen(true)} className="hover:text-primary-dark">ติชม/เสนอแนะ</button>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
 
   const renderCurrentView = () => {
     switch (currentView) {
