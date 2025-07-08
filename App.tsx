@@ -157,9 +157,9 @@ const App: React.FC = () => {
   const [recentJobSearches, setRecentJobSearches] = useState<string[]>([]);
   const [recentHelperSearches, setRecentHelperSearches] = useState<string[]>([]);
   const [selectedJobSubCategoryFilter, setSelectedJobSubCategoryFilter] = useState<JobSubCategory | 'all'>('all');
-  const [selectedJobProvinceFilter, setSelectedJobProvinceFilter] = useState<string>('all');
+  const [selectedJobProvinceFilter, setSelectedJobProvinceFilter] = useState<Province | 'all'>('all');
   const [selectedHelperSubCategoryFilter, setSelectedHelperSubCategoryFilter] = useState<JobSubCategory | 'all'>('all');
-  const [selectedHelperProvinceFilter, setSelectedHelperProvinceFilter] = useState<string>('all');
+  const [selectedHelperProvinceFilter, setSelectedHelperProvinceFilter] = useState<Province | 'all'>('all');
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [selectedBlogPostSlug, setSelectedBlogPostSlug] = useState<string | null>(null);
 
@@ -485,7 +485,7 @@ const App: React.FC = () => {
             </div>
             <div>
               <label htmlFor="job-province-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">เลือกจังหวัด:</label>
-              <select id="job-province-filter" value={selectedJobProvinceFilter} onChange={(e) => setSelectedJobProvinceFilter(e.target.value)}><option value="all">ทุกจังหวัด</option>{Object.values(Province).map(prov => (<option key={prov} value={prov as string}>{prov}</option>))}</select>
+              <select id="job-province-filter" value={selectedJobProvinceFilter} onChange={(e) => setSelectedJobProvinceFilter(e.target.value as Province | 'all')}><option value="all">ทุกจังหวัด</option>{Object.values(Province).map(prov => (<option key={prov} value={prov as string}>{prov}</option>))}</select>
             </div>
             <SearchInputWithRecent searchTerm={jobSearchTerm} onSearchTermChange={onJobSearch} placeholder="ค้นหางาน, รายละเอียด..." recentSearches={recentJobSearches} onRecentSearchSelect={(term) => { setJobSearchTerm(term); addRecentSearch('recentJobSearches', term); setRecentJobSearches(getRecentSearches('recentJobSearches')); }} />
             {currentUser && ( <Button onClick={() => { setSourceViewForForm(View.FindJobs); navigateTo(View.PostJob);}} variant="primary" size="md" className="w-full sm:px-4 sm:text-sm"><span>ลงประกาศงาน</span></Button> )}

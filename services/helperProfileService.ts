@@ -122,9 +122,8 @@ export const getHelperProfilesPaginated = async (
       limit(pageSize)
     ];
 
-    if (categoryFilter && categoryFilter !== 'all') {
-      constraints.unshift(where("category", "==", categoryFilter));
-    }
+    // The conditional `where` clause is removed to prevent complex index requirements.
+    // Filtering will be done client-side after the fetch.
 
     if (startAfterDoc) {
       constraints.push(startAfter(startAfterDoc));
@@ -138,6 +137,11 @@ export const getHelperProfilesPaginated = async (
       ...convertTimestamps(docSnap.data()),
     } as HelperProfile));
 
+    // Apply all filtering on the client side for robustness
+    if (categoryFilter && categoryFilter !== 'all') {
+      profilesData = profilesData.filter(profile => profile.category === categoryFilter);
+    }
+    
     if (searchTerm && searchTerm.trim() !== '') {
       const termLower = searchTerm.toLowerCase();
       profilesData = profilesData.filter(profile =>

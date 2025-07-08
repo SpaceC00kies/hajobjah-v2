@@ -102,10 +102,9 @@ export const getJobsPaginated = async (
       limit(pageSize)
     ];
 
-    if (categoryFilter && categoryFilter !== 'all') {
-      constraints.unshift(where("category", "==", categoryFilter));
-    }
-    
+    // The conditional `where` clause is removed to prevent complex index requirements.
+    // Filtering will be done client-side after the fetch.
+
     if (startAfterDoc) {
       constraints.push(startAfter(startAfterDoc));
     }
@@ -117,6 +116,11 @@ export const getJobsPaginated = async (
       id: docSnap.id,
       ...convertTimestamps(docSnap.data()),
     } as Job));
+
+    // Apply all filtering on the client side for robustness
+    if (categoryFilter && categoryFilter !== 'all') {
+        jobsData = jobsData.filter(job => job.category === categoryFilter);
+    }
 
     if (searchTerm && searchTerm.trim() !== '') {
       const termLower = searchTerm.toLowerCase();

@@ -146,9 +146,10 @@ export const getWebboardPostsPaginated = async (
 ): Promise<PaginatedDocsResponse<WebboardPost>> => {
   try {
     let constraints: QueryConstraint[] = [orderBy("isPinned", "desc"), orderBy("createdAt", "desc"), limit(pageSize)];
-    if (categoryFilter && categoryFilter !== 'all') {
-      constraints.unshift(where("category", "==", categoryFilter));
-    }
+    
+    // The conditional `where` clause is removed to prevent complex index requirements.
+    // Filtering will be done client-side after the fetch.
+
     if (startAfterDoc) {
       constraints.push(startAfter(startAfterDoc));
     }
@@ -159,6 +160,11 @@ export const getWebboardPostsPaginated = async (
       id: docSnap.id,
       ...convertTimestamps(docSnap.data()),
     } as WebboardPost));
+
+    // Apply all filtering on the client side for robustness
+    if (categoryFilter && categoryFilter !== 'all') {
+      postsData = postsData.filter(post => post.category === categoryFilter);
+    }
 
     if (searchTerm && searchTerm.trim()) {
       const termLower = searchTerm.toLowerCase();
