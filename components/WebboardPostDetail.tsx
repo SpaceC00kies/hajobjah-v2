@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { EnrichedWebboardPost, EnrichedWebboardComment, User } from '../types.ts';
+import type { EnrichedWebboardPost, EnrichedWebboardComment, User } from '../types/types';
 import { USER_LEVELS, UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES }
-from '../types.ts';
+from '../types/types';
 import { Button } from './Button.tsx';
 import { WebboardCommentItem } from './WebboardCommentItem.tsx';
 import { WebboardCommentForm } from './WebboardCommentForm.tsx';
@@ -119,7 +119,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
     return Math.floor(seconds) + "s";
   };
   
-  const wasEdited = post.updatedAt && post.createdAt && new Date(post.updatedAt).getTime() !== new Date(post.createdAt).getTime();
+  const wasEdited = post.updatedAt && post.createdAt && new Date(post.updatedAt as string).getTime() !== new Date(post.createdAt as string).getTime();
   const categoryStyle = WEBBOARD_CATEGORY_STYLES[post.category] || WEBBOARD_CATEGORY_STYLES[WebboardCategory.General];
 
   const handleLikeClick = () => {

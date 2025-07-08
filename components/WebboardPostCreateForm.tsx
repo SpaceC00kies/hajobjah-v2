@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import type { WebboardPost, User } from '../types.ts'; 
-import { WebboardCategory } from '../types.ts'; 
+import type { WebboardPost, User } from '../types/types'; 
+import { WebboardCategory } from '../types/types'; 
 import { Button } from './Button.tsx'; 
 import { Modal } from './Modal.tsx'; 
 import { containsBlacklistedWords } from '../utils/validation.ts';

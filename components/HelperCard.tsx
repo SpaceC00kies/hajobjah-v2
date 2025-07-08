@@ -1,8 +1,8 @@
 
 
 import React, { useState } from 'react';
-import type { EnrichedHelperProfile, User } from '../types.ts';
-import { View, Province, ACTIVITY_BADGE_DETAILS } from '../types.ts';
+import type { EnrichedHelperProfile, User } from '../types/types.ts';
+import { View, Province, ACTIVITY_BADGE_DETAILS } from '../types/types.ts';
 import { Modal } from './Modal.tsx';
 import { Button } from './Button.tsx'; // Import Button
 import { isDateInPast, calculateDaysRemaining } from '../utils/dateUtils.ts';

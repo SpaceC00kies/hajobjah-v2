@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from './Button.tsx';
 import { Modal } from './Modal.tsx';
-import type { User, Vouch } from '../types.ts';
-import { VOUCH_TYPE_LABELS } from '../types.ts';
+import type { User, Vouch } from '../types/types';
+import { VOUCH_TYPE_LABELS } from '../types/types';
 import { getVouchesForUserService } from '../services/firebaseService.ts';
 import { logFirebaseError } from '../firebase/logging.ts';
 import { useUser } from '../hooks/useUser.ts';

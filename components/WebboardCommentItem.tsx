@@ -1,8 +1,8 @@
 
 
 import React, { useState } from 'react';
-import type { EnrichedWebboardComment, User, View } from '../types.ts'; // Added View
-import { UserRole } from '../types.ts';
+import type { EnrichedWebboardComment, User, View } from '../types/types'; // Added View
+import { UserRole } from '../types/types';
 // UserLevelBadge is removed as it's no longer displayed here
 import { Button } from './Button.tsx';
 import { containsBlacklistedWords } from '../utils/validation.ts';
@@ -113,7 +113,7 @@ export const WebboardCommentItem: React.FC<WebboardCommentItemProps> = ({ commen
     }
   };
 
-  const wasEdited = comment.updatedAt && comment.createdAt && new Date(comment.updatedAt).getTime() !== new Date(comment.createdAt).getTime();
+  const wasEdited = comment.updatedAt && comment.createdAt && new Date(comment.updatedAt as string).getTime() !== new Date(comment.createdAt as string).getTime();
 
   return (
     <motion.div 
@@ -175,26 +175,21 @@ export const WebboardCommentItem: React.FC<WebboardCommentItemProps> = ({ commen
               }}
               rows={3}
               className={`w-full p-2.5 border rounded-md text-sm font-sans bg-white text-neutral-dark focus:outline-none focus:ring-1
-                          ${editError ? 'border-red-500 focus:border-red-500 focus:ring-red-500/50' 
-                                      : 'border-neutral-DEFAULT focus:border-blue-400 focus:ring-blue-400/50'}`}
-              aria-label="แก้ไขเนื้อหาคอมเมนต์"
-              aria-invalid={!!editError}
-              aria-describedby={editError ? "comment-edit-error" : undefined}
+                          ${editError ? 'border-red-500 focus:border-red-500/50' : 'border-neutral-DEFAULT focus:border-neutral-DEFAULT/70 focus:ring-neutral-DEFAULT/50'}`}
+              autoFocus
             />
-            {editError && <p id="comment-edit-error" className="text-red-500 text-xs mt-1">{editError}</p>}
-            <div className="flex items-center gap-2 mt-2">
+            {editError && <p className="text-red-500 text-xs mt-1">{editError}</p>}
+            <div className="flex justify-end gap-2 mt-2">
+              <Button onClick={handleCancelEdit} variant="outline" size="sm" colorScheme="neutral">
+                ยกเลิก
+              </Button>
               <Button onClick={handleSaveEdit} size="sm" colorScheme="primary">
                 บันทึก
-              </Button>
-              <Button onClick={handleCancelEdit} size="sm" variant="outline" colorScheme="neutral">
-                ยกเลิก
               </Button>
             </div>
           </div>
         ) : (
-          <p className="text-sm font-serif text-neutral-dark whitespace-pre-wrap leading-relaxed">
-            {comment.text}
-          </p>
+          <p className="font-serif font-normal text-sm sm:text-base text-neutral-800 whitespace-pre-wrap mt-1">{comment.text}</p>
         )}
       </div>
     </motion.div>

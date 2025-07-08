@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { BlogPost, User } from '../types.ts';
-import { BlogCategory } from '../types.ts';
+import type { BlogPost, User } from '../types/types.ts';
+import { BlogCategory } from '../types/types.ts';
 import { Button } from './Button.tsx';
 import { useBlog } from '../hooks/useBlog.ts';
 

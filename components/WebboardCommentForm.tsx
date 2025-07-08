@@ -1,7 +1,8 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Button } from './Button.tsx';
-import { View, User } from '../types.ts'; // Import User
+import { View, User } from '../types/types.ts'; // Import User
 
 interface WebboardCommentFormProps {
   postId: string;

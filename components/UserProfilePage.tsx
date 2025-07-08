@@ -1,8 +1,8 @@
 
 
 import React, { useState, useEffect, useRef } from 'react';
-import type { User } from '../types.ts';
-import { GenderOption, HelperEducationLevelOption } from '../types.ts';
+import type { User } from '../types/types.ts';
+import { GenderOption, HelperEducationLevelOption } from '../types/types.ts';
 import { Button } from './Button.tsx';
 import { isValidThaiMobileNumber } from '../utils/validation.ts';
 import { ProfileCompletenessWizard } from './ProfileCompletenessWizard.tsx'; // Import the new wizard

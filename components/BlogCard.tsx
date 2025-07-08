@@ -1,6 +1,5 @@
-
 import React from 'react';
-import type { EnrichedBlogPost } from '../types.ts';
+import type { EnrichedBlogPost } from '../types/types';
 import { motion, type Transition, type Variants } from 'framer-motion';
 
 interface BlogCardProps {

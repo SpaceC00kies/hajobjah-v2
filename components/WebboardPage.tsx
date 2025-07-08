@@ -1,13 +1,14 @@
 
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 // Corrected import path for types
-import type { WebboardPost, WebboardComment, User, EnrichedWebboardPost, EnrichedWebboardComment, UserLevel, UserRole } from '../types.ts';
-import { View, USER_LEVELS, WebboardCategory } from '../types.ts';
+import type { WebboardPost, WebboardComment, User, EnrichedWebboardPost, EnrichedWebboardComment, UserLevel, UserRole } from '../types/types';
+import { View, USER_LEVELS, WebboardCategory } from '../types/types';
 import { Button } from './Button.tsx';
 import { WebboardPostCard } from './WebboardPostCard.tsx';
 import { WebboardPostDetail } from './WebboardPostDetail.tsx';
 import { WebboardPostCreateForm } from './WebboardPostCreateForm.tsx';
-import { getWebboardPostsPaginated as getWebboardPostsPaginatedService } from '../services/firebaseService.ts'; // Import paginated fetch
+import { getWebboardPostsPaginated as getWebboardPostsPaginatedService } from '../services/webboardService.ts'; // Import paginated fetch
 import type { DocumentSnapshot } from 'firebase/firestore'; // For pagination
 import { logFirebaseError } from '../firebase/logging.ts';
 import { motion, AnimatePresence, type Variants, type Transition } from 'framer-motion';

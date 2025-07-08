@@ -13,7 +13,7 @@ import {
 import { getUserDocument } from '../services/userService';
 import { containsBlacklistedWords } from '../utils/validation';
 import { logFirebaseError } from '../firebase/logging';
-import type { User, WebboardCategory, WebboardPost } from '../types';
+import type { User, WebboardCategory, WebboardPost } from '../types/types.ts';
 
 export const useWebboard = () => {
   const { currentUser, setCurrentUser } = useAuth();

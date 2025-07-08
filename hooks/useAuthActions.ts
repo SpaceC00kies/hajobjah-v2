@@ -1,4 +1,3 @@
-
 import { useCallback } from 'react';
 import {
   signUpWithEmailPasswordService,
@@ -6,7 +5,7 @@ import {
   signOutUserService,
   sendPasswordResetEmailService,
 } from '../services/authService';
-import type { RegistrationDataType, User } from '../types';
+import type { RegistrationDataType, User } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
 
 export const useAuthActions = () => {

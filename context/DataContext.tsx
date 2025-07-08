@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext, useMemo } from 'react';
-import type { User, Interaction, WebboardPost, WebboardComment, Job, HelperProfile, VouchReport, BlogPost, Interest } from '../types.ts';
+import type { User, Interaction, WebboardPost, WebboardComment, Job, HelperProfile, VouchReport, BlogPost, Interest } from '../types/types.ts';
 import { useAuth } from './AuthContext.tsx';
 import { subscribeToUsersService, subscribeToUserSavedPostsService } from '../services/userService.ts';
 import { getJobsPaginated } from '../services/jobService.ts';

@@ -1,7 +1,8 @@
 
+
 import React, { useState, useEffect } from 'react';
-import type { User } from '../types.ts';
-import { GenderOption, HelperEducationLevelOption } from '../types.ts'; // Keep for default values, not for form inputs
+import type { User } from '../types/types.ts';
+import { GenderOption, HelperEducationLevelOption } from '../types/types.ts'; // Keep for default values, not for form inputs
 import { Button } from './Button.tsx';
 import { isValidThaiMobileNumber } from '../utils/validation.ts';
 

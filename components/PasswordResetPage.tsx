@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { auth } from '../firebase.ts'; // Firebase auth instance
 import { verifyPasswordResetCode, confirmPasswordReset, type AuthError } from '@firebase/auth';
 import { Button } from './Button.tsx';
-import { View } from '../types.ts';
+import { View } from '../types/types.ts';
 
 interface PasswordResetPageProps {
   navigateTo: (view: View) => void;

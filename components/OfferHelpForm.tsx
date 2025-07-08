@@ -1,8 +1,8 @@
 
 
 import React, { useState, useEffect } from 'react';
-import type { HelperProfile, User } from '../types.ts'; // Added User
-import { JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types.ts'; // Added Province
+import type { HelperProfile, User } from '../types/types.ts'; // Added User
+import { JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts'; // Added Province
 import { Button } from './Button.tsx';
 import { useHelpers } from '../hooks/useHelpers.ts';
 import { logFirebaseError } from '../firebase/logging.ts';

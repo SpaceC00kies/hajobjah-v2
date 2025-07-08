@@ -9,7 +9,7 @@ import {
 } from '../services/userService';
 import { toggleInterestService } from '../services/interactionService';
 import { reportVouchService } from '../services/adminService';
-import type { User, Vouch, VouchType } from '../types';
+import type { User, Vouch, VouchType } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
 
 export const useUser = () => {

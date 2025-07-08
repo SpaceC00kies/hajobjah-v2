@@ -1,6 +1,7 @@
 
-import type { User, WebboardPost, WebboardComment, UserLevel } from '../types.ts';
-import { USER_LEVELS, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS } from '../types.ts';
+
+import type { User, WebboardPost, WebboardComment, UserLevel } from '../types/types.ts';
+import { USER_LEVELS, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS } from '../types/types.ts';
 
 export const checkProfileCompleteness = (user: User): boolean => {
   return (

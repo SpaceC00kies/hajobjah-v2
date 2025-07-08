@@ -1,6 +1,7 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
-import type { User, Job, HelperProfile, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, Interest, EnrichedHelperProfile } from '../types.ts';
-import { View, UserTier } from '../types.ts';
+import type { User, Job, HelperProfile, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, Interest, EnrichedHelperProfile } from '../types/types.ts';
+import { View, UserTier } from '../types/types.ts';
 import { Button } from './Button.tsx';
 import { UserProfilePage } from './UserProfilePage.tsx';
 import { WebboardPostCard } from './WebboardPostCard.tsx';

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import type { EnrichedBlogPost, FilterableBlogCategory } from '../types.ts';
-import { BlogCategory } from '../types.ts';
+import type { EnrichedBlogPost, FilterableBlogCategory } from '../types/types';
+import { BlogCategory } from '../types/types';
 import { BlogCard } from './BlogCard.tsx';
 import { motion } from 'framer-motion';
 

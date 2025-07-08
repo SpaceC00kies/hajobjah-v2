@@ -1,6 +1,7 @@
+
 import React from 'react';
-import type { Job, HelperProfile, User, WebboardPost, WebboardComment, UserLevel } from '../types.ts';
-import { View } from '../types.ts';
+import type { Job, HelperProfile, User, WebboardPost, WebboardComment, UserLevel } from '../types/types.ts';
+import { View } from '../types/types.ts';
 import { Button } from './Button.tsx';
 import { isDateInPast, calculateHoursRemaining } from '../utils/dateUtils.ts';
 

@@ -1,7 +1,9 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from './Button.tsx';
 import { Modal } from './Modal.tsx';
+import type { View } from '../types/types.ts';
 
 interface ForgotPasswordModalProps {
   isOpen: boolean;

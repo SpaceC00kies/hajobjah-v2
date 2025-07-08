@@ -75,7 +75,7 @@ import {
   type HelperEducationLevelOption,
   type BlogPost,
   type BlogComment,
-} from '../types.ts';
+} from '../types/types';
 import { logFirebaseError } from '../firebase/logging.ts';
 
 

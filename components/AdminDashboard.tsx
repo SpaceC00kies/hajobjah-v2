@@ -1,8 +1,8 @@
 
 
 import React, { useState, useEffect } from 'react';
-import type { Job, HelperProfile, User, Interaction, WebboardPost, WebboardComment, UserLevel, VouchReport, Vouch, VouchType, BlogPost } from '../types.ts';
-import { UserRole, VouchReportStatus, VOUCH_TYPE_LABELS } from '../types.ts';
+import type { Job, HelperProfile, User, Interaction, WebboardPost, WebboardComment, UserLevel, VouchReport, Vouch, VouchType, BlogPost } from '../types/types.ts';
+import { UserRole, VouchReportStatus, VOUCH_TYPE_LABELS } from '../types/types.ts';
 import { Button } from './Button.tsx';
 import { OrionCommandCenter } from './OrionCommandCenter.tsx';
 import { useJobs } from '../hooks/useJobs.ts';

@@ -1,8 +1,8 @@
 
 
 import React, { useState } from 'react';
-import type { Job, User } from '../types.ts';
-import { View, JobCategory, JOB_CATEGORY_EMOJIS_MAP, JobDesiredEducationLevelOption, Province } from '../types.ts';
+import type { Job, User } from '../types/types';
+import { View, JobCategory, JOB_CATEGORY_EMOJIS_MAP, JobDesiredEducationLevelOption, Province } from '../types/types';
 import { Button } from './Button.tsx'; // Import Button
 import { Modal } from './Modal.tsx';
 import { isDateInPast } from '../utils/dateUtils.ts';
@@ -278,7 +278,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
   );
 };
 
-declare module '../types.ts' {
+declare module '../types/types' {
     interface Job {
         userPhoto?: string; // Add this to Job type if it's not already there from some enrichment process
     }

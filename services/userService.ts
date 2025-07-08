@@ -20,7 +20,7 @@ import {
   addDoc,
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import type { User, Vouch, VouchType } from '../types';
+import type { User, Vouch, VouchType } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps, cleanDataForFirestore } from './serviceUtils';
 import { uploadImageService, deleteImageService } from './storageService';

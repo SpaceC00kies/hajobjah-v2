@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from './Button.tsx';
 import { Modal } from './Modal.tsx';
-import type { Vouch } from '../types.ts';
+import type { Vouch } from '../types/types';
 import { useUser } from '../hooks/useUser.ts';
 
 interface ReportVouchModalProps {

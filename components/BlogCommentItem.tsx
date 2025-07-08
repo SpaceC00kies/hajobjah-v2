@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { BlogComment, User } from '../types.ts';
+import type { BlogComment, User } from '../types/types';
 import { Button } from './Button.tsx';
 
 interface BlogCommentItemProps {
@@ -21,7 +21,7 @@ export const BlogCommentItem: React.FC<BlogCommentItemProps> = ({ comment, curre
     setIsEditing(false);
   };
 
-  const wasEdited = new Date(comment.updatedAt).getTime() > new Date(comment.createdAt).getTime() + 1000;
+  const wasEdited = new Date(comment.updatedAt as string).getTime() > new Date(comment.createdAt as string).getTime() + 1000;
 
   return (
     <div className="flex items-start space-x-4">
@@ -37,7 +37,7 @@ export const BlogCommentItem: React.FC<BlogCommentItemProps> = ({ comment, curre
           <div>
             <span className="font-semibold text-sm text-neutral-dark">{comment.authorDisplayName}</span>
             <span className="text-xs text-neutral-medium ml-2">
-              {new Date(comment.createdAt).toLocaleDateString('th-TH', { month: 'short', day: 'numeric' })}
+              {new Date(comment.createdAt as string).toLocaleDateString('th-TH', { month: 'short', day: 'numeric' })}
               {wasEdited && <span className="italic"> (edited)</span>}
             </span>
           </div>

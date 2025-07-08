@@ -23,7 +23,7 @@ import {
   arrayUnion,
 } from 'firebase/firestore';
 import { db } from '../firebase';
-import type { BlogPost, BlogComment } from '../types';
+import type { BlogPost, BlogComment } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps } from './serviceUtils';
 import { uploadImageService, deleteImageService } from './storageService';

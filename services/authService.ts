@@ -27,8 +27,8 @@ import {
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../firebase';
-import type { User, UserRole, UserTier, VouchInfo, GenderOption, HelperEducationLevelOption } from '../types';
-import { USER_LEVELS } from '../types';
+import type { User, UserRole, UserTier, VouchInfo, GenderOption, HelperEducationLevelOption } from '../types/types.ts';
+import { USER_LEVELS } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps, cleanDataForFirestore } from './serviceUtils';
 

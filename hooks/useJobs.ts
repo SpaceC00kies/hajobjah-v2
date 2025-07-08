@@ -1,4 +1,3 @@
-
 import { useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -13,7 +12,7 @@ import { updateUserProfileService, getUserDocument } from '../services/userServi
 import { containsBlacklistedWords } from '../utils/validation';
 import { isDateInPast } from '../utils/dateUtils';
 import { logFirebaseError } from '../firebase/logging';
-import type { Job, User } from '../types';
+import type { Job, User } from '../types/types.ts';
 
 const JOB_COOLDOWN_DAYS = 3;
 const MAX_ACTIVE_JOBS_FREE_TIER = 3;

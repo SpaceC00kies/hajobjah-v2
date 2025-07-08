@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { orionAnalyzeService } from '../services/firebaseService.ts';
-import type { OrionMessage } from '../types.ts';
+import type { OrionMessage } from '../types/types';
 import { Button } from './Button.tsx';
 import { motion, AnimatePresence } from 'framer-motion';
 

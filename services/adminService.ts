@@ -9,7 +9,7 @@
 import { doc, onSnapshot, setDoc, updateDoc, collection, addDoc, orderBy, query, runTransaction, deleteDoc, getDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../firebase';
-import type { SiteConfig, UserRole, Vouch, VouchReport, VouchReportStatus, VouchType, Job, HelperProfile, WebboardPost } from '../types';
+import type { SiteConfig, UserRole, Vouch, VouchReport, VouchReportStatus, VouchType, Job, HelperProfile, WebboardPost } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps } from './serviceUtils';
 
