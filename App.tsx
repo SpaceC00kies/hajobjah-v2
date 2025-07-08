@@ -58,7 +58,7 @@ import {
   toggleBlogPostLikeService,
 } from './services/firebaseService.ts';
 import type { DocumentSnapshot, DocumentData } from 'firebase/firestore';
-import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier, Interest, VouchType, Vouch, VouchReport, VouchReportStatus, OrionMessage, BlogPost, EnrichedBlogPost, BlogComment } from './types.ts'; // Added Vouch, OrionMessage, BlogPost, BlogComment
+import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier, Interest, VouchType, Vouch, VouchReport, VouchReportStatus, OrionMessage, BlogPost, EnrichedBlogPost, BlogComment, FilterableBlogCategory } from './types.ts'; // Added Vouch, OrionMessage, BlogPost, BlogComment
 import type { AdminItem as AdminItemType } from './components/AdminDashboard.tsx';
 import { View, GenderOption, HelperEducationLevelOption, JobCategory, JobSubCategory, USER_LEVELS, UserLevelName, UserRole, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, WebboardCategory, JOB_CATEGORY_EMOJIS_MAP, ACTIVITY_BADGE_DETAILS, Province, JOB_SUBCATEGORIES_MAP } from './types.ts';
 import { PostJobForm } from './components/PostJobForm.tsx';
@@ -2424,7 +2424,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
         initialTab={myRoomInitialTabOverride}
         onInitialTabProcessed={() => setMyRoomInitialTabOverride(null)}
         getAuthorDisplayName={getAuthorDisplayName}
-        onToggleInterest={onToggleInterest}
+        onToggleInterest={handleToggleInterest}
         onToggleLike={handleToggleWebboardPostLike}
         requestLoginForAction={requestLoginForAction}
         onEditJobFromFindView={handleEditOwnJobFromFindView}
