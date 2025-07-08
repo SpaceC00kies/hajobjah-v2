@@ -23,5 +23,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["firebase.ts", "types/types.ts", "App.tsx", "index.tsx", "components", "services", "utils", "hooks"]
+  "include": ["firebase.ts", "App.tsx", "index.tsx", "vite-env.d.ts", "components", "context", "hooks", "services", "types", "utils", "firebase"]
 }
