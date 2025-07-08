@@ -1,231 +1,157 @@
-<script type="importmap">
-  {
-    "imports": {
-      "react": "https://esm.sh/react@^19.1.0",
-      "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
-      "react/": "https://esm.sh/react@^19.1.0/",
-      "firebase/": "https://esm.sh/firebase@^11.10.0/",
-      "framer-motion": "https://esm.sh/framer-motion@^12.23.0",
-      "vite": "https://esm.sh/vite@^7.0.3",
-      "@firebase/auth": "https://esm.sh/@firebase/auth@^1.10.8",
-      "firebase-functions": "https://esm.sh/firebase-functions@^6.3.2",
-      "firebase-admin": "https://esm.sh/firebase-admin@^13.4.0",
-      "@google/genai": "https://esm.sh/@google/genai@^1.8.0",
-      "cors": "https://esm.sh/cors@^2.8.5"
-    }
-  }
-  </script>
-  <!DOCTYPE html>
-  <html lang="th">
-    <head>
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>HAJOBJA.COM</title>
-      <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>">
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HAJOBJA.COM</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>">
+    
+    <!-- 1. Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;600&family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- 2. User's Global Styles from Monolith -->
+    <style>
+      :root {
+        /* Core Brand Colors */
+        --primary-blue: #87CEEB;      /* Sky Blue - Main brand color */
+        --primary-light: #E6F4FF;     /* Pale Sky - Backgrounds */
+        --primary-medium: #6BB6D6;    /* Medium Sky - Hover states */
+        --primary-dark: #4A90A4;      /* Deep Sky - Headers/Important text */
+
+        /* Supporting Colors */
+        --accent-peach: #FFE5B4;      /* Soft Peach */
+        --accent-peach-hover: #FFD9A3; /* Darker Peach - Hover for peach elements */
+        --success-green: #98D8C8;     /* Mint Green - Success states */
+        --error-red: #FFB5B5;         /* Soft Red - Errors */
+        --neutral-gray: #666666;      /* Body text */
+        --neutral-light: #F8F9FA;     /* Light backgrounds */
+        --white: #FFFFFF;             /* Cards and clean spaces */
+      }
       
-      <!-- 1. Fonts -->
-      <link rel="preconnect" href="https://fonts.googleapis.com">
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;600&family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
-      <!-- 2. User's Global Styles -->
-      <style>
-        :root {
-          /* Core Brand Colors */
-          --primary-blue: #87CEEB;      /* Sky Blue - Main brand color */
-          --primary-light: #E6F4FF;     /* Pale Sky - Backgrounds */
-          --primary-medium: #6BB6D6;    /* Medium Sky - Hover states */
-          --primary-dark: #4A90A4;      /* Deep Sky - Headers/Important text */
-  
-          /* Supporting Colors */
-          --accent-peach: #FFE5B4;      /* Soft Peach - Reverted as per user request */
-          --accent-peach-hover: #FFD9A3; /* Darker Peach - Hover for peach elements */
-          --success-green: #98D8C8;     /* Mint Green - Success states */
-          --error-red: #FFB5B5;         /* Soft Red - Errors */
-          --neutral-gray: #666666;      /* Body text */
-          --neutral-light: #F8F9FA;     /* Light backgrounds */
-          --white: #FFFFFF;             /* Cards and clean spaces */
-        }
-        
-        html {
-          background-color: var(--neutral-light);
-        }
-        body {
-          /* height: 100%; REMOVED */
-        }
-        #root {
-          /* height: 100%; REMOVED */
-        }
-  
-        /* --- Base Form Element Styles (Pastel Blue Theme) --- */
-        input[type="text"],
-        input[type="email"],
-        input[type="password"],
-        input[type="tel"],
-        input[type="date"],
-        input[type="time"],
-        input[type="search"],
-        input[type="number"],
-        textarea,
-        select {
-          padding: 12px; /* p-3 */
-          border: 1px solid var(--primary-light);
-          border-radius: 8px; /* rounded-md */
-          font-family: theme('fontFamily.serif');
-          font-weight: 400; /* normal */
-          font-size: 16px; /* base */
+      html {
+        background-color: var(--neutral-light);
+      }
+
+      /* Base Form Element Styles */
+      input, textarea, select {
+        padding: 12px;
+        border: 1px solid var(--primary-light);
+        border-radius: 8px;
+        font-family: theme('fontFamily.serif');
+        color: var(--primary-dark);
+        background-color: var(--white);
+        transition: all 0.15s ease-in-out;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+      }
+
+      input:focus, textarea:focus, select:focus {
+        outline: none;
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 3px rgba(135, 206, 235, 0.25);
+      }
+
+      /* Navigation Pills */
+      .nav-pill {
+          padding: 8px 20px;
+          border-radius: 20px;
+          background: var(--primary-light);
           color: var(--primary-dark);
-          background-color: var(--white);
-          transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-          -webkit-appearance: none;
-          -moz-appearance: none;
-          appearance: none;
-        }
-  
-        /* Default Focus State - Pastel Blue Theme */
-        input[type="text"]:focus,
-        input[type="email"]:focus,
-        input[type="password"]:focus,
-        input[type="tel"]:focus,
-        input[type="date"]:focus,
-        input[type="time"]:focus,
-        input[type="search"]:focus,
-        input[type="number"]:focus,
-        textarea:focus,
-        select:focus {
-          outline: none;
-          border-color: var(--primary-blue);
-          box-shadow: 0 0 0 3px rgba(135, 206, 235, 0.25);
-          background-color: var(--white);
-        }
-  
-        /* Error state class - Pastel Blue Theme */
-        .input-error {
-          border-color: var(--error-red) !important;
-        }
-        .input-error:focus {
-          border-color: var(--error-red) !important;
-          box-shadow: 0 0 0 3px rgba(255, 181, 181, 0.25) !important;
-        }
-  
-        /* Select arrow styling - Pastel Blue Theme */
-        select {
-          background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%234A90A4' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); /* primary-dark */
-          background-position: right 0.75rem center;
-          background-repeat: no-repeat;
-          background-size: 1.25em 1.25em;
-          padding-right: 2.5rem;
-        }
-  
-        /* --- UNIFIED Card Styles (Pastel Blue Theme) --- */
-        .helper-card-redesigned, .job-card-redesigned {
-          background: var(--white);
-          border: 1px solid var(--primary-light);
-          border-radius: 16px;
-          box-shadow: 0 2px 12px rgba(135, 206, 235, 0.1);
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
+          text-decoration: none;
+          font-weight: 500;
+          font-size: 14px;
           transition: all 0.3s ease;
-        }
-        .helper-card-redesigned:hover, .job-card-redesigned:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 20px rgba(135, 206, 235, 0.2);
-          border-color: var(--primary-blue);
-        }
-        
-         /* --- Homepage Polish Styles --- */
-        .home-card {
-          background: #FFFFFF;
-          border: 1px solid #E6F4FF;
-          border-radius: 16px;
-          box-shadow: 0 2px 12px rgba(135, 206, 235, 0.15);
-          transition: all 0.3s ease;
-          cursor: pointer;
-          padding: 2rem; /* p-8 */
-        }
-  
-        .home-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 24px rgba(135, 206, 235, 0.25);
-            border-color: #87CEEB;
-        }
-  
-        .btn-primary {
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        .btn-primary:hover {
-            background: var(--primary-dark);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(135, 206, 235, 0.3);
-        }
-        .btn-secondary {
-            transition: all 0.3s ease;
-        }
-        .btn-secondary:hover {
-            background: #FFD9A3;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(255, 229, 180, 0.3);
-        }
-        
-        /* Navigation pill base state */
-        .nav-pill {
-            padding: 8px 20px;
-            border-radius: 20px;
-            background: var(--primary-light);  /* #E6F4FF - Very light */
-            color: var(--primary-dark);        /* #4A90A4 - Dark text */
-            text-decoration: none;
-            font-weight: 500;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            border: 2px solid transparent;
-        }
-  
-        /* Hover state - Medium intensity */
-        .nav-pill:hover {
-            background: var(--primary-medium);  /* #6BB6D6 - Medium blue */
-            color: white;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(135, 206, 235, 0.3);
-        }
-  
-        /* Active/Selected state - Highest intensity */
-        .nav-pill.active {
-            background: var(--primary-dark);    /* #4A90A4 - Dark blue */
-            color: white;
-            font-weight: 600;
-            box-shadow: 0 2px 8px rgba(74, 144, 164, 0.2);
-            border-color: var(--primary-dark);
-        }
-  
-        /* Focus state for keyboard navigation */
-        .nav-pill:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(135, 206, 235, 0.5);
-        }
-  
-        @media (max-width: 768px) {
-            .nav-pill {
-                padding: 10px 16px;
-                font-size: 13px;
-                /* Ensure touch targets are at least 44x44px */
-                min-height: 44px;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          border: 2px solid transparent;
+      }
+      .nav-pill:hover {
+          background: var(--primary-medium);
+          color: white;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(135, 206, 235, 0.3);
+      }
+      .nav-pill.active {
+          background: var(--primary-dark);
+          color: white;
+          font-weight: 600;
+      }
+
+      /* Homepage Styles */
+      .hero-section {
+          background: linear-gradient(180deg, #E6F4FF 0%, #F0F9FF 80%, #FFFFFF 100%);
+      }
+      .hero-title {
+          font-size: 48px;
+          font-weight: 700;
+          color: #4A90A4;
+          margin-bottom: 20px;
+      }
+      .hero-subtitle {
+          font-size: 18px;
+          color: #666666;
+          margin-bottom: 48px;
+      }
+      .home-card {
+        background: #FFFFFF;
+        border: 1px solid #E6F4FF;
+        border-radius: 16px;
+        box-shadow: 0 2px 12px rgba(135, 206, 235, 0.15);
+        transition: all 0.3s ease;
+        padding: 2rem;
+      }
+      .home-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 6px 24px rgba(135, 206, 235, 0.25);
+          border-color: #87CEEB;
+      }
+    </style>
+
+    <!-- 3. Tailwind CDN Script -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 4. Tailwind Config Script -->
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Prompt', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+              serif: ['Sarabun', 'Inter', 'ui-serif', 'serif'],
+            },
+            colors: {
+              primary: {
+                DEFAULT: 'var(--primary-blue)',
+                hover: 'var(--primary-medium)',
+                dark: 'var(--primary-dark)',
+                light: 'var(--primary-light)',
+              },
+              secondary: {
+                DEFAULT: 'var(--accent-peach)',
+                hover: 'var(--accent-peach-hover)',
+              },
+              accent: {
+                DEFAULT: 'var(--error-red)',
+              },
+              neutral: {
+                light: 'var(--neutral-light)',
+                DEFAULT: '#E0E0E0',
+                dark: 'var(--neutral-gray)',
+                medium: 'var(--neutral-gray)',
+              },
+              white: 'var(--white)',
             }
-            
-            .nav-pill.active {
-                /* Even more prominent on mobile */
-                background: var(--primary-dark);
-                box-shadow: 0 4px 12px rgba(74, 144, 164, 0.3);
-            }
+          }
         }
-  
-        .hero-title {
-            font-size: 48px;
-            font-weight: 700;
-            color: #4A90A4;
-            margin-bottom: 2
+      }
+    </script>
+  </head>
+  <body class="bg-neutral-light font-serif text-neutral-dark">
+    <div id="root"></div>
+    <script type="module" src="/src/index.tsx"></script>
+  </body>
+</html>
