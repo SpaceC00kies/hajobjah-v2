@@ -5,7 +5,7 @@ import type { EnrichedWebboardComment, User, View } from '../types.ts'; // Added
 import { UserRole } from '../types.ts';
 // UserLevelBadge is removed as it's no longer displayed here
 import { Button } from './Button.tsx';
-import { containsBlacklistedWords } from '../App.tsx';
+import { containsBlacklistedWords } from '../utils/validation.ts';
 import { motion, Variants, Transition } from 'framer-motion'; // Import motion
 
 interface WebboardCommentItemProps {

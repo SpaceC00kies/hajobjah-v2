@@ -49,7 +49,7 @@ const Icon = ({ path, className = "w-4 h-4" }: { path: string; className?: strin
 const LikeIcon = () => <Icon path="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" className="w-4 h-4 text-neutral-500" />;
 const LikedIcon = () => <Icon path="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" className="w-4 h-4 text-red-500" />;
 const SaveIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" className="w-4 h-4 text-neutral-500" />;
-const SavedIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" className="w-4 h-4 text-blue-500"/>;
+const SavedIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" className="w-4 h-4 text-primary"/>;
 const ShareIcon = () => <Icon path="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" className="w-4 h-4 text-neutral-500" />;
 
 const commentListVariants: Variants = {
@@ -202,7 +202,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
                 {currentUser && (
                     <button
                         onClick={handleSaveClick}
-                        className={`${actionButtonBaseClass} ${isSaved ? 'text-blue-500' : 'text-neutral-500'}`}
+                        className={`${actionButtonBaseClass} ${isSaved ? 'text-primary' : 'text-neutral-500'}`}
                         aria-label={isSaved ? "Unsave" : "Save"}
                     >
                         {isSaved ? <SavedIcon /> : <SaveIcon />}

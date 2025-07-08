@@ -49,18 +49,16 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
     }
 
     setIsLoading(true);
-    const result = await onSendResetEmail(email);
-    setIsLoading(false);
-
-    if (typeof result === 'string') {
-      setError(result);
-    } else {
+    try {
+      await onSendResetEmail(email);
       setSuccessMessage('หากอีเมลนี้มีอยู่ในระบบของเรา คุณจะได้รับอีเมลพร้อมคำแนะนำในการรีเซ็ตรหัสผ่านในไม่ช้า');
-      setEmail(''); 
+      setEmail('');
+    } catch (err: any) {
+      setError(err.message || 'เกิดข้อผิดพลาดในการส่งอีเมล');
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  const brandGreenFocusStyle = "focus:!border-brandGreen focus:!ring-1 focus:!ring-brandGreen focus:!bg-gray-50/70";
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="🔑 ลืมรหัสผ่าน?">
@@ -83,7 +81,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
               if (error) setError(null);
               if (successMessage) setSuccessMessage(null);
             }}
-            className={`w-full ${error ? 'input-error' : brandGreenFocusStyle}`}
+            className={`w-full ${error ? 'input-error' : ''}`}
             placeholder="your.email@example.com"
             disabled={isLoading}
           />
@@ -99,7 +97,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <Button
             type="submit"
-            variant="login" 
+            variant="primary" 
             size="md"
             className="w-full sm:flex-grow"
             disabled={isLoading}

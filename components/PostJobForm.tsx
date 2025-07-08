@@ -1,27 +1,28 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
-import type { Job, User } from '../types.ts'; // Added User
-import { JobDesiredEducationLevelOption, JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types.ts'; // Added Province
+import type { Job, User, View } from '../types.ts';
+import { JobDesiredEducationLevelOption, JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types.ts';
 import { Button } from './Button.tsx';
-import { containsBlacklistedWords, calculateHoursRemaining } from '../App.tsx'; // Changed to calculateHoursRemaining
-import { getJobTemplateForCategory } from '../utils/templates.ts'; // Import the new template utility
+import { containsBlacklistedWords } from '../utils/validation.ts';
+import { getJobTemplateForCategory } from '../utils/templates.ts';
+import { useJobs } from '../hooks/useJobs.ts';
 
-type FormDataType = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired'>;
-
+type FormDataType = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'posterIsAdminVerified' | 'interestedCount'>;
 
 interface PostJobFormProps {
-  onSubmitJob: (jobData: FormDataType & { id?: string }) => void;
   onCancel: () => void;
   initialData?: Job;
   isEditing?: boolean;
-  currentUser: User | null; // Added currentUser
-  jobs: Job[]; // Added jobs list to check active limits
+  currentUser: User;
+  allJobsForAdmin: Job[];
+  navigateTo: (view: View, payload?: any) => void;
+  sourceViewForForm: View | null;
 }
 
 const initialFormStateForCreate: FormDataType = {
   title: '',
   location: '',
-  province: Province.ChiangMai, // Default province
+  province: Province.ChiangMai,
   dateTime: '',
   payment: '',
   description: '',
@@ -39,18 +40,15 @@ const initialFormStateForCreate: FormDataType = {
 
 type FormErrorsType = Partial<Record<keyof FormDataType, string>>;
 
-
-export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel, initialData, isEditing, currentUser, jobs }) => {
+export const PostJobForm: React.FC<PostJobFormProps> = ({ onCancel, initialData, isEditing, currentUser, allJobsForAdmin, navigateTo, sourceViewForForm }) => {
   const [formData, setFormData] = useState<FormDataType>(initialFormStateForCreate);
   const [formErrors, setFormErrors] = useState<FormErrorsType>({});
   const [availableSubCategories, setAvailableSubCategories] = useState<JobSubCategory[]>([]);
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
   const [canSubmit, setCanSubmit] = useState(true);
-  const [showTemplateButton, setShowTemplateButton] = useState(false); // State for template wizard button
+  const [showTemplateButton, setShowTemplateButton] = useState(false);
 
-  const JOB_COOLDOWN_DAYS_FORM = 3; // Updated to 3 days
-  const MAX_ACTIVE_JOBS_FREE_TIER_FORM = 3; // Updated for free tier
-  const MAX_ACTIVE_JOBS_BADGE_FORM = 4; // Badge enhancement
+  const { addJob, updateJob, checkJobPostingLimits } = useJobs();
 
   useEffect(() => {
     if (!currentUser) {
@@ -58,47 +56,23 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
       setLimitMessage("กรุณาเข้าสู่ระบบเพื่อโพสต์งาน");
       return;
     }
-    if (isEditing) { 
+    if (isEditing) {
       setCanSubmit(true);
       setLimitMessage(null);
     } else {
-      // Cooldown check
-      const cooldownHoursTotal = JOB_COOLDOWN_DAYS_FORM * 24;
-      const lastJobPostDate = currentUser.postingLimits?.lastJobPostDate;
-      if (lastJobPostDate) {
-        const hoursSinceLastPost = (new Date().getTime() - new Date(lastJobPostDate as string).getTime()) / (1000 * 60 * 60);
-        if (hoursSinceLastPost < cooldownHoursTotal) {
-          const hoursRemaining = Math.ceil(cooldownHoursTotal - hoursSinceLastPost);
-          setLimitMessage(`คุณสามารถโพสต์งานใหม่ได้ในอีก ${hoursRemaining} ชั่วโมง`);
-          setCanSubmit(false);
-          return;
-        }
-      }
-      // Active limit check
-      const userActiveJobs = jobs.filter(job => job.userId === currentUser.id && !job.isExpired && new Date(job.expiresAt as string) > new Date()).length;
-      
-      let maxJobs = (currentUser.tier === 'free') ? MAX_ACTIVE_JOBS_FREE_TIER_FORM : 999; // Default for free, high for others
-      if (currentUser.activityBadge?.isActive) {
-          maxJobs = MAX_ACTIVE_JOBS_BADGE_FORM; // Badge overrides
-      }
-
-      if (userActiveJobs >= maxJobs) {
-        setLimitMessage(`คุณมีงานที่ยังไม่หมดอายุ ${userActiveJobs}/${maxJobs} งานแล้ว`);
-        setCanSubmit(false);
-        return;
-      }
-      setLimitMessage(null);
-      setCanSubmit(true);
+      checkJobPostingLimits().then(({ canPost, message }) => {
+        setCanSubmit(canPost);
+        setLimitMessage(message || null);
+      });
     }
-  }, [currentUser, jobs, isEditing]);
-
+  }, [currentUser, allJobsForAdmin, isEditing, checkJobPostingLimits]);
 
   useEffect(() => {
     if (isEditing && initialData) {
-      setShowTemplateButton(false); // Don't show template button when editing
+      setShowTemplateButton(false);
       const {
         id, postedAt, userId, authorDisplayName, isSuspicious, isPinned, isHired, contact,
-        ownerId, createdAt, updatedAt, expiresAt, isExpired,
+        ownerId, createdAt, updatedAt, expiresAt, isExpired, posterIsAdminVerified, interestedCount,
         ...editableFieldsBase
       } = initialData;
 
@@ -115,16 +89,8 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
         desiredAgeEnd: editableFieldsBase.desiredAgeEnd,
         preferredGender: editableFieldsBase.preferredGender,
         desiredEducationLevel: editableFieldsBase.desiredEducationLevel,
-        dateNeededFrom: editableFieldsBase.dateNeededFrom
-                        ? (editableFieldsBase.dateNeededFrom instanceof Date
-                            ? editableFieldsBase.dateNeededFrom.toISOString().split('T')[0]
-                            : String(editableFieldsBase.dateNeededFrom))
-                        : '',
-        dateNeededTo: editableFieldsBase.dateNeededTo
-                        ? (editableFieldsBase.dateNeededTo instanceof Date
-                            ? editableFieldsBase.dateNeededTo.toISOString().split('T')[0]
-                            : String(editableFieldsBase.dateNeededTo))
-                        : '',
+        dateNeededFrom: editableFieldsBase.dateNeededFrom ? (editableFieldsBase.dateNeededFrom instanceof Date ? editableFieldsBase.dateNeededFrom.toISOString().split('T')[0] : String(editableFieldsBase.dateNeededFrom)) : '',
+        dateNeededTo: editableFieldsBase.dateNeededTo ? (editableFieldsBase.dateNeededTo instanceof Date ? editableFieldsBase.dateNeededTo.toISOString().split('T')[0] : String(editableFieldsBase.dateNeededTo)) : '',
         timeNeededStart: editableFieldsBase.timeNeededStart || '',
         timeNeededEnd: editableFieldsBase.timeNeededEnd || '',
       };
@@ -140,7 +106,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
     }
   }, [isEditing, initialData]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     const currentKey = name as keyof FormDataType;
     let newFormData = { ...formData };
@@ -183,11 +149,9 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
     const template = getJobTemplateForCategory(formData.category);
     if (template) {
       setFormData(prev => ({...prev, description: template}));
-      // Auto-focus on the textarea after applying template
       const textarea = document.getElementById('description');
       if (textarea) {
         textarea.focus();
-        // Move cursor to the end
         (textarea as HTMLTextAreaElement).setSelectionRange(template.length, template.length);
       }
     }
@@ -228,21 +192,29 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) {
         alert(limitMessage || "ไม่สามารถโพสต์ได้ในขณะนี้");
         return;
     }
     if (!validateForm()) return;
-    const dataToSubmit: FormDataType & { id?: string } = { ...formData };
-    if (isEditing && initialData) {
-      dataToSubmit.id = initialData.id;
-    }
-    onSubmitJob(dataToSubmit);
-    if (!isEditing) {
-        setFormData(initialFormStateForCreate);
-        setAvailableSubCategories([]);
+
+    try {
+        if (isEditing && initialData) {
+            await updateJob(initialData.id, formData);
+            alert('แก้ไขประกาศงานเรียบร้อยแล้ว');
+        } else {
+            await addJob(formData);
+            alert('ประกาศงานของคุณถูกเพิ่มแล้ว!');
+        }
+        navigateTo(sourceViewForForm || View.FindJobs);
+        if (!isEditing) {
+            setFormData(initialFormStateForCreate);
+            setAvailableSubCategories([]);
+        }
+    } catch (error: any) {
+        alert(`เกิดข้อผิดพลาด: ${error.message}`);
     }
   };
 
@@ -426,30 +398,31 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onSubmitJob, onCancel,
                      {formErrors.desiredAgeEnd && <p className="text-red-500 font-sans text-xs mt-1 font-normal">{formErrors.desiredAgeEnd}</p>}
                 </div>
             </div>
-            <div className="mb-4">
-                <label className="block text-sm font-sans font-medium text-neutral-dark mb-2">เพศที่ต้องการ</label>
+
+             <div>
+                <label className="block text-sm font-sans font-medium text-neutral-dark mb-1">เพศที่ต้องการ</label>
                 <div className="flex flex-wrap gap-x-6 gap-y-2">
-                    {(['ชาย', 'หญิง', 'ไม่จำกัด'] as const).map(gender => (
-                        <label key={gender} className="flex items-center space-x-2 cursor-pointer">
-                            <input type="radio" name="preferredGender" value={gender} checked={formData.preferredGender === gender} onChange={handleRadioChange} className="form-radio h-4 w-4 text-primary border-[#CCCCCC] focus:ring-primary" disabled={!canSubmit && !isEditing}/>
-                            <span className="text-neutral-dark font-sans font-normal">{gender}</span>
+                    {(['ชาย', 'หญิง', 'ไม่จำกัด'] as const).map(optionValue => (
+                        <label key={optionValue} className="flex items-center space-x-2 cursor-pointer">
+                            <input type="radio" name="preferredGender" value={optionValue} checked={formData.preferredGender === optionValue} onChange={handleRadioChange} className="form-radio h-4 w-4 text-primary border-[#CCCCCC] focus:ring-2 focus:ring-offset-1 focus:ring-offset-white focus:ring-primary focus:ring-opacity-70" disabled={!canSubmit && !isEditing}/>
+                            <span className="text-neutral-dark font-sans font-normal text-sm">{optionValue}</span>
                         </label>
                     ))}
                 </div>
             </div>
+
             <div>
-              <label htmlFor="desiredEducationLevel" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ระดับการศึกษาที่ต้องการ</label>
-              <select id="desiredEducationLevel" name="desiredEducationLevel" value={formData.desiredEducationLevel || ''} onChange={handleChange} className={`${selectBaseStyle} ${formErrors.desiredEducationLevel ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`} disabled={!canSubmit && !isEditing}>
-                <option value="">-- ไม่จำกัด --</option>
-                {Object.values(JobDesiredEducationLevelOption).filter(level => level !== JobDesiredEducationLevelOption.Any).map(level => (<option key={level} value={level}>{level}</option>))}
-              </select>
-              {formErrors.desiredEducationLevel && <p className="text-red-500 font-sans text-xs mt-1 font-normal">{formErrors.desiredEducationLevel}</p>}
+                <label htmlFor="desiredEducationLevel" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ระดับการศึกษาขั้นต่ำ</label>
+                <select id="desiredEducationLevel" name="desiredEducationLevel" value={formData.desiredEducationLevel || ''} onChange={handleChange} className={`${selectBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} disabled={!canSubmit && !isEditing}>
+                    <option value="" disabled>-- เลือกระดับการศึกษา --</option>
+                    {Object.values(JobDesiredEducationLevelOption).map(level => (<option key={level} value={level}>{level}</option>))}
+                </select>
             </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 pt-6">
+        <div className="flex flex-col sm:flex-row gap-4 pt-4">
           <Button type="submit" variant="primary" size="lg" className="w-full sm:w-auto flex-grow" disabled={!canSubmit && !isEditing}>
-            {isEditing ? '💾 บันทึกการแก้ไข' : (canSubmit ? 'ลงประกาศงาน' : 'ไม่สามารถโพสต์ได้')}
+            {isEditing ? '💾 บันทึกการแก้ไข' : (canSubmit ? '🚀 ลงประกาศงาน' : 'ไม่สามารถลงประกาศ')}
           </Button>
           <Button type="button" onClick={onCancel} variant="outline" colorScheme="primary" size="lg" className="w-full sm:w-auto flex-grow">
             ยกเลิก

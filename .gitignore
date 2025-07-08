@@ -34,3 +34,8 @@ App copy.tsx
 components/MyRoomPage copy.tsx
 *.html
 components/AdminDashboard copy.tsx
+types copy.ts
+services/firebaseService copy.ts
+functions/src/index copy.ts
+components/BlogPage copy.tsx
+components/ArticleEditor copy.tsx

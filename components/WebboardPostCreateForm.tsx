@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import type { WebboardPost, User } from '../types.ts'; // Added User, Fixed path
-import { WebboardCategory } from '../types.ts'; // Fixed path
-import { Button } from './Button.tsx'; // Fixed path
-import { Modal } from './Modal.tsx'; // Fixed path
-import { containsBlacklistedWords } from '../App.tsx'; // Fixed path
-import { getJobTemplateForCategory } from '../utils/templates.ts'; // Fixed path
+import type { WebboardPost, User } from '../types.ts'; 
+import { WebboardCategory } from '../types.ts'; 
+import { Button } from './Button.tsx'; 
+import { Modal } from './Modal.tsx'; 
+import { containsBlacklistedWords } from '../utils/validation.ts';
+import { getJobTemplateForCategory } from '../utils/templates.ts'; 
 
 interface WebboardPostCreateFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (postData: { title: string; body: string; category: WebboardCategory; image?: string }, postIdToUpdate?: string) => void;
   editingPost?: WebboardPost | null; 
-  currentUser: User | null; // Added currentUser
+  currentUser: User | null; 
   // Utility function to check limits, passed from App.tsx
   checkWebboardPostLimits: (user: User) => { canPost: boolean; message?: string | null }; 
 }

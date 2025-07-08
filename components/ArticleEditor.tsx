@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { BlogPost, User } from '../types.ts';
-import { BlogCategory } from '../types.ts'; // Import the enum
+import { BlogCategory } from '../types.ts';
 import { Button } from './Button.tsx';
+import { useBlog } from '../hooks/useBlog.ts';
 
 type BlogPostFormData = Partial<Omit<BlogPost, 'id' | 'authorId' | 'authorDisplayName' | 'authorPhotoURL' | 'createdAt' | 'updatedAt' | 'publishedAt' | 'slug' | 'tags'>> & {
   newCoverImageBase64?: string | null;
@@ -10,7 +11,6 @@ type BlogPostFormData = Partial<Omit<BlogPost, 'id' | 'authorId' | 'authorDispla
 };
 
 interface ArticleEditorProps {
-  onSubmit: (data: BlogPostFormData, existingPostId?: string) => void;
   onCancel: () => void;
   initialData?: BlogPost;
   isEditing: boolean;
@@ -29,9 +29,10 @@ const initialFormState: BlogPostFormData = {
   newCoverImagePreview: undefined,
 };
 
-export const ArticleEditor: React.FC<ArticleEditorProps> = ({ onSubmit, onCancel, initialData, isEditing, currentUser }) => {
+export const ArticleEditor: React.FC<ArticleEditorProps> = ({ onCancel, initialData, isEditing, currentUser }) => {
   const [formData, setFormData] = useState<BlogPostFormData>(initialFormState);
   const contentTextAreaRef = useRef<HTMLTextAreaElement>(null);
+  const { addOrUpdateBlogPost } = useBlog();
 
   useEffect(() => {
     if (isEditing && initialData) {
@@ -79,13 +80,14 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ onSubmit, onCancel
       }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const finalData = {
         ...formData,
         tags: formData.tagsInput.split(',').map(tag => tag.trim()).filter(Boolean),
     };
-    onSubmit(finalData, initialData?.id);
+    await addOrUpdateBlogPost(finalData, initialData?.id);
+    onCancel();
   };
 
   const insertTag = (tag: 'h1' | 'h2' | 'b' | 'i' | 'ul') => {

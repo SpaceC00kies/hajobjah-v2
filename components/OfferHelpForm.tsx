@@ -1,20 +1,20 @@
 
+
 import React, { useState, useEffect } from 'react';
 import type { HelperProfile, User } from '../types.ts'; // Added User
 import { JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types.ts'; // Added Province
 import { Button } from './Button.tsx';
-import { containsBlacklistedWords, calculateHoursRemaining } from '../App.tsx'; // Changed to calculateHoursRemaining
+import { useHelpers } from '../hooks/useHelpers.ts';
+import { logFirebaseError } from '../firebase/logging.ts';
 
 type FormDataType = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt'>;
 
 
 interface OfferHelpFormProps {
-  onSubmitProfile: (profileData: FormDataType & { id?: string }) => void;
   onCancel: () => void;
   initialData?: HelperProfile;
   isEditing?: boolean;
   currentUser: User | null; // Added currentUser
-  helperProfiles: HelperProfile[]; // Added helperProfiles list
 }
 
 const initialFormStateForCreate: FormDataType = {
@@ -33,16 +33,14 @@ const initialFormStateForCreate: FormDataType = {
 type FormErrorsType = Partial<Record<Exclude<keyof HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt'>, string>>;
 
 
-export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, onCancel, initialData, isEditing, currentUser, helperProfiles }) => {
+export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onCancel, initialData, isEditing, currentUser }) => {
   const [formData, setFormData] = useState<FormDataType>(initialFormStateForCreate);
   const [formErrors, setFormErrors] = useState<FormErrorsType>({});
   const [availableSubCategories, setAvailableSubCategories] = useState<JobSubCategory[]>([]);
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
   const [canSubmit, setCanSubmit] = useState(true);
 
-  const HELPER_PROFILE_COOLDOWN_DAYS_FORM = 3; // Updated to 3 days
-  const MAX_ACTIVE_HELPER_PROFILES_FREE_TIER_FORM = 1; // Updated for free tier
-  const MAX_ACTIVE_HELPER_PROFILES_BADGE_FORM = 2; // Badge enhancement
+  const { addHelperProfile, updateHelperProfile, checkHelperProfilePostingLimits } = useHelpers();
 
   useEffect(() => {
     if (!currentUser) {
@@ -54,35 +52,12 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
       setCanSubmit(true);
       setLimitMessage(null);
     } else {
-      // Cooldown check
-      const cooldownHoursTotal = HELPER_PROFILE_COOLDOWN_DAYS_FORM * 24;
-      const lastProfileDate = currentUser.postingLimits?.lastHelperProfileDate;
-      if (lastProfileDate) {
-        const hoursSinceLastPost = (new Date().getTime() - new Date(lastProfileDate as string).getTime()) / (1000 * 60 * 60);
-        if (hoursSinceLastPost < cooldownHoursTotal) {
-          const hoursRemaining = Math.ceil(cooldownHoursTotal - hoursSinceLastPost);
-          setLimitMessage(`คุณสามารถสร้างโปรไฟล์ใหม่ได้ในอีก ${hoursRemaining} ชั่วโมง`);
-          setCanSubmit(false);
-          return;
-        }
-      }
-      // Active limit check
-      const userActiveProfiles = helperProfiles.filter(p => p.userId === currentUser.id && !p.isExpired && new Date(p.expiresAt as string) > new Date()).length;
-      
-      let maxProfiles = (currentUser.tier === 'free') ? MAX_ACTIVE_HELPER_PROFILES_FREE_TIER_FORM : 999; // Default for free, high for others
-      if (currentUser.activityBadge?.isActive) {
-        maxProfiles = MAX_ACTIVE_HELPER_PROFILES_BADGE_FORM; // Badge overrides
-      }
-
-      if (userActiveProfiles >= maxProfiles) {
-        setLimitMessage(`คุณมีโปรไฟล์ผู้ช่วยที่ยังไม่หมดอายุ ${userActiveProfiles}/${maxProfiles} โปรไฟล์แล้ว`);
-        setCanSubmit(false);
-        return;
-      }
-      setLimitMessage(null);
-      setCanSubmit(true);
+      checkHelperProfilePostingLimits().then(({ canPost, message }) => {
+        setCanSubmit(canPost);
+        setLimitMessage(message || null);
+      });
     }
-  }, [currentUser, helperProfiles, isEditing]);
+  }, [currentUser, isEditing, checkHelperProfilePostingLimits]);
 
   useEffect(() => {
     if (isEditing && initialData) {
@@ -169,21 +144,25 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onSubmitProfile, o
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) {
         alert(limitMessage || "ไม่สามารถสร้างโปรไฟล์ได้ในขณะนี้");
         return;
     }
     if (!validateForm()) return;
-    const dataToSubmit: FormDataType & { id?: string } = { ...formData };
-    if (isEditing && initialData) {
-      dataToSubmit.id = initialData.id;
-    }
-    onSubmitProfile(dataToSubmit);
-     if (!isEditing) {
-        setFormData(initialFormStateForCreate);
-        setAvailableSubCategories([]);
+    try {
+        if (isEditing && initialData) {
+            await updateHelperProfile(initialData.id, formData);
+            alert('แก้ไขโปรไฟล์เรียบร้อยแล้ว');
+        } else {
+            await addHelperProfile(formData);
+            alert('สร้างโปรไฟล์เรียบร้อยแล้ว');
+        }
+        onCancel(); // Use the passed onCancel to navigate back
+    } catch (error: any) {
+        logFirebaseError("OfferHelpForm.handleSubmit", error);
+        alert(`เกิดข้อผิดพลาด: ${error.message}`);
     }
   };
 

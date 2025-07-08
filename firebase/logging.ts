@@ -1,3 +1,4 @@
+
 export const logFirebaseError = (functionName: string, error: unknown): void => {
   let errorMessage = "An unknown error occurred";
   let errorObject: any = error;

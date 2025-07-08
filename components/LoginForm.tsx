@@ -1,5 +1,4 @@
 
-
 import React, { useState } from 'react';
 import { Button } from './Button.tsx';
 
@@ -12,6 +11,7 @@ interface LoginFormProps {
 export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegister, onForgotPassword }) => {
   const [loginIdentifier, setLoginIdentifier] = useState(''); 
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -21,9 +21,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegiste
       setError('กรุณากรอกชื่อผู้ใช้/อีเมล และรหัสผ่าน');
       return;
     }
+    setIsLoading(true);
     const success = await onLogin(loginIdentifier, password);
+    setIsLoading(false);
+
     if (!success) {
-      // Error message is shown by App.tsx alert
+      setError('ชื่อผู้ใช้/อีเมล หรือรหัสผ่านไม่ถูกต้อง');
     } else {
       setLoginIdentifier('');
       setPassword('');
@@ -45,6 +48,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegiste
             onChange={(e) => setLoginIdentifier(e.target.value)}
             className={`w-full ${error && !password ? 'input-error' : ''}`}
             placeholder="กรอกชื่อผู้ใช้หรืออีเมลของคุณ"
+            disabled={isLoading}
           />
         </div>
         <div>
@@ -56,6 +60,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegiste
               type="button" 
               onClick={onForgotPassword} 
               className="text-xs font-sans text-neutral-medium hover:text-primary hover:underline focus:outline-none"
+              disabled={isLoading}
             >
               ลืมรหัสผ่าน?
             </button>
@@ -67,15 +72,16 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegiste
             onChange={(e) => setPassword(e.target.value)}
             className={`w-full ${error ? 'input-error' : ''}`}
             placeholder="กรอกรหัสผ่าน"
+            disabled={isLoading}
           />
         </div>
         {error && <p className="text-red-500 font-sans text-sm text-center">{error}</p>}
-        <Button type="submit" variant="primary" size="lg" className="w-full">
-          เข้าสู่ระบบ
+        <Button type="submit" variant="primary" size="lg" className="w-full" disabled={isLoading}>
+          {isLoading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
         </Button>
         <p className="text-center text-sm font-serif text-neutral-dark font-normal">
           ยังไม่มีบัญชี?{' '}
-          <button type="button" onClick={onSwitchToRegister} className="font-sans font-medium text-primary hover:underline">
+          <button type="button" onClick={onSwitchToRegister} className="font-sans font-medium text-primary hover:underline" disabled={isLoading}>
             ลงทะเบียนที่นี่
           </button>
         </p>

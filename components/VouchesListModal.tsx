@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from './Button.tsx';
 import { Modal } from './Modal.tsx';
@@ -6,14 +5,15 @@ import type { User, Vouch } from '../types.ts';
 import { VOUCH_TYPE_LABELS } from '../types.ts';
 import { getVouchesForUserService } from '../services/firebaseService.ts';
 import { logFirebaseError } from '../firebase/logging.ts';
+import { useUser } from '../hooks/useUser.ts';
 
 interface VouchesListModalProps {
   isOpen: boolean;
   onClose: () => void;
   userToList: User;
   navigateToPublicProfile: (userId: string) => void;
-  onReportVouch: (vouch: Vouch) => void; // New prop for reporting
-  currentUser: User | null; // New prop to check login status
+  onReportVouch: (vouch: Vouch) => void;
+  currentUser: User | null;
 }
 
 export const VouchesListModal: React.FC<VouchesListModalProps> = ({

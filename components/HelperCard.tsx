@@ -5,7 +5,7 @@ import type { EnrichedHelperProfile, User } from '../types.ts';
 import { View, Province, ACTIVITY_BADGE_DETAILS } from '../types.ts';
 import { Modal } from './Modal.tsx';
 import { Button } from './Button.tsx'; // Import Button
-import { isDateInPast, calculateDaysRemaining } from '../App.tsx';
+import { isDateInPast, calculateDaysRemaining } from '../utils/dateUtils.ts';
 import { UserLevelBadge } from './UserLevelBadge.tsx';
 import { motion, Transition } from 'framer-motion';
 

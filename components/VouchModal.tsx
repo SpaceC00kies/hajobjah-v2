@@ -1,14 +1,13 @@
-
 import React, { useState } from 'react';
 import { Button } from './Button.tsx';
 import { Modal } from './Modal.tsx';
 import type { User, VouchType } from '../types.ts';
 import { VOUCH_TYPE_LABELS } from '../types.ts';
+import { useUser } from '../hooks/useUser.ts';
 
 interface VouchModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (voucheeId: string, vouchType: VouchType, comment?: string) => void;
   userToVouch: User;
   currentUser: User;
 }
@@ -16,13 +15,13 @@ interface VouchModalProps {
 export const VouchModal: React.FC<VouchModalProps> = ({
   isOpen,
   onClose,
-  onSubmit,
   userToVouch,
   currentUser
 }) => {
   const [selectedVouchType, setSelectedVouchType] = useState<VouchType | null>(null);
   const [comment, setComment] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const { vouchForUser } = useUser();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +29,8 @@ export const VouchModal: React.FC<VouchModalProps> = ({
       setError('กรุณาเลือกประเภทความสัมพันธ์');
       return;
     }
-    onSubmit(userToVouch.id, selectedVouchType, comment);
+    vouchForUser(userToVouch.id, selectedVouchType, comment);
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -73,7 +73,7 @@ export const VouchModal: React.FC<VouchModalProps> = ({
             onChange={(e) => setComment(e.target.value)}
             rows={3}
             placeholder="เช่น 'ทำงานด้วยแล้วประทับใจมากครับ', 'เป็นเพื่อนบ้านที่ดี ช่วยเหลือตลอด'"
-            className="w-full" // Uses global textarea style
+            className="w-full"
           />
         </div>
 

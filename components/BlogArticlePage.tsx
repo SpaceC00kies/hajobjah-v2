@@ -4,16 +4,13 @@ import { Button } from './Button.tsx';
 import { motion } from 'framer-motion';
 import { BlogCommentItem } from './BlogCommentItem.tsx';
 import { BlogCommentForm } from './BlogCommentForm.tsx';
+import { useBlog } from '../hooks/useBlog.ts';
 
 interface BlogArticlePageProps {
   post: EnrichedBlogPost;
   onBack: () => void;
   comments: BlogComment[];
   currentUser: User | null;
-  onToggleLike: (postId: string) => void;
-  onAddComment: (postId: string, text: string) => void;
-  onUpdateComment: (commentId: string, newText: string) => void;
-  onDeleteComment: (commentId: string) => void;
   canEditOrDelete: (userId: string) => boolean;
 }
 
@@ -32,12 +29,9 @@ export const BlogArticlePage: React.FC<BlogArticlePageProps> = ({
     onBack,
     comments,
     currentUser,
-    onToggleLike,
-    onAddComment,
-    onUpdateComment,
-    onDeleteComment,
     canEditOrDelete
 }) => {
+  const { toggleBlogPostLike, addBlogComment, updateBlogComment, deleteBlogComment } = useBlog();
     
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -56,7 +50,6 @@ export const BlogArticlePage: React.FC<BlogArticlePageProps> = ({
             &larr; กลับไปหน้ารวมบทความ
         </Button>
         
-        {/* METADATA BAR - MOVED OUTSIDE/ABOVE THE ARTICLE CARD */}
         <div className="max-w-3xl mx-auto px-6 sm:px-10 mb-4">
             <div className="flex justify-between items-center text-sm text-neutral-medium font-sans">
                 <div className="flex items-center">
@@ -73,10 +66,8 @@ export const BlogArticlePage: React.FC<BlogArticlePageProps> = ({
             </div>
         </div>
 
-
       <article className="max-w-3xl mx-auto bg-white p-6 sm:p-10 rounded-xl shadow-lg border border-neutral-DEFAULT/30">
         
-        {/* HERO IMAGE */}
         {post.coverImageURL && (
           <div className="mb-8 -mx-6 -mt-6 sm:-mx-10 sm:-mt-10">
             <img 
@@ -103,7 +94,7 @@ export const BlogArticlePage: React.FC<BlogArticlePageProps> = ({
 
         <footer className="mt-10 pt-6 border-t border-neutral-DEFAULT/50 flex justify-between items-center">
             <Button
-                onClick={() => onToggleLike(post.id)}
+                onClick={() => toggleBlogPostLike(post.id)}
                 variant={hasLiked ? 'secondary' : 'outline'}
                 colorScheme="secondary"
                 disabled={!currentUser}
@@ -116,15 +107,15 @@ export const BlogArticlePage: React.FC<BlogArticlePageProps> = ({
 
         <section className="max-w-3xl mx-auto mt-8">
             <h3 className="text-2xl font-bold font-sans text-neutral-dark mb-4">{comments.length} ความคิดเห็น</h3>
-            <BlogCommentForm postId={post.id} currentUser={currentUser} onAddComment={onAddComment}/>
+            <BlogCommentForm postId={post.id} currentUser={currentUser} onAddComment={addBlogComment}/>
              <div className="mt-6 space-y-4">
                 {comments.map(comment => (
                     <BlogCommentItem 
                         key={comment.id} 
                         comment={comment}
                         currentUser={currentUser}
-                        onUpdateComment={onUpdateComment}
-                        onDeleteComment={onDeleteComment}
+                        onUpdateComment={updateBlogComment}
+                        onDeleteComment={deleteBlogComment}
                         canEditOrDelete={canEditOrDelete}
                     />
                 ))}

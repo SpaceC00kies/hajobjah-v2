@@ -1,9 +1,10 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import type { User } from '../types.ts';
 import { GenderOption, HelperEducationLevelOption } from '../types.ts';
 import { Button } from './Button.tsx';
-import { isValidThaiMobileNumberUtil } from '../App.tsx';
+import { isValidThaiMobileNumber } from '../utils/validation.ts';
 import { ProfileCompletenessWizard } from './ProfileCompletenessWizard.tsx'; // Import the new wizard
 
 interface UserProfilePageProps {
@@ -216,7 +217,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     }
 
     if (!mobile.trim()) newErrors.mobile = 'กรุณากรอกเบอร์โทรศัพท์';
-    else if (!isValidThaiMobileNumberUtil(mobile)) newErrors.mobile = 'รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง (เช่น 08X-XXX-XXXX)';
+    else if (!isValidThaiMobileNumber(mobile)) newErrors.mobile = 'รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง (เช่น 08X-XXX-XXXX)';
 
     if (!gender || gender === GenderOption.NotSpecified) newErrors.gender = 'กรุณาเลือกเพศ';
     if (!birthdate) newErrors.birthdate = 'กรุณาเลือกวันเกิด';

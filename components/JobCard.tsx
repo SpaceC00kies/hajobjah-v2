@@ -5,7 +5,7 @@ import type { Job, User } from '../types.ts';
 import { View, JobCategory, JOB_CATEGORY_EMOJIS_MAP, JobDesiredEducationLevelOption, Province } from '../types.ts';
 import { Button } from './Button.tsx'; // Import Button
 import { Modal } from './Modal.tsx';
-import { isDateInPast } from '../App.tsx';
+import { isDateInPast } from '../utils/dateUtils.ts';
 import { motion, Transition } from 'framer-motion';
 
 interface JobCardProps {
@@ -135,7 +135,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
                         <span className="name-arrow">→</span>
                     </h3>
                     {job.posterIsAdminVerified && (
-                        <span className="ml-1.5 bg-accent-peach text-color-mix(in srgb, var(--accent-peach) 30%, black) text-xs px-1.5 py-0.5 rounded-full font-medium">
+                        <span className="ml-1.5 bg-secondary text-neutral-dark text-xs px-1.5 py-0.5 rounded-full font-medium">
                             ⭐ ยืนยันตัวตน
                         </span>
                     )}

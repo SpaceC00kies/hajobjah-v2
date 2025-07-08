@@ -1,24 +1,23 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from './Button.tsx';
 import { Modal } from './Modal.tsx';
 import type { Vouch } from '../types.ts';
+import { useUser } from '../hooks/useUser.ts';
 
 interface ReportVouchModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmitReport: (comment: string) => void;
   vouchToReport: Vouch;
 }
 
 export const ReportVouchModal: React.FC<ReportVouchModalProps> = ({
   isOpen,
   onClose,
-  onSubmitReport,
   vouchToReport,
 }) => {
   const [comment, setComment] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const { reportVouch } = useUser();
 
   useEffect(() => {
     if (isOpen) {
@@ -33,7 +32,8 @@ export const ReportVouchModal: React.FC<ReportVouchModalProps> = ({
       setError('เหตุผลต้องมีความยาวไม่เกิน 500 ตัวอักษร');
       return;
     }
-    onSubmitReport(comment);
+    reportVouch(vouchToReport, comment);
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -46,7 +46,7 @@ export const ReportVouchModal: React.FC<ReportVouchModalProps> = ({
                 คุณกำลังจะรายงานการรับรองจาก: <strong className="font-semibold">@{vouchToReport.voucherDisplayName}</strong>
             </p>
             <p className="text-sm font-sans text-neutral-dark">
-                ที่ให้กับ: <strong className="font-semibold">@{vouchToReport.voucheeId}</strong> {/* Note: This is user ID, not display name, which is okay for this context */}
+                ที่ให้กับ: <strong className="font-semibold">@{vouchToReport.voucheeId}</strong>
             </p>
              {vouchToReport.comment && (
                 <p className="mt-2 text-xs text-neutral-medium pl-2 border-l-2 border-neutral-DEFAULT">
@@ -69,7 +69,7 @@ export const ReportVouchModal: React.FC<ReportVouchModalProps> = ({
             rows={4}
             maxLength={500}
             placeholder="เช่น ไม่เคยรู้จักผู้ใช้นี้, เป็นการรับรองที่ไม่เป็นจริง, ใช้คำพูดไม่เหมาะสม..."
-            className={`w-full ${error ? 'input-error' : ''}`} // Uses global textarea style
+            className={`w-full ${error ? 'input-error' : ''}`}
           />
           <div className="flex justify-between items-center">
             {error && <p className="text-red-500 font-sans text-xs mt-1">{error}</p>}
