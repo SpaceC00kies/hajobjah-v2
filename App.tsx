@@ -51,7 +51,6 @@ import {
   getBlogPostsForAdmin, // New service for admin
   addOrUpdateBlogPostService, // New service for blog post creation/editing
   deleteBlogPostService, // New service for deleting blog posts
-  starlightWriterService, // New AI service for blog
   subscribeToBlogCommentsService, // New subscription service for blog comments
   addBlogCommentService,
   updateBlogCommentService,
@@ -2425,7 +2424,7 @@ const handleDeleteBlogComment = async (commentId: string) => {
         initialTab={myRoomInitialTabOverride}
         onInitialTabProcessed={() => setMyRoomInitialTabOverride(null)}
         getAuthorDisplayName={getAuthorDisplayName}
-        onToggleInterest={handleToggleInterest}
+        onToggleInterest={onToggleInterest}
         onToggleLike={handleToggleWebboardPostLike}
         requestLoginForAction={requestLoginForAction}
         onEditJobFromFindView={handleEditOwnJobFromFindView}
@@ -2570,7 +2569,6 @@ const handleDeleteBlogComment = async (commentId: string) => {
             initialData={editingItemType === 'blogPost' ? itemToEdit as BlogPost : undefined}
             isEditing={!!itemToEdit && editingItemType === 'blogPost'}
             currentUser={currentUser}
-            onGenerateSuggestions={starlightWriterService}
         />
     );
   };

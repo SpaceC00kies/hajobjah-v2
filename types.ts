@@ -501,6 +501,8 @@ export enum BlogCategory {
     Lifestyle = "ไลฟ์สไตล์และการทำงาน",
 }
 
+export type FilterableBlogCategory = BlogCategory | 'all';
+
 export interface BlogPost {
   id: string;
   title: string;

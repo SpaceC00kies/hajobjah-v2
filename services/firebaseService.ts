@@ -806,6 +806,7 @@ export const addWebboardPostService = async (postData: { title: string; body: st
       imageUrl = await uploadImageService(`webboardImages/${author.userId}/${Date.now()}`, postData.image);
     }
 
+    const now = serverTimestamp();
     const newPostDoc: Omit<WebboardPost, 'id'> = {
       title: postData.title,
       body: postData.body,
@@ -817,124 +818,89 @@ export const addWebboardPostService = async (postData: { title: string; body: st
       ownerId: author.userId,
       likes: [],
       isPinned: false,
-      createdAt: serverTimestamp() as any,
-      updatedAt: serverTimestamp() as any,
+      createdAt: now as any,
+      updatedAt: now as any,
     };
+
     const docRef = await addDoc(collection(db, WEBBOARD_POSTS_COLLECTION), cleanDataForFirestore(newPostDoc as Record<string, any>));
 
-    const userRef = doc(db, USERS_COLLECTION, author.userId);
-    const userSnap = await getDoc(userRef);
-    if (userSnap.exists()) {
-      const userData = userSnap.data() as User;
-      await updateDoc(userRef, {
-        'activityBadge.last30DaysActivity': (userData.activityBadge.last30DaysActivity || 0) + 1
-      });
+    const userDocRef = doc(db, USERS_COLLECTION, author.userId);
+    const userDocSnap = await getDoc(userDocRef);
+    if (userDocSnap.exists()) {
+        const userData = userDocSnap.data();
+        const dailyPosts = userData.postingLimits?.dailyWebboardPosts || { count: 0, resetDate: new Date(0) };
+        const today = new Date().toISOString().split('T')[0];
+        const resetDate = new Date(dailyPosts.resetDate).toISOString().split('T')[0];
+
+        const newCount = today === resetDate ? dailyPosts.count + 1 : 1;
+        await updateDoc(userDocRef, {
+            'postingLimits.dailyWebboardPosts.count': newCount,
+            'postingLimits.dailyWebboardPosts.resetDate': today,
+        });
     }
+
     return docRef.id;
   } catch (error: any) {
     logFirebaseError("addWebboardPostService", error);
     throw error;
   }
 };
-
-export const updateWebboardPostService = async (postId: string, postData: { title?: string; body?: string; category?: WebboardCategory; image?: string | null }, currentUserPhoto?: string | null): Promise<boolean> => {
+export const updateWebboardPostService = async (postId: string, postData: Partial<{ title: string; body: string; category: WebboardCategory; image?: string }>, authorPhoto?: string | null): Promise<void> => {
   try {
-    if (postData.body && postData.body.length > 5000) {
-      throw new Error("Post body exceeds 5000 characters.");
-    }
-    const postRef = doc(db, WEBBOARD_POSTS_COLLECTION, postId);
-    const basePayload: Partial<WebboardPost> = {};
-    if (postData.title !== undefined) basePayload.title = postData.title;
-    if (postData.body !== undefined) basePayload.body = postData.body;
-    if (postData.category !== undefined) basePayload.category = postData.category;
+    let dataToUpdate: Partial<WebboardPost> = {
+      title: postData.title,
+      body: postData.body,
+      category: postData.category,
+      updatedAt: serverTimestamp() as any,
+    };
 
-    basePayload.updatedAt = serverTimestamp() as any;
-    
-    let finalUpdatePayload = { ...basePayload };
-
-    if (postData.hasOwnProperty('image')) {
-      if (postData.image && typeof postData.image === 'string' && postData.image.startsWith('data:image')) {
-        const oldPostSnap = await getDoc(postRef);
-        if(oldPostSnap.exists() && oldPostSnap.data().image) {
-          await deleteImageService(oldPostSnap.data().image);
-        }
-        finalUpdatePayload.image = await uploadImageService(`webboardImages/${auth.currentUser?.uid}/${Date.now()}_edit`, postData.image);
-      } else if (postData.image === null) {
-        const oldPostSnap = await getDoc(postRef);
-        if(oldPostSnap.exists() && oldPostSnap.data().image) {
-          await deleteImageService(oldPostSnap.data().image);
-        }
-        finalUpdatePayload.image = deleteField() as any;
+    if (postData.image && postData.image.startsWith('data:image')) {
+      dataToUpdate.image = await uploadImageService(`webboardImages/${auth.currentUser?.uid}/${Date.now()}`, postData.image);
+    } else if (postData.image === undefined) {
+      const existingPost = await getDoc(doc(db, WEBBOARD_POSTS_COLLECTION, postId));
+      if (existingPost.exists() && existingPost.data().image) {
+        await deleteImageService(existingPost.data().image);
       }
+      dataToUpdate.image = deleteField() as any;
     }
-    await updateDoc(postRef, cleanDataForFirestore(finalUpdatePayload as Record<string, any>));
-    return true;
+    
+    if (authorPhoto !== undefined) {
+      dataToUpdate.authorPhoto = authorPhoto || undefined;
+    }
+
+    await updateDoc(doc(db, WEBBOARD_POSTS_COLLECTION, postId), cleanDataForFirestore(dataToUpdate as Record<string, any>));
   } catch (error: any) {
     logFirebaseError("updateWebboardPostService", error);
     throw error;
   }
 };
-
-export const deleteWebboardPostService = async (postId: string): Promise<boolean> => {
+export const deleteWebboardPostService = async (postId: string): Promise<void> => {
   try {
     const postRef = doc(db, WEBBOARD_POSTS_COLLECTION, postId);
     const postSnap = await getDoc(postRef);
-    const postData = postSnap.data() as WebboardPost;
-
-    if (postSnap.exists() && postData.image) {
-      await deleteImageService(postData.image);
+    if (postSnap.exists() && postSnap.data().image) {
+      await deleteImageService(postSnap.data().image);
     }
-    const commentsQuery = query(collection(db, WEBBOARD_COMMENTS_COLLECTION), where("postId", "==", postId));
-    const commentsSnapshot = await getDocs(commentsQuery);
-    const batch: WriteBatch = writeBatch(db);
-    commentsSnapshot.forEach(commentDoc => batch.delete(commentDoc.ref));
-
-    const savedPostsQuery = query(collectionGroup(db, USER_SAVED_POSTS_SUBCOLLECTION), where('postId', '==', postId));
-    const savedPostsSnapshot = await getDocs(savedPostsQuery);
-    savedPostsSnapshot.forEach(docSnap => batch.delete(docSnap.ref));
-
-    batch.delete(postRef); // Delete the post itself in the same batch
-
-    await batch.commit();
-
-    if (postData && postData.userId) {
-        const userRef = doc(db, USERS_COLLECTION, postData.userId);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-            const userData = userSnap.data() as User;
-            await updateDoc(userRef, {
-                'activityBadge.last30DaysActivity': Math.max(0, (userData.activityBadge.last30DaysActivity || 0) - 1)
-            });
-        }
-    }
-    return true;
+    await deleteDoc(postRef);
   } catch (error: any) {
     logFirebaseError("deleteWebboardPostService", error);
     throw error;
   }
 };
-
 export const getWebboardPostsPaginated = async (
   pageSize: number,
   startAfterDoc: DocumentSnapshot<DocumentData> | null = null,
-  categoryFilter: WebboardCategory | 'all' | null = null,
+  categoryFilter: WebboardCategory | null = null,
   searchTerm: string | null = null
 ): Promise<PaginatedDocsResponse<WebboardPost>> => {
   try {
-    const constraints: QueryConstraint[] = [
-      orderBy("isPinned", "desc"),
-      orderBy("createdAt", "desc"),
-      limit(pageSize)
-    ];
-
+    let constraints: QueryConstraint[] = [orderBy("isPinned", "desc"), orderBy("createdAt", "desc"), limit(pageSize)];
     if (categoryFilter && categoryFilter !== 'all') {
       constraints.unshift(where("category", "==", categoryFilter));
     }
-
     if (startAfterDoc) {
       constraints.push(startAfter(startAfterDoc));
     }
-
     const q = query(collection(db, WEBBOARD_POSTS_COLLECTION), ...constraints);
     const querySnapshot = await getDocs(q);
 
@@ -942,8 +908,8 @@ export const getWebboardPostsPaginated = async (
       id: docSnap.id,
       ...convertTimestamps(docSnap.data()),
     } as WebboardPost));
-    
-    if (searchTerm && searchTerm.trim() !== '') {
+
+    if (searchTerm && searchTerm.trim()) {
       const termLower = searchTerm.toLowerCase();
       postsData = postsData.filter(post =>
         post.title.toLowerCase().includes(termLower) ||
@@ -951,7 +917,6 @@ export const getWebboardPostsPaginated = async (
         post.authorDisplayName.toLowerCase().includes(termLower)
       );
     }
-
     const lastVisible = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
 
     return { items: postsData, lastVisibleDoc: lastVisible };
@@ -960,30 +925,28 @@ export const getWebboardPostsPaginated = async (
     throw error;
   }
 };
-
 export const toggleWebboardPostLikeService = async (postId: string, userId: string): Promise<void> => {
-  const postRef = doc(db, WEBBOARD_POSTS_COLLECTION, postId);
   try {
+    const postRef = doc(db, WEBBOARD_POSTS_COLLECTION, postId);
     await runTransaction(db, async (transaction) => {
       const postDoc = await transaction.get(postRef);
-      if (!postDoc.exists()) {
-        throw new Error("Post does not exist!");
-      }
+      if (!postDoc.exists()) { throw "Post does not exist!"; }
       const postData = postDoc.data() as WebboardPost;
-      const currentLikes = postData.likes || [];
-      if (currentLikes.includes(userId)) {
+      if (postData.likes.includes(userId)) {
         transaction.update(postRef, { likes: arrayRemove(userId) });
       } else {
         transaction.update(postRef, { likes: arrayUnion(userId) });
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     logFirebaseError("toggleWebboardPostLikeService", error);
     throw error;
   }
 };
 
-export const addWebboardCommentService = async (postId: string, text: string, author: { userId: string; authorDisplayName: string; photo?: string | null }): Promise<void> => {
+// Webboard Comments
+interface WebboardCommentAuthorInfo { userId: string; authorDisplayName: string; photo?: string | null; }
+export const addWebboardCommentService = async (postId: string, text: string, author: WebboardCommentAuthorInfo): Promise<void> => {
   try {
     const newCommentDoc: Omit<WebboardComment, 'id'> = {
       postId,
@@ -996,12 +959,17 @@ export const addWebboardCommentService = async (postId: string, text: string, au
       updatedAt: serverTimestamp() as any,
     };
     await addDoc(collection(db, WEBBOARD_COMMENTS_COLLECTION), cleanDataForFirestore(newCommentDoc as Record<string, any>));
-    const userRef = doc(db, USERS_COLLECTION, author.userId);
-    const userSnap = await getDoc(userRef);
-    if(userSnap.exists()) {
-        const userData = userSnap.data() as User;
-        await updateDoc(userRef, {
-            'activityBadge.last30DaysActivity': (userData.activityBadge.last30DaysActivity || 0) + 1
+    const userDocRef = doc(db, USERS_COLLECTION, author.userId);
+    const userDocSnap = await getDoc(userDocRef);
+    if (userDocSnap.exists()) {
+        const userData = userDocSnap.data();
+        const hourlyComments = userData.postingLimits?.hourlyComments || { count: 0, resetTime: new Date(0) };
+        const now = new Date();
+        const resetTime = new Date(hourlyComments.resetTime);
+        const newCount = now.getTime() - resetTime.getTime() > 3600 * 1000 ? 1 : hourlyComments.count + 1;
+        await updateDoc(userDocRef, {
+            'postingLimits.hourlyComments.count': newCount,
+            'postingLimits.hourlyComments.resetTime': now.toISOString(),
         });
     }
   } catch (error: any) {
@@ -1009,569 +977,378 @@ export const addWebboardCommentService = async (postId: string, text: string, au
     throw error;
   }
 };
-
 export const updateWebboardCommentService = async (commentId: string, newText: string): Promise<void> => {
   try {
-    const commentRef = doc(db, WEBBOARD_COMMENTS_COLLECTION, commentId);
-    await updateDoc(commentRef, { text: newText, updatedAt: serverTimestamp() as any });
+    await updateDoc(doc(db, WEBBOARD_COMMENTS_COLLECTION, commentId), {
+      text: newText,
+      updatedAt: serverTimestamp() as any,
+    });
   } catch (error: any) {
     logFirebaseError("updateWebboardCommentService", error);
     throw error;
   }
 };
-
 export const deleteWebboardCommentService = async (commentId: string): Promise<void> => {
   try {
-    const commentRef = doc(db, WEBBOARD_COMMENTS_COLLECTION, commentId);
-    await deleteDoc(commentRef);
+    await deleteDoc(doc(db, WEBBOARD_COMMENTS_COLLECTION, commentId));
   } catch (error: any) {
     logFirebaseError("deleteWebboardCommentService", error);
     throw error;
   }
 };
-
-export const toggleItemFlagService = async (
-  collectionName: 'jobs' | 'helperProfiles' | 'webboardPosts',
-  itemId: string,
-  flagName: keyof Job | keyof HelperProfile | keyof WebboardPost,
-  currentValue?: boolean
-): Promise<void> => {
-  try {
-    const itemRef = doc(db, collectionName, itemId);
-    const dataToUpdate: { [key: string]: any } = {
-      [flagName]: !currentValue,
-      updatedAt: serverTimestamp()
-    };
-    await updateDoc(itemRef, dataToUpdate);
-  } catch (error: any) {
-    logFirebaseError(`toggleItemFlagService (${collectionName})`, error);
-    throw error;
-  }
-};
-
-export const logHelperContactInteractionService = async (helperProfileId: string, employerUserId: string, helperUserId: string): Promise<void> => {
-    try {
-        const interactionData: Omit<Interaction, 'id'> = {
-            helperProfileId,
-            helperUserId,
-            employerUserId,
-            type: 'contact_helper',
-            timestamp: serverTimestamp() as any,
-        };
-        await addDoc(collection(db, INTERACTIONS_COLLECTION), interactionData);
-    } catch (error) {
-        logFirebaseError('logHelperContactInteractionService', error);
-        throw error;
-    }
-};
-
-export const getUserDocument = async (userId: string): Promise<User | null> => {
-  try {
-    const userDocRef = doc(db, USERS_COLLECTION, userId);
-    const userDocSnap = await getDoc(userDocRef);
-    if (userDocSnap.exists()) {
-      return { id: userDocSnap.id, ...convertTimestamps(userDocSnap.data()) } as User;
-    }
-    return null;
-  } catch (error) {
-    logFirebaseError(`getUserDocument for ${userId}`, error);
-    throw error;
-  }
-};
-
-export const getVouchDocument = async (vouchId: string): Promise<Vouch | null> => {
-  try {
-    const vouchDocRef = doc(db, VOUCHES_COLLECTION, vouchId);
-    const vouchDocSnap = await getDoc(vouchDocRef);
-    if (vouchDocSnap.exists()) {
-      return { id: vouchDocSnap.id, ...convertTimestamps(vouchDocSnap.data()) } as Vouch;
-    }
-    return null;
-  } catch (error) {
-    logFirebaseError(`getVouchDocument for ${vouchId}`, error);
-    return null;
-  }
-};
-
-export const saveUserWebboardPostService = async (userId: string, postId: string): Promise<void> => {
-  try {
-    const userRef = doc(db, USERS_COLLECTION, userId);
-    const savedPostRef = doc(userRef, USER_SAVED_POSTS_SUBCOLLECTION, postId);
-    
-    const batch = writeBatch(db);
-    batch.update(userRef, { savedWebboardPosts: arrayUnion(postId) });
-    batch.set(savedPostRef, { postId: postId, savedAt: serverTimestamp() });
-    await batch.commit();
-  } catch (error: any) {
-    logFirebaseError("saveUserWebboardPostService", error);
-    throw error;
-  }
-};
-
-export const unsaveUserWebboardPostService = async (userId: string, postId: string): Promise<void> => {
-  try {
-    const userRef = doc(db, USERS_COLLECTION, userId);
-    const savedPostRef = doc(userRef, USER_SAVED_POSTS_SUBCOLLECTION, postId);
-    
-    const batch = writeBatch(db);
-    batch.update(userRef, { savedWebboardPosts: arrayRemove(postId) });
-    batch.delete(savedPostRef);
-    await batch.commit();
-  } catch (error: any) {
-    logFirebaseError("unsaveUserWebboardPostService", error);
-    throw error;
-  }
-};
-
-export const subscribeToUserSavedPostsService = (userId: string, callback: (postIds: string[]) => void): (() => void) => {
-  const q = query(collection(db, USERS_COLLECTION, userId, USER_SAVED_POSTS_SUBCOLLECTION));
-  return onSnapshot(q, (querySnapshot) => {
-    const savedIds = querySnapshot.docs.map(doc => doc.id);
-    callback(savedIds);
-  }, (error) => {
-    logFirebaseError(`subscribeToUserSavedPostsService (${userId})`, error);
-  });
-};
-
-export const subscribeToUserInterestsService = (userId: string, callback: (interests: Interest[]) => void): (() => void) => {
-  const q = query(collection(db, INTERESTS_COLLECTION), where("userId", "==", userId));
-  return subscribeToCollectionService<Interest>(INTERESTS_COLLECTION, callback, [where("userId", "==", userId)]);
-};
-
-export const toggleInterestService = async (targetId: string, targetType: 'job' | 'helperProfile', targetOwnerId: string, userId: string): Promise<void> => {
-  const interestsRef = collection(db, INTERESTS_COLLECTION);
-  const q = query(interestsRef, where("userId", "==", userId), where("targetId", "==", targetId));
-
-  try {
-    const querySnapshot = await getDocs(q);
-    const targetRef = doc(db, targetType === 'job' ? JOBS_COLLECTION : HELPER_PROFILES_COLLECTION, targetId);
-
-    if (querySnapshot.empty) {
-      // Interest doesn't exist, create it and increment count
-      const newInterest: Omit<Interest, 'id'> = { userId, targetId, targetType, targetOwnerId, createdAt: serverTimestamp() as any };
-      const batch = writeBatch(db);
-      batch.set(doc(interestsRef), newInterest);
-      batch.update(targetRef, { interestedCount: increment(1) });
-      await batch.commit();
-    } else {
-      // Interest exists, delete it and decrement count
-      const batch = writeBatch(db);
-      querySnapshot.forEach(doc => {
-        batch.delete(doc.ref);
-      });
-      batch.update(targetRef, { interestedCount: increment(-1) });
-      await batch.commit();
-    }
-  } catch (error) {
-    logFirebaseError("toggleInterestService", error);
-    throw error;
-  }
-};
-
-export const vouchForUserService = async (voucher: User, voucheeId: string, vouchType: VouchType, ipAddress: string, userAgent: string, comment?: string): Promise<void> => {
-  const VOUCH_LIMIT_PER_MONTH = 5;
-  const now = new Date();
-  const voucheeRef = doc(db, USERS_COLLECTION, voucheeId);
-  const voucherRef = doc(db, USERS_COLLECTION, voucher.id);
-
-  try {
-    await runTransaction(db, async (transaction) => {
-      const voucherSnap = await transaction.get(voucherRef);
-      if (!voucherSnap.exists()) throw new Error("Voucher document not found.");
-      
-      const voucherData = voucherSnap.data() as User;
-      const vouchingActivity = voucherData.postingLimits.vouchingActivity;
-      
-      const currentPeriodStart = new Date(vouchingActivity.periodStart as string);
-      
-      if (now.getMonth() !== currentPeriodStart.getMonth() || now.getFullYear() !== currentPeriodStart.getFullYear()) {
-        vouchingActivity.monthlyCount = 0;
-        vouchingActivity.periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      }
-
-      if (vouchingActivity.monthlyCount >= VOUCH_LIMIT_PER_MONTH) {
-        throw new Error(`คุณรับรองผู้ใช้ครบ ${VOUCH_LIMIT_PER_MONTH} คนในเดือนนี้แล้ว`);
-      }
-      
-      const newVouchRef = doc(collection(db, VOUCHES_COLLECTION));
-      const newVouch: Omit<Vouch, 'id'> = {
-        voucherId: voucher.id,
-        voucherDisplayName: voucher.publicDisplayName,
-        voucheeId,
-        vouchType,
-        comment,
-        creatorIP: ipAddress,
-        creatorUserAgent: userAgent,
-        createdAt: serverTimestamp() as any,
-      };
-      
-      transaction.set(newVouchRef, newVouch);
-      transaction.update(voucheeRef, {
-        [`vouchInfo.${vouchType}`]: increment(1),
-        [`vouchInfo.total`]: increment(1),
-      });
-      transaction.update(voucherRef, {
-        'postingLimits.vouchingActivity.monthlyCount': increment(1),
-        'postingLimits.vouchingActivity.periodStart': vouchingActivity.periodStart
-      });
-    });
-  } catch(error) {
-    logFirebaseError('vouchForUserService', error);
-    throw error;
-  }
-};
-
-export const reportVouchService = async (vouch: Vouch, reporterId: string, comment: string): Promise<void> => {
-  try {
-    const reportData: Omit<VouchReport, 'id'> = {
-      vouchId: vouch.id,
-      reporterId,
-      reporterComment: comment,
-      voucheeId: vouch.voucheeId,
-      voucherId: vouch.voucherId,
-      status: VouchReportStatus.Pending,
-      createdAt: serverTimestamp() as any,
-    };
-    await addDoc(collection(db, VOUCH_REPORTS_COLLECTION), reportData);
-  } catch (error) {
-    logFirebaseError('reportVouchService', error);
-    throw error;
-  }
-};
-
-export const getVouchesForUserService = async (userId: string): Promise<Vouch[]> => {
-    try {
-        const q = query(collection(db, VOUCHES_COLLECTION), where("voucheeId", "==", userId), orderBy("createdAt", "desc"));
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as Vouch));
-    } catch (error) {
-        logFirebaseError(`getVouchesForUserService (${userId})`, error);
-        throw error;
-    }
-};
-
 export const subscribeToWebboardCommentsService = (callback: (comments: WebboardComment[]) => void): (() => void) => {
-  return subscribeToCollectionService<WebboardComment>(WEBBOARD_COMMENTS_COLLECTION, callback, [orderBy("createdAt", "asc")]);
+  return subscribeToCollectionService<WebboardComment>(WEBBOARD_COMMENTS_COLLECTION, callback, [orderBy('createdAt', 'desc')]);
 };
 
-// ... (Other services up to this point) ...
-export const orionAnalyzeService = httpsCallable<{ command: string }, { reply: string }>(functions, 'orionAnalyze');
-
-// Blog Posts Services
-export const getAllBlogPosts = async (): Promise<BlogPost[]> => {
-  try {
-    const q = query(collection(db, BLOG_POSTS_COLLECTION), where("status", "==", "published"), orderBy("publishedAt", "desc"));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as BlogPost));
-  } catch (error) {
-    logFirebaseError("getAllBlogPosts", error);
-    return [];
-  }
-};
-
-export const getBlogPostsForAdmin = async (): Promise<BlogPost[]> => {
-  try {
-    const q = query(collection(db, BLOG_POSTS_COLLECTION), orderBy("createdAt", "desc"));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as BlogPost));
-  } catch (error) {
-    logFirebaseError("getBlogPostsForAdmin", error);
-    return [];
-  }
-};
-
-export const addOrUpdateBlogPostService = async (
-  blogPostData: Partial<BlogPost> & { newCoverImageBase64?: string | null },
-  author: { id: string; publicDisplayName: string; photo?: string | null },
-  newCoverImageBase64?: string | null
-): Promise<string> => {
-  const isCreating = !blogPostData.id;
-  const docRef = isCreating ? doc(collection(db, BLOG_POSTS_COLLECTION)) : doc(db, BLOG_POSTS_COLLECTION, blogPostData.id!);
-
-  let coverImageURL: string | undefined | null = blogPostData.coverImageURL;
-
-  // Handle image upload/delete
-  if (newCoverImageBase64) { // New image uploaded
-    // If there's an old image, delete it
-    if (!isCreating && blogPostData.coverImageURL) {
-      await deleteImageService(blogPostData.coverImageURL);
-    }
-    coverImageURL = await uploadImageService(`blogCovers/${author.id}/${docRef.id}`, newCoverImageBase64);
-  } else if (newCoverImageBase64 === null) { // Image explicitly removed
-    if (!isCreating && blogPostData.coverImageURL) {
-      await deleteImageService(blogPostData.coverImageURL);
-    }
-    coverImageURL = null;
-  }
-
-  const slug = (blogPostData.title || `post-${docRef.id}`).toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
-
-  if (isCreating) {
-    const newPost: Omit<BlogPost, 'id'> = {
-      title: blogPostData.title!,
-      slug: slug,
-      content: blogPostData.content!,
-      excerpt: blogPostData.excerpt!,
-      category: blogPostData.category!,
-      tags: blogPostData.tags || [],
-      status: blogPostData.status!,
-      authorId: author.id,
-      authorDisplayName: author.publicDisplayName,
-      authorPhotoURL: author.photo || undefined,
-      coverImageURL: coverImageURL || undefined,
-      createdAt: serverTimestamp() as any,
-      updatedAt: serverTimestamp() as any,
-      publishedAt: blogPostData.status === 'published' ? serverTimestamp() as any : undefined,
-      likes: [],
-      likeCount: 0,
-    };
-    await setDoc(docRef, cleanDataForFirestore(newPost as Record<string, any>));
-  } else {
-    const dataToUpdate: Partial<BlogPost> = {
-      ...blogPostData,
-      slug,
-      updatedAt: serverTimestamp() as any,
-    };
-    if (coverImageURL !== undefined) {
-      dataToUpdate.coverImageURL = coverImageURL || undefined;
-    }
-    // Handle publishing date
-    const originalPostSnap = await getDoc(docRef);
-    const originalPostData = originalPostSnap.data() as BlogPost;
-    if (blogPostData.status === 'published' && originalPostData.status !== 'published') {
-      dataToUpdate.publishedAt = serverTimestamp() as any;
-    }
-    delete (dataToUpdate as any).newCoverImageBase64;
-    delete (dataToUpdate as any).newCoverImagePreview;
-    delete (dataToUpdate as any).tagsInput;
-    await updateDoc(docRef, cleanDataForFirestore(dataToUpdate as Record<string, any>));
-  }
-  return docRef.id;
-};
-
-
-export const deleteBlogPostService = async (postId: string, coverImageURL?: string): Promise<boolean> => {
-    try {
-        if (coverImageURL) {
-            await deleteImageService(coverImageURL);
-        }
-        await deleteDoc(doc(db, BLOG_POSTS_COLLECTION, postId));
-        // Bonus: could also delete all comments associated with the post here in a batch
-        return true;
-    } catch (error) {
-        logFirebaseError("deleteBlogPostService", error);
-        throw error;
-    }
-};
-
-// Phase 3 additions start here
-export const starlightWriterService = httpsCallable<{ task: 'title' | 'excerpt'; content: string }, { suggestions: string[] }>(functions, 'starlightWriter');
-
-
-export const toggleBlogPostLikeService = async (postId: string, userId: string): Promise<void> => {
-  const postRef = doc(db, BLOG_POSTS_COLLECTION, postId);
-  try {
-    await runTransaction(db, async (transaction) => {
-      const postDoc = await transaction.get(postRef);
-      if (!postDoc.exists()) {
-        throw new Error("Post does not exist!");
-      }
-      const postData = postDoc.data() as BlogPost;
-      const currentLikes = postData.likes || [];
-      
-      let newLikes: string[];
-      let likeCountChange: number;
-
-      if (currentLikes.includes(userId)) {
-        // User is unliking
-        newLikes = currentLikes.filter(id => id !== userId);
-        likeCountChange = -1;
-      } else {
-        // User is liking
-        newLikes = [...currentLikes, userId];
-        likeCountChange = 1;
-      }
-      
-      transaction.update(postRef, { 
-        likes: newLikes,
-        likeCount: increment(likeCountChange)
-      });
-    });
-  } catch (error) {
-    logFirebaseError("toggleBlogPostLikeService", error);
-    throw error;
-  }
-};
-
-export const subscribeToBlogCommentsService = (postId: string, callback: (comments: BlogComment[]) => void): (() => void) => {
-    const q = query(
-        collection(db, BLOG_COMMENTS_COLLECTION),
-        where("postId", "==", postId),
-        orderBy("createdAt", "asc")
-    );
-    return onSnapshot(q, (querySnapshot) => {
-        const comments = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...convertTimestamps(doc.data())
-        } as BlogComment));
-        callback(comments);
-    }, (error) => {
-        logFirebaseError(`subscribeToBlogCommentsService (postId: ${postId})`, error);
-    });
-};
-
-export const addBlogCommentService = async (
-    postId: string,
-    text: string,
-    author: { userId: string; authorDisplayName: string; photoURL?: string | null }
-): Promise<string> => {
-    try {
-        const newComment: Omit<BlogComment, 'id'> = {
-            postId,
-            userId: author.userId,
-            authorDisplayName: author.authorDisplayName,
-            authorPhotoURL: author.photoURL || undefined,
-            text,
-            createdAt: serverTimestamp() as any,
-            updatedAt: serverTimestamp() as any,
-        };
-        const docRef = await addDoc(collection(db, BLOG_COMMENTS_COLLECTION), newComment);
-        return docRef.id;
-    } catch (error) {
-        logFirebaseError("addBlogCommentService", error);
-        throw error;
-    }
-};
-
-export const updateBlogCommentService = async (commentId: string, newText: string): Promise<void> => {
-    try {
-        const commentRef = doc(db, BLOG_COMMENTS_COLLECTION, commentId);
-        await updateDoc(commentRef, {
-            text: newText,
-            updatedAt: serverTimestamp() as any,
-        });
-    } catch (error) {
-        logFirebaseError("updateBlogCommentService", error);
-        throw error;
-    }
-};
-
-export const deleteBlogCommentService = async (commentId: string): Promise<void> => {
-    try {
-        const commentRef = doc(db, BLOG_COMMENTS_COLLECTION, commentId);
-        await deleteDoc(commentRef);
-    } catch (error) {
-        logFirebaseError("deleteBlogCommentService", error);
-        throw error;
-    }
-};
-
-export const subscribeToUsersService = (callback: (users: User[]) => void) => {
+// User Profile & Admin
+export const subscribeToUsersService = (callback: (users: User[]) => void): (() => void) => {
   return subscribeToCollectionService<User>(USERS_COLLECTION, callback);
 };
-
-export const subscribeToInteractionsService = (callback: (interactions: Interaction[]) => void) => {
-  return subscribeToCollectionService<Interaction>(INTERACTIONS_COLLECTION, callback);
+export const subscribeToInteractionsService = (callback: (interactions: Interaction[]) => void): (() => void) => {
+  return subscribeToCollectionService<Interaction>(INTERACTIONS_COLLECTION, callback, [orderBy('timestamp', 'desc')]);
 };
-
-export const subscribeToSiteConfigService = (callback: (config: SiteConfig) => void) => {
+export const subscribeToSiteConfigService = (callback: (config: SiteConfig) => void): (() => void) => {
   const docRef = doc(db, SITE_CONFIG_COLLECTION, SITE_CONFIG_DOC_ID);
   return onSnapshot(docRef, (docSnap) => {
     if (docSnap.exists()) {
       callback(convertTimestamps(docSnap.data()) as SiteConfig);
     } else {
-      callback({ isSiteLocked: false }); // Default value
+      callback({ isSiteLocked: false });
     }
   }, (error) => {
     logFirebaseError("subscribeToSiteConfigService", error);
   });
 };
-
-export const subscribeToVouchReportsService = (callback: (reports: VouchReport[]) => void): (() => void) => {
-    const q = query(collection(db, VOUCH_REPORTS_COLLECTION), where("status", "==", VouchReportStatus.Pending), orderBy("createdAt", "desc"));
-    return onSnapshot(q, (querySnapshot) => {
-        const reports = querySnapshot.docs.map(docSnap => ({
-            id: docSnap.id,
-            ...convertTimestamps(docSnap.data()),
-        } as VouchReport));
-        callback(reports);
-    }, (error) => {
-        logFirebaseError("subscribeToVouchReportsService", error);
-    });
-};
-
-export const resolveVouchReportService = async (
-  reportId: string,
-  resolution: VouchReportStatus.ResolvedDeleted | VouchReportStatus.ResolvedKept,
-  adminId: string,
-  vouchId: string,
-  voucheeId: string,
-  vouchType?: VouchType
-): Promise<void> => {
+export const setSiteLockService = async (isLocked: boolean, updatedBy: string): Promise<void> => {
   try {
-    const reportRef = doc(db, VOUCH_REPORTS_COLLECTION, reportId);
-    const vouchRef = doc(db, VOUCHES_COLLECTION, vouchId);
-    const voucheeRef = doc(db, USERS_COLLECTION, voucheeId);
-
-    await runTransaction(db, async (transaction) => {
-      // --- READ PHASE ---
-      const vouchDoc = await transaction.get(vouchRef);
-      const vouchData = vouchDoc.exists() ? (vouchDoc.data() as Vouch) : null;
-      const reportDoc = await transaction.get(reportRef);
-
-      if (!reportDoc.exists() || (reportDoc.data() as VouchReport).status !== VouchReportStatus.Pending) {
-        console.warn(`Report ${reportId} already resolved. Aborting transaction.`);
-        return;
-      }
-
-      // --- WRITE PHASE ---
-      // 1. Always update the report status.
-      transaction.update(reportRef, {
-        status: resolution,
-        resolvedAt: serverTimestamp(),
-        resolvedBy: adminId,
-      });
-
-      // 2. If resolving by deletion and the vouch document exists...
-      if (resolution === VouchReportStatus.ResolvedDeleted && vouchData) {
-        transaction.delete(vouchRef); // Delete the vouch.
-        
-        // Decrement the user's vouch counts using the type from the document we read.
-        transaction.update(voucheeRef, {
-          [`vouchInfo.${vouchData.vouchType}`]: increment(-1),
-          [`vouchInfo.total`]: increment(-1),
-        });
-      }
-      // If the vouch document doesn't exist (orphaned report), we do nothing further.
-      // The report status is still correctly updated, resolving the issue.
-    });
-  } catch (error) {
-    logFirebaseError("resolveVouchReportService", error);
-    throw error;
-  }
-};
-
-
-export const setSiteLockService = async (isLocked: boolean, adminId: string): Promise<void> => {
-  try {
-    const configRef = doc(db, SITE_CONFIG_COLLECTION, SITE_CONFIG_DOC_ID);
-    await setDoc(configRef, {
+    await setDoc(doc(db, SITE_CONFIG_COLLECTION, SITE_CONFIG_DOC_ID), {
       isSiteLocked: isLocked,
       updatedAt: serverTimestamp(),
-      updatedBy: adminId,
+      updatedBy: updatedBy
     }, { merge: true });
-  } catch (error) {
+  } catch (error: any) {
     logFirebaseError("setSiteLockService", error);
     throw error;
   }
 };
-
 export const setUserRoleService = async (userId: string, newRole: UserRole): Promise<void> => {
   try {
+    await updateDoc(doc(db, USERS_COLLECTION, userId), { role: newRole });
     const setUserRoleFunction = httpsCallable(functions, 'setUserRole');
     await setUserRoleFunction({ userId, role: newRole });
   } catch (error: any) {
     logFirebaseError("setUserRoleService", error);
     throw error;
   }
+};
+export const toggleItemFlagService = async (collectionName: 'jobs' | 'helperProfiles' | 'webboardPosts', itemId: string, flagName: keyof Job | keyof HelperProfile | keyof WebboardPost, currentValue?: boolean): Promise<void> => {
+  try {
+    await updateDoc(doc(db, collectionName, itemId), { [flagName as string]: !currentValue });
+  } catch (error: any) {
+    logFirebaseError(`toggleItemFlagService (${flagName})`, error);
+    throw error;
+  }
+};
+export const logHelperContactInteractionService = async (helperProfileId: string, employerUserId: string, helperUserId: string): Promise<void> => {
+  try {
+    await addDoc(collection(db, INTERACTIONS_COLLECTION), {
+      helperProfileId,
+      employerUserId,
+      helperUserId,
+      timestamp: serverTimestamp(),
+      type: 'contact_helper',
+      createdAt: serverTimestamp()
+    });
+  } catch (error: any) {
+    logFirebaseError("logHelperContactInteractionService", error);
+    throw error;
+  }
+};
+
+export const getUserDocument = async (userId: string): Promise<User | null> => {
+  try {
+    const docRef = doc(db, USERS_COLLECTION, userId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...convertTimestamps(docSnap.data()) } as User;
+    }
+    return null;
+  } catch (error) {
+    logFirebaseError("getUserDocument", error);
+    return null;
+  }
+};
+
+// --- User Saved Posts Services ---
+export const saveUserWebboardPostService = async (userId: string, postId: string): Promise<void> => {
+  try {
+    const userRef = doc(db, USERS_COLLECTION, userId);
+    await updateDoc(userRef, {
+      savedWebboardPosts: arrayUnion(postId)
+    });
+  } catch (error: any) {
+    logFirebaseError("saveUserWebboardPostService", error);
+    throw error;
+  }
+};
+export const unsaveUserWebboardPostService = async (userId: string, postId: string): Promise<void> => {
+  try {
+    const userRef = doc(db, USERS_COLLECTION, userId);
+    await updateDoc(userRef, {
+      savedWebboardPosts: arrayRemove(postId)
+    });
+  } catch (error: any) {
+    logFirebaseError("unsaveUserWebboardPostService", error);
+    throw error;
+  }
+};
+export const subscribeToUserSavedPostsService = (userId: string, callback: (savedPostIds: string[]) => void): (() => void) => {
+  const userDocRef = doc(db, USERS_COLLECTION, userId);
+  return onSnapshot(userDocRef, (docSnap) => {
+    if (docSnap.exists()) {
+      const userData = docSnap.data();
+      callback(userData.savedWebboardPosts || []);
+    } else {
+      callback([]);
+    }
+  }, (error) => {
+    logFirebaseError("subscribeToUserSavedPostsService", error);
+  });
+};
+
+// --- Interests Services ---
+export const subscribeToUserInterestsService = (userId: string, callback: (interests: Interest[]) => void): (() => void) => {
+    const q = query(collection(db, INTERESTS_COLLECTION), where("userId", "==", userId));
+    return onSnapshot(q, (querySnapshot) => {
+        const items = querySnapshot.docs.map(docSnap => ({
+            id: docSnap.id,
+            ...convertTimestamps(docSnap.data()),
+        } as Interest));
+        callback(items);
+    }, (error) => {
+        logFirebaseError("subscribeToUserInterestsService", error);
+    });
+};
+export const toggleInterestService = async (targetId: string, targetType: 'job' | 'helperProfile', targetOwnerId: string, currentUserId: string): Promise<void> => {
+  try {
+    const interestsRef = collection(db, INTERESTS_COLLECTION);
+    const q = query(interestsRef, where("userId", "==", currentUserId), where("targetId", "==", targetId));
+    
+    await runTransaction(db, async (transaction) => {
+      const querySnapshot = await getDocs(q);
+      const targetRef = doc(db, targetType === 'job' ? JOBS_COLLECTION : HELPER_PROFILES_COLLECTION, targetId);
+
+      if (!querySnapshot.empty) { // Interest exists, so remove it
+        const interestDocId = querySnapshot.docs[0].id;
+        transaction.delete(doc(interestsRef, interestDocId));
+        transaction.update(targetRef, { interestedCount: increment(-1) });
+      } else { // Interest does not exist, so add it
+        transaction.set(doc(interestsRef), {
+          userId: currentUserId,
+          targetId,
+          targetType,
+          targetOwnerId,
+          createdAt: serverTimestamp(),
+        });
+        transaction.update(targetRef, { interestedCount: increment(1) });
+      }
+    });
+  } catch (error: any) {
+    logFirebaseError("toggleInterestService", error);
+    throw error;
+  }
+};
+
+
+// --- Vouching System Services ---
+export const vouchForUserService = async (voucher: User, voucheeId: string, vouchType: VouchType, ipAddress: string, userAgent: string, comment?: string): Promise<void> => {
+  if (voucher.id === voucheeId) {
+    throw new Error("You cannot vouch for yourself.");
+  }
+  const vouchData: Omit<Vouch, 'id'> = {
+    voucherId: voucher.id,
+    voucherDisplayName: voucher.publicDisplayName,
+    voucheeId: voucheeId,
+    vouchType,
+    comment: comment || undefined,
+    createdAt: serverTimestamp() as any,
+    creatorIP: ipAddress,
+    creatorUserAgent: userAgent,
+  };
+
+  const voucheeRef = doc(db, USERS_COLLECTION, voucheeId);
+  const voucherRef = doc(db, USERS_COLLECTION, voucher.id);
+  const vouchRef = doc(collection(db, VOUCHES_COLLECTION));
+
+  await runTransaction(db, async (transaction) => {
+    transaction.set(vouchRef, vouchData);
+    transaction.update(voucheeRef, {
+      [`vouchInfo.total`]: increment(1),
+      [`vouchInfo.${vouchType}`]: increment(1),
+    });
+    transaction.update(voucherRef, {
+      'postingLimits.vouchingActivity.monthlyCount': increment(1)
+    });
+  });
+};
+export const getVouchesForUserService = async (userId: string): Promise<Vouch[]> => {
+    const q = query(collection(db, VOUCHES_COLLECTION), where("voucheeId", "==", userId), orderBy("createdAt", "desc"));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(docSnap => ({ id: docSnap.id, ...convertTimestamps(docSnap.data()) } as Vouch));
+};
+export const getVouchDocument = async (vouchId: string): Promise<Vouch | null> => {
+  const docRef = doc(db, VOUCHES_COLLECTION, vouchId);
+  const docSnap = await getDoc(docRef);
+  return docSnap.exists() ? { id: docSnap.id, ...convertTimestamps(docSnap.data()) } as Vouch : null;
+};
+
+// --- Vouch Reporting Services ---
+export const reportVouchService = async (vouch: Vouch, reporterId: string, reporterComment: string): Promise<void> => {
+  const reportData: Omit<VouchReport, 'id'> = {
+    vouchId: vouch.id,
+    reporterId: reporterId,
+    reporterComment: reporterComment,
+    voucheeId: vouch.voucheeId,
+    voucherId: vouch.voucherId,
+    status: VouchReportStatus.Pending,
+    createdAt: serverTimestamp() as any,
+  };
+  await addDoc(collection(db, VOUCH_REPORTS_COLLECTION), reportData);
+};
+export const subscribeToVouchReportsService = (callback: (reports: VouchReport[]) => void): (() => void) => {
+  return subscribeToCollectionService<VouchReport>(VOUCH_REPORTS_COLLECTION, callback, [orderBy("createdAt", "desc")]);
+};
+export const resolveVouchReportService = async (reportId: string, resolution: VouchReportStatus.ResolvedDeleted | VouchReportStatus.ResolvedKept, adminId: string, vouchId: string, voucheeId: string, vouchType?: VouchType): Promise<void> => {
+  await runTransaction(db, async (transaction) => {
+    const reportRef = doc(db, VOUCH_REPORTS_COLLECTION, reportId);
+    transaction.update(reportRef, {
+      status: resolution,
+      resolvedAt: serverTimestamp(),
+      resolvedBy: adminId,
+    });
+
+    if (resolution === VouchReportStatus.ResolvedDeleted && vouchType) {
+      const vouchRef = doc(db, VOUCHES_COLLECTION, vouchId);
+      const voucheeRef = doc(db, USERS_COLLECTION, voucheeId);
+      transaction.delete(vouchRef);
+      transaction.update(voucheeRef, {
+        [`vouchInfo.total`]: increment(-1),
+        [`vouchInfo.${vouchType}`]: increment(-1),
+      });
+    }
+  });
+};
+
+// --- Cloud Function Callable ---
+export const orionAnalyzeService = httpsCallable<{command: string}, {reply: string}>(functions, 'orionAnalyze');
+
+// --- Blog Post Services ---
+export const getAllBlogPosts = async (): Promise<BlogPost[]> => {
+  const q = query(collection(db, BLOG_POSTS_COLLECTION), where("status", "==", "published"), orderBy("publishedAt", "desc"));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as BlogPost));
+};
+export const getBlogPostsForAdmin = async (): Promise<BlogPost[]> => {
+  const q = query(collection(db, BLOG_POSTS_COLLECTION), orderBy("createdAt", "desc"));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as BlogPost));
+};
+export const addOrUpdateBlogPostService = async (
+    blogPostData: Partial<BlogPost> & { newCoverImageBase64?: string | null },
+    author: { id: string, publicDisplayName: string, photo?: string | null },
+    newCoverImageBase64?: string | null
+): Promise<string> => {
+    const { id: postId, newCoverImageBase64: _, ...dataToSave } = blogPostData;
+    let coverImageURL = dataToSave.coverImageURL;
+
+    if (newCoverImageBase64) { // New image uploaded
+        if (coverImageURL) await deleteImageService(coverImageURL);
+        coverImageURL = await uploadImageService(`blogCovers/${author.id}/${Date.now()}`, newCoverImageBase64);
+    } else if (newCoverImageBase64 === null && coverImageURL) { // Image explicitly removed
+        await deleteImageService(coverImageURL);
+        coverImageURL = undefined;
+    }
+
+    const docData: Partial<BlogPost> = {
+        ...dataToSave,
+        coverImageURL,
+        updatedAt: serverTimestamp() as any,
+    };
+
+    if (postId) { // Updating existing post
+        await updateDoc(doc(db, BLOG_POSTS_COLLECTION, postId), docData);
+        return postId;
+    } else { // Creating new post
+        const finalDocData: Omit<BlogPost, 'id'> = {
+            ...docData,
+            authorId: author.id,
+            authorDisplayName: author.publicDisplayName,
+            authorPhotoURL: author.photo || undefined,
+            createdAt: serverTimestamp() as any,
+            publishedAt: dataToSave.status === 'published' ? serverTimestamp() as any : undefined,
+            likes: [],
+            likeCount: 0,
+            tags: [],
+        } as Omit<BlogPost, 'id'>;
+        const newDocRef = await addDoc(collection(db, BLOG_POSTS_COLLECTION), finalDocData);
+        return newDocRef.id;
+    }
+};
+
+export const deleteBlogPostService = async (postId: string, coverImageUrl?: string): Promise<void> => {
+  try {
+    if (coverImageUrl) {
+      await deleteImageService(coverImageUrl);
+    }
+    await deleteDoc(doc(db, BLOG_POSTS_COLLECTION, postId));
+  } catch (error: any) {
+    logFirebaseError("deleteBlogPostService", error);
+    throw error;
+  }
+};
+export const subscribeToBlogCommentsService = (postId: string, callback: (comments: BlogComment[]) => void): (() => void) => {
+    const q = query(collection(db, BLOG_COMMENTS_COLLECTION), where("postId", "==", postId), orderBy("createdAt", "asc"));
+    return onSnapshot(q, (querySnapshot) => {
+        const items = querySnapshot.docs.map(docSnap => ({
+            id: docSnap.id,
+            ...convertTimestamps(docSnap.data()),
+        } as BlogComment));
+        callback(items);
+    }, (error) => {
+        logFirebaseError(`subscribeToBlogCommentsService (${postId})`, error);
+    });
+};
+export const addBlogCommentService = async (postId: string, text: string, author: { userId: string; authorDisplayName: string; photoURL?: string | null }): Promise<void> => {
+    const newComment: Omit<BlogComment, 'id'> = {
+        postId,
+        text,
+        userId: author.userId,
+        authorDisplayName: author.authorDisplayName,
+        authorPhotoURL: author.photoURL || undefined,
+        createdAt: serverTimestamp() as any,
+        updatedAt: serverTimestamp() as any,
+    };
+    await addDoc(collection(db, BLOG_COMMENTS_COLLECTION), newComment);
+};
+export const updateBlogCommentService = async (commentId: string, newText: string): Promise<void> => {
+    await updateDoc(doc(db, BLOG_COMMENTS_COLLECTION, commentId), {
+        text: newText,
+        updatedAt: serverTimestamp() as any,
+    });
+};
+export const deleteBlogCommentService = async (commentId: string): Promise<void> => {
+    await deleteDoc(doc(db, BLOG_COMMENTS_COLLECTION, commentId));
+};
+export const toggleBlogPostLikeService = async (postId: string, userId: string): Promise<void> => {
+    const postRef = doc(db, BLOG_POSTS_COLLECTION, postId);
+    await runTransaction(db, async (transaction) => {
+        const postDoc = await transaction.get(postRef);
+        if (!postDoc.exists()) throw "Post does not exist!";
+        const postData = postDoc.data() as BlogPost;
+        const hasLiked = postData.likes.includes(userId);
+        transaction.update(postRef, {
+            likes: hasLiked ? arrayRemove(userId) : arrayUnion(userId),
+            likeCount: increment(hasLiked ? -1 : 1),
+        });
+    });
 };

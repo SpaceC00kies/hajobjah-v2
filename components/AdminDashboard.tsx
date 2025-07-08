@@ -135,6 +135,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('orion_command_center');
   const [searchTerm, setSearchTerm] = useState('');
+  const [blogStatusFilter, setBlogStatusFilter] = useState<'all' | 'draft' | 'published' | 'archived'>('all');
   const [selectedReport, setSelectedReport] = useState<VouchReport | null>(null);
   const [selectedVouch, setSelectedVouch] = useState<Vouch | null>(null);
   const [isHudLoading, setIsHudLoading] = useState(false);
@@ -272,6 +273,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (activeTab === 'profiles' && item.itemType !== 'profile') return false;
     if (activeTab === 'webboard' && item.itemType !== 'webboardPost') return false;
     if (activeTab === 'articles' && item.itemType !== 'blogPost') return false;
+
+    if (item.itemType === 'blogPost' && blogStatusFilter !== 'all') {
+      if (item.status !== blogStatusFilter) {
+        return false;
+      }
+    }
     
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
@@ -346,14 +353,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </div>
 
       {['jobs', 'profiles', 'webboard', 'articles', 'users'].includes(activeTab) && (
-        <div className="mb-4">
+        <div className="mb-4 flex flex-col sm:flex-row gap-4">
           <input
             type="search"
             placeholder={`ค้นหาใน ${activeTab}...`}
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full"
+            className="w-full sm:flex-grow"
           />
+           {activeTab === 'articles' && (
+            <div className="flex-shrink-0 w-full sm:w-48">
+              <label htmlFor="blogStatusFilter" className="sr-only">Filter by status</label>
+              <select
+                id="blogStatusFilter"
+                value={blogStatusFilter}
+                onChange={e => setBlogStatusFilter(e.target.value as any)}
+                className="w-full"
+              >
+                <option value="all">All Statuses</option>
+                <option value="published">Published</option>
+                <option value="draft">Draft</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+          )}
         </div>
       )}
       

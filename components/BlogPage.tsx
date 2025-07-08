@@ -1,5 +1,6 @@
-import React from 'react';
-import type { EnrichedBlogPost } from '../types.ts';
+import React, { useState, useMemo } from 'react';
+import type { EnrichedBlogPost, FilterableBlogCategory } from '../types.ts';
+import { BlogCategory } from '../types.ts';
 import { BlogCard } from './BlogCard.tsx';
 import { motion } from 'framer-motion';
 
@@ -19,9 +20,28 @@ const containerVariants = {
 };
 
 export const BlogPage: React.FC<BlogPageProps> = ({ posts, onSelectPost }) => {
+  const [categoryFilter, setCategoryFilter] = useState<FilterableBlogCategory>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredPosts = useMemo(() => {
+    return posts.filter(post => {
+      const categoryMatch = categoryFilter === 'all' || post.category === categoryFilter;
+      const searchTermLower = searchTerm.toLowerCase();
+      const searchMatch = searchTerm.trim() === '' ||
+        post.title.toLowerCase().includes(searchTermLower) ||
+        post.excerpt.toLowerCase().includes(searchTermLower) ||
+        (post.author?.publicDisplayName || '').toLowerCase().includes(searchTermLower);
+      
+      return categoryMatch && searchMatch;
+    });
+  }, [posts, categoryFilter, searchTerm]);
+
+  const filterInputBaseStyle = "w-full p-3 bg-white border border-neutral-DEFAULT rounded-md text-neutral-dark font-sans focus:outline-none focus:ring-1 focus:ring-neutral-DEFAULT text-sm sm:text-base";
+  const filterSelectBaseStyle = `${filterInputBaseStyle} appearance-none`;
+  
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="text-center mb-12">
+      <div className="text-center mb-8">
         <h1 className="text-4xl sm:text-5xl font-bold font-sans text-neutral-dark tracking-tight">
           HAJOBJA Journal
         </h1>
@@ -30,9 +50,39 @@ export const BlogPage: React.FC<BlogPageProps> = ({ posts, onSelectPost }) => {
         </p>
       </div>
 
-      {posts.length === 0 ? (
+      {/* Filter Bar */}
+      <div className="mb-8 p-3 sm:p-4 bg-white rounded-lg shadow-sm border border-neutral-DEFAULT/30 flex flex-col sm:flex-row gap-3 sm:gap-4 items-center">
+        <div className="w-full sm:w-auto sm:flex-1">
+          <label htmlFor="blogCategoryFilter" className="sr-only">กรองตามหมวดหมู่</label>
+          <select
+            id="blogCategoryFilter"
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value as FilterableBlogCategory)}
+            className={`${filterSelectBaseStyle} w-full`}
+          >
+            <option value="all">ทุกหมวดหมู่</option>
+            {Object.values(BlogCategory).map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
+        <div className="w-full sm:w-auto sm:flex-1">
+          <label htmlFor="blogSearch" className="sr-only">ค้นหาบทความ</label>
+          <input
+            type="search"
+            id="blogSearch"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="ค้นหาชื่อเรื่อง, เนื้อหา..."
+            className={`${filterInputBaseStyle} w-full`}
+          />
+        </div>
+      </div>
+
+
+      {filteredPosts.length === 0 ? (
         <div className="text-center py-16">
-          <p className="text-xl text-neutral-medium font-serif">ยังไม่มีบทความในขณะนี้...</p>
+          <p className="text-xl text-neutral-medium font-serif">ไม่พบบทความที่ตรงกับเงื่อนไขของคุณ...</p>
         </div>
       ) : (
         <motion.div
@@ -41,7 +91,7 @@ export const BlogPage: React.FC<BlogPageProps> = ({ posts, onSelectPost }) => {
           initial="hidden"
           animate="visible"
         >
-          {posts.map(post => (
+          {filteredPosts.map(post => (
             <BlogCard key={post.id} post={post} onSelectPost={onSelectPost} />
           ))}
         </motion.div>
