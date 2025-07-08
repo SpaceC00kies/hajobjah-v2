@@ -51,12 +51,12 @@ import {
   getBlogPostsForAdmin, // New service for admin
   addOrUpdateBlogPostService, // New service for blog post creation/editing
   deleteBlogPostService, // New service for deleting blog posts
+  starlightWriterService, // New AI service for blog
   subscribeToBlogCommentsService, // New subscription service for blog comments
   addBlogCommentService,
   updateBlogCommentService,
   deleteBlogCommentService,
   toggleBlogPostLikeService,
-  updateBlogPostStatusService, // New service for moderation
 } from './services/firebaseService.ts';
 import type { DocumentSnapshot, DocumentData } from 'firebase/firestore';
 import type { User, Job, HelperProfile, EnrichedHelperProfile, Interaction, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, EnrichedWebboardComment, SiteConfig, FilterableCategory, UserPostingLimits, UserActivityBadge, UserTier, Interest, VouchType, Vouch, VouchReport, VouchReportStatus, OrionMessage, BlogPost, EnrichedBlogPost, BlogComment } from './types.ts'; // Added Vouch, OrionMessage, BlogPost, BlogComment
@@ -1249,7 +1249,7 @@ const App: React.FC = () => {
     if (profile) toggleItemFlagAndUpdateLists('helperProfiles', profileId, "isUnavailable", profile.userId, profile.ownerId, profile.isUnavailable, loadHelpersFn);
   };
   // Modified to pass correct load functions for MyRoomPage context
-  const handleToggleItemStatusFromMyRoom = (itemId: string, itemType: 'job' | 'profile') => {
+  const handleToggleItemStatusFromMyRoom = (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => {
     if (itemType === 'job') handleToggleHiredJobForUserOrAdmin(itemId, loadJobs);
     else if (itemType === 'profile') handleToggleUnavailableHelperProfileForUserOrAdmin(itemId, loadHelpers);
   };
@@ -1565,19 +1565,6 @@ const App: React.FC = () => {
     } catch (error: any) {
         logFirebaseError("handleAddOrUpdateBlogPost", error);
         alert(`เกิดข้อผิดพลาด: ${error.message}`);
-    }
-};
-
-const handleUpdateBlogPostStatus = async (postId: string, status: 'draft' | 'published' | 'archived') => {
-    try {
-        await updateBlogPostStatusService(postId, status);
-        // Re-fetch admin posts to show updated status
-        const adminPosts = await getBlogPostsForAdmin();
-        setAllBlogPostsForAdmin(adminPosts);
-        alert(`Article status updated to ${status}.`);
-    } catch (error: any) {
-        logFirebaseError("handleUpdateBlogPostStatus", error);
-        alert(`Failed to update article status: ${error.message}`);
     }
 };
 
@@ -2364,39 +2351,39 @@ const handleDeleteBlogComment = async (commentId: string) => {
             )}
             {initialHelpersLoaded && enrichedHelperProfilesList.length === 0 && !hasMoreHelpers && (
             <div className="text-center py-10 bg-white p-6 rounded-lg shadow-md border border-primary-light">
-                <svg className="mx-auto h-24 w-24 text-primary-light" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                <svg className="mx-auto h-24 w-24 text-primary-light" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-2.144M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
                 <p className="mt-3 text-xl font-serif text-neutral-gray font-normal"> {emptyStateMessage} </p>
-                 {currentUser && helperProfilesList.length === 0 && !helperSearchTerm.trim() && selectedHelperCategoryFilter === 'all' && selectedHelperSubCategoryFilter === 'all' && selectedHelperProvinceFilter === 'all' && ( <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateTo(View.OfferHelp); }} variant="secondary" size="md" className="mt-6 font-medium"> เป็นคนแรกที่เสนอตัว! </Button> )}
-                 {!currentUser && helperProfilesList.length === 0 && !helperSearchTerm.trim() && selectedHelperCategoryFilter === 'all' && selectedHelperSubCategoryFilter === 'all' && selectedHelperProvinceFilter === 'all' && ( <Button onClick={() => requestLoginForAction(View.OfferHelp)} variant="secondary" size="md" className="mt-6 font-medium"> เข้าสู่ระบบเพื่อสร้างโปรไฟล์ </Button> )}
+                {currentUser && helperProfilesList.length === 0 && !helperSearchTerm.trim() && selectedHelperCategoryFilter === 'all' && selectedHelperSubCategoryFilter === 'all' && selectedHelperProvinceFilter === 'all' && ( <Button onClick={() => { setSourceViewForForm(View.FindHelpers); navigateTo(View.OfferHelp);}} variant="secondary" size="md" className="mt-6 font-medium"> เป็นคนแรกที่เสนอตัวช่วยงาน! </Button> )}
+                {!currentUser && helperProfilesList.length === 0 && !helperSearchTerm.trim() && selectedHelperCategoryFilter === 'all' && selectedHelperSubCategoryFilter === 'all' && selectedHelperProvinceFilter === 'all' && (<Button onClick={() => requestLoginForAction(View.OfferHelp)} variant="secondary" size="md" className="mt-6 font-medium"> เข้าสู่ระบบเพื่อเสนอตัวช่วยงาน </Button>)}
             </div>
             )}
             {enrichedHelperProfilesList.length > 0 && (
-            <AnimatePresence>
-                <motion.div
-                  className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
-                  variants={listVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
+                <AnimatePresence>
+                  <motion.div
+                    className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+                    variants={listVariants}
+                    initial="hidden"
+                    animate="visible"
+                  >
                     {enrichedHelperProfilesList.map(profile => (
-                    <motion.div key={profile.id} variants={itemVariants}>
+                      <motion.div key={profile.id} variants={itemVariants}>
                         <HelperCard
                             profile={profile}
                             onNavigateToPublicProfile={handleNavigateToPublicProfile}
                             navigateTo={navigateTo}
-                            onLogHelperContact={handleLogHelperContactInteraction}
+                            onLogHelperContact={() => handleLogHelperContactInteraction(profile.id)}
                             currentUser={currentUser}
                             requestLoginForAction={requestLoginForAction}
-                            onBumpProfile={handleBumpHelperProfile}
+                            onBumpProfile={(id) => handleBumpHelperProfile(id, loadHelpers)}
                             onEditProfileFromFindView={currentUser?.id === profile.userId ? handleEditOwnHelperProfileFromFindView : undefined}
                             getAuthorDisplayName={getAuthorDisplayName}
                             onToggleInterest={(targetId, targetType, targetOwnerId) => handleToggleInterest(targetId, targetType, targetOwnerId)}
                             isInterested={userInterests.some(i => i.targetId === profile.id && i.targetType === 'helperProfile')}
                         />
-                    </motion.div>
+                      </motion.div>
                     ))}
-                </motion.div>
-            </AnimatePresence>
+                  </motion.div>
+                </AnimatePresence>
             )}
             <div ref={helpersLoaderRef} className="h-10 flex justify-center items-center">
                 {isLoadingHelpers && initialHelpersLoaded && helperProfilesList.length > 0 && <p className="text-sm font-sans text-neutral-medium">✨ กำลังโหลดเพิ่มเติม...</p>}
@@ -2406,94 +2393,299 @@ const handleDeleteBlogComment = async (commentId: string) => {
             )}
         </section>
       </div>
-    </div>
-  );};
+    </div>);};
 
-  const renderCurrentView = () => {
-    switch (currentView) {
-      case View.Home: return renderHome();
-      case View.PostJob: return renderPostJob();
-      case View.FindJobs: return renderFindJobs();
-      case View.OfferHelp: return renderOfferHelpForm();
-      case View.FindHelpers: return renderFindHelpers();
-      case View.Register: return <RegistrationForm onRegister={handleRegister} onSwitchToLogin={() => navigateTo(View.Login)} />;
-      case View.Login: return <LoginForm onLogin={handleLogin} onSwitchToRegister={() => navigateTo(View.Register)} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />;
-      case View.AdminDashboard: return currentUser && (currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer) ? <AdminDashboard jobs={allJobsForAdmin} helperProfiles={allHelperProfilesForAdmin} users={users} interactions={interactions} webboardPosts={allWebboardPostsForAdmin} webboardComments={webboardComments} vouchReports={vouchReports} allBlogPostsForAdmin={allBlogPostsForAdmin} onDeleteJob={(id) => handleDeleteJob(id, loadJobs)} onDeleteHelperProfile={(id) => handleDeleteHelperProfile(id, loadHelpers)} onToggleSuspiciousJob={(id) => handleToggleSuspiciousJob(id, loadJobs)} onToggleSuspiciousHelperProfile={(id) => handleToggleSuspiciousHelperProfile(id, loadHelpers)} onTogglePinnedJob={(id) => handleTogglePinnedJob(id, loadJobs)} onTogglePinnedHelperProfile={(id) => handleTogglePinnedHelperProfile(id, loadHelpers)} onToggleHiredJob={(id) => handleToggleHiredJobForUserOrAdmin(id, loadJobs)} onToggleUnavailableHelperProfile={(id) => handleToggleUnavailableHelperProfileForUserOrAdmin(id, loadHelpers)} onToggleVerifiedExperience={(id) => handleToggleVerifiedExperience(id, loadHelpers)} onDeleteWebboardPost={(id) => handleDeleteWebboardPost(id, () => { loadWebboardPosts(true) })} onPinWebboardPost={(id) => handlePinWebboardPost(id, () => { loadWebboardPosts(true) })} onStartEditItem={handleStartEditItemFromAdmin} onSetUserRole={handleSetUserRole} currentUser={currentUser} isSiteLocked={isSiteLocked} onToggleSiteLock={handleToggleSiteLock} getAuthorDisplayName={getAuthorDisplayName} getUserDisplayBadge={(user) => getUserDisplayBadge(user)} onResolveVouchReport={handleResolveVouchReport} getVouchDocument={getVouchDocument} orionAnalyzeService={orionAnalyzeService} onDeleteBlogPost={handleDeleteBlogPost} onAddOrUpdateBlogPost={handleAddOrUpdateBlogPost} updateBlogPostStatus={handleUpdateBlogPostStatus} getUserDocument={getUserDocument}/> : <p>Access Denied</p>;
-      // MyPosts is replaced by MyRoom, so this case is removed.
-      // case View.MyPosts: return currentUser ? <MyPostsPage currentUser={currentUser} jobs={allJobsForAdmin} helperProfiles={allHelperProfilesForAdmin} webboardPosts={allWebboardPostsForAdmin} webboardComments={webboardComments} onEditItem={handleStartEditMyItem} onDeleteItem={handleDeleteItemFromMyRoom} onToggleHiredStatus={handleToggleItemStatusFromMyRoom} navigateTo={navigateTo} getUserDisplayBadge={(user, posts, comments) => getUserDisplayBadge(user)} /> : <p>Please log in.</p>;
-      case View.MyRoom: return currentUser ? <MyRoomPage currentUser={currentUser} users={users} allJobsForAdmin={allJobsForAdmin} allHelperProfilesForAdmin={allHelperProfilesForAdmin} allWebboardPostsForAdmin={allWebboardPostsForAdmin} webboardComments={webboardComments} userInterests={userInterests} navigateTo={navigateTo} onEditItem={handleStartEditMyItem} onDeleteItem={handleDeleteItemFromMyRoom} onToggleHiredStatus={handleToggleItemStatusFromMyRoom} onUpdateUserProfile={handleUpdateUserProfile} getUserDisplayBadge={(user) => getUserDisplayBadge(user)} onSavePost={handleSaveWebboardPost} onBumpProfile={(id) => handleBumpHelperProfile(id, loadHelpers)} onNavigateToPublicProfile={handleNavigateToPublicProfile} initialTab={myRoomInitialTabOverride} onInitialTabProcessed={() => setMyRoomInitialTabOverride(null)} getAuthorDisplayName={getAuthorDisplayName} onToggleInterest={handleToggleInterest} onToggleLike={handleToggleWebboardPostLike} requestLoginForAction={requestLoginForAction} onEditJobFromFindView={(id) => handleEditOwnJobFromFindView(id)} onEditHelperProfileFromFindView={(id) => handleEditOwnHelperProfileFromFindView(id)} onLogHelperContact={handleLogHelperContactInteraction} /> : <p>Please log in.</p>;
-      case View.PublicProfile: {
-          const userForProfile = users.find(u => u.id === viewingProfileInfo?.userId);
-          const helperProfileForContext = allHelperProfilesForAdmin.find(p => p.id === viewingProfileInfo?.helperProfileId);
-          return userForProfile ? <PublicProfilePage user={userForProfile} helperProfile={helperProfileForContext} onBack={() => navigateTo(sourceViewForPublicProfile || View.Home)} currentUser={currentUser} onVouchForUser={handleOpenVouchModal} onShowVouches={handleOpenVouchesListModal} /> : <p>Loading profile...</p>;
-      }
-      case View.AboutUs: return <AboutUsPage />;
-      case View.Safety: return <SafetyPage />;
-      case View.Webboard: return <WebboardPage currentUser={currentUser} users={users} comments={webboardComments} onAddOrUpdatePost={handleAddOrUpdateWebboardPost} onAddComment={handleAddWebboardComment} onToggleLike={handleToggleWebboardPostLike} onSavePost={handleSaveWebboardPost} onSharePost={handleShareWebboardPost} onDeletePost={(id) => handleDeleteWebboardPost(id, () => { loadWebboardPosts(true) })} onPinPost={(id) => handlePinWebboardPost(id, () => { loadWebboardPosts(true) })} onEditPost={handleEditWebboardPostFromPage} onDeleteComment={handleDeleteWebboardComment} onUpdateComment={handleUpdateWebboardComment} selectedPostId={selectedPostId} setSelectedPostId={setSelectedPostId} navigateTo={navigateTo} editingPost={editingItemType === 'webboardPost' ? itemToEdit as WebboardPost : null} onCancelEdit={handleCancelEditOrPost} getUserDisplayBadge={(user) => getUserDisplayBadge(user)} requestLoginForAction={requestLoginForAction} onNavigateToPublicProfile={handleNavigateToPublicProfile} checkWebboardPostLimits={checkWebboardPostLimits} checkWebboardCommentLimits={checkWebboardCommentLimits} pageSize={WEBBOARD_PAGE_SIZE} getAuthorDisplayName={getAuthorDisplayName} />;
-      case View.PasswordReset: return <PasswordResetPage navigateTo={navigateTo} />;
-      case View.Blog: {
-        const selectedPost = selectedBlogPostSlug ? allBlogPosts.find(p => p.slug === selectedBlogPostSlug) : null;
-        if (selectedPost) {
-          return <BlogArticlePage post={selectedPost} onBack={() => navigateTo(View.Blog)} comments={blogComments} currentUser={currentUser} onToggleLike={handleToggleBlogPostLike} onAddComment={handleAddBlogComment} onUpdateComment={handleUpdateBlogComment} onDeleteComment={handleDeleteBlogComment} canEditOrDelete={canEditOrDelete} />;
-        }
-        return <BlogPage posts={allBlogPosts} onSelectPost={(slug) => navigateTo(View.Blog, slug)} />;
-      }
-      case View.ArticleEditor: return currentUser && (currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer) ? <ArticleEditor onSubmit={handleAddOrUpdateBlogPost} onCancel={handleCancelEditOrPost} initialData={editingItemType === 'blogPost' ? itemToEdit as BlogPost : undefined} isEditing={!!(itemToEdit && editingItemType === 'blogPost')} currentUser={currentUser} /> : <p>Access Denied</p>;
-      default: return renderHome();
+  const renderRegister = () => <RegistrationForm onRegister={handleRegister} onSwitchToLogin={() => navigateTo(View.Login)} />;
+  const renderLogin = () => <LoginForm onLogin={handleLogin} onSwitchToRegister={() => navigateTo(View.Register)} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />;
+  // UserProfilePage is now primarily accessed via MyRoomPage
+  // const renderUserProfile = () => { if (!currentUser) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทางไปยังหน้าเข้าสู่ระบบ...</p>; return (<UserProfilePage currentUser={currentUser} onUpdateProfile={handleUpdateUserProfile} onCancel={() => navigateTo(View.Home)} />); };
+
+  const renderMyRoomPage = () => {
+    if (!currentUser) {
+      requestLoginForAction(View.MyRoom);
+      return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทางไปยังหน้าเข้าสู่ระบบ...</p>;
     }
+    return (<MyRoomPage
+        currentUser={currentUser}
+        users={users}
+        allJobsForAdmin={allJobsForAdmin}
+        allHelperProfilesForAdmin={allHelperProfilesForAdmin}
+        allWebboardPostsForAdmin={allWebboardPostsForAdmin}
+        webboardComments={webboardComments}
+        userInterests={userInterests}
+        navigateTo={navigateTo}
+        onEditItem={handleStartEditMyItem} // Will now pass originatingTab
+        onDeleteItem={handleDeleteItemFromMyRoom}
+        onToggleHiredStatus={handleToggleItemStatusFromMyRoom}
+        onUpdateUserProfile={handleUpdateUserProfile}
+        getUserDisplayBadge={getUserDisplayBadge}
+        onSavePost={handleSaveWebboardPost}
+        onBumpProfile={(id) => handleBumpHelperProfile(id, loadHelpers)}
+        onNavigateToPublicProfile={handleNavigateToPublicProfile}
+        initialTab={myRoomInitialTabOverride}
+        onInitialTabProcessed={() => setMyRoomInitialTabOverride(null)}
+        getAuthorDisplayName={getAuthorDisplayName}
+        onToggleInterest={handleToggleInterest}
+        onToggleLike={handleToggleWebboardPostLike}
+        requestLoginForAction={requestLoginForAction}
+        onEditJobFromFindView={handleEditOwnJobFromFindView}
+        onEditHelperProfileFromFindView={handleEditOwnHelperProfileFromFindView}
+        onLogHelperContact={handleLogHelperContactInteraction}
+      />);
   };
 
-  const loadWebboardPosts = useCallback(async (isInitialLoad = false) => {
-    // This function is for the webboard page, not a global loader.
-    // It's defined within the WebboardPage component.
-    // This is a placeholder to satisfy the function calls in MyRoomPage.
-  }, []);
+  const renderAdminDashboard = () => {
+    if (!currentUser || (currentUser.role !== UserRole.Admin && currentUser.role !== UserRole.Writer)) return <p className="text-center p-8 font-serif">คุณไม่มีสิทธิ์เข้าถึงหน้านี้...</p>;
+    return (<AdminDashboard
+        jobs={allJobsForAdmin} helperProfiles={allHelperProfilesForAdmin} users={users} interactions={interactions}
+        webboardPosts={allWebboardPostsForAdmin} webboardComments={webboardComments}
+        allBlogPostsForAdmin={allBlogPostsForAdmin}
+        onDeleteJob={(id) => handleDeleteJob(id, loadJobs)}
+        onDeleteHelperProfile={(id) => handleDeleteHelperProfile(id, loadHelpers)}
+        onToggleSuspiciousJob={(id) => handleToggleSuspiciousJob(id, loadJobs)}
+        onToggleSuspiciousHelperProfile={(id) => handleToggleSuspiciousHelperProfile(id, loadHelpers)}
+        onTogglePinnedJob={(id) => handleTogglePinnedJob(id, loadJobs)}
+        onTogglePinnedHelperProfile={(id) => handleTogglePinnedHelperProfile(id, loadHelpers)}
+        onToggleHiredJob={(id) => handleToggleHiredJobForUserOrAdmin(id, loadJobs)}
+        onToggleUnavailableHelperProfile={(id) => handleToggleUnavailableHelperProfileForUserOrAdmin(id, loadHelpers)}
+        onToggleVerifiedExperience={(id) => handleToggleVerifiedExperience(id, loadHelpers)}
+        onDeleteWebboardPost={handleDeleteWebboardPost}
+        onPinWebboardPost={handlePinWebboardPost}
+        onStartEditItem={handleStartEditItemFromAdmin}
+        onSetUserRole={handleSetUserRole}
+        currentUser={currentUser}
+        isSiteLocked={isSiteLocked} onToggleSiteLock={handleToggleSiteLock}
+        getAuthorDisplayName={getAuthorDisplayName}
+        getUserDisplayBadge={getUserDisplayBadge}
+        vouchReports={vouchReports}
+        onResolveVouchReport={handleResolveVouchReport}
+        getVouchDocument={getVouchDocument}
+        orionAnalyzeService={orionAnalyzeService} // Pass new service
+        onDeleteBlogPost={handleDeleteBlogPost}
+        onAddOrUpdateBlogPost={handleAddOrUpdateBlogPost}
+        getUserDocument={getUserDocument}
+    />);
+  };
+  // MyPostsPage is replaced by MyRoomPage
+  // const renderMyPostsPage = () => { if (!currentUser || currentUser.role === UserRole.Admin) return <p className="text-center p-8 font-serif">กำลังเปลี่ยนเส้นทาง...</p>; return (<MyPostsPage currentUser={currentUser} jobs={allJobsForAdmin} helperProfiles={allHelperProfilesForAdmin} webboardPosts={allWebboardPostsForAdmin} webboardComments={webboardComments} onEditItem={handleStartEditMyItem} onDeleteItem={handleDeleteItemFromMyPosts} onToggleHiredStatus={handleToggleItemStatusFromMyPosts} navigateTo={navigateTo} getUserDisplayBadge={(user) => getUserDisplayBadge(user)} />); };
+  const renderAboutUsPage = () => <AboutUsPage />;
+  const renderSafetyPage = () => <SafetyPage />;
+
+  const handleBackFromPublicProfile = () => {
+    // Use the stored sourceViewForPublicProfile to navigate back
+    navigateTo(sourceViewForPublicProfile || View.FindHelpers); // Default to FindHelpers if somehow not set
+  };
+
+  const renderPublicProfile = () => {
+    if (!viewingProfileInfo || !viewingProfileInfo.userId) {
+      navigateTo(View.Home);
+      return <p className="text-center p-8 font-serif">ไม่พบ ID โปรไฟล์...</p>;
+    }
+    const profileUser = users.find(u => u.id === viewingProfileInfo.userId);
+    if (!profileUser) return <p className="text-center p-8 font-serif text-red-500">ไม่พบโปรไฟล์ผู้ใช้</p>;
+    if (profileUser.role === UserRole.Admin && currentUser?.id !== viewingProfileInfo.userId) {
+      return <div className="text-center p-8 font-serif text-red-500">โปรไฟล์ของแอดมินไม่สามารถดูในหน้านี้ได้</div>;
+    }
+
+    let helperProfileForBio: HelperProfile | undefined = undefined;
+    if (viewingProfileInfo.helperProfileId) {
+        // Find specific helper profile if ID is provided
+        helperProfileForBio = allHelperProfilesForAdmin.find(hp => 
+            hp.id === viewingProfileInfo.helperProfileId && 
+            hp.userId === viewingProfileInfo.userId && // Ensure it belongs to the user
+            !isDateInPast(hp.expiresAt) && 
+            !hp.isExpired
+        );
+    }
+    // If viewingProfileInfo.helperProfileId is not set, helperProfileForBio remains undefined.
+    // The previous logic of finding *any* active profile is removed for general profile views.
+
+    const displayBadgeForProfile = getUserDisplayBadge(profileUser);
+    return <PublicProfilePage
+              currentUser={currentUser}
+              user={{...profileUser, userLevel: displayBadgeForProfile}}
+              helperProfile={helperProfileForBio}
+              onBack={handleBackFromPublicProfile}
+              onVouchForUser={handleOpenVouchModal}
+              onShowVouches={handleOpenVouchesListModal}
+           />;
+  };
+
+  const renderWebboardPage = () => {
+    return (<WebboardPage
+      currentUser={currentUser} users={users}
+      comments={webboardComments}
+      onAddOrUpdatePost={handleAddOrUpdateWebboardPost} onAddComment={handleAddWebboardComment}
+      onToggleLike={handleToggleWebboardPostLike}
+      onSavePost={handleSaveWebboardPost}
+      onSharePost={handleShareWebboardPost}
+      onDeletePost={handleDeleteWebboardPost}
+      onPinWebboardPost={handlePinWebboardPost}
+      onEditPost={handleEditWebboardPostFromPage}
+      onDeleteComment={handleDeleteWebboardComment} 
+      onUpdateComment={handleUpdateWebboardComment}
+      selectedPostId={selectedPostId} setSelectedPostId={setSelectedPostId}
+      navigateTo={navigateTo} editingPost={editingItemType === 'webboardPost' ? itemToEdit as WebboardPost : null}
+      onCancelEdit={handleCancelEditOrPost}
+      getUserDisplayBadge={getUserDisplayBadge}
+      requestLoginForAction={requestLoginForAction}
+      onNavigateToPublicProfile={handleNavigateToPublicProfile}
+      checkWebboardPostLimits={checkWebboardPostLimits}
+      checkWebboardCommentLimits={checkWebboardCommentLimits}
+      pageSize={WEBBOARD_PAGE_SIZE}
+      getAuthorDisplayName={getAuthorDisplayName}
+    />);};
+  const renderPasswordResetPage = () => <PasswordResetPage navigateTo={navigateTo} />;
+
+  const renderBlogPage = () => {
+    const enrichedBlogPosts: EnrichedBlogPost[] = allBlogPosts.map(post => ({
+      ...post,
+      author: users.find(u => u.id === post.authorId),
+    }));
+    if (selectedBlogPostSlug) {
+      const selectedPost = enrichedBlogPosts.find(p => p.slug === selectedBlogPostSlug);
+      return selectedPost ? <BlogArticlePage
+                                post={selectedPost} 
+                                onBack={() => navigateTo(View.Blog)}
+                                comments={blogComments}
+                                currentUser={currentUser}
+                                onToggleLike={handleToggleBlogPostLike}
+                                onAddComment={handleAddBlogComment}
+                                onUpdateComment={handleUpdateBlogComment}
+                                onDeleteComment={handleDeleteBlogComment}
+                                canEditOrDelete={canEditOrDelete}
+                             /> : <p>Article not found.</p>;
+    }
+    return <BlogPage posts={enrichedBlogPosts} onSelectPost={(slug) => navigateTo(View.Blog, { slug })} />;
+  };
+
+  const renderArticleEditor = () => {
+    if (!currentUser || !(currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer)) {
+        return <p className="text-center p-8 font-serif">คุณไม่มีสิทธิ์เข้าถึงหน้านี้...</p>;
+    }
+    return (
+        <ArticleEditor
+            onSubmit={handleAddOrUpdateBlogPost}
+            onCancel={handleCancelEditOrPost}
+            initialData={editingItemType === 'blogPost' ? itemToEdit as BlogPost : undefined}
+            isEditing={!!itemToEdit && editingItemType === 'blogPost'}
+            currentUser={currentUser}
+            onGenerateSuggestions={starlightWriterService}
+        />
+    );
+  };
+
+
+  let currentViewContent;
+  if (isLoadingAuth) {
+    currentViewContent = (<div className="flex justify-center items-center h-screen"><p className="text-xl font-sans text-neutral-dark">กำลังโหลด...</p></div>);
+  } else {
+    if (currentView === View.PasswordReset && !currentUser) {
+      currentViewContent = renderPasswordResetPage();
+    } else if (isSiteLocked && currentUser?.role !== UserRole.Admin) {
+      return <SiteLockOverlay />;
+    } else {
+      switch (currentView) {
+          case View.Home: currentViewContent = renderHome(); break;
+          case View.PostJob: currentViewContent = renderPostJob(); break;
+          case View.FindJobs: currentViewContent = renderFindJobs(); break;
+          case View.OfferHelp: currentViewContent = renderOfferHelpForm(); break;
+          case View.FindHelpers: currentViewContent = renderFindHelpers(); break;
+          case View.Login: currentViewContent = renderLogin(); break;
+          case View.Register: currentViewContent = renderRegister(); break;
+          case View.AdminDashboard: currentViewContent = renderAdminDashboard(); break;
+          case View.MyPosts: currentViewContent = renderMyRoomPage(); break;
+          case View.UserProfile: currentViewContent = renderMyRoomPage(); break;
+          case View.MyRoom: currentViewContent = renderMyRoomPage(); break;
+          case View.AboutUs: currentViewContent = renderAboutUsPage(); break;
+          case View.PublicProfile: currentViewContent = renderPublicProfile(); break;
+          case View.Safety: currentViewContent = renderSafetyPage(); break;
+          case View.Webboard: currentViewContent = renderWebboardPage(); break;
+          case View.PasswordReset: currentViewContent = renderPasswordResetPage(); break;
+          case View.Blog: currentViewContent = renderBlogPage(); break;
+          case View.ArticleEditor: currentViewContent = renderArticleEditor(); break;
+          default:
+            // const exhaustiveCheck: never = currentView;
+            currentViewContent = <p>Unknown view: {currentView}</p>;
+      }
+    }
+  }
+
+  // AnimatePresence for CopiedLinkNotification
+  const CopiedNotification = () => (
+      <AnimatePresence>
+          {copiedLinkNotification && (
+              <motion.div
+                  initial={{ opacity: 0, y: 50, scale: 0.3 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 20, scale: 0.5 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                  className="fixed bottom-10 right-10 bg-neutral-dark text-white text-sm font-sans font-medium px-4 py-2 rounded-lg shadow-xl z-50"
+              >
+                  {copiedLinkNotification}
+              </motion.div>
+          )}
+      </AnimatePresence>
+  );
+
+  const isFullPageLayout = [View.MyRoom, View.FindJobs, View.FindHelpers, View.Home].includes(currentView);
+
+  // The main layout class determines padding and centering for different views.
+  const mainLayoutClasses = isFullPageLayout 
+    ? '' 
+    : 'justify-center container mx-auto p-4 sm:p-6 lg:p-8';
+
 
   return (
-    <div className={`app-container ${isMobileMenuOpen ? 'mobile-menu-open' : ''}`}>
+    <div className={`font-serif bg-neutral-light min-h-screen flex flex-col`}>
       {renderHeader()}
       {renderMobileMenu()}
-      {isSiteLocked ? <SiteLockOverlay /> : (
-        <main className={`flex-grow w-full ${currentView !== View.PasswordReset ? 'bg-neutral-light' : ''}`}>
-          {isLoadingAuth ? (
-            <div className="flex justify-center items-center h-screen"><p>Loading...</p></div>
-          ) : (
-            renderCurrentView()
-          )}
-        </main>
-      )}
-
-      <footer className="w-full bg-primary-dark text-white text-center py-4">
-        <div className="container mx-auto text-xs sm:text-sm font-sans">
-          <div className="flex justify-center space-x-4 mb-2">
-            <a onClick={() => navigateTo(View.AboutUs)} className="hover:underline cursor-pointer">เกี่ยวกับเรา</a>
-            <a onClick={() => navigateTo(View.Safety)} className="hover:underline cursor-pointer">เพื่อความปลอดภัย</a>
-            <a onClick={() => setIsFeedbackModalOpen(true)} className="hover:underline cursor-pointer">ส่งข้อเสนอแนะ</a>
+      <main className={`flex-grow flex flex-col ${mainLayoutClasses} ${currentView === View.Home ? 'hero-section' : ''}`}>
+        {currentViewContent}
+      </main>
+      <footer className="bg-white text-center p-6 text-sm text-neutral-medium border-t border-primary-light">
+        <div className="font-sans flex justify-center items-center space-x-2 mb-4">
+          <button onClick={() => navigateTo(View.AboutUs)} className="hover:text-primary transition-colors">
+            เกี่ยวกับเรา
+          </button>
+          <span className="text-neutral-DEFAULT">·</span>
+          <button onClick={() => navigateTo(View.Safety)} className="hover:text-primary transition-colors">
+            ความปลอดภัย
+          </button>
+          <span className="text-neutral-DEFAULT">·</span>
+          <button onClick={() => setIsFeedbackModalOpen(true)} className="hover:text-primary transition-colors">
+            Feedback
+          </button>
+        </div>
+        <div className="text-xs text-neutral-medium/80 space-y-1">
+          <p>© 2025 HAJOBJA.COM - All rights reserved.</p>
+          <div className="flex justify-center items-center">
+            <span className="font-sans">Created by&nbsp;</span>
+            <a 
+              href="https://www.facebook.com/bluecathousestudio/" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="text-primary hover:underline inline-flex items-center align-middle font-sans font-medium"
+            >
+              <img 
+                src="https://i.postimg.cc/wxrcQPHV/449834128-122096458958403535-3024125841409891827-n-1-removebg-preview.png"
+                alt="Blue Cat House Logo" 
+                className="h-4 w-auto mr-1"
+              />
+              <span>Blue Cat House</span>
+            </a>
           </div>
-          &copy; {new Date().getFullYear()} HAJOBJA.COM. All rights reserved.
         </div>
       </footer>
-      
-      {/* Modals & Overlays */}
-      <AnimatePresence>
-        {copiedLinkNotification && (
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-neutral-dark text-white text-sm font-sans px-4 py-2 rounded-full shadow-lg z-50"
-          >
-            {copiedLinkNotification}
-          </motion.div>
-        )}
-      </AnimatePresence>
       <ConfirmModal isOpen={isConfirmModalOpen} onClose={closeConfirmModal} onConfirm={handleConfirmDeletion} title={confirmModalTitle} message={confirmModalMessage} />
-      <ForgotPasswordModal isOpen={isForgotPasswordModalOpen} onClose={() => setIsForgotPasswordModalOpen(false)} onSendResetEmail={handleSendPasswordResetEmail}/>
       <FeedbackForm isOpen={isFeedbackModalOpen} onClose={() => setIsFeedbackModalOpen(false)} currentUserEmail={currentUser?.email} />
-      {vouchModalData && currentUser && <VouchModal isOpen={!!vouchModalData} onClose={handleCloseVouchModal} userToVouch={vouchModalData.userToVouch} onSubmit={handleVouchSubmit} currentUser={currentUser} />}
+      <ForgotPasswordModal isOpen={isForgotPasswordModalOpen} onClose={() => setIsForgotPasswordModalOpen(false)} onSendResetEmail={handleSendPasswordResetEmail} />
+
+      {vouchModalData && currentUser && <VouchModal isOpen={!!vouchModalData} onClose={handleCloseVouchModal} userToVouch={vouchModalData.userToVouch} currentUser={currentUser} onSubmit={handleVouchSubmit} />}
       {vouchListModalData && <VouchesListModal isOpen={!!vouchListModalData} onClose={handleCloseVouchesListModal} userToList={vouchListModalData.userToList} navigateToPublicProfile={(id) => navigateTo(View.PublicProfile, id)} onReportVouch={handleOpenReportVouchModal} currentUser={currentUser} />}
       {reportVouchModalData && <ReportVouchModal isOpen={!!reportVouchModalData} onClose={handleCloseReportVouchModal} vouchToReport={reportVouchModalData.vouchToReport} onSubmitReport={(comment) => handleReportVouchSubmit(reportVouchModalData.vouchToReport, comment)} />}
 
+      <CopiedNotification />
     </div>
   );
 };

@@ -55,12 +55,11 @@ interface AdminDashboardProps {
   onToggleSiteLock: () => void;
   getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
   getUserDisplayBadge: (user: User) => UserLevel;
-  onResolveVouchReport: (reportId: string, resolution: VouchReportStatus.ResolvedDeleted | VouchReportStatus.ResolvedKept, vouchId: string, voucheeId: string, vouchType?: VouchType) => void;
+  onResolveVouchReport: (reportId: string, resolution: VouchReportStatus.ResolvedDeleted | VouchReportStatus.ResolvedKept, vouchId: string, voucheeId: string, vouchType: VouchType) => void;
   getVouchDocument: (vouchId: string) => Promise<Vouch | null>;
   orionAnalyzeService: typeof OrionAnalyzeServiceType;
   onDeleteBlogPost: (postId: string, coverImageURL?: string) => void;
   onAddOrUpdateBlogPost: (blogPostData: Partial<BlogPost> & { newCoverImageBase64?: string | null }, existingPostId?: string) => void;
-  updateBlogPostStatus: (postId: string, status: 'draft' | 'published' | 'archived') => void; // New prop for moderation
   // This prop type was missing from the original file, it's added now for HUD analysis
   getUserDocument: (userId: string) => Promise<User | null>; 
 }
@@ -132,7 +131,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   orionAnalyzeService,
   onDeleteBlogPost,
   onAddOrUpdateBlogPost,
-  updateBlogPostStatus,
   getUserDocument, // Added for HUD
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('orion_command_center');
@@ -378,23 +376,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <tbody className="bg-white divide-y divide-neutral-DEFAULT">
                 {filteredItems.filter(item => item.itemType === 'blogPost').map(item => {
                   const canEdit = currentUser?.role === UserRole.Admin || (currentUser?.role === UserRole.Writer && item.userId === currentUser.id);
-                  const post = item.originalItem as BlogPost;
                   return(
                   <tr key={item.id}>
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-neutral-800">{item.title}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-neutral-dark">{item.authorDisplayName}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-neutral-dark">
-                        <select
-                            value={post.status}
-                            onChange={(e) => updateBlogPostStatus(post.id, e.target.value as 'draft' | 'published' | 'archived')}
-                            disabled={!canEdit}
-                            className={`rounded-md border-gray-300 shadow-sm text-xs focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50
-                                ${post.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}
-                        >
-                            <option value="draft">Draft</option>
-                            <option value="published">Published</option>
-                            <option value="archived">Archived</option>
-                        </select>
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            item.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                            {item.status}
+                        </span>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-neutral-dark">{item.publishedAt ? formatDateDisplay(item.publishedAt) : '—'}</td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
@@ -570,7 +561,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <p>Type: {VOUCH_TYPE_LABELS[selectedVouch.vouchType]}</p>
                             <p>Vouch Comment: "{selectedVouch.comment}"</p>
                         </div>
-                    ) : <p className="font-bold text-red-500">⚠️ Vouch data not found.</p>}
+                    ) : <p className="text-red-500">Vouch data not found.</p>}
 
                     <hr className="my-2" />
                     <p className="font-semibold">Risk Signals:</p>
@@ -585,7 +576,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
                     <div className="mt-4 flex gap-4">
                         <Button onClick={() => onResolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedKept, selectedReport.vouchId, selectedReport.voucheeId, selectedVouch!.vouchType)} colorScheme="primary" disabled={isHudLoading || !selectedVouch}>Keep Vouch</Button>
-                        <Button onClick={() => onResolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedDeleted, selectedReport.vouchId, selectedReport.voucheeId, selectedVouch?.vouchType)} colorScheme="accent" disabled={isHudLoading}>Delete Vouch</Button>
+                        <Button onClick={() => onResolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedDeleted, selectedReport.vouchId, selectedReport.voucheeId, selectedVouch!.vouchType)} colorScheme="accent" disabled={isHudLoading || !selectedVouch}>Delete Vouch</Button>
                     </div>
                 </div>
             ) : <p>Select a report to view details.</p>}
