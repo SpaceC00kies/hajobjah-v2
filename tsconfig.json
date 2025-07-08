@@ -13,7 +13,6 @@
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "moduleDetection": "force",
-    "noEmit": true,
     "allowJs": true,
     "jsx": "react-jsx",
 
@@ -24,5 +23,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["firebase.ts", "types.ts", "App.tsx", "index.tsx", "components", "services", "utils", "hooks"]
+  "include": ["firebase.ts", "types/types.ts", "App.tsx", "index.tsx", "components", "services", "utils", "hooks"]
 }
