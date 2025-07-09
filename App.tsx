@@ -435,14 +435,32 @@ const App: React.FC = () => {
   const renderFooter = () => {
     if (isLoadingAuth) return null;
     return (
-      <footer className="w-full bg-primary-dark text-white p-6 mt-auto">
-        <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center text-sm font-sans">
-          <p>&copy; {new Date().getFullYear()} HAJOBJA.COM. All rights reserved.</p>
-          <div className="flex space-x-4 mt-4 sm:mt-0">
-            <button onClick={() => navigateTo(View.AboutUs)} className="hover:underline">เกี่ยวกับเรา</button>
-            <button onClick={() => setIsFeedbackModalOpen(true)} className="hover:underline">ติชม/เสนอแนะ</button>
-            <button onClick={() => navigateTo(View.Safety)} className="hover:underline">ความปลอดภัย</button>
-          </div>
+      <footer className="w-full bg-white text-center text-sm text-neutral-dark p-6 border-t border-primary-light mt-auto font-serif">
+        <div className="mb-4 flex items-center justify-center font-sans">
+            <button onClick={() => navigateTo(View.AboutUs)} className="hover:text-primary transition-colors">เกี่ยวกับเรา</button>
+            <span className="mx-2">·</span>
+            <button onClick={() => navigateTo(View.Safety)} className="hover:text-primary transition-colors">ความปลอดภัย</button>
+            <span className="mx-2">·</span>
+            <button onClick={() => setIsFeedbackModalOpen(true)} className="hover:text-primary transition-colors">Feedback</button>
+        </div>
+        <div className="text-xs">
+            <p>© 2025 HAJOBJA.COM - All rights reserved.</p>
+            <div className="flex items-center justify-center mt-1">
+                <span className="font-sans">Created by&nbsp;</span>
+                <a 
+                    href="https://www.facebook.com/bluecathousestudio/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center text-primary hover:underline font-medium font-sans"
+                >
+                    <img 
+                        alt="Blue Cat House Logo" 
+                        src="https://i.postimg.cc/wxrcQPHV/449834128-122096458958403535-3024125841409891827-n-1-removebg-preview.png" 
+                        className="h-4 w-auto mr-1"
+                    />
+                    <span>Blue Cat House</span>
+                </a>
+            </div>
         </div>
       </footer>
     );
