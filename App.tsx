@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -217,7 +215,7 @@ const App: React.FC = () => {
   const renderNavLinks = (isMobile: boolean) => {
     const displayBadgeForProfile = getUserDisplayBadge(currentUser, allWebboardPostsForAdmin, webboardComments);
     const commonButtonPropsBase = isMobile
-      ? { size: 'md' as const, className: 'w-full text-left justify-start py-3 px-4 text-base' }
+      ? { size: 'md' as const, className: 'w-full text-left justify-start py-3 px-4 text-base nav-pill' }
       : { size: 'sm' as const, className: 'flex-shrink-0 nav-pill' };
 
     const navigateAndCloseMenu = (view: View, payload?: any) => {
@@ -245,46 +243,40 @@ const App: React.FC = () => {
             )}
 
             {currentView !== View.Home && (
-              <Button onClick={() => navigateAndCloseMenu(View.Home)} variant="outline" colorScheme="primary" {...commonButtonPropsBase}>
+              <button onClick={() => navigateAndCloseMenu(View.Home)} className={`${commonButtonPropsBase.className} ${currentView === View.Home ? activeClass : ''}`}>
                 <span className={navItemSpanClass}><span>🏠</span><span>หน้าแรก</span></span>
-              </Button>
+              </button>
             )}
             
             {(currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer) && (
-              <Button onClick={() => navigateAndCloseMenu(View.AdminDashboard)} variant="outline" colorScheme="secondary" {...commonButtonPropsBase} className={`${commonButtonPropsBase.className} ${currentView === View.AdminDashboard ? 'bg-secondary text-neutral-dark' : ''}`}>
+              <button onClick={() => navigateAndCloseMenu(View.AdminDashboard)} className={`${commonButtonPropsBase.className} ${currentView === View.AdminDashboard ? activeClass : ''}`}>
                  <span className={navItemSpanClass}><span>🔐</span><span>Admin</span></span>
-              </Button>
+              </button>
             )}
 
-            <Button onClick={() => navigateTo(View.MyRoom)} variant="outline" colorScheme="secondary" {...commonButtonPropsBase} className={`${commonButtonPropsBase.className} ${currentView === View.MyRoom ? 'bg-secondary text-neutral-dark' : ''}`}>
+            <button onClick={() => navigateTo(View.MyRoom)} className={`${commonButtonPropsBase.className} ${currentView === View.MyRoom ? activeClass : ''}`}>
               <span className={navItemSpanClass}><span>🛋️</span><span>ห้องของฉัน</span></span>
-            </Button>
+            </button>
             
-            <Button onClick={() => navigateTo(View.FindJobs)} variant="outline" colorScheme="primary" {...commonButtonPropsBase} className={`${commonButtonPropsBase.className} ${currentView === View.FindJobs ? activeClass : ''}`}>
+            <button onClick={() => navigateTo(View.FindJobs)} className={`${commonButtonPropsBase.className} ${currentView === View.FindJobs ? activeClass : ''}`}>
               <span className={navItemSpanClass}><span>📢</span><span>ประกาศงาน</span></span>
-            </Button>
+            </button>
             
-            <Button onClick={() => navigateTo(View.FindHelpers)} variant="outline" colorScheme="primary" {...commonButtonPropsBase} className={`${commonButtonPropsBase.className} ${currentView === View.FindHelpers ? activeClass : ''}`}>
+            <button onClick={() => navigateTo(View.FindHelpers)} className={`${commonButtonPropsBase.className} ${currentView === View.FindHelpers ? activeClass : ''}`}>
               <span className={navItemSpanClass}><span>👥</span><span>โปรไฟล์ผู้ช่วย</span></span>
-            </Button>
+            </button>
             
-            <Button onClick={() => navigateTo(View.Blog)} variant="outline" colorScheme="primary" {...commonButtonPropsBase} className={`${commonButtonPropsBase.className} ${currentView === View.Blog ? activeClass : ''}`}>
+            <button onClick={() => navigateTo(View.Blog)} className={`${commonButtonPropsBase.className} ${currentView === View.Blog ? activeClass : ''}`}>
               <span className={navItemSpanClass}><span>📖</span><span>บทความ</span></span>
-            </Button>
+            </button>
             
-            <Button onClick={() => navigateTo(View.Webboard)} variant="outline" colorScheme="primary" {...commonButtonPropsBase} className={`${commonButtonPropsBase.className} ${currentView === View.Webboard ? activeClass : ''}`}>
+            <button onClick={() => navigateTo(View.Webboard)} className={`${commonButtonPropsBase.className} ${currentView === View.Webboard ? activeClass : ''}`}>
               <span className={navItemSpanClass}><span>💬</span><span>กระทู้พูดคุย</span></span>
-            </Button>
+            </button>
             
-            <Button
-              onClick={onLogout}
-              variant="outline"
-              colorScheme="accent"
-              className={`${commonButtonPropsBase.className} border-error-red text-red-700 hover:bg-error-red hover:text-white focus:ring-error-red`}
-              size={commonButtonPropsBase.size}
-            >
+            <button onClick={onLogout} className={`${commonButtonPropsBase.className}`}>
               <span className={navItemSpanClass}><span>🔓</span><span>ออกจากระบบ</span></span>
-            </Button>
+            </button>
           </>
         );
     } else {
@@ -294,26 +286,21 @@ const App: React.FC = () => {
         return (
             <>
               {currentView !== View.Home && (
-                <Button onClick={() => navigateAndCloseMenu(View.Home)} variant="outline" colorScheme="primary" {...commonButtonPropsBase}>
+                <button onClick={() => navigateAndCloseMenu(View.Home)} className={`${commonButtonPropsBase.className} ${currentView === View.Home ? activeClass : ''}`}>
                    <span className={navItemSpanClass}><span>🏠</span><span>หน้าแรก</span></span>
-                </Button>
+                </button>
               )}
               
-              <Button
-                onClick={() => navigateAndCloseMenu(View.Login)}
-                variant="primary"
-                size={commonButtonPropsBase.size}
-                className={`${commonButtonPropsBase.className}`}
-              >
+              <button onClick={() => navigateAndCloseMenu(View.Login)} className={`${commonButtonPropsBase.className} ${currentView === View.Login ? activeClass : ''}`}>
                   <span className={navItemSpanClass}><span>🔑</span><span>เข้าสู่ระบบ</span></span>
-              </Button>
-              <Button onClick={() => navigateAndCloseMenu(View.Register)} variant="outline" colorScheme="primary" {...commonButtonPropsBase}>
+              </button>
+              <button onClick={() => navigateAndCloseMenu(View.Register)} className={`${commonButtonPropsBase.className} ${currentView === View.Register ? activeClass : ''}`}>
                  <span className={navItemSpanClass}><span>📝</span><span>ลงทะเบียน</span></span>
-              </Button>
+              </button>
 
-              <Button onClick={() => navigateTo(View.Blog)} variant="outline" colorScheme="neutral" {...commonButtonPropsBase}>
-                <span className={navItemSpanClass}><span>📖</span><span>บทความ</span></span>
-              </Button>
+              <button onClick={() => navigateTo(View.Webboard)} className={`${commonButtonPropsBase.className} ${currentView === View.Webboard ? activeClass : ''}`}>
+                <span className={navItemSpanClass}><span>💬</span><span>กระทู้พูดคุย</span></span>
+              </button>
             </>
         );
     }
@@ -364,7 +351,7 @@ const App: React.FC = () => {
       }
       return (
       <header
-        className="main-navbar sticky top-0 z-30 w-full bg-white text-primary-dark p-4 sm:p-5 lg:p-6 shadow-md border-b border-primary-light"
+        className="main-navbar sticky top-0 z-30 w-full bg-white/80 backdrop-blur-md text-primary-dark p-4 sm:p-5 lg:p-6 shadow-sm border-b border-primary-light"
       >
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex-shrink-0">
@@ -378,7 +365,7 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex items-center flex-shrink-0 lg:ml-6">
-              <nav className="hidden lg:flex items-center justify-end gap-3 md:gap-4 lg:gap-5 flex-wrap">
+              <nav className="hidden lg:flex items-center justify-end gap-2 md:gap-3 lg:gap-3 flex-wrap">
                 {renderNavLinks(false)}
               </nav>
 
@@ -438,7 +425,7 @@ const App: React.FC = () => {
 
   const renderHome = () => {
     return (
-      <div className="w-full flex-grow flex items-center justify-center">
+      <div className="w-full flex-grow flex items-center justify-center hero-section">
         <div className="container mx-auto flex flex-col items-center px-6 sm:px-8 text-center py-20">
           <h1 className="hero-title font-sans">
             ✨ หาจ๊อบจ้า ✨
@@ -448,24 +435,24 @@ const App: React.FC = () => {
           </p>
           <div className="w-full max-w-3xl lg:max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
             <div className="home-card">
-              <h3 className="card-section-title font-sans">ประกาศงาน</h3>
+              <h3 className="card-section-title font-sans text-xl font-semibold text-primary-dark mb-4">ประกาศงาน</h3>
               <div className="space-y-4">
                 <Button onClick={() => navigateTo(View.FindJobs)} variant="primary" size="lg" className="w-full">
-                  <span className="flex items-center justify-center"><span className="button-icon">📢</span> ดูประกาศงานทั้งหมด</span>
+                  <span className="flex items-center justify-center"><span className="text-xl mr-2">📢</span> ดูประกาศงานทั้งหมด</span>
                 </Button>
                 <Button onClick={() => { setSourceViewForForm(View.Home); navigateTo(View.PostJob); }} variant="secondary" size="lg" className="w-full">
-                  <span className="flex items-center justify-center"><span className="button-icon">📝</span> ลงประกาศงาน</span>
+                  <span className="flex items-center justify-center"><span className="text-xl mr-2">📝</span> ลงประกาศงาน</span>
                 </Button>
               </div>
             </div>
             <div className="home-card">
-              <h3 className="card-section-title font-sans">โปรไฟล์ผู้ช่วยและบริการ</h3>
+              <h3 className="card-section-title font-sans text-xl font-semibold text-primary-dark mb-4">โปรไฟล์ผู้ช่วยและบริการ</h3>
               <div className="space-y-4">
                 <Button onClick={() => navigateTo(View.FindHelpers)} variant="primary" size="lg" className="w-full">
-                  <span className="flex items-center justify-center"><span className="button-icon">👥</span> ดูโปรไฟล์ทั้งหมด</span>
+                  <span className="flex items-center justify-center"><span className="text-xl mr-2">👥</span> ดูโปรไฟล์ทั้งหมด</span>
                 </Button>
                 <Button onClick={() => { setSourceViewForForm(View.Home); navigateTo(View.OfferHelp); }} variant="secondary" size="lg" className="w-full">
-                  <span className="flex items-center justify-center"><span className="button-icon">🙋</span> สร้างโปรไฟล์</span>
+                  <span className="flex items-center justify-center"><span className="text-xl mr-2">🙋</span> สร้างโปรไฟล์</span>
                 </Button>
               </div>
             </div>
@@ -700,16 +687,15 @@ const App: React.FC = () => {
   };
 
   const renderFooter = () => (
-    <footer className="bg-white border-t border-gray-200">
-      <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="text-center text-sm text-gray-500">
-          <p>&copy; {new Date().getFullYear()} HAJOBJA.COM. All rights reserved.</p>
-          <div className="mt-4 space-x-4">
-            <button onClick={() => navigateTo(View.AboutUs)} className="hover:text-primary-dark">เกี่ยวกับเรา</button>
-            <button onClick={() => navigateTo(View.Safety)} className="hover:text-primary-dark">ความปลอดภัย</button>
-            <button onClick={() => setIsFeedbackModalOpen(true)} className="hover:text-primary-dark">ติชม/เสนอแนะ</button>
-          </div>
+    <footer className="bg-white border-t border-primary-light mt-12">
+      <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8 text-center text-sm text-neutral-dark">
+        <div className="flex justify-center items-center gap-x-6 mb-4">
+            <button onClick={() => navigateTo(View.AboutUs)} className="hover:text-primary-dark transition-colors">เกี่ยวกับเรา</button>
+            <button onClick={() => navigateTo(View.Safety)} className="hover:text-primary-dark transition-colors">ความปลอดภัย</button>
+            <button onClick={() => setIsFeedbackModalOpen(true)} className="hover:text-primary-dark transition-colors">ติชม/เสนอแนะ</button>
         </div>
+        <p className="mb-2">&copy; {new Date().getFullYear()} HAJOBJA.COM. All rights reserved.</p>
+        <p>Created by <a href="https://www.facebook.com/bluecathouse.cm" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary-dark font-medium transition-colors">Blue Cat House</a></p>
       </div>
     </footer>
   );
@@ -920,18 +906,24 @@ const App: React.FC = () => {
       {renderHeader()}
       {renderMobileMenu()}
       
-      <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentView}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.2 }}
-          >
-            {renderCurrentView()}
-          </motion.div>
-        </AnimatePresence>
+      <main className="flex-grow">
+        {currentView === View.Home ? (
+           renderHome()
+        ) : (
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentView}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                {renderCurrentView()}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        )}
       </main>
 
       {renderFooter()}
