@@ -26,7 +26,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { auth, db, functions } from '../firebase';
+import { auth, db, functions } from '../firebaseConfig.ts';
 import type { User, UserRole, UserTier, VouchInfo, GenderOption, HelperEducationLevelOption } from '../types/types.ts';
 import { USER_LEVELS } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';

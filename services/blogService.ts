@@ -22,7 +22,7 @@ import {
   arrayRemove,
   arrayUnion,
 } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db } from '../firebaseConfig.ts';
 import type { BlogPost, BlogComment } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps } from './serviceUtils';

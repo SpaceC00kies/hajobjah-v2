@@ -57,6 +57,7 @@ const App: React.FC = () => {
   const {
     users: allUsers,
     allBlogPosts,
+    allBlogPostsForAdmin,
     allWebboardPostsForAdmin,
     webboardComments,
     allJobsForAdmin,

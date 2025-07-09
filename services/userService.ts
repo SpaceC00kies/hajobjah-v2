@@ -23,7 +23,7 @@ import {
   getDocs,
   orderBy,
 } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db } from '../firebaseConfig.ts';
 import type { User, Vouch, VouchType } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps, cleanDataForFirestore } from './serviceUtils';

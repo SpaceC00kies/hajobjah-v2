@@ -2,7 +2,7 @@
 
 
 import React, { useState, useEffect, useRef } from 'react';
-import { auth } from '../firebase.ts'; // Firebase auth instance
+import { auth } from '../firebaseConfig.ts'; // Firebase auth instance
 import { verifyPasswordResetCode, confirmPasswordReset, type AuthError } from 'firebase/auth';
 import { Button } from './Button.tsx';
 import { View } from '../types/types.ts';

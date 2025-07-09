@@ -23,7 +23,7 @@ import {
   type DocumentData,
   type QueryConstraint,
 } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db } from '../firebaseConfig.ts';
 import type { HelperProfile, User, Province, JobSubCategory, PaginatedDocsResponse } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps, cleanDataForFirestore } from './serviceUtils';

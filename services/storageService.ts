@@ -12,7 +12,7 @@ import {
   deleteObject,
   uploadString,
 } from 'firebase/storage';
-import { storage } from '../firebase';
+import { storage } from '../firebaseConfig.ts';
 import { logFirebaseError } from '../firebase/logging';
 
 export const uploadImageService = async (path: string, fileOrBase64: File | string): Promise<string> => {
