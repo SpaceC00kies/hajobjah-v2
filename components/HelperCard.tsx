@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState } from 'react';
 import type { EnrichedHelperProfile, User } from '../types/types.ts';
 import { View, Province, ACTIVITY_BADGE_DETAILS } from '../types/types.ts';
@@ -177,11 +178,11 @@ export const HelperCard: React.FC<HelperCardProps> = ({
         className="helper-card-redesigned font-sans h-full"
         whileHover={{
           y: -5,
-          transition: { duration: 0.2, ease: "easeOut" },
+          transition: { duration: 0.2, ease: "easeOut" as const },
         }}
         initial={{ scale: 0.97, filter: 'brightness(0.95)' }}
         whileInView={{ scale: 1, filter: 'brightness(1)' }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        transition={{ duration: 0.4, ease: "easeOut" as const }}
         viewport={{ once: true, amount: 0.2 }}
       >
         {profile.isPinned && (

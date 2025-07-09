@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 
@@ -61,7 +62,7 @@ export const SearchInputWithRecent: React.FC<SearchInputWithRecentProps> = ({
           scaleX: isInputFocused ? 1 : 0,
           opacity: isInputFocused ? 1 : 0,
         }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
+        transition={{ duration: 0.2, ease: "easeOut" as const }}
       />
       {showRecentSearches && (
         <ul

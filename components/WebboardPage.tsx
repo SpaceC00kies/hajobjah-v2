@@ -2,6 +2,7 @@
 
 
 
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 // Corrected import path for types
 import type { WebboardPost, WebboardComment, User, EnrichedWebboardPost, EnrichedWebboardComment, UserLevel, UserRole } from '../types/types';
@@ -51,7 +52,7 @@ const listContainerVariants = {
     opacity: 1,
     transition: {
       duration: 0.3,
-      when: "beforeChildren",
+      when: "beforeChildren" as const,
       staggerChildren: 0.07,
       delayChildren: 0.1,
     },

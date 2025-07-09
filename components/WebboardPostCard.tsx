@@ -156,7 +156,7 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
             <motion.span
               key={hasLiked ? "liked" : "unliked"}
               initial={{ scale: 1 }}
-              animate={hasLiked ? { scale: [1, 1.3, 1], transition: { type: "spring", stiffness: 400, damping: 10 } } : { scale: [1, 0.8, 1], transition: { type: "spring", stiffness: 300, damping: 15 } }}
+              animate={hasLiked ? { scale: [1, 1.3, 1], transition: { type: "spring" as const, stiffness: 400, damping: 10 } } : { scale: [1, 0.8, 1], transition: { type: "spring" as const, stiffness: 300, damping: 15 } }}
               className="inline-block"
             >
               {hasLiked ? <LikedIcon /> : <LikeIcon />}
@@ -195,7 +195,7 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
                 <motion.span
                   key={isSaved ? "saved" : "unsaved"}
                   initial={{ scale: 1 }}
-                  animate={{ scale: [1, 0.8, 1.1, 1], transition: { type: "spring", stiffness: 350, damping: 12 } }}
+                  animate={{ scale: [1, 0.8, 1.1, 1], transition: { type: "spring" as const, stiffness: 350, damping: 12 } }}
                   className="inline-block"
                 >
                   {isSaved ? <SavedIcon/> : <SaveIcon />}

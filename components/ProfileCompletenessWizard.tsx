@@ -36,7 +36,7 @@ export const ProfileCompletenessWizard: React.FC<ProfileCompletenessWizardProps>
           className="bg-secondary h-2.5 rounded-full"
           initial={{ width: 0 }}
           animate={{ width: `${score}%` }}
-          transition={{ duration: 0.8, ease: 'easeInOut' }}
+          transition={{ duration: 0.8, ease: 'easeInOut' as const }}
         />
       </div>
       <p className="text-center text-sm font-sans text-amber-700 mb-3">

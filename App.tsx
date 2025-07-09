@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -350,9 +351,9 @@ const App: React.FC = () => {
         animate={isMobileMenuOpen ? "open" : "closed"}
         initial={false}
       >
-        <motion.div style={{ ...lineStyle, top: '5px' }} variants={topVariants} transition={{ duration: 0.3, ease: "easeInOut" }} />
-        <motion.div style={{ ...lineStyle, top: '11px' }} variants={middleVariants} transition={{ duration: 0.15, ease: "easeInOut" }} />
-        <motion.div style={{ ...lineStyle, top: '17px' }} variants={bottomVariants} transition={{ duration: 0.3, ease: "easeInOut" }} />
+        <motion.div style={{ ...lineStyle, top: '5px' }} variants={topVariants} transition={{ duration: 0.3, ease: "easeInOut" as const }} />
+        <motion.div style={{ ...lineStyle, top: '11px' }} variants={middleVariants} transition={{ duration: 0.15, ease: "easeInOut" as const }} />
+        <motion.div style={{ ...lineStyle, top: '17px' }} variants={bottomVariants} transition={{ duration: 0.3, ease: "easeInOut" as const }} />
       </motion.button>
     );
   };
@@ -410,7 +411,7 @@ const App: React.FC = () => {
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
-              transition={{ type: "tween", ease: "easeInOut", duration: 0.3 }}
+              transition={{ type: "tween", ease: "easeInOut" as const, duration: 0.3 }}
               className="fixed top-0 right-0 h-full w-4/5 max-w-xs bg-white shadow-xl p-5 z-50 overflow-y-auto"
             >
               <div className="flex justify-between items-center mb-6">
@@ -941,7 +942,7 @@ const App: React.FC = () => {
                   initial={{ opacity: 0, y: 50, scale: 0.3 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 20, scale: 0.5 }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                  transition={{ type: 'spring' as const, stiffness: 500, damping: 30 }}
                   className="fixed bottom-10 right-10 bg-neutral-dark text-white text-sm font-sans font-medium px-4 py-2 rounded-lg shadow-xl z-50"
               >
                   {copiedLinkNotification}

@@ -14,17 +14,17 @@ const TypingIndicator = () => (
     <motion.span
       className="w-2 h-2 bg-neutral-medium rounded-full"
       animate={{ y: [0, -4, 0] }}
-      transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" }}
+      transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" as const }}
     />
     <motion.span
       className="w-2 h-2 bg-neutral-medium rounded-full"
       animate={{ y: [0, -4, 0] }}
-      transition={{ duration: 0.8, delay: 0.2, repeat: Infinity, ease: "easeInOut" }}
+      transition={{ duration: 0.8, delay: 0.2, repeat: Infinity, ease: "easeInOut" as const }}
     />
     <motion.span
       className="w-2 h-2 bg-neutral-medium rounded-full"
       animate={{ y: [0, -4, 0] }}
-      transition={{ duration: 0.8, delay: 0.4, repeat: Infinity, ease: "easeInOut" }}
+      transition={{ duration: 0.8, delay: 0.4, repeat: Infinity, ease: "easeInOut" as const }}
     />
   </motion.div>
 );

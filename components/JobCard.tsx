@@ -1,5 +1,6 @@
 
 
+
 import React, { useState } from 'react';
 import type { Job, User } from '../types/types';
 import { View, JobCategory, JOB_CATEGORY_EMOJIS_MAP, JobDesiredEducationLevelOption, Province } from '../types/types';
@@ -98,11 +99,11 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
         className="job-card-redesigned font-sans h-full"
         whileHover={{
           y: -5,
-          transition: { duration: 0.2, ease: "easeOut" },
+          transition: { duration: 0.2, ease: "easeOut" as const },
         }}
         initial={{ scale: 0.97, filter: 'brightness(0.95)' }}
         whileInView={{ scale: 1, filter: 'brightness(1)' }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        transition={{ duration: 0.4, ease: "easeOut" as const }}
         viewport={{ once: true, amount: 0.2 }}
       >
         {job.isPinned && (

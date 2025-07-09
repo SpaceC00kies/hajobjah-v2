@@ -92,7 +92,7 @@ export const Button: React.FC<ButtonProps> = ({
       className={finalClassName}
       whileHover={{ scale: 1.03, y: -1 }}
       whileTap={{ scale: 0.97, y: 0 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
+      transition={{ duration: 0.2, ease: "easeOut" as const }}
       {...restProps}
     >
       {children}

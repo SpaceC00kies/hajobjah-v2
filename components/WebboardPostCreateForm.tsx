@@ -35,7 +35,7 @@ const WebboardRules: React.FC = () => {
       className="my-6 p-3 sm:p-4 bg-amber-50 border border-amber-300 rounded-lg shadow-sm"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2, duration: 0.4, ease: "easeOut" }}
+      transition={{ delay: 0.2, duration: 0.4, ease: "easeOut" as const }}
     >
       <h4 className="text-md sm:text-lg font-sans font-semibold text-amber-700 mb-2 text-center">
         📝 กฎพื้นฐานของกระดานพูดคุย
