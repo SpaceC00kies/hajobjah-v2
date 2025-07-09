@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -7,7 +8,7 @@ import { useWebboard } from './hooks/useWebboard.ts';
 import { useBlog } from './hooks/useBlog.ts';
 import { useAdmin } from './hooks/useAdmin.ts';
 import type { DocumentSnapshot } from 'firebase/firestore';
-import type { User, Job, HelperProfile, EnrichedHelperProfile, WebboardPost, WebboardComment, EnrichedWebboardPost, EnrichedWebboardComment, Vouch, VouchReport, BlogPost, EnrichedBlogPost, BlogComment, RegistrationDataType } from './types/types.ts';
+import type { User, Job, HelperProfile, EnrichedHelperProfile, WebboardPost, WebboardComment, EnrichedWebboardPost, EnrichedWebboardComment, Vouch, VouchReport, BlogPost, EnrichedBlogPost, BlogComment, RegistrationDataType, Interest } from './types/types.ts';
 import type { AdminItem as AdminItemType } from './components/AdminDashboard.tsx';
 import { View, UserRole, JobCategory, JobSubCategory, Province, FilterableCategory, USER_LEVELS, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, ACTIVITY_BADGE_DETAILS, GenderOption, HelperEducationLevelOption, WebboardCategory } from './types/types.ts';
 import { useAuth } from './context/AuthContext.tsx';
@@ -46,6 +47,7 @@ import { isDateInPast } from './utils/dateUtils.ts';
 import { getRecentSearches, addRecentSearch } from './utils/localStorageUtils.ts';
 import { getUserDisplayBadge } from './utils/userUtils.ts';
 import { BlogArticlePage } from './components/BlogArticlePage.tsx';
+import { getVouchesForUserService, getUserDocument } from './services/userService.ts';
 
 const JOBS_PAGE_SIZE = 9;
 const HELPERS_PAGE_SIZE = 9;
@@ -78,10 +80,14 @@ const App: React.FC = () => {
     users: allUsers,
     allBlogPosts,
     allWebboardPostsForAdmin,
+    webboardComments,
     allJobsForAdmin,
     allHelperProfilesForAdmin,
     userInterests,
+    interactions,
+    vouchReports,
     isLoadingData,
+    userSavedPosts
   } = useData();
 
   const [currentView, setCurrentView] = useState<View>(View.Home);
@@ -207,7 +213,7 @@ const App: React.FC = () => {
   const onConfirmDeletion = () => { if (onConfirmAction) onConfirmAction(); closeConfirmModal(); };
 
   const renderNavLinks = (isMobile: boolean) => {
-    const displayBadgeForProfile = getUserDisplayBadge(currentUser, USER_LEVELS, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS);
+    const displayBadgeForProfile = getUserDisplayBadge(currentUser, allWebboardPostsForAdmin, webboardComments);
     const commonButtonPropsBase = isMobile
       ? { size: 'md' as const, className: 'w-full text-left justify-start py-3 px-4 text-base' }
       : { size: 'sm' as const, className: 'flex-shrink-0 nav-pill' };
@@ -217,7 +223,7 @@ const App: React.FC = () => {
     };
 
     const navItemSpanClass = "inline-flex items-center gap-1.5";
-    const activeClass = "active";
+    const activeClass = "active"; // Use CSS class for active state
 
     if (currentUser) {
         return (
@@ -513,7 +519,6 @@ const App: React.FC = () => {
 
     const activeUserJobs = jobsList
       .filter(job => 
-          job && // Safety check
           job.isExpired === false && 
           job.expiresAt && !isDateInPast(job.expiresAt) &&
           job.isHired === false
@@ -556,7 +561,7 @@ const App: React.FC = () => {
               <motion.div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" variants={listVariants} initial="hidden" animate="visible">
                 {activeUserJobs.map(job => (
                   <motion.div key={job.id} variants={itemVariants}>
-                    <JobCard job={job} navigateTo={navigateTo} currentUser={currentUser} getAuthorDisplayName={getAuthorDisplayName} onToggleInterest={userActions.toggleInterest} isInterested={userInterests.some(i => i && i.targetId === job.id)} onEditJobFromFindView={jobActions.editJob} requestLoginForAction={requestLoginForAction} />
+                    <JobCard job={job} navigateTo={navigateTo} currentUser={currentUser} getAuthorDisplayName={getAuthorDisplayName} onToggleInterest={userActions.toggleInterest} isInterested={userInterests.some(i => i && i.targetId === job.id)} onEditJobFromFindView={(jobId: string) => { const job = allJobsForAdmin.find(j => j.id === jobId); if(job) { setItemToEdit(job); setEditingItemType('job'); navigateTo(View.PostJob); } }} requestLoginForAction={requestLoginForAction} />
                   </motion.div>
                 ))}
               </motion.div>
@@ -614,7 +619,6 @@ const App: React.FC = () => {
     }
 
     const activeAndAvailableHelperProfiles = helperProfilesList.filter(p =>
-      p && // Safety check
       p.isExpired === false &&
       p.expiresAt && !isDateInPast(p.expiresAt) &&
       p.isUnavailable === false
@@ -671,8 +675,8 @@ const App: React.FC = () => {
                           onLogHelperContact={() => userActions.logContact(profile.id)}
                           currentUser={currentUser}
                           requestLoginForAction={requestLoginForAction}
-                          onBumpProfile={(id) => helperActions.bumpProfile(id)}
-                          onEditProfileFromFindView={helperActions.editProfile}
+                          onBumpProfile={(id) => helperActions.onBumpHelperProfile(id)}
+                          onEditProfileFromFindView={(profileId: string) => { const profile = allHelperProfilesForAdmin.find(p => p.id === profileId); if(profile) { setItemToEdit(profile); setEditingItemType('profile'); navigateTo(View.OfferHelp); } }}
                           getAuthorDisplayName={getAuthorDisplayName}
                           onToggleInterest={userActions.toggleInterest}
                           isInterested={userInterests.some(i => i && i.targetId === profile.id)}
@@ -712,19 +716,146 @@ const App: React.FC = () => {
       case View.Home: return renderHome();
       case View.FindJobs: return <FindJobsComponent />;
       case View.FindHelpers: return <FindHelpersComponent />;
-      case View.Webboard: return <WebboardPage navigateTo={navigateTo} />;
-      case View.Blog: return <BlogPage navigateTo={navigateTo} />;
-      case View.Login: return <LoginForm onLogin={onLogin} navigateTo={navigateTo} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />;
-      case View.Register: return <RegistrationForm onRegister={onRegister} />;
-      case View.MyRoom: return <MyRoomPage navigateTo={navigateTo} />;
+      case View.Webboard: 
+        return <WebboardPage 
+            currentUser={currentUser}
+            users={allUsers}
+            comments={webboardComments}
+            onAddOrUpdatePost={webboardActions.addOrUpdateWebboardPost}
+            onAddComment={webboardActions.addWebboardComment}
+            onToggleLike={webboardActions.toggleWebboardPostLike}
+            onSavePost={userActions.saveWebboardPost}
+            onSharePost={(postId, postTitle) => {
+                const url = `${window.location.origin}?view=WEBBOARD&postId=${postId}`;
+                navigator.clipboard.writeText(url).then(() => {
+                    setCopiedLinkNotification('คัดลอกลิงก์แล้ว!');
+                    if (copiedNotificationTimerRef.current) clearTimeout(copiedNotificationTimerRef.current);
+                    copiedNotificationTimerRef.current = window.setTimeout(() => setCopiedLinkNotification(null), 2000);
+                });
+            }}
+            onDeletePost={webboardActions.deleteWebboardPost}
+            onPinPost={adminActions.pinWebboardPost}
+            onEditPost={(postToEdit) => { setItemToEdit(postToEdit); setEditingItemType('webboardPost'); setSelectedPostId('create'); }}
+            onDeleteComment={webboardActions.deleteWebboardComment}
+            onUpdateComment={webboardActions.updateWebboardComment}
+            selectedPostId={selectedPostId}
+            setSelectedPostId={setSelectedPostId}
+            navigateTo={navigateTo}
+            editingPost={editingItemType === 'webboardPost' ? itemToEdit as WebboardPost : undefined}
+            onCancelEdit={() => { setItemToEdit(null); setEditingItemType(null); setSelectedPostId(null); }}
+            getUserDisplayBadge={(user) => getUserDisplayBadge(user, allWebboardPostsForAdmin, webboardComments)}
+            requestLoginForAction={requestLoginForAction}
+            onNavigateToPublicProfile={(info) => navigateTo(View.PublicProfile, info)}
+            checkWebboardPostLimits={(user) => webboardActions.checkWebboardPostLimits(user)}
+            checkWebboardCommentLimits={(user) => webboardActions.checkWebboardCommentLimits(user)}
+            pageSize={10}
+            getAuthorDisplayName={getAuthorDisplayName}
+        />;
+      case View.Blog: return <BlogPage posts={allBlogPosts.map(p => ({ ...p, author: allUsers.find(u => u.id === p.authorId) }))} onSelectPost={setSelectedBlogPostSlug} />;
+      case View.Login: return <LoginForm onLogin={onLogin} onSwitchToRegister={() => navigateTo(View.Register)} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />;
+      case View.Register: return <RegistrationForm onRegister={onRegister} onSwitchToLogin={() => navigateTo(View.Login)} />;
+      case View.MyRoom:
+        if (!currentUser) {
+            navigateTo(View.Login);
+            return null; 
+        }
+        const myRoomActions = {
+            editItem: (itemId: string, itemType: 'job' | 'profile' | 'webboardPost', originatingTab: MyRoomActiveTab) => {
+                const collection = itemType === 'job' ? allJobsForAdmin : itemType === 'profile' ? allHelperProfilesForAdmin : allWebboardPostsForAdmin;
+                const item = collection.find(i => i.id === itemId);
+                if (item) {
+                    setItemToEdit(item);
+                    setEditingItemType(itemType);
+                    setSourceViewForForm(View.MyRoom);
+                    setMyRoomInitialTabOverride(originatingTab);
+                    const targetView = itemType === 'job' ? View.PostJob : itemType === 'profile' ? View.OfferHelp : View.Webboard;
+                    if (itemType === 'webboardPost') {
+                        setSelectedPostId('create');
+                    } else {
+                        navigateTo(targetView);
+                    }
+                }
+            },
+            deleteItem: (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => {
+                const title = "ยืนยันการลบ";
+                const message = `คุณแน่ใจหรือไม่ว่าต้องการลบ ${itemType === 'job' ? 'ประกาศงาน' : itemType === 'profile' ? 'โปรไฟล์' : 'กระทู้'} นี้?`;
+                const performDelete = () => {
+                    if (itemType === 'job') jobActions.deleteJob(itemId);
+                    else if (itemType === 'profile') helperActions.deleteHelperProfile(itemId);
+                    else if (itemType === 'webboardPost') webboardActions.deleteWebboardPost(itemId);
+                };
+                openConfirmModal(title, message, performDelete);
+            },
+            toggleHiredStatus: (itemId: string, itemType: 'job' | 'profile') => {
+                if (itemType === 'job') jobActions.toggleHiredJob(itemId);
+                else helperActions.onToggleUnavailableHelperProfileForUserOrAdmin(itemId);
+            },
+            logHelperContact: userActions.logContact,
+            editJobFromFindView: (jobId: string) => { const job = allJobsForAdmin.find(j => j.id === jobId); if (job) { setItemToEdit(job); setEditingItemType('job'); navigateTo(View.PostJob); } },
+            editHelperProfileFromFindView: (profileId: string) => { const profile = allHelperProfilesForAdmin.find(p => p.id === profileId); if (profile) { setItemToEdit(profile); setEditingItemType('profile'); navigateTo(View.OfferHelp); } }
+        };
+        return <MyRoomPage 
+          currentUser={currentUser} 
+          users={allUsers}
+          allJobsForAdmin={allJobsForAdmin}
+          allHelperProfilesForAdmin={allHelperProfilesForAdmin}
+          allWebboardPostsForAdmin={allWebboardPostsForAdmin}
+          webboardComments={webboardComments}
+          userInterests={userInterests}
+          navigateTo={navigateTo} 
+          actions={myRoomActions}
+          onNavigateToPublicProfile={(info) => navigateTo(View.PublicProfile, info)}
+          initialTab={myRoomInitialTabOverride}
+          onInitialTabProcessed={() => setMyRoomInitialTabOverride(null)}
+          getAuthorDisplayName={getAuthorDisplayName}
+          requestLoginForAction={requestLoginForAction}
+        />;
       case View.AboutUs: return <AboutUsPage />;
       case View.Safety: return <SafetyPage />;
-      case View.AdminDashboard: return <AdminDashboard />;
-      case View.PasswordReset: return <PasswordResetPage />;
-      case View.PostJob: return <PostJobForm onPostJob={jobActions.postJob} onCancel={onCancelEditOrPost} jobToEdit={editingItemType === 'job' ? itemToEdit as Job : null} />;
-      case View.OfferHelp: return <OfferHelpForm onOfferHelp={helperActions.offerHelp} onCancel={onCancelEditOrPost} profileToEdit={editingItemType === 'profile' ? itemToEdit as HelperProfile : null} />;
-      case View.PublicProfile: return viewingProfileInfo ? <PublicProfilePage userId={viewingProfileInfo.userId} navigateTo={navigateTo} /> : <div>Loading Profile...</div>;
-      case View.ArticleEditor: return <ArticleEditor onSubmit={blogActions.addOrUpdateBlogPost} onCancel={onCancelEditOrPost} initialData={editingItemType === 'blogPost' ? itemToEdit as BlogPost : undefined} isEditing={!!itemToEdit && editingItemType === 'blogPost'} currentUser={currentUser} />;
+      case View.AdminDashboard: 
+         if (!currentUser || (currentUser.role !== UserRole.Admin && currentUser.role !== UserRole.Writer)) {
+            navigateTo(View.Home);
+            return null;
+        }
+        return <AdminDashboard 
+            jobs={allJobsForAdmin}
+            helperProfiles={allHelperProfilesForAdmin}
+            users={allUsers}
+            interactions={interactions}
+            webboardPosts={allWebboardPostsForAdmin}
+            webboardComments={webboardComments}
+            vouchReports={vouchReports}
+            allBlogPostsForAdmin={allBlogPosts}
+            onStartEditItem={(item) => {
+                setItemToEdit(item.originalItem);
+                setEditingItemType(item.itemType);
+                setSourceViewForForm(View.AdminDashboard);
+                const targetView = item.itemType === 'job' ? View.PostJob : item.itemType === 'profile' ? View.OfferHelp : View.ArticleEditor;
+                navigateTo(targetView);
+            }}
+            currentUser={currentUser}
+            isSiteLocked={isSiteLocked}
+            getAuthorDisplayName={getAuthorDisplayName}
+            getUserDisplayBadge={(user) => getUserDisplayBadge(user, allWebboardPostsForAdmin, webboardComments)}
+            getUserDocument={getUserDocument}
+        />;
+      case View.PasswordReset: return <PasswordResetPage navigateTo={navigateTo} />;
+      case View.PostJob: return <PostJobForm onCancel={onCancelEditOrPost} initialData={editingItemType === 'job' ? itemToEdit as Job : undefined} isEditing={!!itemToEdit && editingItemType === 'job'} currentUser={currentUser!} allJobsForAdmin={allJobsForAdmin} navigateTo={navigateTo} sourceViewForForm={sourceViewForForm}/>;
+      case View.OfferHelp: return <OfferHelpForm onCancel={onCancelEditOrPost} initialData={editingItemType === 'profile' ? itemToEdit as HelperProfile : undefined} isEditing={!!itemToEdit && editingItemType === 'profile'} currentUser={currentUser} />;
+      case View.PublicProfile: 
+        if (!viewingProfileInfo) return <div>Loading Profile...</div>;
+        const userForProfile = allUsers.find(u => u.id === viewingProfileInfo.userId);
+        const helperProfileForProfile = viewingProfileInfo.helperProfileId ? allHelperProfilesForAdmin.find(hp => hp.id === viewingProfileInfo.helperProfileId) : undefined;
+        if (!userForProfile) return <div>User not found.</div>;
+        return <PublicProfilePage 
+            user={userForProfile}
+            helperProfile={helperProfileForProfile}
+            onBack={() => navigateTo(sourceViewForPublicProfile)}
+            currentUser={currentUser}
+            onVouchForUser={(userToVouch) => setVouchModalData({ userToVouch })}
+            onShowVouches={(userToList) => setVouchListModalData({ userToList })}
+        />;
+      case View.ArticleEditor: return <ArticleEditor onCancel={onCancelEditOrPost} initialData={editingItemType === 'blogPost' ? itemToEdit as BlogPost : undefined} isEditing={!!itemToEdit && editingItemType === 'blogPost'} currentUser={currentUser!} />;
       default: return <div><h1>Page Not Found</h1></div>;
     }
   };
@@ -750,30 +881,31 @@ const App: React.FC = () => {
       <VouchModal
         isOpen={!!vouchModalData}
         onClose={() => setVouchModalData(null)}
-        userToVouch={vouchModalData?.userToVouch}
-        onVouchSubmit={userActions.submitVouch}
+        userToVouch={vouchModalData!.userToVouch}
+        currentUser={currentUser!}
       />
       <VouchesListModal
         isOpen={!!vouchListModalData}
         onClose={() => setVouchListModalData(null)}
-        userToList={vouchListModalData?.userToList}
-        onReportClick={(vouch) => setReportVouchModalData({ vouchToReport: vouch })}
+        userToList={vouchListModalData!.userToList}
+        onReportVouch={(vouch) => setReportVouchModalData({ vouchToReport: vouch })}
+        navigateToPublicProfile={(userId) => navigateTo(View.PublicProfile, { userId })}
+        currentUser={currentUser}
       />
       <ReportVouchModal
         isOpen={!!reportVouchModalData}
         onClose={() => setReportVouchModalData(null)}
-        vouchToReport={reportVouchModalData?.vouchToReport}
-        onReportSubmit={userActions.reportVouch}
+        vouchToReport={reportVouchModalData!.vouchToReport}
       />
       <ForgotPasswordModal
         isOpen={isForgotPasswordModalOpen}
         onClose={() => setIsForgotPasswordModalOpen(false)}
-        onPasswordResetRequest={authActions.requestPasswordReset}
+        onSendResetEmail={authActions.sendPasswordResetEmail}
       />
       <FeedbackForm
         isOpen={isFeedbackModalOpen}
         onClose={() => setIsFeedbackModalOpen(false)}
-        onSubmit={userActions.submitFeedback}
+        currentUserEmail={currentUser?.email}
       />
 
       {renderHeader()}
