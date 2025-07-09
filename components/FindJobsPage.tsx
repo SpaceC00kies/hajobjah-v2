@@ -8,7 +8,7 @@ import { SearchInputWithRecent } from './SearchInputWithRecent.tsx';
 import { getJobsPaginated } from '../services/jobService.ts';
 import { getRecentSearches, addRecentSearch } from '../utils/localStorageUtils.ts';
 import { useUser } from '../hooks/useUser.ts';
-import { useData } from '../context/DataContext.ts';
+import { useData } from '../context/DataContext.tsx';
 import type { DocumentSnapshot } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 
