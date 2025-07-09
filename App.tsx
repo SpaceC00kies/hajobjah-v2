@@ -8,17 +8,14 @@ import { useUser } from './hooks/useUser.ts';
 import { useWebboard } from './hooks/useWebboard.ts';
 import { useBlog } from './hooks/useBlog.ts';
 import { useAdmin } from './hooks/useAdmin.ts';
-import type { DocumentSnapshot } from 'firebase/firestore';
-import type { User, Job, HelperProfile, EnrichedHelperProfile, WebboardPost, WebboardComment, EnrichedWebboardPost, EnrichedWebboardComment, Vouch, VouchReport, BlogPost, EnrichedBlogPost, BlogComment, RegistrationDataType, Interest } from './types/types.ts';
+import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Vouch, VouchReport, BlogPost, RegistrationDataType } from './types/types.ts';
 import type { AdminItem as AdminItemType } from './components/AdminDashboard.tsx';
-import { View, UserRole, JobCategory, JobSubCategory, Province, FilterableCategory, USER_LEVELS, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS, ACTIVITY_BADGE_DETAILS, GenderOption, HelperEducationLevelOption, WebboardCategory } from './types/types.ts';
+import { View, UserRole, ACTIVITY_BADGE_DETAILS } from './types/types.ts';
 import { useAuth } from './context/AuthContext.tsx';
 import { useData } from './context/DataContext.tsx';
 import { PostJobForm } from './components/PostJobForm.tsx';
-import { JobCard } from './components/JobCard.tsx';
 import { Button } from './components/Button.tsx';
 import { OfferHelpForm } from './components/OfferHelpForm.tsx';
-import { HelperCard } from './components/HelperCard.tsx';
 import { RegistrationForm } from './components/RegistrationForm.tsx';
 import { LoginForm } from './components/LoginForm.tsx';
 import { ForgotPasswordModal } from './components/ForgotPasswordModal.tsx';
@@ -34,38 +31,18 @@ import { WebboardPage } from './components/WebboardPage.tsx';
 import { BlogPage } from './components/BlogPage.tsx';
 import { ArticleEditor } from './components/ArticleEditor.tsx';
 import { SiteLockOverlay } from './components/SiteLockOverlay.tsx';
-import { CategoryFilterBar } from './components/CategoryFilterBar.tsx';
-import { SearchInputWithRecent } from './components/SearchInputWithRecent.tsx';
 import { PasswordResetPage } from './components/PasswordResetPage.tsx';
 import { VouchModal } from './components/VouchModal.tsx';
 import { VouchesListModal } from './components/VouchesListModal.tsx';
 import { ReportVouchModal } from './components/ReportVouchModal.tsx';
 import { UserLevelBadge } from './components/UserLevelBadge.tsx';
-import { getJobsPaginated } from './services/jobService.ts';
-import { getHelperProfilesPaginated } from './services/helperProfileService.ts';
 import { AnimatePresence, motion } from "framer-motion";
-import { isDateInPast } from './utils/dateUtils.ts';
-import { getRecentSearches, addRecentSearch } from './utils/localStorageUtils.ts';
 import { getUserDisplayBadge } from './utils/userUtils.ts';
 import { BlogArticlePage } from './components/BlogArticlePage.tsx';
-import { getVouchesForUserService, getUserDocument } from './services/userService.ts';
+import { getUserDocument } from './services/userService.ts';
+import { FindJobsPage } from './components/FindJobsPage.tsx';
+import { FindHelpersPage } from './components/FindHelpersPage.tsx';
 
-const JOBS_PAGE_SIZE = 9;
-const HELPERS_PAGE_SIZE = 9;
-
-const listVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { when: "beforeChildren", staggerChildren: 0.07, delayChildren: 0.1 },
-  },
-};
-
-const itemVariants = {
-  hidden: { y: 15, opacity: 0 },
-  visible: { y: 0, opacity: 1, transition: { type: "spring" as const, stiffness: 100, damping: 12 } },
-  exit: { opacity: 0, y: -10, transition: { duration: 0.2 } },
-};
 
 const App: React.FC = () => {
   const authActions = useAuthActions();
@@ -111,16 +88,6 @@ const App: React.FC = () => {
   const [sourceViewForPublicProfile, setSourceViewForPublicProfile] = useState<View>(View.FindHelpers);
   const [editOriginMyRoomTab, setEditOriginMyRoomTab] = useState<MyRoomActiveTab | null>(null);
   const [myRoomInitialTabOverride, setMyRoomInitialTabOverride] = useState<MyRoomActiveTab | null>(null);
-  const [selectedJobCategoryFilter, setSelectedJobCategoryFilter] = useState<FilterableCategory>('all');
-  const [selectedHelperCategoryFilter, setSelectedHelperCategoryFilter] = useState<FilterableCategory>('all');
-  const [jobSearchTerm, setJobSearchTerm] = useState('');
-  const [helperSearchTerm, setHelperSearchTerm] = useState('');
-  const [recentJobSearches, setRecentJobSearches] = useState<string[]>([]);
-  const [recentHelperSearches, setRecentHelperSearches] = useState<string[]>([]);
-  const [selectedJobSubCategoryFilter, setSelectedJobSubCategoryFilter] = useState<JobSubCategory | 'all'>('all');
-  const [selectedJobProvinceFilter, setSelectedJobProvinceFilter] = useState<Province | 'all'>('all');
-  const [selectedHelperSubCategoryFilter, setSelectedHelperSubCategoryFilter] = useState<JobSubCategory | 'all'>('all');
-  const [selectedHelperProvinceFilter, setSelectedHelperProvinceFilter] = useState<Province | 'all'>('all');
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [selectedBlogPostSlug, setSelectedBlogPostSlug] = useState<string | null>(null);
   const [copiedLinkNotification, setCopiedLinkNotification] = useState<string | null>(null);
@@ -410,21 +377,22 @@ const App: React.FC = () => {
                   <span className="text-base">🔎 ดูประกาศงานทั้งหมด</span>
                 </Button>
                 <Button onClick={(e) => { e.stopPropagation(); currentUser ? navigateTo(View.PostJob) : requestLoginForAction(View.PostJob); }} variant="secondary" size="lg" className="w-full">
-                  <span className="text-base">✍️ ลงประกาศงาน</span>
+                  <span className="text-base">📝 ลงประกาศงาน</span>
                 </Button>
               </div>
             </div>
+
             <div
               onClick={() => navigateTo(View.FindHelpers)}
               className="home-card cursor-pointer"
             >
-              <h3 className="card-section-title">โปรไฟล์ผู้ช่วยและบริการ</h3>
+              <h3 className="card-section-title">โปรไฟล์ผู้ช่วย</h3>
               <div className="space-y-3">
                 <Button onClick={(e) => { e.stopPropagation(); navigateTo(View.FindHelpers); }} variant="primary" size="lg" className="w-full">
-                  <span className="text-base">👥 ดูโปรไฟล์ทั้งหมด</span>
+                  <span className="text-base">🤝 หาคนช่วยงาน</span>
                 </Button>
                 <Button onClick={(e) => { e.stopPropagation(); currentUser ? navigateTo(View.OfferHelp) : requestLoginForAction(View.OfferHelp); }} variant="secondary" size="lg" className="w-full">
-                  <span className="text-base">🙋 สร้างโปรไฟล์</span>
+                  <span className="text-base">💪 เสนอตัวช่วยงาน</span>
                 </Button>
               </div>
             </div>
@@ -433,278 +401,262 @@ const App: React.FC = () => {
       </div>
     );
   };
-  
-  const renderFindJobs = () => {
-    const [jobs, setJobs] = useState<Job[]>([]);
-    const [lastVisibleJob, setLastVisibleJob] = useState<DocumentSnapshot | null>(null);
-    const [isLoadingJobs, setIsLoadingJobs] = useState(false);
-    const [hasMoreJobs, setHasMoreJobs] = useState(true);
-    const [initialJobsLoaded, setInitialJobsLoaded] = useState(false);
-    const loaderRef = useRef<HTMLDivElement>(null);
-    
-    useEffect(() => { setRecentJobSearches(getRecentSearches('jobSearches')); }, []);
 
-    const loadJobs = useCallback(async (isInitialLoad = false) => {
-        if (isLoadingJobs || (!isInitialLoad && !hasMoreJobs)) return;
-        setIsLoadingJobs(true);
-        if (isInitialLoad) {
-            setJobs([]);
-            setLastVisibleJob(null);
-            setHasMoreJobs(true);
-            setInitialJobsLoaded(false);
-        }
-        try {
-            const result = await getJobsPaginated(JOBS_PAGE_SIZE, isInitialLoad ? null : lastVisibleJob, selectedJobCategoryFilter, jobSearchTerm, selectedJobSubCategoryFilter, selectedJobProvinceFilter);
-            setJobs(prev => isInitialLoad ? result.items : [...prev, ...result.items]);
-            setLastVisibleJob(result.lastVisibleDoc);
-            setHasMoreJobs(result.items.length === JOBS_PAGE_SIZE && result.lastVisibleDoc !== null);
-            setInitialJobsLoaded(true);
-        } catch (error) {
-            console.error("Failed to load jobs:", error);
-            setHasMoreJobs(false);
-            setInitialJobsLoaded(true);
-        } finally {
-            setIsLoadingJobs(false);
-        }
-    }, [isLoadingJobs, hasMoreJobs, lastVisibleJob, selectedJobCategoryFilter, jobSearchTerm, selectedJobSubCategoryFilter, selectedJobProvinceFilter]);
-
-    useEffect(() => { loadJobs(true); }, [selectedJobCategoryFilter, jobSearchTerm, selectedJobSubCategoryFilter, selectedJobProvinceFilter]);
-
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => { if (entries[0].isIntersecting && hasMoreJobs && !isLoadingJobs && initialJobsLoaded) { loadJobs(); } },
-            { threshold: 1.0 }
-        );
-        const currentLoaderRef = loaderRef.current;
-        if (currentLoaderRef) observer.observe(currentLoaderRef);
-        return () => { if (currentLoaderRef) observer.unobserve(currentLoaderRef); };
-    }, [hasMoreJobs, isLoadingJobs, initialJobsLoaded, loadJobs]);
-    
-    const handleJobSearchTermChange = (term: string) => { setJobSearchTerm(term); addRecentSearch('jobSearches', term); };
-    const handleRecentJobSearchSelect = (term: string) => { setJobSearchTerm(term); };
-
+  const renderFooter = () => {
+    if (isLoadingAuth) return null;
     return (
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h2 className="text-3xl font-sans font-bold text-center mb-6">📢 ประกาศงานทั้งหมด</h2>
-        <div className="flex flex-col sm:flex-row gap-4 mb-8">
-          <div className="flex-1">
-            <SearchInputWithRecent searchTerm={jobSearchTerm} onSearchTermChange={handleJobSearchTermChange} placeholder="ค้นหางาน, สถานที่..." recentSearches={recentJobSearches} onRecentSearchSelect={handleRecentJobSearchSelect} />
-          </div>
-          <div className="w-full sm:w-56">
-             <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedJobCategoryFilter} onSelectCategory={setSelectedJobCategoryFilter} />
+      <footer className="w-full bg-primary-dark text-white p-6 mt-auto">
+        <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center text-sm font-sans">
+          <p>&copy; {new Date().getFullYear()} HAJOBJA.COM. All rights reserved.</p>
+          <div className="flex space-x-4 mt-4 sm:mt-0">
+            <button onClick={() => navigateTo(View.AboutUs)} className="hover:underline">เกี่ยวกับเรา</button>
+            <button onClick={() => setIsFeedbackModalOpen(true)} className="hover:underline">ติชม/เสนอแนะ</button>
+            <button onClick={() => navigateTo(View.Safety)} className="hover:underline">ความปลอดภัย</button>
           </div>
         </div>
-        
-        {isLoadingJobs && !initialJobsLoaded && <p className="text-center py-10">กำลังโหลด...</p>}
-        {!isLoadingJobs && initialJobsLoaded && jobs.length === 0 && <p className="text-center py-10">ไม่พบประกาศงานที่ตรงกับเงื่อนไข</p>}
-
-        <motion.div variants={listVariants} initial="hidden" animate="visible" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {jobs.map(job => (
-            <motion.div key={job.id} variants={itemVariants} exit="exit">
-              <JobCard
-                  job={job}
-                  navigateTo={navigateTo}
-                  currentUser={currentUser}
-                  requestLoginForAction={requestLoginForAction}
-                  getAuthorDisplayName={getAuthorDisplayName}
-                  onToggleInterest={userActions.toggleInterest}
-                  isInterested={userInterests.some(interest => interest.targetId === job.id)}
-              />
-            </motion.div>
-          ))}
-        </motion.div>
-
-        <div ref={loaderRef} className="h-10 flex justify-center items-center">
-          {isLoadingJobs && initialJobsLoaded && <p>กำลังโหลดเพิ่มเติม...</p>}
-        </div>
-      </div>
+      </footer>
     );
   };
-  
-  const renderFindHelpers = () => {
-    const [helperProfiles, setHelperProfiles] = useState<EnrichedHelperProfile[]>([]);
-    const [lastVisibleHelper, setLastVisibleHelper] = useState<DocumentSnapshot | null>(null);
-    const [isLoadingHelpers, setIsLoadingHelpers] = useState(false);
-    const [hasMoreHelpers, setHasMoreHelpers] = useState(true);
-    const [initialHelpersLoaded, setInitialHelpersLoaded] = useState(false);
-    const loaderRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => { setRecentHelperSearches(getRecentSearches('helperSearches')); }, []);
-
-    const loadHelpers = useCallback(async (isInitialLoad = false) => {
-        if (isLoadingHelpers || (!isInitialLoad && !hasMoreHelpers)) return;
-        setIsLoadingHelpers(true);
-        if (isInitialLoad) {
-            setHelperProfiles([]);
-            setLastVisibleHelper(null);
-            setHasMoreHelpers(true);
-            setInitialHelpersLoaded(false);
-        }
-        try {
-            const result = await getHelperProfilesPaginated(HELPERS_PAGE_SIZE, isInitialLoad ? null : lastVisibleHelper, selectedHelperCategoryFilter, helperSearchTerm, selectedHelperSubCategoryFilter, selectedHelperProvinceFilter);
-            const enrichedProfiles = result.items.map(p => ({ ...p, userPhoto: allUsers.find(u => u.id === p.userId)?.photo, userAddress: allUsers.find(u => u.id === p.userId)?.address, verifiedExperienceBadge: p.adminVerifiedExperience ?? false, profileCompleteBadge: !!allUsers.find(u => u.id === p.userId)?.profileComplete, warningBadge: p.isSuspicious ?? false }));
-            setHelperProfiles(prev => isInitialLoad ? enrichedProfiles : [...prev, ...enrichedProfiles]);
-            setLastVisibleHelper(result.lastVisibleDoc);
-            setHasMoreHelpers(result.items.length === HELPERS_PAGE_SIZE && result.lastVisibleDoc !== null);
-            setInitialHelpersLoaded(true);
-        } catch (error) {
-            console.error("Failed to load helper profiles:", error);
-            setHasMoreHelpers(false);
-            setInitialHelpersLoaded(true);
-        } finally {
-            setIsLoadingHelpers(false);
-        }
-    }, [isLoadingHelpers, hasMoreHelpers, lastVisibleHelper, selectedHelperCategoryFilter, helperSearchTerm, selectedHelperSubCategoryFilter, selectedHelperProvinceFilter, allUsers]);
-
-    useEffect(() => { loadHelpers(true); }, [selectedHelperCategoryFilter, helperSearchTerm, selectedHelperSubCategoryFilter, selectedHelperProvinceFilter]);
-
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => { if (entries[0].isIntersecting && hasMoreHelpers && !isLoadingHelpers && initialHelpersLoaded) { loadHelpers(); } },
-            { threshold: 1.0 }
-        );
-        const currentLoaderRef = loaderRef.current;
-        if (currentLoaderRef) observer.observe(currentLoaderRef);
-        return () => { if (currentLoaderRef) observer.unobserve(currentLoaderRef); };
-    }, [hasMoreHelpers, isLoadingHelpers, initialHelpersLoaded, loadHelpers]);
+  const handleEditItem = (itemId: string, itemType: 'job' | 'profile' | 'webboardPost' | 'blogPost', fromView?: View, originatingTab?: MyRoomActiveTab) => {
+    let dataToEdit = null;
+    switch (itemType) {
+      case 'job':
+        dataToEdit = allJobsForAdmin.find(item => item.id === itemId);
+        break;
+      case 'profile':
+        dataToEdit = allHelperProfilesForAdmin.find(item => item.id === itemId);
+        break;
+      case 'webboardPost':
+        dataToEdit = allWebboardPostsForAdmin.find(item => item.id === itemId);
+        break;
+      case 'blogPost':
+        dataToEdit = allBlogPosts.find(item => item.id === itemId) || allBlogPostsForAdmin.find(item => item.id === itemId);
+        break;
+    }
     
-    const handleHelperSearchTermChange = (term: string) => { setHelperSearchTerm(term); addRecentSearch('helperSearches', term); };
-    const handleRecentHelperSearchSelect = (term: string) => { setHelperSearchTerm(term); };
+    if (dataToEdit) {
+      setItemToEdit(dataToEdit);
+      setEditingItemType(itemType);
+      
+      if(originatingTab) setEditOriginMyRoomTab(originatingTab);
 
-    return (
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <h2 className="text-3xl font-sans font-bold text-center mb-6">👥 โปรไฟล์ผู้ช่วยและบริการ</h2>
-             <div className="flex flex-col sm:flex-row gap-4 mb-8">
-              <div className="flex-1">
-                <SearchInputWithRecent searchTerm={helperSearchTerm} onSearchTermChange={handleHelperSearchTermChange} placeholder="ค้นหาทักษะ, พื้นที่..." recentSearches={recentHelperSearches} onRecentSearchSelect={handleRecentHelperSearchSelect} />
-              </div>
-              <div className="w-full sm:w-56">
-                 <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedHelperCategoryFilter} onSelectCategory={setSelectedHelperCategoryFilter} />
-              </div>
-            </div>
-            
-            {isLoadingHelpers && !initialHelpersLoaded && <p className="text-center py-10">กำลังโหลด...</p>}
-            {!isLoadingHelpers && initialHelpersLoaded && helperProfiles.length === 0 && <p className="text-center py-10">ไม่พบโปรไฟล์ที่ตรงกับเงื่อนไข</p>}
+      let targetView: View;
+      switch (itemType) {
+        case 'job':
+          targetView = View.PostJob;
+          break;
+        case 'profile':
+          targetView = View.OfferHelp;
+          break;
+        case 'webboardPost':
+          targetView = View.Webboard; // Webboard handles its own edit state
+          setSelectedPostId(itemId); // Trigger webboard's edit mode
+          break;
+        case 'blogPost':
+          targetView = View.ArticleEditor;
+          break;
+      }
+      setSourceViewForForm(fromView || currentView);
+      navigateTo(targetView);
+    }
+  };
 
-             <motion.div variants={listVariants} initial="hidden" animate="visible" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {helperProfiles.map(profile => (
-                <motion.div key={profile.id} variants={itemVariants} exit="exit">
-                  <HelperCard
-                      profile={profile}
-                      onNavigateToPublicProfile={(info) => navigateTo(View.PublicProfile, info)}
-                      navigateTo={navigateTo}
-                      onLogHelperContact={userActions.logContact}
-                      currentUser={currentUser}
-                      requestLoginForAction={requestLoginForAction}
-                      onBumpProfile={helperActions.onBumpHelperProfile}
-                      getAuthorDisplayName={getAuthorDisplayName}
-                      onToggleInterest={userActions.toggleInterest}
-                      isInterested={userInterests.some(interest => interest.targetId === profile.id)}
-                  />
-                </motion.div>
-              ))}
-            </motion.div>
+  const handleDeleteItem = (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => {
+    let action;
+    let message;
+    switch (itemType) {
+      case 'job':
+        action = () => jobActions.deleteJob(itemId);
+        message = 'คุณแน่ใจหรือไม่ว่าต้องการลบประกาศงานนี้? การกระทำนี้ไม่สามารถย้อนกลับได้';
+        break;
+      case 'profile':
+        action = () => helperActions.deleteHelperProfile(itemId);
+        message = 'คุณแน่ใจหรือไม่ว่าต้องการลบโปรไฟล์ผู้ช่วยนี้? การกระทำนี้ไม่สามารถย้อนกลับได้';
+        break;
+      case 'webboardPost':
+        action = () => webboardActions.deleteWebboardPost(itemId);
+        message = 'คุณแน่ใจหรือไม่ว่าต้องการลบกระทู้นี้? การกระทำนี้ไม่สามารถย้อนกลับได้';
+        break;
+      default:
+        return;
+    }
+    openConfirmModal('ยืนยันการลบ', message, action);
+  };
 
-            <div ref={loaderRef} className="h-10 flex justify-center items-center">
-              {isLoadingHelpers && initialHelpersLoaded && <p>กำลังโหลดเพิ่มเติม...</p>}
-            </div>
-        </div>
-    );
+  const handleToggleHiredStatus = (itemId: string, itemType: 'job' | 'profile') => {
+    if (itemType === 'job') jobActions.toggleHiredJob(itemId);
+    else helperActions.onToggleUnavailableHelperProfileForUserOrAdmin(itemId);
   };
   
-  const renderCurrentView = () => {
+  const handleSharePost = async (postId: string, postTitle: string) => {
+      const shareUrl = `${window.location.origin}${window.location.pathname}?view=WEBBOARD&post=${postId}`;
+      try {
+          if (navigator.share) {
+              await navigator.share({
+                  title: `HAJOBJA.COM: ${postTitle}`,
+                  text: `อ่านกระทู้ "${postTitle}" ได้ที่นี่`,
+                  url: shareUrl,
+              });
+          } else {
+              await navigator.clipboard.writeText(shareUrl);
+              setCopiedLinkNotification('คัดลอกลิงก์แล้ว!');
+              if(copiedNotificationTimerRef.current) clearTimeout(copiedNotificationTimerRef.current);
+              copiedNotificationTimerRef.current = window.setTimeout(() => setCopiedLinkNotification(null), 2000);
+          }
+      } catch (error) {
+          console.error('Error sharing:', error);
+          await navigator.clipboard.writeText(shareUrl);
+          setCopiedLinkNotification('คัดลอกลิงก์แล้ว!');
+          if(copiedNotificationTimerRef.current) clearTimeout(copiedNotificationTimerRef.current);
+          copiedNotificationTimerRef.current = window.setTimeout(() => setCopiedLinkNotification(null), 2000);
+      }
+  };
+  
+  const handleStartEditItem = (item: AdminItemType) => {
+    if (item.itemType === 'job' || item.itemType === 'profile' || item.itemType === 'webboardPost' || item.itemType === 'blogPost') {
+        handleEditItem(item.id, item.itemType, View.AdminDashboard);
+    }
+  };
+
+  const handleNavigateToPublicProfile = (profileInfo: { userId: string, helperProfileId?: string }) => {
+    setViewingProfileInfo(profileInfo);
+    setSourceViewForPublicProfile(currentView);
+    navigateTo(View.PublicProfile);
+  };
+  
+  const handleVouchForUser = (userToVouch: User) => {
+    if(!currentUser) { requestLoginForAction(View.PublicProfile); return; }
+    if(currentUser.id === userToVouch.id) { alert("คุณไม่สามารถรับรองตัวเองได้"); return; }
+    setVouchModalData({ userToVouch });
+  }
+
+  const handleShowVouches = (userToList: User) => {
+    setVouchListModalData({ userToList });
+  };
+  
+  const handleReportVouch = (vouch: Vouch) => {
+    if(!currentUser) { requestLoginForAction(View.PublicProfile); return; }
+    setVouchListModalData(null); // Close the list modal first
+    setReportVouchModalData({ vouchToReport: vouch });
+  }
+
+  const renderContent = () => {
+    if (isLoadingAuth || isLoadingData) {
+      return <div className="text-center p-10 font-sans text-xl">Loading...</div>;
+    }
     switch (currentView) {
-      case View.PostJob:
-        return currentUser ? <PostJobForm onCancel={onCancelEditOrPost} initialData={itemToEdit as Job} isEditing={!!itemToEdit} currentUser={currentUser} allJobsForAdmin={allJobsForAdmin} navigateTo={navigateTo} sourceViewForForm={sourceViewForForm} /> : <LoginForm onLogin={onLogin} onSwitchToRegister={() => navigateTo(View.Register)} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />;
-      case View.FindJobs:
-        return renderFindJobs();
-      case View.OfferHelp:
-        return currentUser ? <OfferHelpForm onCancel={onCancelEditOrPost} initialData={itemToEdit as HelperProfile} isEditing={!!itemToEdit} currentUser={currentUser} /> : <LoginForm onLogin={onLogin} onSwitchToRegister={() => navigateTo(View.Register)} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />;
-      case View.FindHelpers:
-        return renderFindHelpers();
-      case View.Login:
-        return <LoginForm onLogin={onLogin} onSwitchToRegister={() => navigateTo(View.Register)} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />;
-      case View.Register:
-        return <RegistrationForm onRegister={onRegister} onSwitchToLogin={() => navigateTo(View.Login)} />;
-      case View.AdminDashboard:
-        return <AdminDashboard jobs={allJobsForAdmin} helperProfiles={allHelperProfilesForAdmin} users={allUsers} interactions={interactions} webboardPosts={allWebboardPostsForAdmin} webboardComments={webboardComments} allBlogPostsForAdmin={allBlogPosts} vouchReports={vouchReports} onStartEditItem={(item) => {/* TODO */}} currentUser={currentUser} isSiteLocked={isSiteLocked} getAuthorDisplayName={getAuthorDisplayName} getUserDisplayBadge={(user) => getUserDisplayBadge(user, allWebboardPostsForAdmin, webboardComments)} getUserDocument={getUserDocument}/>;
+      case View.Home: return renderHome();
+      case View.PostJob: return <PostJobForm currentUser={currentUser!} onCancel={onCancelEditOrPost} initialData={editingItemType === 'job' ? itemToEdit as Job : undefined} isEditing={editingItemType === 'job'} allJobsForAdmin={allJobsForAdmin} navigateTo={navigateTo} sourceViewForForm={sourceViewForForm} />;
+      case View.OfferHelp: return <OfferHelpForm currentUser={currentUser} onCancel={onCancelEditOrPost} initialData={editingItemType === 'profile' ? itemToEdit as HelperProfile : undefined} isEditing={editingItemType === 'profile'} />;
+      case View.Register: return <RegistrationForm onRegister={onRegister} onSwitchToLogin={() => navigateTo(View.Login)} />;
+      case View.Login: return <LoginForm onLogin={onLogin} onSwitchToRegister={() => navigateTo(View.Register)} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />;
+      case View.AdminDashboard: return currentUser && (currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer) ? <AdminDashboard onStartEditItem={handleStartEditItem} jobs={allJobsForAdmin} helperProfiles={allHelperProfilesForAdmin} users={allUsers} interactions={interactions} webboardPosts={allWebboardPostsForAdmin} webboardComments={webboardComments} vouchReports={vouchReports} allBlogPostsForAdmin={allBlogPostsForAdmin} currentUser={currentUser} isSiteLocked={isSiteLocked} getAuthorDisplayName={getAuthorDisplayName} getUserDisplayBadge={(user) => getUserDisplayBadge(user, allWebboardPostsForAdmin, webboardComments)} getUserDocument={getUserDocument}/> : <div>Permission Denied</div>;
+      case View.AboutUs: return <AboutUsPage />;
+      case View.Safety: return <SafetyPage />;
+      case View.PasswordReset: return <PasswordResetPage navigateTo={navigateTo} />;
       case View.MyRoom:
-        if (!currentUser) return <LoginForm onLogin={onLogin} onSwitchToRegister={() => navigateTo(View.Register)} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />;
-        return <MyRoomPage currentUser={currentUser} users={allUsers} allJobsForAdmin={allJobsForAdmin} allHelperProfilesForAdmin={allHelperProfilesForAdmin} allWebboardPostsForAdmin={allWebboardPostsForAdmin} webboardComments={webboardComments} userInterests={userInterests} navigateTo={navigateTo} actions={{editItem: (itemId, itemType, originatingTab) => {/* TODO */}, deleteItem: (itemId, itemType) => {/* TODO */}, toggleHiredStatus: (itemId, itemType) => {/* TODO */}, logHelperContact: userActions.logContact}} onNavigateToPublicProfile={(info) => navigateTo(View.PublicProfile, info)} getAuthorDisplayName={getAuthorDisplayName} requestLoginForAction={requestLoginForAction} initialTab={myRoomInitialTabOverride} onInitialTabProcessed={() => setMyRoomInitialTabOverride(null)} />;
-      case View.AboutUs:
-        return <AboutUsPage />;
-      case View.PublicProfile:
-        const userForProfile = allUsers.find(u => u.id === viewingProfileInfo?.userId);
-        if (!userForProfile) return <div>ไม่พบผู้ใช้</div>;
-        const helperProfileForPage = viewingProfileInfo?.helperProfileId ? allHelperProfilesForAdmin.find(p => p.id === viewingProfileInfo.helperProfileId) : allHelperProfilesForAdmin.find(p => p.userId === viewingProfileInfo?.userId);
-        return <PublicProfilePage user={userForProfile} helperProfile={helperProfileForPage} onBack={() => navigateTo(sourceViewForPublicProfile || View.FindHelpers)} currentUser={currentUser} onVouchForUser={(userToVouch) => setVouchModalData({ userToVouch })} onShowVouches={(userToList) => setVouchListModalData({userToList})} />;
-      case View.Safety:
-        return <SafetyPage />;
+          if (!currentUser) { navigateTo(View.Login); return null; }
+          const myRoomActions = {
+              editItem: (itemId: string, itemType: 'job' | 'profile' | 'webboardPost', originatingTab: MyRoomActiveTab) => handleEditItem(itemId, itemType, View.MyRoom, originatingTab),
+              deleteItem: handleDeleteItem,
+              toggleHiredStatus: handleToggleHiredStatus,
+              editJobFromFindView: (jobId: string) => handleEditItem(jobId, 'job', View.FindJobs),
+              editHelperProfileFromFindView: (profileId: string) => handleEditItem(profileId, 'profile', View.FindHelpers),
+              logHelperContact: userActions.logContact,
+          };
+          return <MyRoomPage currentUser={currentUser} users={allUsers} allJobsForAdmin={allJobsForAdmin} allHelperProfilesForAdmin={allHelperProfilesForAdmin} allWebboardPostsForAdmin={allWebboardPostsForAdmin} webboardComments={webboardComments} userInterests={userInterests} navigateTo={navigateTo} actions={myRoomActions} onNavigateToPublicProfile={handleNavigateToPublicProfile} initialTab={myRoomInitialTabOverride} onInitialTabProcessed={() => setMyRoomInitialTabOverride(null)} getAuthorDisplayName={getAuthorDisplayName} requestLoginForAction={requestLoginForAction} />;
+      case View.PublicProfile: {
+        if (!viewingProfileInfo) { navigateTo(sourceViewForPublicProfile); return null; }
+        const user = allUsers.find(u => u.id === viewingProfileInfo.userId);
+        const helperProfile = viewingProfileInfo.helperProfileId ? allHelperProfilesForAdmin.find(p => p.id === viewingProfileInfo.helperProfileId) : undefined;
+        if (!user) { navigateTo(sourceViewForPublicProfile); return null; }
+        return <PublicProfilePage user={user} helperProfile={helperProfile} onBack={() => navigateTo(sourceViewForPublicProfile)} currentUser={currentUser} onVouchForUser={handleVouchForUser} onShowVouches={handleShowVouches} />;
+      }
       case View.Webboard:
-        return <WebboardPage currentUser={currentUser} users={allUsers} comments={webboardComments} onAddOrUpdatePost={(data, id) => webboardActions.addOrUpdateWebboardPost(data, id)} onAddComment={(postId, text) => webboardActions.addWebboardComment(postId, text)} onToggleLike={webboardActions.toggleWebboardPostLike} onSavePost={userActions.saveWebboardPost} onSharePost={(id, title) => {/*TODO*/}} onDeletePost={webboardActions.deleteWebboardPost} onPinPost={adminActions.pinWebboardPost} onEditPost={(post) => {/*TODO*/}} onDeleteComment={webboardActions.deleteWebboardComment} onUpdateComment={webboardActions.updateWebboardComment} selectedPostId={selectedPostId} setSelectedPostId={setSelectedPostId} navigateTo={navigateTo} editingPost={itemToEdit as WebboardPost} onCancelEdit={onCancelEditOrPost} getUserDisplayBadge={(user) => getUserDisplayBadge(user, allWebboardPostsForAdmin, webboardComments)} requestLoginForAction={requestLoginForAction} onNavigateToPublicProfile={(info) => navigateTo(View.PublicProfile, info)} checkWebboardPostLimits={webboardActions.checkWebboardPostLimits} checkWebboardCommentLimits={webboardActions.checkWebboardCommentLimits} pageSize={10} getAuthorDisplayName={getAuthorDisplayName} />;
+          return <WebboardPage currentUser={currentUser} users={allUsers} comments={webboardComments} onAddOrUpdatePost={(data, id) => webboardActions.addOrUpdateWebboardPost(data, id).then(newPostId => { if(id) setSelectedPostId(id); else if (newPostId) setSelectedPostId(newPostId); })} onAddComment={webboardActions.addWebboardComment} onToggleLike={webboardActions.toggleWebboardPostLike} onSavePost={userActions.saveWebboardPost} onSharePost={handleSharePost} onDeletePost={(id) => openConfirmModal('ยืนยันการลบ', 'คุณแน่ใจหรือไม่ว่าต้องการลบกระทู้นี้?', () => { webboardActions.deleteWebboardPost(id); setSelectedPostId(null); })} onPinPost={adminActions.pinWebboardPost} onEditPost={(post) => handleEditItem(post.id, 'webboardPost', View.Webboard)} onDeleteComment={(id) => openConfirmModal('ยืนยันการลบ', 'คุณแน่ใจหรือไม่ว่าต้องการลบคอมเมนต์นี้?', () => webboardActions.deleteWebboardComment(id))} onUpdateComment={webboardActions.updateWebboardComment} selectedPostId={selectedPostId} setSelectedPostId={setSelectedPostId} navigateTo={navigateTo} editingPost={editingItemType === 'webboardPost' ? itemToEdit as WebboardPost : undefined} onCancelEdit={() => { setItemToEdit(null); setEditingItemType(null); setSelectedPostId(null); }} getUserDisplayBadge={(user) => getUserDisplayBadge(user, allWebboardPostsForAdmin, webboardComments)} requestLoginForAction={requestLoginForAction} onNavigateToPublicProfile={(info) => handleNavigateToPublicProfile(info)} checkWebboardPostLimits={webboardActions.checkWebboardPostLimits} checkWebboardCommentLimits={webboardActions.checkWebboardCommentLimits} pageSize={20} getAuthorDisplayName={getAuthorDisplayName} />;
       case View.Blog:
-        const enrichedBlogPosts = allBlogPosts.map(p => ({...p, author: allUsers.find(u => u.id === p.authorId)}));
-        return <BlogPage posts={enrichedBlogPosts} onSelectPost={setSelectedBlogPostSlug} />;
+        return <BlogPage posts={allBlogPosts.map(p => ({...p, author: allUsers.find(u => u.id === p.authorId)}))} onSelectPost={(slug) => { setSelectedBlogPostSlug(slug); navigateTo(View.Blog, { article: slug }); }} />;
       case View.ArticleEditor:
-        return <ArticleEditor onCancel={onCancelEditOrPost} initialData={itemToEdit as BlogPost} isEditing={!!itemToEdit} currentUser={currentUser!} />;
-      case View.PasswordReset:
-        return <PasswordResetPage navigateTo={navigateTo} />;
+        return <ArticleEditor onCancel={() => navigateTo(View.AdminDashboard)} initialData={editingItemType === 'blogPost' ? itemToEdit as BlogPost : undefined} isEditing={!!(editingItemType === 'blogPost')} currentUser={currentUser!} />;
+      case View.FindJobs:
+        return <FindJobsPage navigateTo={navigateTo} onEditJobFromFindView={(jobId) => handleEditItem(jobId, 'job', View.FindJobs)} currentUser={currentUser} requestLoginForAction={requestLoginForAction} getAuthorDisplayName={getAuthorDisplayName} />;
+      case View.FindHelpers:
+        return <FindHelpersPage navigateTo={navigateTo} onNavigateToPublicProfile={handleNavigateToPublicProfile} currentUser={currentUser} requestLoginForAction={requestLoginForAction} onEditProfileFromFindView={(profileId) => handleEditItem(profileId, 'profile', View.FindHelpers)} getAuthorDisplayName={getAuthorDisplayName} />;
       default:
         return renderHome();
     }
   };
 
-  if (isLoadingAuth || isLoadingData) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-primary-light">
-        <div className="text-center">
-          <div className="text-4xl animate-pulse">✨</div>
-          <p className="text-primary-dark font-sans font-medium mt-2">กำลังโหลด...</p>
-        </div>
-      </div>
-    );
+  if(selectedBlogPostSlug) {
+      const post = allBlogPosts.find(p => p.slug === selectedBlogPostSlug);
+      if(post) {
+        return <BlogArticlePage post={{...post, author: allUsers.find(u => u.id === post.authorId)}} onBack={() => { setSelectedBlogPostSlug(null); navigateTo(View.Blog); }} comments={[]} currentUser={currentUser} canEditOrDelete={webboardActions.canEditOrDelete} />;
+      }
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-neutral-light">
+    <div className="flex flex-col min-h-screen bg-neutral-background font-serif">
       <SiteLockOverlay isLocked={isSiteLocked} />
       {renderHeader()}
-      <main className={`flex-grow flex flex-col ${currentView === View.Home ? 'hero-section justify-center' : 'container mx-auto p-4 sm:p-6 lg:p-8'}`}>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentView}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.25 }}
-          >
-            {renderCurrentView()}
-          </motion.div>
-        </AnimatePresence>
+      <main className="flex-1 w-full">
+        {renderContent()}
       </main>
-      <footer className="text-center py-6 bg-white border-t border-primary-light">
-        <div className="flex justify-center gap-4 text-sm mb-2">
-            <button onClick={() => navigateTo(View.AboutUs)} className="text-neutral-dark hover:text-primary">เกี่ยวกับเรา</button>
-            <span className="text-neutral-DEFAULT">·</span>
-            <button onClick={() => navigateTo(View.Safety)} className="text-neutral-dark hover:text-primary">ความปลอดภัย</button>
-            <span className="text-neutral-DEFAULT">·</span>
-            <button onClick={() => setIsFeedbackModalOpen(true)} className="text-neutral-dark hover:text-primary">Feedback</button>
-        </div>
-        <p className="text-xs text-neutral-medium">
-          &copy; {new Date().getFullYear()} HAJOBJA.COM - All rights reserved.
-        </p>
-        <p className="text-xs text-neutral-medium mt-1">
-          Created by <a href="https://www.bluecat.house" target="_blank" rel="noopener noreferrer" className="text-primary-dark hover:underline">Blue Cat House</a>
-        </p>
-      </footer>
-
-      {/* Modals */}
-      <ConfirmModal isOpen={isConfirmModalOpen} onClose={closeConfirmModal} onConfirm={onConfirmDeletion} title={confirmModalTitle} message={confirmModalMessage} />
-      <FeedbackForm isOpen={isFeedbackModalOpen} onClose={() => setIsFeedbackModalOpen(false)} currentUserEmail={currentUser?.email} />
-      <ForgotPasswordModal isOpen={isForgotPasswordModalOpen} onClose={() => setIsForgotPasswordModalOpen(false)} onSendResetEmail={authActions.sendPasswordResetEmail} />
-      {vouchModalData && currentUser && <VouchModal isOpen={!!vouchModalData} onClose={() => setVouchModalData(null)} userToVouch={vouchModalData.userToVouch} currentUser={currentUser} />}
-      {vouchListModalData && <VouchesListModal isOpen={!!vouchListModalData} onClose={() => setVouchListModalData(null)} userToList={vouchListModalData.userToList} navigateToPublicProfile={(id) => navigateTo(View.PublicProfile, { userId: id })} onReportVouch={(vouch) => setReportVouchModalData({ vouchToReport: vouch })} currentUser={currentUser} />}
-      {reportVouchModalData && <ReportVouchModal isOpen={!!reportVouchModalData} onClose={() => setReportVouchModalData(null)} vouchToReport={reportVouchModalData.vouchToReport} />}
+      {renderFooter()}
+      <AnimatePresence>
+        {copiedLinkNotification && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-primary-dark text-white text-sm py-2 px-4 rounded-full shadow-lg z-50"
+          >
+            {copiedLinkNotification}
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onClose={closeConfirmModal}
+        onConfirm={onConfirmDeletion}
+        title={confirmModalTitle}
+        message={confirmModalMessage}
+      />
+      <FeedbackForm
+        isOpen={isFeedbackModalOpen}
+        onClose={() => setIsFeedbackModalOpen(false)}
+        currentUserEmail={currentUser?.email}
+      />
+      <ForgotPasswordModal
+        isOpen={isForgotPasswordModalOpen}
+        onClose={() => setIsForgotPasswordModalOpen(false)}
+        onSendResetEmail={authActions.sendPasswordResetEmail}
+      />
+      {vouchModalData && (
+        <VouchModal
+          isOpen={!!vouchModalData}
+          onClose={() => setVouchModalData(null)}
+          userToVouch={vouchModalData.userToVouch}
+          currentUser={currentUser!}
+        />
+      )}
+      {vouchListModalData && (
+        <VouchesListModal
+          isOpen={!!vouchListModalData}
+          onClose={() => setVouchListModalData(null)}
+          userToList={vouchListModalData.userToList}
+          navigateToPublicProfile={(userId) => handleNavigateToPublicProfile({ userId })}
+          onReportVouch={handleReportVouch}
+          currentUser={currentUser}
+        />
+      )}
+      {reportVouchModalData && (
+        <ReportVouchModal
+          isOpen={!!reportVouchModalData}
+          onClose={() => setReportVouchModalData(null)}
+          vouchToReport={reportVouchModalData.vouchToReport}
+        />
+      )}
     </div>
   );
 };
