@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -214,16 +215,16 @@ const App: React.FC = () => {
 
   const renderNavLinks = (isMobile: boolean) => {
     const displayBadgeForProfile = getUserDisplayBadge(currentUser, allWebboardPostsForAdmin, webboardComments);
-    const commonButtonPropsBase = isMobile
-      ? { size: 'md' as const, className: 'w-full text-left justify-start py-3 px-4 text-base nav-pill' }
-      : { size: 'sm' as const, className: 'flex-shrink-0 nav-pill' };
+    const commonButtonClass = isMobile
+      ? 'w-full text-left justify-start py-3 px-4 text-base nav-pill'
+      : 'flex-shrink-0 nav-pill';
 
     const navigateAndCloseMenu = (view: View, payload?: any) => {
       navigateTo(view, payload);
     };
 
     const navItemSpanClass = "inline-flex items-center gap-1.5";
-    const activeClass = "active"; // Use CSS class for active state
+    const activeClass = "active";
 
     if (currentUser) {
         return (
@@ -243,38 +244,41 @@ const App: React.FC = () => {
             )}
 
             {currentView !== View.Home && (
-              <button onClick={() => navigateAndCloseMenu(View.Home)} className={commonButtonPropsBase.className}>
+              <button onClick={() => navigateAndCloseMenu(View.Home)} className={commonButtonClass}>
                 <span className={navItemSpanClass}><span>🏠</span><span>หน้าแรก</span></span>
               </button>
             )}
             
             {(currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer) && (
-              <button onClick={() => navigateAndCloseMenu(View.AdminDashboard)} className={`${commonButtonPropsBase.className} ${currentView === View.AdminDashboard ? activeClass : ''}`}>
+              <button onClick={() => navigateAndCloseMenu(View.AdminDashboard)} className={`${commonButtonClass} ${currentView === View.AdminDashboard ? activeClass : ''}`}>
                  <span className={navItemSpanClass}><span>🔐</span><span>Admin</span></span>
               </button>
             )}
 
-            <button onClick={() => navigateTo(View.MyRoom)} className={`${commonButtonPropsBase.className} ${currentView === View.MyRoom ? activeClass : ''}`}>
+            <button onClick={() => navigateTo(View.MyRoom)} className={`${commonButtonClass} ${currentView === View.MyRoom ? activeClass : ''}`}>
               <span className={navItemSpanClass}><span>🛋️</span><span>ห้องของฉัน</span></span>
             </button>
             
-            <button onClick={() => navigateTo(View.FindJobs)} className={`${commonButtonPropsBase.className} ${currentView === View.FindJobs ? activeClass : ''}`}>
+            <button onClick={() => navigateTo(View.FindJobs)} className={`${commonButtonClass} ${currentView === View.FindJobs ? activeClass : ''}`}>
               <span className={navItemSpanClass}><span>📢</span><span>ประกาศงาน</span></span>
             </button>
             
-            <button onClick={() => navigateTo(View.FindHelpers)} className={`${commonButtonPropsBase.className} ${currentView === View.FindHelpers ? activeClass : ''}`}>
+            <button onClick={() => navigateTo(View.FindHelpers)} className={`${commonButtonClass} ${currentView === View.FindHelpers ? activeClass : ''}`}>
               <span className={navItemSpanClass}><span>👥</span><span>โปรไฟล์ผู้ช่วย</span></span>
             </button>
             
-            <button onClick={() => navigateTo(View.Blog)} className={`${commonButtonPropsBase.className} ${currentView === View.Blog ? activeClass : ''}`}>
+            <button onClick={() => navigateTo(View.Blog)} className={`${commonButtonClass} ${currentView === View.Blog ? activeClass : ''}`}>
               <span className={navItemSpanClass}><span>📖</span><span>บทความ</span></span>
             </button>
             
-            <button onClick={() => navigateTo(View.Webboard)} className={`${commonButtonPropsBase.className} ${currentView === View.Webboard ? activeClass : ''}`}>
+            <button onClick={() => navigateTo(View.Webboard)} className={`${commonButtonClass} ${currentView === View.Webboard ? activeClass : ''}`}>
               <span className={navItemSpanClass}><span>💬</span><span>กระทู้พูดคุย</span></span>
             </button>
             
-            <button onClick={onLogout} className={`${commonButtonPropsBase.className}`}>
+            <button
+                onClick={onLogout}
+                className={`${commonButtonClass} border-accent text-red-600 hover:bg-accent hover:text-white focus:ring-accent`}
+              >
               <span className={navItemSpanClass}><span>🔓</span><span>ออกจากระบบ</span></span>
             </button>
           </>
@@ -286,19 +290,19 @@ const App: React.FC = () => {
         return (
             <>
               {currentView !== View.Home && (
-                <button onClick={() => navigateAndCloseMenu(View.Home)} className={commonButtonPropsBase.className}>
+                <button onClick={() => navigateAndCloseMenu(View.Home)} className={commonButtonClass}>
                    <span className={navItemSpanClass}><span>🏠</span><span>หน้าแรก</span></span>
                 </button>
               )}
               
-              <button onClick={() => navigateAndCloseMenu(View.Login)} className={`${commonButtonPropsBase.className} ${currentView === View.Login ? activeClass : ''}`}>
+              <button onClick={() => navigateAndCloseMenu(View.Login)} className={`${commonButtonClass} ${currentView === View.Login ? activeClass : ''}`}>
                   <span className={navItemSpanClass}><span>🔑</span><span>เข้าสู่ระบบ</span></span>
               </button>
-              <button onClick={() => navigateAndCloseMenu(View.Register)} className={`${commonButtonPropsBase.className} ${currentView === View.Register ? activeClass : ''}`}>
+              <button onClick={() => navigateAndCloseMenu(View.Register)} className={`${commonButtonClass} ${currentView === View.Register ? activeClass : ''}`}>
                  <span className={navItemSpanClass}><span>📝</span><span>ลงทะเบียน</span></span>
               </button>
 
-              <button onClick={() => navigateTo(View.Webboard)} className={`${commonButtonPropsBase.className} ${currentView === View.Webboard ? activeClass : ''}`}>
+              <button onClick={() => navigateTo(View.Webboard)} className={`${commonButtonClass} ${currentView === View.Webboard ? activeClass : ''}`}>
                 <span className={navItemSpanClass}><span>💬</span><span>กระทู้พูดคุย</span></span>
               </button>
             </>
@@ -351,7 +355,7 @@ const App: React.FC = () => {
       }
       return (
       <header
-        className="main-navbar sticky top-0 z-30 w-full bg-white/80 backdrop-blur-md text-primary-dark p-4 sm:p-5 lg:p-6 shadow-sm border-b border-primary-light"
+        className="main-navbar sticky top-0 z-30 w-full bg-white text-primary-dark p-4 sm:p-5 lg:p-6 shadow-md border-b border-primary-light"
       >
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex-shrink-0">
@@ -390,37 +394,39 @@ const App: React.FC = () => {
 
   const renderHome = () => {
     return (
-      <div className="hero-section flex flex-col items-center justify-center text-center p-8 min-h-[calc(100vh-150px)]">
-        <h1 className="hero-title font-sans">✨ หาจ๊อบจ้า ✨</h1>
-        <p className="hero-subtitle font-serif">แพลตฟอร์มที่อยู่เคียงข้างคนขยัน</p>
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="container mx-auto flex flex-col items-center px-6 text-center">
+          <h1 className="hero-title">✨ หาจ๊อบจ้า ✨</h1>
+          <p className="hero-subtitle">แพลตฟอร์มที่อยู่เคียงข้างคนขยัน</p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
-          <div
-            onClick={() => navigateTo(View.FindJobs)}
-            className="home-card cursor-pointer"
-          >
-            <h3 className="text-xl font-sans font-semibold text-primary-dark mb-4">ประกาศงาน</h3>
-            <div className="space-y-3">
-              <Button onClick={(e) => { e.stopPropagation(); navigateTo(View.FindJobs); }} variant="primary" size="lg" className="w-full">
-                <span className="text-base">🔎 ดูประกาศงานทั้งหมด</span>
-              </Button>
-              <Button onClick={(e) => { e.stopPropagation(); currentUser ? navigateTo(View.PostJob) : requestLoginForAction(View.PostJob); }} variant="secondary" size="lg" className="w-full">
-                <span className="text-base">✍️ ลงประกาศงาน</span>
-              </Button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
+            <div
+              onClick={() => navigateTo(View.FindJobs)}
+              className="home-card cursor-pointer"
+            >
+              <h3 className="card-section-title">ประกาศงาน</h3>
+              <div className="space-y-3">
+                <Button onClick={(e) => { e.stopPropagation(); navigateTo(View.FindJobs); }} variant="primary" size="lg" className="w-full">
+                  <span className="text-base">🔎 ดูประกาศงานทั้งหมด</span>
+                </Button>
+                <Button onClick={(e) => { e.stopPropagation(); currentUser ? navigateTo(View.PostJob) : requestLoginForAction(View.PostJob); }} variant="secondary" size="lg" className="w-full">
+                  <span className="text-base">✍️ ลงประกาศงาน</span>
+                </Button>
+              </div>
             </div>
-          </div>
-          <div
-            onClick={() => navigateTo(View.FindHelpers)}
-            className="home-card cursor-pointer"
-          >
-            <h3 className="text-xl font-sans font-semibold text-primary-dark mb-4">โปรไฟล์ผู้ช่วยและบริการ</h3>
-            <div className="space-y-3">
-              <Button onClick={(e) => { e.stopPropagation(); navigateTo(View.FindHelpers); }} variant="primary" size="lg" className="w-full">
-                <span className="text-base">👥 ดูโปรไฟล์ทั้งหมด</span>
-              </Button>
-              <Button onClick={(e) => { e.stopPropagation(); currentUser ? navigateTo(View.OfferHelp) : requestLoginForAction(View.OfferHelp); }} variant="secondary" size="lg" className="w-full">
-                <span className="text-base">🙋 สร้างโปรไฟล์</span>
-              </Button>
+            <div
+              onClick={() => navigateTo(View.FindHelpers)}
+              className="home-card cursor-pointer"
+            >
+              <h3 className="card-section-title">โปรไฟล์ผู้ช่วยและบริการ</h3>
+              <div className="space-y-3">
+                <Button onClick={(e) => { e.stopPropagation(); navigateTo(View.FindHelpers); }} variant="primary" size="lg" className="w-full">
+                  <span className="text-base">👥 ดูโปรไฟล์ทั้งหมด</span>
+                </Button>
+                <Button onClick={(e) => { e.stopPropagation(); currentUser ? navigateTo(View.OfferHelp) : requestLoginForAction(View.OfferHelp); }} variant="secondary" size="lg" className="w-full">
+                  <span className="text-base">🙋 สร้างโปรไฟล์</span>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -663,7 +669,7 @@ const App: React.FC = () => {
     <div className="flex flex-col min-h-screen bg-neutral-light">
       <SiteLockOverlay isLocked={isSiteLocked} />
       {renderHeader()}
-      <main className="flex-grow">
+      <main className={`flex-grow flex flex-col ${currentView === View.Home ? 'hero-section justify-center' : 'container mx-auto p-4 sm:p-6 lg:p-8'}`}>
         <AnimatePresence mode="wait">
           <motion.div
             key={currentView}

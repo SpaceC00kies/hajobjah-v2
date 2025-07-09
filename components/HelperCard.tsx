@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useState } from 'react';
 import type { EnrichedHelperProfile, User } from '../types/types.ts';
 import { View, Province, ACTIVITY_BADGE_DETAILS } from '../types/types.ts';
@@ -174,16 +170,8 @@ export const HelperCard: React.FC<HelperCardProps> = ({
 
   return (
     <>
-      <motion.div
-        className="helper-card-redesigned font-sans h-full"
-        whileHover={{
-          y: -5,
-          transition: { duration: 0.2, ease: "easeOut" as const },
-        }}
-        initial={{ scale: 0.97, filter: 'brightness(0.95)' }}
-        whileInView={{ scale: 1, filter: 'brightness(1)' }}
-        transition={{ duration: 0.4, ease: "easeOut" as const }}
-        viewport={{ once: true, amount: 0.2 }}
+      <div
+        className="app-card"
       >
         {profile.isPinned && (
           <div className="helper-card-status-banner status-banner-pinned">📌 ปักหมุดโดยแอดมิน</div>
@@ -229,7 +217,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({
             <h4 className="helper-card-main-title" title={profile.profileTitle}>{profile.profileTitle}</h4>
             <div className="helper-card-name-container">
               <h3 
-                className="helper-card-name text-sm" // Applied text-sm
+                className="helper-card-name text-sm"
                 onClick={() => onNavigateToPublicProfile({ userId: profile.userId, helperProfileId: profile.id })}
               >
                 {authorActualDisplayName}
@@ -264,11 +252,11 @@ export const HelperCard: React.FC<HelperCardProps> = ({
         </div>
 
         <div className="helper-card-details-box">
-          <h5 className="helper-card-details-title text-sm"> {/* Applied text-sm */}
+          <h5 className="helper-card-details-title text-sm">
             รายละเอียด
           </h5>
           <ul>
-            <li className={`text-xs ${detailsNeedsTruncation && !showFullDetails && !(currentUser && !profileIsTrulyExpired) ? "details-line-clamp" : ""}`}> {/* Applied text-xs */}
+            <li className={`text-xs ${detailsNeedsTruncation && !showFullDetails && !(currentUser && !profileIsTrulyExpired) ? "details-line-clamp" : ""}`}>
               {displayDetails}
             </li>
           </ul>
@@ -334,7 +322,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({
             )}
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {currentUser && !profileIsTrulyExpired && (
         <>

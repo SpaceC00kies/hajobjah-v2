@@ -76,21 +76,6 @@ export const Button: React.FC<ButtonProps> = ({
       break;
   }
 
-  // If the passed class name includes `nav-pill`, we don't apply our internal styles.
-  if (passedClassName && passedClassName.includes('nav-pill')) {
-    return (
-      <motion.button
-        className={passedClassName}
-        whileHover={{ y: -1 }}
-        whileTap={{ y: 0, scale: 0.98 }}
-        transition={{ duration: 0.2, ease: "easeOut" as const }}
-        {...restProps}
-      >
-        {children}
-      </motion.button>
-    );
-  }
-
   const finalClassName = [
     baseStyle, 
     variantStyle, 

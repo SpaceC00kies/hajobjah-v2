@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;600&family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- 2. User's Global Styles from Monolith -->
+    <!-- 2. User's Global Styles -->
     <style>
       :root {
         /* Core Brand Colors */
@@ -34,7 +34,7 @@
         background-color: var(--neutral-light);
       }
 
-      /* Base Form Element Styles */
+      /* --- Base Form Element Styles --- */
       input, textarea, select {
         padding: 12px;
         border: 1px solid var(--primary-light);
@@ -53,35 +53,41 @@
         border-color: var(--primary-blue);
         box-shadow: 0 0 0 3px rgba(135, 206, 235, 0.25);
       }
-
-      /* Navigation Pills */
-      .nav-pill {
-          padding: 8px 20px;
-          border-radius: 20px;
-          background: var(--primary-light);
-          color: var(--primary-dark);
-          text-decoration: none;
-          font-weight: 500;
-          font-size: 14px;
-          transition: all 0.3s ease;
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          border: 2px solid transparent;
+      
+      .input-error {
+        border-color: var(--error-red) !important;
       }
-      .nav-pill:hover {
-          background: var(--primary-medium);
-          color: white;
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(135, 206, 235, 0.3);
-      }
-      .nav-pill.active {
-          background: var(--primary-dark);
-          color: white;
-          font-weight: 600;
+      .input-error:focus {
+        border-color: var(--error-red) !important;
+        box-shadow: 0 0 0 3px rgba(255, 181, 181, 0.25) !important;
       }
 
-      /* Homepage Styles */
+      select {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%234A90A4' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.75rem center;
+        background-repeat: no-repeat;
+        background-size: 1.25em 1.25em;
+        padding-right: 2.5rem;
+      }
+
+      /* --- Unified Card Style --- */
+      .app-card {
+        background: var(--white);
+        border: 1px solid var(--primary-light);
+        border-radius: 16px;
+        box-shadow: 0 2px 12px rgba(135, 206, 235, 0.1);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        transition: all 0.3s ease;
+      }
+      .app-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(135, 206, 235, 0.2);
+        border-color: var(--primary-blue);
+      }
+
+      /* --- Homepage Styles --- */
       .hero-section {
           background: linear-gradient(180deg, #E6F4FF 0%, #F0F9FF 80%, #FFFFFF 100%);
       }
@@ -108,6 +114,191 @@
           transform: translateY(-3px);
           box-shadow: 0 6px 24px rgba(135, 206, 235, 0.25);
           border-color: #87CEEB;
+      }
+      .card-section-title {
+          font-size: 20px;
+          font-weight: 600;
+          color: #4A90A4;
+          margin-bottom: 20px;
+      }
+
+      /* --- Navigation Pills --- */
+      .nav-pill {
+          padding: 8px 20px;
+          border-radius: 20px;
+          background: var(--primary-light);
+          color: var(--primary-dark);
+          text-decoration: none;
+          font-weight: 500;
+          font-size: 14px;
+          transition: all 0.3s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          border: 2px solid transparent;
+      }
+      .nav-pill:hover {
+          background: var(--primary-medium);
+          color: white;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(135, 206, 235, 0.3);
+      }
+      .nav-pill.active {
+          background: var(--primary-dark);
+          color: white;
+          font-weight: 600;
+      }
+      
+      /* --- Detailed Card Styles --- */
+      .helper-card-header, .job-card-header {
+        background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-blue) 100%);
+        padding: 16px;
+        text-align: left;
+        position: relative;
+        display: flex; /* Added for flex layout */
+      }
+      .helper-card-header-avatar-wrapper {
+        flex-shrink: 0;
+        margin-right: 16px;
+      }
+      .helper-card-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+        cursor: pointer;
+      }
+      .helper-card-avatar:hover {
+        transform: scale(1.05);
+      }
+      .helper-card-header-content {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      .helper-card-main-title, .job-card-main-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--primary-dark);
+        margin: 0 0 2px 0;
+        line-height: 1.3;
+      }
+      .helper-card-name-container, .job-card-author-name-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 2px;
+      }
+      .helper-card-name, .job-card-author-name {
+        font-weight: 500;
+        color: rgba(74, 144, 164, 0.8);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        transition: color 0.3s ease;
+      }
+      .helper-card-name:hover, .job-card-author-name:hover { color: var(--primary-dark); }
+      .helper-card-name .name-arrow, .job-card-author-name .name-arrow {
+        margin-left: 4px;
+        font-size: 14px;
+        color: var(--neutral-gray);
+      }
+      .helper-card-header-location {
+        font-size: 12px;
+        color: var(--primary-dark);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-bottom: 6px;
+      }
+      .helper-card-header-location .location-pin-emoji { font-size: 1em; }
+      .helper-card-header-categories-combined, .job-card-header-categories-combined {
+        color: var(--primary-dark);
+        font-weight: 600;
+        font-size: 11px;
+        line-height: 1.4;
+        margin-bottom: 8px;
+      }
+      .helper-card-header-categories-combined .category-separator, .job-card-header-categories-combined .category-separator {
+        margin: 0 4px;
+        color: var(--neutral-gray);
+      }
+      .helper-card-info-grid, .job-card-info-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        padding: 0 16px;
+      }
+      .helper-card-info-item, .job-card-info-item {
+        display: flex;
+        align-items: flex-start;
+        font-size: 12px;
+        color: var(--neutral-gray);
+        padding: 4px 0;
+        margin-bottom: 2px;
+      }
+      .helper-card-info-item .info-icon, .job-card-info-item .info-icon {
+        margin-right: 8px;
+        color: var(--primary-medium);
+      }
+      .helper-card-details-box, .job-card-details-box {
+        background-color: var(--neutral-light);
+        padding: 12px 16px;
+        margin: 12px 16px;
+        border-radius: 12px;
+      }
+      .helper-card-details-title, .job-card-details-title {
+        font-weight: 600;
+        color: var(--primary-dark);
+        margin-bottom: 0;
+      }
+      .job-card-details-box .qualifications-list { list-style-type: '✓ '; padding-left: 1.5em; margin-top: 0; }
+      .helper-card-details-box ul, .job-card-details-box ul { list-style-type: none; padding-left: 0; margin: 0; }
+      .helper-card-footer, .job-card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        border-top: 1px solid var(--primary-light);
+        margin-top: auto;
+      }
+      .helper-card-posted-time, .job-card-posted-time {
+        font-size: 12px;
+        color: var(--neutral-gray);
+      }
+      .helper-card-action-buttons, .job-card-action-buttons {
+        display: flex;
+        gap: 8px;
+      }
+      .helper-card-trust-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+      .helper-card-trust-badge {
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        background: var(--accent-peach);
+        color: var(--neutral-dark);
+      }
+      .helper-card-status-banner, .job-card-status-banner {
+        padding: 6px 12px;
+        font-size: 13px;
+        font-weight: 500;
+        text-align: center;
+        border-bottom: 1px solid;
+      }
+      .status-banner-pinned { background-color: rgba(255, 229, 180, 0.6); color: var(--neutral-dark); border-color: var(--accent-peach); }
+      .status-banner-unavailable, .status-banner-suspicious { background-color: #FFDADA; color: #996D6D; border-color: var(--error-red); }
+      .status-banner-hired { background-color: #CCECE4; color: var(--brandGreen-text); border-color: var(--success-green); }
+      .status-banner-expired { background-color: var(--neutral-light); color: var(--neutral-gray); border-color: rgba(102, 102, 102, 0.2); }
+      .details-line-clamp {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
     </style>
 
@@ -144,6 +335,10 @@
                 medium: 'var(--neutral-gray)',
               },
               white: 'var(--white)',
+              brandGreen: {
+                DEFAULT: 'var(--success-green)',
+                text: 'color-mix(in srgb, var(--success-green) 50%, black)',
+              }
             }
           }
         }

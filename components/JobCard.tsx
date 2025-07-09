@@ -1,9 +1,6 @@
-
-
-
 import React, { useState } from 'react';
-import type { Job, User } from '../types/types';
-import { View, JobCategory, JOB_CATEGORY_EMOJIS_MAP, JobDesiredEducationLevelOption, Province } from '../types/types';
+import type { Job, User } from '../types/types.ts';
+import { View, JobCategory, JOB_CATEGORY_EMOJIS_MAP, JobDesiredEducationLevelOption, Province } from '../types/types.ts';
 import { Button } from './Button.tsx'; // Import Button
 import { Modal } from './Modal.tsx';
 import { isDateInPast } from '../utils/dateUtils.ts';
@@ -95,16 +92,8 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
 
   return (
     <>
-      <motion.div
-        className="job-card-redesigned font-sans h-full"
-        whileHover={{
-          y: -5,
-          transition: { duration: 0.2, ease: "easeOut" as const },
-        }}
-        initial={{ scale: 0.97, filter: 'brightness(0.95)' }}
-        whileInView={{ scale: 1, filter: 'brightness(1)' }}
-        transition={{ duration: 0.4, ease: "easeOut" as const }}
-        viewport={{ once: true, amount: 0.2 }}
+      <div
+        className="app-card"
       >
         {job.isPinned && (
           <div className="job-card-status-banner status-banner-pinned">📌 ปักหมุดโดยแอดมิน</div>
@@ -120,8 +109,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
         )}
 
         <div className="job-card-header">
-           <div className="flex items-start justify-between">
-            <div>
+           <div className="flex-grow">
                 <div 
                     className="job-card-main-title"
                     title={job.title}
@@ -141,8 +129,6 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
                         </span>
                     )}
                 </div>
-            </div>
-            {/* Avatar removed */}
            </div>
 
           {(job.category || job.subCategory) && (
@@ -170,8 +156,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
           <h5 className="job-card-details-title text-sm">
             รายละเอียดงาน
           </h5>
-          {/* The description text will sit directly below "รายละเอียดงาน" due to margin-bottom: 0px on title */}
-          <ul className="mt-1"> {/* Added small margin-top to ul if direct adjacency feels too tight for the paragraph of text */}
+          <ul className="mt-1">
             <li className={`text-xs ${detailsNeedsTruncation && !showFullDetails && !(currentUser && !jobIsTrulyExpired) ? "details-line-clamp" : ""}`}>
               {displayDetails}
             </li>
@@ -188,7 +173,6 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
           
           {(job.desiredAgeStart || job.desiredAgeEnd || job.preferredGender || job.desiredEducationLevel) && (
             <>
-                {/* Changed mb-0.5 to mb-0 for closer spacing to list */}
                 <h6 className="text-xs font-semibold text-neutral-dark mt-3 mb-0">คุณสมบัติที่ต้องการ (ถ้ามี):</h6>
                 <ul className="qualifications-list text-xs">
                     {job.desiredAgeStart && <li>อายุ: {job.desiredAgeStart}{job.desiredAgeEnd ? ` - ${job.desiredAgeEnd}` : '+'} ปี</li>}
@@ -240,7 +224,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
             )}
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {currentUser && !jobIsTrulyExpired && (
         <>
