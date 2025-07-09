@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -878,25 +879,31 @@ const App: React.FC = () => {
         title={confirmModalTitle}
         message={confirmModalMessage}
       />
-      <VouchModal
-        isOpen={!!vouchModalData}
-        onClose={() => setVouchModalData(null)}
-        userToVouch={vouchModalData!.userToVouch}
-        currentUser={currentUser!}
-      />
-      <VouchesListModal
-        isOpen={!!vouchListModalData}
-        onClose={() => setVouchListModalData(null)}
-        userToList={vouchListModalData!.userToList}
-        onReportVouch={(vouch) => setReportVouchModalData({ vouchToReport: vouch })}
-        navigateToPublicProfile={(userId) => navigateTo(View.PublicProfile, { userId })}
-        currentUser={currentUser}
-      />
-      <ReportVouchModal
-        isOpen={!!reportVouchModalData}
-        onClose={() => setReportVouchModalData(null)}
-        vouchToReport={reportVouchModalData!.vouchToReport}
-      />
+      {vouchModalData && currentUser && (
+        <VouchModal
+          isOpen={true}
+          onClose={() => setVouchModalData(null)}
+          userToVouch={vouchModalData.userToVouch}
+          currentUser={currentUser}
+        />
+      )}
+      {vouchListModalData && (
+        <VouchesListModal
+          isOpen={true}
+          onClose={() => setVouchListModalData(null)}
+          userToList={vouchListModalData.userToList}
+          onReportVouch={(vouch) => setReportVouchModalData({ vouchToReport: vouch })}
+          navigateToPublicProfile={(userId) => navigateTo(View.PublicProfile, { userId })}
+          currentUser={currentUser}
+        />
+      )}
+      {reportVouchModalData && (
+        <ReportVouchModal
+          isOpen={true}
+          onClose={() => setReportVouchModalData(null)}
+          vouchToReport={reportVouchModalData.vouchToReport}
+        />
+      )}
       <ForgotPasswordModal
         isOpen={isForgotPasswordModalOpen}
         onClose={() => setIsForgotPasswordModalOpen(false)}
