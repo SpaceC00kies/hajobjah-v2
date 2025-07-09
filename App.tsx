@@ -43,7 +43,7 @@ import { ReportVouchModal } from './components/ReportVouchModal.tsx';
 import { UserLevelBadge } from './components/UserLevelBadge.tsx';
 import { getJobsPaginated } from './services/jobService.ts';
 import { getHelperProfilesPaginated } from './services/helperProfileService.ts';
-import { AnimatePresence, motion, type Variants, type Transition } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { isDateInPast } from './utils/dateUtils.ts';
 import { getRecentSearches, addRecentSearch } from './utils/localStorageUtils.ts';
 import { getUserDisplayBadge } from './utils/userUtils.ts';
@@ -53,18 +53,18 @@ import { getVouchesForUserService, getUserDocument } from './services/userServic
 const JOBS_PAGE_SIZE = 9;
 const HELPERS_PAGE_SIZE = 9;
 
-const listVariants: Variants = {
+const listVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { when: "beforeChildren", staggerChildren: 0.07, delayChildren: 0.1 } as Transition,
+    transition: { when: "beforeChildren", staggerChildren: 0.07, delayChildren: 0.1 },
   },
 };
 
-const itemVariants: Variants = {
+const itemVariants = {
   hidden: { y: 15, opacity: 0 },
-  visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100, damping: 12 } as Transition },
-  exit: { opacity: 0, y: -10, transition: { duration: 0.2 } as Transition },
+  visible: { y: 0, opacity: 1, transition: { type: "spring" as const, stiffness: 100, damping: 12 } },
+  exit: { opacity: 0, y: -10, transition: { duration: 0.2 } },
 };
 
 const App: React.FC = () => {
@@ -319,15 +319,15 @@ const App: React.FC = () => {
   };
 
   const AnimatedHamburgerIcon = () => {
-    const topVariants: Variants = {
+    const topVariants = {
       closed: { rotate: 0, y: 0 },
       open: { rotate: 45, y: 5.5 },
     };
-    const middleVariants: Variants = {
+    const middleVariants = {
       closed: { opacity: 1 },
       open: { opacity: 0 },
     };
-    const bottomVariants: Variants = {
+    const bottomVariants = {
       closed: { rotate: 0, y: 0 },
       open: { rotate: -45, y: -5.5 },
     };
@@ -350,9 +350,9 @@ const App: React.FC = () => {
         animate={isMobileMenuOpen ? "open" : "closed"}
         initial={false}
       >
-        <motion.div style={{ ...lineStyle, top: '5px' }} variants={topVariants} transition={{ duration: 0.3, ease: "easeInOut" } as Transition} />
-        <motion.div style={{ ...lineStyle, top: '11px' }} variants={middleVariants} transition={{ duration: 0.15, ease: "easeInOut" } as Transition} />
-        <motion.div style={{ ...lineStyle, top: '17px' }} variants={bottomVariants} transition={{ duration: 0.3, ease: "easeInOut" } as Transition} />
+        <motion.div style={{ ...lineStyle, top: '5px' }} variants={topVariants} transition={{ duration: 0.3, ease: "easeInOut" }} />
+        <motion.div style={{ ...lineStyle, top: '11px' }} variants={middleVariants} transition={{ duration: 0.15, ease: "easeInOut" }} />
+        <motion.div style={{ ...lineStyle, top: '17px' }} variants={bottomVariants} transition={{ duration: 0.3, ease: "easeInOut" }} />
       </motion.button>
     );
   };
@@ -400,7 +400,7 @@ const App: React.FC = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 } as Transition}
+              transition={{ duration: 0.3 }}
               className="fixed inset-0 bg-neutral-dark/60 backdrop-blur-sm"
               onClick={() => setIsMobileMenuOpen(false)}
               aria-hidden="true"
@@ -410,7 +410,7 @@ const App: React.FC = () => {
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
-              transition={{ type: "tween", ease: "easeInOut", duration: 0.3 } as Transition}
+              transition={{ type: "tween", ease: "easeInOut", duration: 0.3 }}
               className="fixed top-0 right-0 h-full w-4/5 max-w-xs bg-white shadow-xl p-5 z-50 overflow-y-auto"
             >
               <div className="flex justify-between items-center mb-6">
@@ -672,6 +672,7 @@ const App: React.FC = () => {
                     <motion.div key={profile.id} variants={itemVariants}>
                       <HelperCard
                           profile={profile}
+                          navigateTo={navigateTo}
                           onNavigateToPublicProfile={(info) => navigateTo(View.PublicProfile, info)}
                           onLogHelperContact={() => userActions.logContact(profile.id)}
                           currentUser={currentUser}

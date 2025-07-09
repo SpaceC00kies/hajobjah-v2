@@ -1,12 +1,14 @@
 
 
+
+
 import React, { useState } from 'react';
 import type { EnrichedWebboardComment, User, View } from '../types/types'; // Added View
 import { UserRole } from '../types/types';
 // UserLevelBadge is removed as it's no longer displayed here
 import { Button } from './Button.tsx';
 import { containsBlacklistedWords } from '../utils/validation.ts';
-import { motion, Variants, Transition } from 'framer-motion'; // Import motion
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface WebboardCommentItemProps {
   comment: EnrichedWebboardComment;
@@ -28,13 +30,13 @@ const FallbackAvatarComment: React.FC<{ name?: string, photo?: string, size?: st
   );
 };
 
-const commentItemVariants: Variants = {
+const commentItemVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      type: "spring",
+      type: "spring" as const,
       stiffness: 150,
       damping: 20,
     },

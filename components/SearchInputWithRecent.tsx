@@ -1,7 +1,8 @@
 
 
+
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, Transition } from 'framer-motion'; // Added Transition
+import { motion } from 'framer-motion';
 
 interface SearchInputWithRecentProps {
   searchTerm: string;

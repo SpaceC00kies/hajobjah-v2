@@ -1,13 +1,13 @@
 import React from 'react';
-import type { EnrichedBlogPost } from '../types/types';
-import { motion, type Transition, type Variants } from 'framer-motion';
+import type { EnrichedBlogPost } from '../types/types.ts';
+import { motion } from 'framer-motion';
 
 interface BlogCardProps {
   post: EnrichedBlogPost;
   onSelectPost: (slug: string) => void;
 }
 
-const cardVariants: Variants = {
+const cardVariants = {
   hidden: { y: 20, opacity: 0 },
   visible: {
     y: 0,
@@ -16,7 +16,7 @@ const cardVariants: Variants = {
       type: 'spring',
       stiffness: 100,
       damping: 12,
-    } as Transition,
+    },
   },
 };
 

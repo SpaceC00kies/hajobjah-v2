@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect } from 'react';
 import type { User, Job, HelperProfile, WebboardPost, WebboardComment, UserLevel, EnrichedWebboardPost, Interest, EnrichedHelperProfile } from '../types/types.ts';
 import { View, UserTier } from '../types/types.ts';
@@ -42,6 +43,7 @@ interface MyRoomPageProps {
   actions: MyRoomActions; 
   onNavigateToPublicProfile: (profileInfo: { userId: string; helperProfileId?: string }) => void;
   initialTab?: ActiveTab | null;
+  onInitialTabProcessed: () => void;
   getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
   requestLoginForAction: (view: View, payload?: any) => void;
 }
@@ -78,6 +80,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
   actions,
   onNavigateToPublicProfile,
   initialTab,
+  onInitialTabProcessed,
   getAuthorDisplayName,
   requestLoginForAction,
 }) => {
@@ -89,10 +92,13 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({
   const helperActions = useHelpers();
 
   useEffect(() => {
-    if (initialTab && initialTab !== activeTab) setActiveTab(initialTab);
+    if (initialTab && initialTab !== activeTab) {
+        setActiveTab(initialTab);
+        onInitialTabProcessed?.();
+    }
     const subTabFromUrl = new URLSearchParams(window.location.search).get('subTab') as ActiveSubTab;
     if (subTabFromUrl && ['jobs', 'helpers', 'posts'].includes(subTabFromUrl)) setActiveSubTab(subTabFromUrl);
-  }, [initialTab, activeTab]);
+  }, [initialTab, activeTab, onInitialTabProcessed]);
   
   const handleSubTabChange = (subTab: ActiveSubTab) => {
     setActiveSubTab(subTab);

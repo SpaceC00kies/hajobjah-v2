@@ -1,11 +1,12 @@
 
+
 import React, { useState } from 'react';
 import type { Job, User } from '../types/types';
 import { View, JobCategory, JOB_CATEGORY_EMOJIS_MAP, JobDesiredEducationLevelOption, Province } from '../types/types';
 import { Button } from './Button.tsx'; // Import Button
 import { Modal } from './Modal.tsx';
 import { isDateInPast } from '../utils/dateUtils.ts';
-import { motion, Transition } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 interface JobCardProps {
   job: Job; // Already includes posterIsAdminVerified?
@@ -128,7 +129,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
                 <div className="job-card-author-name-container">
                     <h3 
                         className="job-card-author-name text-sm" 
-                        onClick={() => navigateTo(View.PublicProfile, job.userId)}
+                        onClick={() => navigateTo(View.PublicProfile, {userId: job.userId})}
                     >
                         {authorActualDisplayName}
                         <span className="name-arrow">→</span>

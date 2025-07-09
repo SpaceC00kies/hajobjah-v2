@@ -5,7 +5,7 @@ from '../types/types';
 import { Button } from './Button.tsx';
 import { WebboardCommentItem } from './WebboardCommentItem.tsx';
 import { WebboardCommentForm } from './WebboardCommentForm.tsx';
-import { motion, AnimatePresence, useAnimation, type Transition, type Variants } from 'framer-motion';
+import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 
 
 interface WebboardPostDetailProps {
@@ -52,14 +52,14 @@ const SaveIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 1
 const SavedIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" className="w-4 h-4 text-primary"/>;
 const ShareIcon = () => <Icon path="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" className="w-4 h-4 text-neutral-500" />;
 
-const commentListVariants: Variants = {
+const commentListVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
       staggerChildren: 0.06, // Delay between each comment item animation
       delayChildren: 0.1,   // Initial delay before the first comment starts animating
-    } as Transition,
+    },
   },
 };
 

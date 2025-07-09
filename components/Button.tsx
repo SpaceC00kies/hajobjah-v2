@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, Transition } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 // Define own props for the Button
 interface ButtonOwnProps {
@@ -90,8 +90,8 @@ export const Button: React.FC<ButtonProps> = ({
   return (
     <motion.button
       className={finalClassName}
-      whileHover={{ scale: 1.03, y: -1, transition: { duration: 0.2, ease: "easeOut" } }}
-      whileTap={{ scale: 0.97, y: 0, transition: { duration: 0.1, ease: "easeOut" } }}
+      whileHover={{ scale: 1.03, y: -1 }}
+      whileTap={{ scale: 0.97, y: 0 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
       {...restProps}
     >

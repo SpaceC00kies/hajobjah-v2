@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 // Corrected import path for types
 import type { WebboardPost, WebboardComment, User, EnrichedWebboardPost, EnrichedWebboardComment, UserLevel, UserRole } from '../types/types';
@@ -11,7 +13,7 @@ import { WebboardPostCreateForm } from './WebboardPostCreateForm.tsx';
 import { getWebboardPostsPaginated as getWebboardPostsPaginatedService } from '../services/webboardService.ts'; // Import paginated fetch
 import type { DocumentSnapshot } from 'firebase/firestore'; // For pagination
 import { logFirebaseError } from '../firebase/logging.ts';
-import { motion, AnimatePresence, type Variants, type Transition } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 
 export interface WebboardPageProps { // Added export
@@ -43,7 +45,7 @@ export interface WebboardPageProps { // Added export
 }
 
 // Animation Variants
-const listContainerVariants: Variants = {
+const listContainerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -52,7 +54,7 @@ const listContainerVariants: Variants = {
       when: "beforeChildren",
       staggerChildren: 0.07,
       delayChildren: 0.1,
-    } as Transition,
+    },
   },
   exit: {
     opacity: 0,
@@ -62,37 +64,37 @@ const listContainerVariants: Variants = {
   }
 };
 
-const itemVariants: Variants = {
+const itemVariants = {
   hidden: { y: 15, opacity: 0 },
   visible: {
     y: 0,
     opacity: 1,
     transition: {
-      type: "spring",
+      type: "spring" as const,
       stiffness: 100,
       damping: 12,
-    } as Transition,
+    },
   },
   exit: {
     opacity: 0,
     y: -10,
     transition: {
       duration: 0.2,
-    } as Transition,
+    },
   },
 };
 
-const detailViewVariants: Variants = {
+const detailViewVariants = {
   initial: { x: '100%', opacity: 0 },
   animate: {
     x: 0,
     opacity: 1,
-    transition: { type: "spring", stiffness: 260, damping: 25, duration: 0.4 } as Transition
+    transition: { type: "spring" as const, stiffness: 260, damping: 25, duration: 0.4 }
   },
   exit: {
     x: '-100%',
     opacity: 0,
-    transition: { type: "spring", stiffness: 260, damping: 25, duration: 0.3 } as Transition
+    transition: { type: "spring" as const, stiffness: 260, damping: 25, duration: 0.3 }
   },
 };
 

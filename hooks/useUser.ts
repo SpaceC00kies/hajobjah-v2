@@ -7,7 +7,8 @@ import {
   vouchForUserService,
   getUserDocument,
 } from '../services/userService';
-import { toggleInterestService } from '../services/interactionService';
+import { toggleInterestService, logHelperContactInteractionService } from '../services/interactionService';
+import { getHelperProfileDocument } from '../services/helperProfileService';
 import { reportVouchService } from '../services/adminService';
 import type { User, Vouch, VouchType } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
@@ -58,35 +59,4 @@ export const useUser = () => {
     }
   }, [currentUser]);
 
-  const vouchForUser = useCallback(async (voucheeId: string, vouchType: VouchType, comment?: string) => {
-    if (!currentUser) throw new Error("User not authenticated for vouching.");
-    try {
-      const ipAddress = "127.0.0.1"; // Placeholder for client-side IP
-      const userAgent = navigator.userAgent;
-      await vouchForUserService(currentUser, voucheeId, vouchType, ipAddress, userAgent, comment);
-      alert("ขอบคุณสำหรับการรับรอง!");
-    } catch (error: any) {
-      logFirebaseError("useUser.vouchForUser", error);
-      alert(`เกิดข้อผิดพลาด: ${error.message}`);
-    }
-  }, [currentUser]);
-  
-  const reportVouch = useCallback(async (vouch: Vouch, comment: string) => {
-    if (!currentUser) throw new Error("User not authenticated for reporting.");
-    try {
-      await reportVouchService(vouch, currentUser.id, comment);
-      alert("ขอบคุณที่รายงานเข้ามา เราจะทำการตรวจสอบโดยเร็วที่สุด");
-    } catch (error: any) {
-      logFirebaseError("useUser.reportVouch", error);
-      alert(`เกิดข้อผิดพลาดในการส่งรายงาน: ${error.message}`);
-    }
-  }, [currentUser]);
-
-  return {
-    updateUserProfile,
-    toggleInterest,
-    saveWebboardPost,
-    vouchForUser,
-    reportVouch,
-  };
-};
+  const vouchForUser = useCallback(async (voucheeId: string, vouchType

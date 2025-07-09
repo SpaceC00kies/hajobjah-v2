@@ -1,7 +1,9 @@
 
 
+
+
 import React, { useEffect } from 'react';
-import { motion, AnimatePresence, type Transition, type Variants } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ModalProps {
   isOpen: boolean;
@@ -10,20 +12,21 @@ interface ModalProps {
   children: React.ReactNode;
 }
 
-const backdropVariants: Variants = {
+const backdropVariants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1 },
 };
 
-const panelVariants: Variants = {
+const panelVariants = {
   hidden: { opacity: 0, scale: 0.95, y: 20 },
   visible: { opacity: 1, scale: 1, y: 0 },
-  exit: { opacity: 0, scale: 0.95, y: 20, transition: { duration: 0.2, ease: "easeIn" } as Transition },
+  exit: { opacity: 0, scale: 0.95, y: 20, transition: { duration: 0.2, ease: "easeIn" as const } },
 };
 
-const modalTransition: Transition = {
+const modalTransition = {
+  type: "tween" as const,
   duration: 0.3,
-  ease: [0.08, 0.82, 0.17, 1] // A more refined ease-out cubic bezier
+  ease: [0.08, 0.82, 0.17, 1] as const // A more refined ease-out cubic bezier
 };
 
 

@@ -4,7 +4,7 @@ import { UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES }
 from '../types/types';
 // Button component might be used for consistency if styled appropriately, or use raw <button> for icons
 // import { Button } from './Button';
-import { motion, AnimatePresence, type Transition } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 
 interface WebboardPostCardProps {
@@ -100,7 +100,7 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
       onClick={() => onViewPost(post.id)}
       role="article"
       aria-labelledby={`post-title-${post.id}`}
-      whileHover={{ y: -2, transition: { duration: 0.15 } as Transition }}
+      whileHover={{ y: -2, transition: { duration: 0.15 } }}
     >
       {/* Thumbnail Section */}
       <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 bg-neutral-light rounded-l-lg overflow-hidden m-3">

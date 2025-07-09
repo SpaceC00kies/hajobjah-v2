@@ -1,22 +1,29 @@
 
-import { initializeApp } from "firebase/app";
-import type { FirebaseApp } from "firebase/app";
 
-import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, type Firestore } from "firebase/firestore";
-import { getStorage, type FirebaseStorage } from "firebase/storage";
-import { getFunctions, type Functions } from "firebase/functions";
+import { initializeApp, getApp, getApps } from "@firebase/app";
+import type { FirebaseApp } from "@firebase/app";
+import { getAuth } from "@firebase/auth";
+import type { Auth } from "@firebase/auth";
+import { getFirestore } from "firebase/firestore";
+import type { Firestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
+import type { FirebaseStorage } from "firebase/storage";
+import { getFunctions } from "firebase/functions";
+import type { Functions } from "firebase/functions";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAmhIItKW9XR4cgtCxtTUm2EKCY17xNOlo",
-  authDomain: "hajobjah.firebaseapp.com",
-  projectId: "hajobjah",
-  storageBucket: "hajobjah.firebasestorage.app",
-  messagingSenderId: "441394350866",
-  appId: "1:441394350866:web:7b83583818449c0f3901cb",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const app: FirebaseApp        = initializeApp(firebaseConfig);
+// This is the key change. We check if an app is already initialized.
+// This makes the initialization robust and prevents crashes during production builds.
+const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+
 const auth: Auth              = getAuth(app);
 const db: Firestore           = getFirestore(app);
 const storage: FirebaseStorage = getStorage(app);

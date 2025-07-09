@@ -1,7 +1,10 @@
 
 import React from 'react';
 
-export const SiteLockOverlay: React.FC = () => {
+export const SiteLockOverlay: React.FC<{ isLocked: boolean }> = ({ isLocked }) => {
+  if (!isLocked) {
+    return null;
+  }
   return (
     <div className="fixed inset-0 bg-neutral-light flex flex-col justify-center items-center z-[9999] p-8 text-center">
       <div className="bg-white p-10 rounded-xl shadow-2xl border border-neutral-DEFAULT">
