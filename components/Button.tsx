@@ -81,8 +81,6 @@ export const Button: React.FC<ButtonProps> = ({
     variantStyle, 
     sizeStyle, 
     passedClassName,
-    variant === 'primary' ? 'btn-primary' : '',
-    variant === 'secondary' ? 'btn-secondary' : '',
   ]
     .filter(Boolean)
     .join(' ');

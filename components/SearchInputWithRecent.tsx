@@ -50,7 +50,7 @@ export const SearchInputWithRecent: React.FC<SearchInputWithRecentProps> = ({
         onFocus={() => setIsInputFocused(true)}
         onBlur={() => setIsInputFocused(false)} // Handle blur to hide underline
         placeholder={placeholder}
-        className="w-full p-3 bg-white border border-primary-light rounded-lg text-primary-dark placeholder-neutral-medium text-base font-serif transition-colors duration-150 ease-in-out focus:outline-none focus:bg-white" // Removed focus:ring styles
+        className="w-full p-3 bg-white border border-primary-light rounded-lg text-primary-dark placeholder-neutral-medium text-base font-sans transition-colors duration-150 ease-in-out focus:outline-none focus:bg-white" // Removed focus:ring styles
         aria-label={ariaLabel}
         autoComplete="off"
       />
@@ -77,7 +77,7 @@ export const SearchInputWithRecent: React.FC<SearchInputWithRecentProps> = ({
                 onRecentSearchSelect(recentTerm);
                 setIsInputFocused(false); 
               }}
-              className="px-4 py-2 text-sm text-neutral-dark hover:bg-primary-light cursor-pointer font-serif"
+              className="px-4 py-2 text-sm text-neutral-dark hover:bg-primary-light cursor-pointer font-sans"
               role="option"
               aria-selected="false"
               tabIndex={0}

@@ -173,7 +173,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onCancel, initialD
   ] as const;
 
   const availabilityField = { name: 'availability', label: 'หมายเหตุเรื่องวันเวลาที่ว่างโดยรวม (ถ้ามี)', placeholder: 'เช่น "สะดวกเฉพาะช่วงเย็น", "ไม่ว่างวันที่ 10-15 นี้"', type: 'text', required: false };
-  const inputBaseStyle = "w-full p-3 bg-white border border-[#CCCCCC] rounded-[10px] text-neutral-dark font-serif font-normal focus:outline-none transition-colors duration-150 ease-in-out";
+  const inputBaseStyle = "w-full p-3 bg-white border border-[#CCCCCC] rounded-[10px] text-neutral-dark font-sans font-normal focus:outline-none transition-colors duration-150 ease-in-out";
   const inputFocusStyle = "focus:border-secondary focus:ring-2 focus:ring-secondary focus:ring-opacity-70";
   const inputErrorStyle = "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500 focus:ring-opacity-70";
   const selectBaseStyle = `${inputBaseStyle} appearance-none`;
@@ -188,7 +188,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onCancel, initialD
       <h2 className="text-3xl font-sans font-semibold text-secondary-hover mb-2 text-center">
         {isEditing ? '📝 แก้ไขโปรไฟล์' : '🙋 สร้างโปรไฟล์'}
       </h2>
-      <p className="text-md font-serif text-neutral-dark mb-6 text-center font-normal">
+      <p className="text-md font-sans text-neutral-dark mb-6 text-center font-normal">
         {isEditing
           ? 'แก้ไขข้อมูลโปรไฟล์ของคุณ (ข้อมูลส่วนตัว เช่น เพศ, อายุ, การศึกษา และข้อมูลติดต่อ จะใช้จากโปรไฟล์หลักของคุณ)'
           : 'ระบุว่าคุณช่วยอะไรได้ ว่างช่วงไหน ทำงานแถวไหนได้ (ข้อมูลส่วนตัว เช่น เพศ, อายุ, การศึกษา และข้อมูลติดต่อ จะดึงมาจากโปรไฟล์หลักของคุณโดยอัตโนมัติ)'}

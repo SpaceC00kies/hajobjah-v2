@@ -36,7 +36,7 @@ import { VouchModal } from './components/VouchModal.tsx';
 import { VouchesListModal } from './components/VouchesListModal.tsx';
 import { ReportVouchModal } from './components/ReportVouchModal.tsx';
 import { UserLevelBadge } from './components/UserLevelBadge.tsx';
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, type Transition, type Variants } from "framer-motion";
 import { getUserDisplayBadge } from './utils/userUtils.ts';
 import { BlogArticlePage } from './components/BlogArticlePage.tsx';
 import { getUserDocument } from './services/userService.ts';
@@ -183,16 +183,17 @@ const App: React.FC = () => {
 
   const renderNavLinks = (isMobile: boolean) => {
     const displayBadgeForProfile = getUserDisplayBadge(currentUser, allWebboardPostsForAdmin, webboardComments);
-    const commonButtonClass = isMobile
-      ? 'w-full text-left justify-start py-3 px-4 text-base nav-pill'
-      : 'flex-shrink-0 nav-pill';
-
-    const navigateAndCloseMenu = (view: View, payload?: any) => {
-      navigateTo(view, payload);
-    };
-
     const navItemSpanClass = "inline-flex items-center gap-1.5";
     const activeClass = "active";
+
+    const getButtonClass = (viewTarget: View, isAccent: boolean = false) => {
+        let baseClass = isMobile ? 'w-full text-left justify-start py-3 px-4 text-base font-medium text-primary-dark rounded-md hover:bg-primary-light' : 'nav-pill';
+        if(isAccent) {
+            baseClass = isMobile ? `${baseClass} !text-red-700 hover:!bg-red-100` : `${baseClass} !bg-red-100 !text-red-700 hover:!bg-red-500 hover:!text-white`;
+        }
+        const isActive = !isMobile && currentView === viewTarget;
+        return `${baseClass} ${isActive ? activeClass : ''}`;
+    };
 
     if (currentUser) {
         return (
@@ -212,41 +213,38 @@ const App: React.FC = () => {
             )}
 
             {currentView !== View.Home && (
-              <button onClick={() => navigateAndCloseMenu(View.Home)} className={commonButtonClass}>
+              <button onClick={() => navigateTo(View.Home)} className={getButtonClass(View.Home)}>
                 <span className={navItemSpanClass}><span>🏠</span><span>หน้าแรก</span></span>
               </button>
             )}
             
             {(currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer) && (
-              <button onClick={() => navigateAndCloseMenu(View.AdminDashboard)} className={`${commonButtonClass} ${currentView === View.AdminDashboard ? activeClass : ''}`}>
+              <button onClick={() => navigateTo(View.AdminDashboard)} className={getButtonClass(View.AdminDashboard)}>
                  <span className={navItemSpanClass}><span>🔐</span><span>Admin</span></span>
               </button>
             )}
 
-            <button onClick={() => navigateTo(View.MyRoom)} className={`${commonButtonClass} ${currentView === View.MyRoom ? activeClass : ''}`}>
+            <button onClick={() => navigateTo(View.MyRoom)} className={getButtonClass(View.MyRoom)}>
               <span className={navItemSpanClass}><span>🛋️</span><span>ห้องของฉัน</span></span>
             </button>
             
-            <button onClick={() => navigateTo(View.FindJobs)} className={`${commonButtonClass} ${currentView === View.FindJobs ? activeClass : ''}`}>
+            <button onClick={() => navigateTo(View.FindJobs)} className={getButtonClass(View.FindJobs)}>
               <span className={navItemSpanClass}><span>📢</span><span>ประกาศงาน</span></span>
             </button>
             
-            <button onClick={() => navigateTo(View.FindHelpers)} className={`${commonButtonClass} ${currentView === View.FindHelpers ? activeClass : ''}`}>
+            <button onClick={() => navigateTo(View.FindHelpers)} className={getButtonClass(View.FindHelpers)}>
               <span className={navItemSpanClass}><span>👥</span><span>โปรไฟล์ผู้ช่วย</span></span>
             </button>
             
-            <button onClick={() => navigateTo(View.Blog)} className={`${commonButtonClass} ${currentView === View.Blog ? activeClass : ''}`}>
+            <button onClick={() => navigateTo(View.Blog)} className={getButtonClass(View.Blog)}>
               <span className={navItemSpanClass}><span>📖</span><span>บทความ</span></span>
             </button>
             
-            <button onClick={() => navigateTo(View.Webboard)} className={`${commonButtonClass} ${currentView === View.Webboard ? activeClass : ''}`}>
+            <button onClick={() => navigateTo(View.Webboard)} className={getButtonClass(View.Webboard)}>
               <span className={navItemSpanClass}><span>💬</span><span>กระทู้พูดคุย</span></span>
             </button>
             
-            <button
-                onClick={onLogout}
-                className={`${commonButtonClass} border-accent text-red-600 hover:bg-accent hover:text-white focus:ring-accent`}
-              >
+            <button onClick={onLogout} className={getButtonClass(View.Login, true)}>
               <span className={navItemSpanClass}><span>🔓</span><span>ออกจากระบบ</span></span>
             </button>
           </>
@@ -258,19 +256,19 @@ const App: React.FC = () => {
         return (
             <>
               {currentView !== View.Home && (
-                <button onClick={() => navigateAndCloseMenu(View.Home)} className={commonButtonClass}>
+                <button onClick={() => navigateTo(View.Home)} className={getButtonClass(View.Home)}>
                    <span className={navItemSpanClass}><span>🏠</span><span>หน้าแรก</span></span>
                 </button>
               )}
               
-              <button onClick={() => navigateAndCloseMenu(View.Login)} className={`${commonButtonClass} ${currentView === View.Login ? activeClass : ''}`}>
+              <button onClick={() => navigateTo(View.Login)} className={getButtonClass(View.Login)}>
                   <span className={navItemSpanClass}><span>🔑</span><span>เข้าสู่ระบบ</span></span>
               </button>
-              <button onClick={() => navigateAndCloseMenu(View.Register)} className={`${commonButtonClass} ${currentView === View.Register ? activeClass : ''}`}>
+              <button onClick={() => navigateTo(View.Register)} className={getButtonClass(View.Register)}>
                  <span className={navItemSpanClass}><span>📝</span><span>ลงทะเบียน</span></span>
               </button>
 
-              <button onClick={() => navigateTo(View.Webboard)} className={`${commonButtonClass} ${currentView === View.Webboard ? activeClass : ''}`}>
+              <button onClick={() => navigateTo(View.Webboard)} className={getButtonClass(View.Webboard)}>
                 <span className={navItemSpanClass}><span>💬</span><span>กระทู้พูดคุย</span></span>
               </button>
             </>
@@ -279,15 +277,15 @@ const App: React.FC = () => {
   };
 
   const AnimatedHamburgerIcon = () => {
-    const topVariants = {
+    const topVariants: Variants = {
       closed: { rotate: 0, y: 0 },
       open: { rotate: 45, y: 5.5 },
     };
-    const middleVariants = {
+    const middleVariants: Variants = {
       closed: { opacity: 1 },
       open: { opacity: 0 },
     };
-    const bottomVariants = {
+    const bottomVariants: Variants = {
       closed: { rotate: 0, y: 0 },
       open: { rotate: -45, y: -5.5 },
     };
@@ -341,24 +339,55 @@ const App: React.FC = () => {
             <AnimatedHamburgerIcon />
           </div>
         </div>
-        <AnimatePresence>
-          {isMobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
-              className="lg:hidden overflow-hidden"
-            >
-              <nav className="flex flex-col space-y-2 pt-4 border-t border-primary-light mt-4">
-                {renderNavLinks(true)}
-              </nav>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </header>
     );
   };
+  
+  const renderMobileMenu = () => {
+    return (
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true">
+             <motion.div
+              key="backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 } as Transition}
+              className="fixed inset-0 bg-neutral-dark/60 backdrop-blur-sm"
+              onClick={() => setIsMobileMenuOpen(false)}
+              aria-hidden="true"
+            />
+            <motion.div
+              key="menuPanel"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "tween", ease: "easeInOut", duration: 0.3 } as Transition}
+              className="fixed top-0 right-0 h-full w-4/5 max-w-xs bg-white shadow-xl p-5 z-50 overflow-y-auto"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-lg font-sans font-semibold text-primary-dark">เมนู</h2>
+                 <button 
+                  onClick={() => setIsMobileMenuOpen(false)} 
+                  className="p-1 rounded-md text-primary-dark hover:bg-primary-light/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-light" 
+                  aria-label="Close menu"
+                >
+                  <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <nav className="flex flex-col space-y-2">
+                {renderNavLinks(true)}
+              </nav>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    );
+  };
+
 
   const renderHome = () => {
     return (
@@ -374,12 +403,12 @@ const App: React.FC = () => {
             >
               <h3 className="card-section-title">ประกาศงาน</h3>
               <div className="space-y-3">
-                <Button onClick={(e) => { e.stopPropagation(); navigateTo(View.FindJobs); }} variant="primary" size="lg" className="w-full">
+                 <button onClick={(e) => { e.stopPropagation(); navigateTo(View.FindJobs); }} className="btn-primary-home">
                   <span className="text-base">🔎 ดูประกาศงานทั้งหมด</span>
-                </Button>
-                <Button onClick={(e) => { e.stopPropagation(); currentUser ? navigateTo(View.PostJob) : requestLoginForAction(View.PostJob); }} variant="secondary" size="lg" className="w-full">
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); currentUser ? navigateTo(View.PostJob) : requestLoginForAction(View.PostJob); }} className="btn-secondary-home">
                   <span className="text-base">📝 ลงประกาศงาน</span>
-                </Button>
+                </button>
               </div>
             </div>
 
@@ -389,12 +418,12 @@ const App: React.FC = () => {
             >
               <h3 className="card-section-title">โปรไฟล์ผู้ช่วย</h3>
               <div className="space-y-3">
-                <Button onClick={(e) => { e.stopPropagation(); navigateTo(View.FindHelpers); }} variant="primary" size="lg" className="w-full">
+                 <button onClick={(e) => { e.stopPropagation(); navigateTo(View.FindHelpers); }} className="btn-primary-home">
                   <span className="text-base">🤝 หาคนช่วยงาน</span>
-                </Button>
-                <Button onClick={(e) => { e.stopPropagation(); currentUser ? navigateTo(View.OfferHelp) : requestLoginForAction(View.OfferHelp); }} variant="secondary" size="lg" className="w-full">
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); currentUser ? navigateTo(View.OfferHelp) : requestLoginForAction(View.OfferHelp); }} className="btn-secondary-home">
                   <span className="text-base">💪 เสนอตัวช่วยงาน</span>
-                </Button>
+                </button>
               </div>
             </div>
           </div>
@@ -595,12 +624,15 @@ const App: React.FC = () => {
         return <BlogArticlePage post={{...post, author: allUsers.find(u => u.id === post.authorId)}} onBack={() => { setSelectedBlogPostSlug(null); navigateTo(View.Blog); }} comments={[]} currentUser={currentUser} canEditOrDelete={webboardActions.canEditOrDelete} />;
       }
   }
+  const mainContentClass = currentView === View.Home ? 'hero-section flex-grow flex items-center' : 'container mx-auto p-4 sm:p-6 lg:p-8 flex-grow';
+
 
   return (
-    <div className="flex flex-col min-h-screen bg-neutral-background font-serif">
+    <div className="flex flex-col min-h-screen bg-neutral-light font-serif">
       <SiteLockOverlay isLocked={isSiteLocked} />
       {renderHeader()}
-      <main className="flex-1 w-full">
+      {renderMobileMenu()}
+      <main className={mainContentClass}>
         {renderContent()}
       </main>
       {renderFooter()}

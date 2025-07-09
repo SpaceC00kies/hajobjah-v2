@@ -13,7 +13,7 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail,
   type User as FirebaseUser,
-} from 'firebase/auth';
+} from '@firebase/auth';
 import {
   collection,
   doc,

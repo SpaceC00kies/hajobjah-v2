@@ -1,9 +1,10 @@
 
 
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { auth } from '../firebaseConfig.ts'; // Firebase auth instance
-import { verifyPasswordResetCode, confirmPasswordReset, type AuthError } from 'firebase/auth';
+import { verifyPasswordResetCode, confirmPasswordReset, type AuthError } from '@firebase/auth';
 import { Button } from './Button.tsx';
 import { View } from '../types/types.ts';
 
@@ -119,7 +120,7 @@ export const PasswordResetPage: React.FC<PasswordResetPageProps> = ({ navigateTo
       });
   };
 
-  const inputBaseStyle = "w-full p-3 bg-white border border-[#CCCCCC] rounded-[10px] text-neutral-dark font-serif font-normal focus:outline-none";
+  const inputBaseStyle = "w-full p-3 bg-white border border-[#CCCCCC] rounded-[10px] text-neutral-dark font-sans font-normal focus:outline-none";
   const inputFocusStyle = "focus:border-brandGreen focus:ring-1 focus:ring-brandGreen focus:ring-opacity-50";
   const inputErrorStyle = "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500 focus:ring-opacity-50";
 
@@ -161,7 +162,7 @@ export const PasswordResetPage: React.FC<PasswordResetPageProps> = ({ navigateTo
           🔑 ตั้งรหัสผ่านใหม่
         </h2>
         {emailForReset && (
-          <p className="text-sm font-serif text-neutral-medium mb-6 text-center">
+          <p className="text-sm font-sans text-neutral-medium mb-6 text-center">
             กรอกรหัสผ่านใหม่สำหรับบัญชี: {emailForReset}
           </p>
         )}
@@ -226,7 +227,7 @@ export const PasswordResetPage: React.FC<PasswordResetPageProps> = ({ navigateTo
             </Button>
           </form>
         )}
-         <p className="text-center text-xs font-serif text-neutral-medium mt-6">
+         <p className="text-center text-xs font-sans text-neutral-medium mt-6">
             จำรหัสผ่านได้แล้ว?{' '}
             <button
             type="button"
