@@ -243,7 +243,7 @@ const App: React.FC = () => {
             )}
 
             {currentView !== View.Home && (
-              <button onClick={() => navigateAndCloseMenu(View.Home)} className={`${commonButtonPropsBase.className} ${currentView === View.Home ? activeClass : ''}`}>
+              <button onClick={() => navigateAndCloseMenu(View.Home)} className={commonButtonPropsBase.className}>
                 <span className={navItemSpanClass}><span>🏠</span><span>หน้าแรก</span></span>
               </button>
             )}
@@ -286,7 +286,7 @@ const App: React.FC = () => {
         return (
             <>
               {currentView !== View.Home && (
-                <button onClick={() => navigateAndCloseMenu(View.Home)} className={`${commonButtonPropsBase.className} ${currentView === View.Home ? activeClass : ''}`}>
+                <button onClick={() => navigateAndCloseMenu(View.Home)} className={commonButtonPropsBase.className}>
                    <span className={navItemSpanClass}><span>🏠</span><span>หน้าแรก</span></span>
                 </button>
               )}
@@ -357,128 +357,105 @@ const App: React.FC = () => {
           <div className="flex-shrink-0">
             <span
               onClick={() => { navigateTo(View.Home); setIsMobileMenuOpen(false); }}
-              className="cursor-pointer font-sans font-bold text-lg sm:text-xl lg:text-2xl text-primary"
-              aria-label="ไปหน้าแรก HAJOBJA.COM"
+              className="cursor-pointer font-sans font-bold text-lg sm:text-xl lg:text-2xl"
             >
               HAJOBJA.COM
             </span>
           </div>
-
-          <div className="flex items-center flex-shrink-0 lg:ml-6">
-              <nav className="hidden lg:flex items-center justify-end gap-2 md:gap-3 lg:gap-3 flex-wrap">
-                {renderNavLinks(false)}
-              </nav>
-
-              <div className="lg:hidden ml-2 p-2 rounded-md text-primary-dark hover:bg-primary-light/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-light">
-                <AnimatedHamburgerIcon />
-              </div>
+          <nav className="hidden lg:flex items-center space-x-2">
+            {renderNavLinks(false)}
+          </nav>
+          <div className="lg:hidden">
+            <AnimatedHamburgerIcon />
           </div>
         </div>
-      </header>
-    );
-  };
-
-  const renderMobileMenu = () => {
-    return (
-      <AnimatePresence initial={false}>
-        {isMobileMenuOpen && (
-          <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true">
+        <AnimatePresence>
+          {isMobileMenuOpen && (
             <motion.div
-              key="backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="fixed inset-0 bg-neutral-dark/60 backdrop-blur-sm"
-              onClick={() => setIsMobileMenuOpen(false)}
-              aria-hidden="true"
-            />
-            <motion.div
-              key="menuPanel"
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "tween", ease: "easeInOut" as const, duration: 0.3 }}
-              className="fixed top-0 right-0 h-full w-4/5 max-w-xs bg-white shadow-xl p-5 z-50 overflow-y-auto"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+              className="lg:hidden overflow-hidden"
             >
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-lg font-sans font-semibold text-primary-dark">เมนู</h2>
-                <button 
-                  onClick={() => setIsMobileMenuOpen(false)} 
-                  className="p-1 rounded-md text-primary-dark hover:bg-primary-light/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-light" 
-                  aria-label="Close menu"
-                >
-                  <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <nav className="flex flex-col space-y-2">
+              <nav className="flex flex-col space-y-2 pt-4 border-t border-primary-light mt-4">
                 {renderNavLinks(true)}
               </nav>
             </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
+      </header>
     );
   };
 
   const renderHome = () => {
     return (
-      <div className="w-full flex-grow flex items-center justify-center hero-section">
-        <div className="container mx-auto flex flex-col items-center px-6 sm:px-8 text-center py-20">
-          <h1 className="hero-title font-sans">
-            ✨ หาจ๊อบจ้า ✨
-          </h1>
-          <p className="hero-subtitle font-serif">
-            แพลตฟอร์มที่อยู่เคียงข้างคนขยัน
-          </p>
-          <div className="w-full max-w-3xl lg:max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
-            <div className="home-card">
-              <h3 className="card-section-title font-sans text-xl font-semibold text-primary-dark mb-4">ประกาศงาน</h3>
-              <div className="space-y-4">
-                <Button onClick={() => navigateTo(View.FindJobs)} variant="primary" size="lg" className="w-full">
-                  <span className="flex items-center justify-center"><span className="text-xl mr-2">📢</span> ดูประกาศงานทั้งหมด</span>
-                </Button>
-                <Button onClick={() => { setSourceViewForForm(View.Home); navigateTo(View.PostJob); }} variant="secondary" size="lg" className="w-full">
-                  <span className="flex items-center justify-center"><span className="text-xl mr-2">📝</span> ลงประกาศงาน</span>
-                </Button>
-              </div>
+      <div className="hero-section flex flex-col items-center justify-center text-center p-8 min-h-[calc(100vh-150px)]">
+        <h1 className="hero-title font-sans">✨ หาจ๊อบจ้า ✨</h1>
+        <p className="hero-subtitle font-serif">แพลตฟอร์มที่อยู่เคียงข้างคนขยัน</p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
+          <div
+            onClick={() => navigateTo(View.FindJobs)}
+            className="home-card cursor-pointer"
+          >
+            <h3 className="text-xl font-sans font-semibold text-primary-dark mb-4">ประกาศงาน</h3>
+            <div className="space-y-3">
+              <Button onClick={(e) => { e.stopPropagation(); navigateTo(View.FindJobs); }} variant="primary" size="lg" className="w-full">
+                <span className="text-base">🔎 ดูประกาศงานทั้งหมด</span>
+              </Button>
+              <Button onClick={(e) => { e.stopPropagation(); currentUser ? navigateTo(View.PostJob) : requestLoginForAction(View.PostJob); }} variant="secondary" size="lg" className="w-full">
+                <span className="text-base">✍️ ลงประกาศงาน</span>
+              </Button>
             </div>
-            <div className="home-card">
-              <h3 className="card-section-title font-sans text-xl font-semibold text-primary-dark mb-4">โปรไฟล์ผู้ช่วยและบริการ</h3>
-              <div className="space-y-4">
-                <Button onClick={() => navigateTo(View.FindHelpers)} variant="primary" size="lg" className="w-full">
-                  <span className="flex items-center justify-center"><span className="text-xl mr-2">👥</span> ดูโปรไฟล์ทั้งหมด</span>
-                </Button>
-                <Button onClick={() => { setSourceViewForForm(View.Home); navigateTo(View.OfferHelp); }} variant="secondary" size="lg" className="w-full">
-                  <span className="flex items-center justify-center"><span className="text-xl mr-2">🙋</span> สร้างโปรไฟล์</span>
-                </Button>
-              </div>
+          </div>
+          <div
+            onClick={() => navigateTo(View.FindHelpers)}
+            className="home-card cursor-pointer"
+          >
+            <h3 className="text-xl font-sans font-semibold text-primary-dark mb-4">โปรไฟล์ผู้ช่วยและบริการ</h3>
+            <div className="space-y-3">
+              <Button onClick={(e) => { e.stopPropagation(); navigateTo(View.FindHelpers); }} variant="primary" size="lg" className="w-full">
+                <span className="text-base">👥 ดูโปรไฟล์ทั้งหมด</span>
+              </Button>
+              <Button onClick={(e) => { e.stopPropagation(); currentUser ? navigateTo(View.OfferHelp) : requestLoginForAction(View.OfferHelp); }} variant="secondary" size="lg" className="w-full">
+                <span className="text-base">🙋 สร้างโปรไฟล์</span>
+              </Button>
             </div>
           </div>
         </div>
       </div>
     );
   };
-
-  const FindJobsComponent = () => {
-    const [jobsList, setJobsList] = useState<Job[]>([]);
+  
+  const renderFindJobs = () => {
+    const [jobs, setJobs] = useState<Job[]>([]);
     const [lastVisibleJob, setLastVisibleJob] = useState<DocumentSnapshot | null>(null);
     const [isLoadingJobs, setIsLoadingJobs] = useState(false);
     const [hasMoreJobs, setHasMoreJobs] = useState(true);
     const [initialJobsLoaded, setInitialJobsLoaded] = useState(false);
-    const jobsLoaderRef = useRef<HTMLDivElement>(null);
+    const loaderRef = useRef<HTMLDivElement>(null);
+    
+    useEffect(() => { setRecentJobSearches(getRecentSearches('jobSearches')); }, []);
 
     const loadJobs = useCallback(async (isInitialLoad = false) => {
         if (isLoadingJobs || (!isInitialLoad && !hasMoreJobs)) return;
         setIsLoadingJobs(true);
-        const lastDoc = isInitialLoad ? null : lastVisibleJob;
+        if (isInitialLoad) {
+            setJobs([]);
+            setLastVisibleJob(null);
+            setHasMoreJobs(true);
+            setInitialJobsLoaded(false);
+        }
         try {
-            const result = await getJobsPaginated(JOBS_PAGE_SIZE, lastDoc, selectedJobCategoryFilter, jobSearchTerm, selectedJobSubCategoryFilter, selectedJobProvinceFilter);
-            setJobsList(prev => isInitialLoad ? result.items : [...prev, ...result.items]);
+            const result = await getJobsPaginated(JOBS_PAGE_SIZE, isInitialLoad ? null : lastVisibleJob, selectedJobCategoryFilter, jobSearchTerm, selectedJobSubCategoryFilter, selectedJobProvinceFilter);
+            setJobs(prev => isInitialLoad ? result.items : [...prev, ...result.items]);
             setLastVisibleJob(result.lastVisibleDoc);
-            setHasMoreJobs(!!result.lastVisibleDoc);
+            setHasMoreJobs(result.items.length === JOBS_PAGE_SIZE && result.lastVisibleDoc !== null);
+            setInitialJobsLoaded(true);
+        } catch (error) {
+            console.error("Failed to load jobs:", error);
+            setHasMoreJobs(false);
             setInitialJobsLoaded(true);
         } finally {
             setIsLoadingJobs(false);
@@ -486,461 +463,242 @@ const App: React.FC = () => {
     }, [isLoadingJobs, hasMoreJobs, lastVisibleJob, selectedJobCategoryFilter, jobSearchTerm, selectedJobSubCategoryFilter, selectedJobProvinceFilter]);
 
     useEffect(() => { loadJobs(true); }, [selectedJobCategoryFilter, jobSearchTerm, selectedJobSubCategoryFilter, selectedJobProvinceFilter]);
-    
-    useEffect(() => {
-      const observer = new IntersectionObserver(
-        (entries) => {
-          if (entries[0].isIntersecting && hasMoreJobs && !isLoadingJobs) {
-            loadJobs();
-          }
-        },
-        { threshold: 1.0 }
-      );
-      const currentLoader = jobsLoaderRef.current;
-      if (currentLoader) observer.observe(currentLoader);
-      return () => { if (currentLoader) observer.unobserve(currentLoader); };
-    }, [hasMoreJobs, isLoadingJobs, loadJobs]);
-    
-    let emptyStateMessage = "ยังไม่มีงานประกาศในขณะนี้";
-    if (jobSearchTerm.trim() || selectedJobCategoryFilter !== 'all' || selectedJobSubCategoryFilter !== 'all' || selectedJobProvinceFilter !== 'all') {
-      emptyStateMessage = "ไม่พบงานที่ตรงกับเกณฑ์การค้นหาของคุณ";
-    }
 
-    const activeUserJobs = jobsList
-      .filter(job => 
-          job.isExpired === false && 
-          job.expiresAt && !isDateInPast(job.expiresAt) &&
-          job.isHired === false
-      )
-      .map(job => {
-        const posterUser = (allUsers || []).find(u => u && u.id === job.userId);
-        let posterIsAdminVerified = false;
-        if (posterUser && allHelperProfilesForAdmin) {
-          posterIsAdminVerified = allHelperProfilesForAdmin.some(
-            hp => hp && hp.userId === posterUser.id && hp.adminVerifiedExperience === true
-          );
-        }
-        return { ...job, posterIsAdminVerified };
-      });
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => { if (entries[0].isIntersecting && hasMoreJobs && !isLoadingJobs && initialJobsLoaded) { loadJobs(); } },
+            { threshold: 1.0 }
+        );
+        const currentLoaderRef = loaderRef.current;
+        if (currentLoaderRef) observer.observe(currentLoaderRef);
+        return () => { if (currentLoaderRef) observer.unobserve(currentLoaderRef); };
+    }, [hasMoreJobs, isLoadingJobs, initialJobsLoaded, loadJobs]);
+    
+    const handleJobSearchTermChange = (term: string) => { setJobSearchTerm(term); addRecentSearch('jobSearches', term); };
+    const handleRecentJobSearchSelect = (term: string) => { setJobSearchTerm(term); };
 
     return (
-      <div className="p-4 sm:p-6">
-        <div className="text-center mb-6 lg:mb-8">
-          <h2 className="text-3xl font-sans font-semibold text-primary-dark mb-3">📢 ประกาศงาน</h2>
-          <p className="text-md font-serif text-neutral-dark mb-6 max-w-xl mx-auto font-normal">เวลาและทักษะตรงกับงานไหน ติดต่อเลย!</p>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <h2 className="text-3xl font-sans font-bold text-center mb-6">📢 ประกาศงานทั้งหมด</h2>
+        <div className="flex flex-col sm:flex-row gap-4 mb-8">
+          <div className="flex-1">
+            <SearchInputWithRecent searchTerm={jobSearchTerm} onSearchTermChange={handleJobSearchTermChange} placeholder="ค้นหางาน, สถานที่..." recentSearches={recentJobSearches} onRecentSearchSelect={handleRecentJobSearchSelect} />
+          </div>
+          <div className="w-full sm:w-56">
+             <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedJobCategoryFilter} onSelectCategory={setSelectedJobCategoryFilter} />
+          </div>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-x-8">
-          <aside className="lg:col-span-3 mb-8 lg:mb-0">
-            <div className="sticky top-24 space-y-6 p-4 bg-white rounded-xl shadow-lg border border-primary-light">
-              <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedJobCategoryFilter} onSelectCategory={(cat) => setSelectedJobCategoryFilter(cat as FilterableCategory)} />
-              <SearchInputWithRecent searchTerm={jobSearchTerm} onSearchTermChange={setJobSearchTerm} placeholder="ค้นหางาน..." recentSearches={recentJobSearches} onRecentSearchSelect={setJobSearchTerm} />
-              {currentUser && (<Button onClick={() => navigateTo(View.PostJob)} variant="primary" className="w-full">ลงประกาศงาน</Button>)}
-            </div>
-          </aside>
-          <section className="lg:col-span-9">
-            {!initialJobsLoaded && isLoadingJobs && jobsList.length === 0 && (
-              <div className="text-center py-20"><p className="text-xl font-sans">✨ กำลังโหลดประกาศงาน...</p></div>
-            )}
-            {initialJobsLoaded && activeUserJobs.length === 0 && !hasMoreJobs && (
-              <div className="text-center py-10 bg-white p-6 rounded-lg shadow-md border border-primary-light">
-                <p className="mt-3 text-xl font-serif text-neutral-gray font-normal"> {emptyStateMessage} </p>
-              </div>
-            )}
-            {activeUserJobs.length > 0 && (
-              <motion.div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" variants={listVariants} initial="hidden" animate="visible">
-                {activeUserJobs.map(job => (
-                  <motion.div key={job.id} variants={itemVariants}>
-                    <JobCard job={job} navigateTo={navigateTo} currentUser={currentUser} getAuthorDisplayName={getAuthorDisplayName} onToggleInterest={userActions.toggleInterest} isInterested={userInterests.some(i => i && i.targetId === job.id)} onEditJobFromFindView={(jobId: string) => { const job = allJobsForAdmin.find(j => j.id === jobId); if(job) { setItemToEdit(job); setEditingItemType('job'); navigateTo(View.PostJob); } }} requestLoginForAction={requestLoginForAction} />
-                  </motion.div>
-                ))}
-              </motion.div>
-            )}
-            <div ref={jobsLoaderRef} className="h-10 flex justify-center items-center">{isLoadingJobs && initialJobsLoaded && jobsList.length > 0 && <p>✨ กำลังโหลดเพิ่มเติม...</p>}</div>
-            {initialJobsLoaded && !hasMoreJobs && activeUserJobs.length > 0 && <p className="text-center text-sm font-sans text-neutral-medium py-4">🎉 คุณดูครบทุกประกาศงานแล้ว</p>}
-          </section>
+        
+        {isLoadingJobs && !initialJobsLoaded && <p className="text-center py-10">กำลังโหลด...</p>}
+        {!isLoadingJobs && initialJobsLoaded && jobs.length === 0 && <p className="text-center py-10">ไม่พบประกาศงานที่ตรงกับเงื่อนไข</p>}
+
+        <motion.div variants={listVariants} initial="hidden" animate="visible" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {jobs.map(job => (
+            <motion.div key={job.id} variants={itemVariants} exit="exit">
+              <JobCard
+                  job={job}
+                  navigateTo={navigateTo}
+                  currentUser={currentUser}
+                  requestLoginForAction={requestLoginForAction}
+                  getAuthorDisplayName={getAuthorDisplayName}
+                  onToggleInterest={userActions.toggleInterest}
+                  isInterested={userInterests.some(interest => interest.targetId === job.id)}
+              />
+            </motion.div>
+          ))}
+        </motion.div>
+
+        <div ref={loaderRef} className="h-10 flex justify-center items-center">
+          {isLoadingJobs && initialJobsLoaded && <p>กำลังโหลดเพิ่มเติม...</p>}
         </div>
       </div>
     );
   };
-
-  const FindHelpersComponent = () => {
-    const [helperProfilesList, setHelperProfilesList] = useState<HelperProfile[]>([]);
+  
+  const renderFindHelpers = () => {
+    const [helperProfiles, setHelperProfiles] = useState<EnrichedHelperProfile[]>([]);
     const [lastVisibleHelper, setLastVisibleHelper] = useState<DocumentSnapshot | null>(null);
     const [isLoadingHelpers, setIsLoadingHelpers] = useState(false);
     const [hasMoreHelpers, setHasMoreHelpers] = useState(true);
     const [initialHelpersLoaded, setInitialHelpersLoaded] = useState(false);
-    const helpersLoaderRef = useRef<HTMLDivElement>(null);
+    const loaderRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => { setRecentHelperSearches(getRecentSearches('helperSearches')); }, []);
 
     const loadHelpers = useCallback(async (isInitialLoad = false) => {
         if (isLoadingHelpers || (!isInitialLoad && !hasMoreHelpers)) return;
         setIsLoadingHelpers(true);
-        const lastDoc = isInitialLoad ? null : lastVisibleHelper;
+        if (isInitialLoad) {
+            setHelperProfiles([]);
+            setLastVisibleHelper(null);
+            setHasMoreHelpers(true);
+            setInitialHelpersLoaded(false);
+        }
         try {
-            const result = await getHelperProfilesPaginated(HELPERS_PAGE_SIZE, lastDoc, selectedHelperCategoryFilter, helperSearchTerm, selectedHelperSubCategoryFilter, selectedHelperProvinceFilter);
-            setHelperProfilesList(prev => isInitialLoad ? result.items : [...prev, ...result.items]);
+            const result = await getHelperProfilesPaginated(HELPERS_PAGE_SIZE, isInitialLoad ? null : lastVisibleHelper, selectedHelperCategoryFilter, helperSearchTerm, selectedHelperSubCategoryFilter, selectedHelperProvinceFilter);
+            const enrichedProfiles = result.items.map(p => ({ ...p, userPhoto: allUsers.find(u => u.id === p.userId)?.photo, userAddress: allUsers.find(u => u.id === p.userId)?.address, verifiedExperienceBadge: p.adminVerifiedExperience ?? false, profileCompleteBadge: !!allUsers.find(u => u.id === p.userId)?.profileComplete, warningBadge: p.isSuspicious ?? false }));
+            setHelperProfiles(prev => isInitialLoad ? enrichedProfiles : [...prev, ...enrichedProfiles]);
             setLastVisibleHelper(result.lastVisibleDoc);
-            setHasMoreHelpers(!!result.lastVisibleDoc);
+            setHasMoreHelpers(result.items.length === HELPERS_PAGE_SIZE && result.lastVisibleDoc !== null);
+            setInitialHelpersLoaded(true);
+        } catch (error) {
+            console.error("Failed to load helper profiles:", error);
+            setHasMoreHelpers(false);
             setInitialHelpersLoaded(true);
         } finally {
             setIsLoadingHelpers(false);
         }
-    }, [isLoadingHelpers, hasMoreHelpers, lastVisibleHelper, selectedHelperCategoryFilter, helperSearchTerm, selectedHelperSubCategoryFilter, selectedHelperProvinceFilter]);
+    }, [isLoadingHelpers, hasMoreHelpers, lastVisibleHelper, selectedHelperCategoryFilter, helperSearchTerm, selectedHelperSubCategoryFilter, selectedHelperProvinceFilter, allUsers]);
 
     useEffect(() => { loadHelpers(true); }, [selectedHelperCategoryFilter, helperSearchTerm, selectedHelperSubCategoryFilter, selectedHelperProvinceFilter]);
 
     useEffect(() => {
-      const observer = new IntersectionObserver(
-        (entries) => {
-          if (entries[0].isIntersecting && hasMoreHelpers && !isLoadingHelpers) {
-            loadHelpers();
-          }
-        },
-        { threshold: 1.0 }
-      );
-      const currentLoader = helpersLoaderRef.current;
-      if (currentLoader) observer.observe(currentLoader);
-      return () => { if (currentLoader) observer.unobserve(currentLoader); };
-    }, [hasMoreHelpers, isLoadingHelpers, loadHelpers]);
+        const observer = new IntersectionObserver(
+            (entries) => { if (entries[0].isIntersecting && hasMoreHelpers && !isLoadingHelpers && initialHelpersLoaded) { loadHelpers(); } },
+            { threshold: 1.0 }
+        );
+        const currentLoaderRef = loaderRef.current;
+        if (currentLoaderRef) observer.observe(currentLoaderRef);
+        return () => { if (currentLoaderRef) observer.unobserve(currentLoaderRef); };
+    }, [hasMoreHelpers, isLoadingHelpers, initialHelpersLoaded, loadHelpers]);
     
-    let emptyStateMessage = "ยังไม่มีผู้เสนอตัวช่วยงานในขณะนี้";
-    if (helperSearchTerm.trim() || selectedHelperCategoryFilter !== 'all' || selectedHelperSubCategoryFilter !== 'all' || selectedHelperProvinceFilter !== 'all') {
-      emptyStateMessage = "ไม่พบผู้ช่วยที่ตรงกับเกณฑ์การค้นหาของคุณ";
-    }
-
-    const activeAndAvailableHelperProfiles = helperProfilesList.filter(p =>
-      p.isExpired === false &&
-      p.expiresAt && !isDateInPast(p.expiresAt) &&
-      p.isUnavailable === false
-    );
-
-    const enrichedHelperProfilesList: EnrichedHelperProfile[] = activeAndAvailableHelperProfiles.map(hp => {
-      const user = (allUsers || []).find(u => u && u.id === hp.userId);
-      return { 
-        ...hp, 
-        userPhoto: user?.photo, 
-        userAddress: user?.address, 
-        verifiedExperienceBadge: hp.adminVerifiedExperience || false, 
-        profileCompleteBadge: user?.profileComplete || false, 
-        warningBadge: hp.isSuspicious || false, 
-        interestedCount: hp.interestedCount || 0, 
-      };
-    });
+    const handleHelperSearchTermChange = (term: string) => { setHelperSearchTerm(term); addRecentSearch('helperSearches', term); };
+    const handleRecentHelperSearchSelect = (term: string) => { setHelperSearchTerm(term); };
 
     return (
-      <div className="p-4 sm:p-6">
-        <div className="text-center mb-6 lg:mb-8">
-          <h2 className="text-3xl font-sans font-semibold text-primary-dark mb-3">👥 โปรไฟล์ผู้ช่วยและบริการ</h2>
-          <p className="text-md font-serif text-neutral-dark mb-6 max-w-xl mx-auto font-normal"> เลือกคนที่ตรงกับความต้องการ แล้วติดต่อได้เลย! </p>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-x-8">
-          <aside className="lg:col-span-3 mb-8 lg:mb-0">
-            <div className="sticky top-24 space-y-6 p-4 bg-white rounded-xl shadow-lg border border-primary-light">
-                <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedHelperCategoryFilter} onSelectCategory={(cat) => setSelectedHelperCategoryFilter(cat as FilterableCategory)} />
-                <SearchInputWithRecent searchTerm={helperSearchTerm} onSearchTermChange={setHelperSearchTerm} placeholder="ค้นหาผู้ช่วย..." recentSearches={recentHelperSearches} onRecentSearchSelect={setHelperSearchTerm} />
-                {currentUser && ( <Button onClick={() => navigateTo(View.OfferHelp)} variant="secondary" className="w-full">สร้างโปรไฟล์</Button> )}
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <h2 className="text-3xl font-sans font-bold text-center mb-6">👥 โปรไฟล์ผู้ช่วยและบริการ</h2>
+             <div className="flex flex-col sm:flex-row gap-4 mb-8">
+              <div className="flex-1">
+                <SearchInputWithRecent searchTerm={helperSearchTerm} onSearchTermChange={handleHelperSearchTermChange} placeholder="ค้นหาทักษะ, พื้นที่..." recentSearches={recentHelperSearches} onRecentSearchSelect={handleRecentHelperSearchSelect} />
+              </div>
+              <div className="w-full sm:w-56">
+                 <CategoryFilterBar categories={Object.values(JobCategory)} selectedCategory={selectedHelperCategoryFilter} onSelectCategory={setSelectedHelperCategoryFilter} />
+              </div>
             </div>
-          </aside>
-          <section className="lg:col-span-9">
-            {!initialHelpersLoaded && isLoadingHelpers && helperProfilesList.length === 0 && (
-              <div className="text-center py-20"><p className="text-xl font-sans">✨ กำลังค้นหาผู้ช่วย...</p></div>
-            )}
-            {initialHelpersLoaded && enrichedHelperProfilesList.length === 0 && !hasMoreHelpers && (
-            <div className="text-center py-10 bg-white p-6 rounded-lg shadow-md border border-primary-light">
-                <p className="mt-3 text-xl font-serif text-neutral-gray font-normal"> {emptyStateMessage} </p>
-            </div>
-            )}
-            {enrichedHelperProfilesList.length > 0 && (
-                <motion.div
-                  className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
-                  variants={listVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  {enrichedHelperProfilesList.map(profile => (
-                    <motion.div key={profile.id} variants={itemVariants}>
-                      <HelperCard
-                          profile={profile}
-                          navigateTo={navigateTo}
-                          onNavigateToPublicProfile={(info) => navigateTo(View.PublicProfile, info)}
-                          onLogHelperContact={() => userActions.logContact(profile.id)}
-                          currentUser={currentUser}
-                          requestLoginForAction={requestLoginForAction}
-                          onBumpProfile={(id) => helperActions.onBumpHelperProfile(id)}
-                          onEditProfileFromFindView={(profileId: string) => { const profile = allHelperProfilesForAdmin.find(p => p.id === profileId); if(profile) { setItemToEdit(profile); setEditingItemType('profile'); navigateTo(View.OfferHelp); } }}
-                          getAuthorDisplayName={getAuthorDisplayName}
-                          onToggleInterest={userActions.toggleInterest}
-                          isInterested={userInterests.some(i => i && i.targetId === profile.id)}
-                      />
-                    </motion.div>
-                  ))}
+            
+            {isLoadingHelpers && !initialHelpersLoaded && <p className="text-center py-10">กำลังโหลด...</p>}
+            {!isLoadingHelpers && initialHelpersLoaded && helperProfiles.length === 0 && <p className="text-center py-10">ไม่พบโปรไฟล์ที่ตรงกับเงื่อนไข</p>}
+
+             <motion.div variants={listVariants} initial="hidden" animate="visible" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {helperProfiles.map(profile => (
+                <motion.div key={profile.id} variants={itemVariants} exit="exit">
+                  <HelperCard
+                      profile={profile}
+                      onNavigateToPublicProfile={(info) => navigateTo(View.PublicProfile, info)}
+                      navigateTo={navigateTo}
+                      onLogHelperContact={userActions.logContact}
+                      currentUser={currentUser}
+                      requestLoginForAction={requestLoginForAction}
+                      onBumpProfile={helperActions.onBumpHelperProfile}
+                      getAuthorDisplayName={getAuthorDisplayName}
+                      onToggleInterest={userActions.toggleInterest}
+                      isInterested={userInterests.some(interest => interest.targetId === profile.id)}
+                  />
                 </motion.div>
-            )}
-            <div ref={helpersLoaderRef} className="h-10 flex justify-center items-center">
-                {isLoadingHelpers && initialHelpersLoaded && helperProfilesList.length > 0 && <p>✨ กำลังโหลดเพิ่มเติม...</p>}
+              ))}
+            </motion.div>
+
+            <div ref={loaderRef} className="h-10 flex justify-center items-center">
+              {isLoadingHelpers && initialHelpersLoaded && <p>กำลังโหลดเพิ่มเติม...</p>}
             </div>
-            {initialHelpersLoaded && !hasMoreHelpers && enrichedHelperProfilesList.length > 0 && (
-                <p className="text-center text-sm font-sans text-neutral-medium py-4">🎉 คุณดูครบทุกโปรไฟล์แล้ว</p>
-            )}
-          </section>
         </div>
-      </div>);
+    );
   };
-
-  const renderFooter = () => (
-    <footer className="bg-white border-t border-primary-light mt-12">
-      <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8 text-center text-sm text-neutral-dark">
-        <div className="flex justify-center items-center gap-x-6 mb-4">
-            <button onClick={() => navigateTo(View.AboutUs)} className="hover:text-primary-dark transition-colors">เกี่ยวกับเรา</button>
-            <button onClick={() => navigateTo(View.Safety)} className="hover:text-primary-dark transition-colors">ความปลอดภัย</button>
-            <button onClick={() => setIsFeedbackModalOpen(true)} className="hover:text-primary-dark transition-colors">ติชม/เสนอแนะ</button>
-        </div>
-        <p className="mb-2">&copy; {new Date().getFullYear()} HAJOBJA.COM. All rights reserved.</p>
-        <p>Created by <a href="https://www.facebook.com/bluecathouse.cm" target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary-dark font-medium transition-colors">Blue Cat House</a></p>
-      </div>
-    </footer>
-  );
-
+  
   const renderCurrentView = () => {
     switch (currentView) {
-      case View.Home: return renderHome();
-      case View.FindJobs: return <FindJobsComponent />;
-      case View.FindHelpers: return <FindHelpersComponent />;
-      case View.Webboard: 
-        return <WebboardPage 
-            currentUser={currentUser}
-            users={allUsers}
-            comments={webboardComments}
-            onAddOrUpdatePost={webboardActions.addOrUpdateWebboardPost}
-            onAddComment={webboardActions.addWebboardComment}
-            onToggleLike={webboardActions.toggleWebboardPostLike}
-            onSavePost={userActions.saveWebboardPost}
-            onSharePost={(postId, postTitle) => {
-                const url = `${window.location.origin}?view=WEBBOARD&postId=${postId}`;
-                navigator.clipboard.writeText(url).then(() => {
-                    setCopiedLinkNotification('คัดลอกลิงก์แล้ว!');
-                    if (copiedNotificationTimerRef.current) clearTimeout(copiedNotificationTimerRef.current);
-                    copiedNotificationTimerRef.current = window.setTimeout(() => setCopiedLinkNotification(null), 2000);
-                });
-            }}
-            onDeletePost={webboardActions.deleteWebboardPost}
-            onPinPost={adminActions.pinWebboardPost}
-            onEditPost={(postToEdit) => { setItemToEdit(postToEdit); setEditingItemType('webboardPost'); setSelectedPostId('create'); }}
-            onDeleteComment={webboardActions.deleteWebboardComment}
-            onUpdateComment={webboardActions.updateWebboardComment}
-            selectedPostId={selectedPostId}
-            setSelectedPostId={setSelectedPostId}
-            navigateTo={navigateTo}
-            editingPost={editingItemType === 'webboardPost' ? itemToEdit as WebboardPost : undefined}
-            onCancelEdit={() => { setItemToEdit(null); setEditingItemType(null); setSelectedPostId(null); }}
-            getUserDisplayBadge={(user) => getUserDisplayBadge(user, allWebboardPostsForAdmin, webboardComments)}
-            requestLoginForAction={requestLoginForAction}
-            onNavigateToPublicProfile={(info) => navigateTo(View.PublicProfile, info)}
-            checkWebboardPostLimits={(user) => webboardActions.checkWebboardPostLimits(user)}
-            checkWebboardCommentLimits={(user) => webboardActions.checkWebboardCommentLimits(user)}
-            pageSize={10}
-            getAuthorDisplayName={getAuthorDisplayName}
-        />;
-      case View.Blog: return <BlogPage posts={allBlogPosts.map(p => ({ ...p, author: allUsers.find(u => u.id === p.authorId) }))} onSelectPost={setSelectedBlogPostSlug} />;
-      case View.Login: return <LoginForm onLogin={onLogin} onSwitchToRegister={() => navigateTo(View.Register)} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />;
-      case View.Register: return <RegistrationForm onRegister={onRegister} onSwitchToLogin={() => navigateTo(View.Login)} />;
+      case View.PostJob:
+        return currentUser ? <PostJobForm onCancel={onCancelEditOrPost} initialData={itemToEdit as Job} isEditing={!!itemToEdit} currentUser={currentUser} allJobsForAdmin={allJobsForAdmin} navigateTo={navigateTo} sourceViewForForm={sourceViewForForm} /> : <LoginForm onLogin={onLogin} onSwitchToRegister={() => navigateTo(View.Register)} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />;
+      case View.FindJobs:
+        return renderFindJobs();
+      case View.OfferHelp:
+        return currentUser ? <OfferHelpForm onCancel={onCancelEditOrPost} initialData={itemToEdit as HelperProfile} isEditing={!!itemToEdit} currentUser={currentUser} /> : <LoginForm onLogin={onLogin} onSwitchToRegister={() => navigateTo(View.Register)} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />;
+      case View.FindHelpers:
+        return renderFindHelpers();
+      case View.Login:
+        return <LoginForm onLogin={onLogin} onSwitchToRegister={() => navigateTo(View.Register)} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />;
+      case View.Register:
+        return <RegistrationForm onRegister={onRegister} onSwitchToLogin={() => navigateTo(View.Login)} />;
+      case View.AdminDashboard:
+        return <AdminDashboard jobs={allJobsForAdmin} helperProfiles={allHelperProfilesForAdmin} users={allUsers} interactions={interactions} webboardPosts={allWebboardPostsForAdmin} webboardComments={webboardComments} allBlogPostsForAdmin={allBlogPosts} vouchReports={vouchReports} onStartEditItem={(item) => {/* TODO */}} currentUser={currentUser} isSiteLocked={isSiteLocked} getAuthorDisplayName={getAuthorDisplayName} getUserDisplayBadge={(user) => getUserDisplayBadge(user, allWebboardPostsForAdmin, webboardComments)} getUserDocument={getUserDocument}/>;
       case View.MyRoom:
-        if (!currentUser) {
-            navigateTo(View.Login);
-            return null; 
-        }
-        const myRoomActions = {
-            editItem: (itemId: string, itemType: 'job' | 'profile' | 'webboardPost', originatingTab: MyRoomActiveTab) => {
-                const collection = itemType === 'job' ? allJobsForAdmin : itemType === 'profile' ? allHelperProfilesForAdmin : allWebboardPostsForAdmin;
-                const item = collection.find(i => i.id === itemId);
-                if (item) {
-                    setItemToEdit(item);
-                    setEditingItemType(itemType);
-                    setSourceViewForForm(View.MyRoom);
-                    setMyRoomInitialTabOverride(originatingTab);
-                    const targetView = itemType === 'job' ? View.PostJob : itemType === 'profile' ? View.OfferHelp : View.Webboard;
-                    if (itemType === 'webboardPost') {
-                        setSelectedPostId('create');
-                    } else {
-                        navigateTo(targetView);
-                    }
-                }
-            },
-            deleteItem: (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => {
-                const title = "ยืนยันการลบ";
-                const message = `คุณแน่ใจหรือไม่ว่าต้องการลบ ${itemType === 'job' ? 'ประกาศงาน' : itemType === 'profile' ? 'โปรไฟล์' : 'กระทู้'} นี้?`;
-                const performDelete = () => {
-                    if (itemType === 'job') jobActions.deleteJob(itemId);
-                    else if (itemType === 'profile') helperActions.deleteHelperProfile(itemId);
-                    else if (itemType === 'webboardPost') webboardActions.deleteWebboardPost(itemId);
-                };
-                openConfirmModal(title, message, performDelete);
-            },
-            toggleHiredStatus: (itemId: string, itemType: 'job' | 'profile') => {
-                if (itemType === 'job') jobActions.toggleHiredJob(itemId);
-                else helperActions.onToggleUnavailableHelperProfileForUserOrAdmin(itemId);
-            },
-            logHelperContact: userActions.logContact,
-            editJobFromFindView: (jobId: string) => { const job = allJobsForAdmin.find(j => j.id === jobId); if (job) { setItemToEdit(job); setEditingItemType('job'); navigateTo(View.PostJob); } },
-            editHelperProfileFromFindView: (profileId: string) => { const profile = allHelperProfilesForAdmin.find(p => p.id === profileId); if (profile) { setItemToEdit(profile); setEditingItemType('profile'); navigateTo(View.OfferHelp); } }
-        };
-        return <MyRoomPage 
-          currentUser={currentUser} 
-          users={allUsers}
-          allJobsForAdmin={allJobsForAdmin}
-          allHelperProfilesForAdmin={allHelperProfilesForAdmin}
-          allWebboardPostsForAdmin={allWebboardPostsForAdmin}
-          webboardComments={webboardComments}
-          userInterests={userInterests}
-          navigateTo={navigateTo} 
-          actions={myRoomActions}
-          onNavigateToPublicProfile={(info) => navigateTo(View.PublicProfile, info)}
-          initialTab={myRoomInitialTabOverride}
-          onInitialTabProcessed={() => setMyRoomInitialTabOverride(null)}
-          getAuthorDisplayName={getAuthorDisplayName}
-          requestLoginForAction={requestLoginForAction}
-        />;
-      case View.AboutUs: return <AboutUsPage />;
-      case View.Safety: return <SafetyPage />;
-      case View.AdminDashboard: 
-         if (!currentUser || (currentUser.role !== UserRole.Admin && currentUser.role !== UserRole.Writer)) {
-            navigateTo(View.Home);
-            return null;
-        }
-        return <AdminDashboard 
-            jobs={allJobsForAdmin}
-            helperProfiles={allHelperProfilesForAdmin}
-            users={allUsers}
-            interactions={interactions}
-            webboardPosts={allWebboardPostsForAdmin}
-            webboardComments={webboardComments}
-            vouchReports={vouchReports}
-            allBlogPostsForAdmin={allBlogPosts}
-            onStartEditItem={(item) => {
-                setItemToEdit(item.originalItem);
-                setEditingItemType(item.itemType);
-                setSourceViewForForm(View.AdminDashboard);
-                const targetView = item.itemType === 'job' ? View.PostJob : item.itemType === 'profile' ? View.OfferHelp : View.ArticleEditor;
-                navigateTo(targetView);
-            }}
-            currentUser={currentUser}
-            isSiteLocked={isSiteLocked}
-            getAuthorDisplayName={getAuthorDisplayName}
-            getUserDisplayBadge={(user) => getUserDisplayBadge(user, allWebboardPostsForAdmin, webboardComments)}
-            getUserDocument={getUserDocument}
-        />;
-      case View.PasswordReset: return <PasswordResetPage navigateTo={navigateTo} />;
-      case View.PostJob: return <PostJobForm onCancel={onCancelEditOrPost} initialData={editingItemType === 'job' ? itemToEdit as Job : undefined} isEditing={!!itemToEdit && editingItemType === 'job'} currentUser={currentUser!} allJobsForAdmin={allJobsForAdmin} navigateTo={navigateTo} sourceViewForForm={sourceViewForForm}/>;
-      case View.OfferHelp: return <OfferHelpForm onCancel={onCancelEditOrPost} initialData={editingItemType === 'profile' ? itemToEdit as HelperProfile : undefined} isEditing={!!itemToEdit && editingItemType === 'profile'} currentUser={currentUser} />;
-      case View.PublicProfile: 
-        if (!viewingProfileInfo) return <div>Loading Profile...</div>;
-        const userForProfile = allUsers.find(u => u.id === viewingProfileInfo.userId);
-        const helperProfileForProfile = viewingProfileInfo.helperProfileId ? allHelperProfilesForAdmin.find(hp => hp.id === viewingProfileInfo.helperProfileId) : undefined;
-        if (!userForProfile) return <div>User not found.</div>;
-        return <PublicProfilePage 
-            user={userForProfile}
-            helperProfile={helperProfileForProfile}
-            onBack={() => navigateTo(sourceViewForPublicProfile)}
-            currentUser={currentUser}
-            onVouchForUser={(userToVouch) => setVouchModalData({ userToVouch })}
-            onShowVouches={(userToList) => setVouchListModalData({ userToList })}
-        />;
-      case View.ArticleEditor: return <ArticleEditor onCancel={onCancelEditOrPost} initialData={editingItemType === 'blogPost' ? itemToEdit as BlogPost : undefined} isEditing={!!itemToEdit && editingItemType === 'blogPost'} currentUser={currentUser!} />;
-      default: return <div><h1>Page Not Found</h1></div>;
+        if (!currentUser) return <LoginForm onLogin={onLogin} onSwitchToRegister={() => navigateTo(View.Register)} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />;
+        return <MyRoomPage currentUser={currentUser} users={allUsers} allJobsForAdmin={allJobsForAdmin} allHelperProfilesForAdmin={allHelperProfilesForAdmin} allWebboardPostsForAdmin={allWebboardPostsForAdmin} webboardComments={webboardComments} userInterests={userInterests} navigateTo={navigateTo} actions={{editItem: (itemId, itemType, originatingTab) => {/* TODO */}, deleteItem: (itemId, itemType) => {/* TODO */}, toggleHiredStatus: (itemId, itemType) => {/* TODO */}, logHelperContact: userActions.logContact}} onNavigateToPublicProfile={(info) => navigateTo(View.PublicProfile, info)} getAuthorDisplayName={getAuthorDisplayName} requestLoginForAction={requestLoginForAction} initialTab={myRoomInitialTabOverride} onInitialTabProcessed={() => setMyRoomInitialTabOverride(null)} />;
+      case View.AboutUs:
+        return <AboutUsPage />;
+      case View.PublicProfile:
+        const userForProfile = allUsers.find(u => u.id === viewingProfileInfo?.userId);
+        if (!userForProfile) return <div>ไม่พบผู้ใช้</div>;
+        const helperProfileForPage = viewingProfileInfo?.helperProfileId ? allHelperProfilesForAdmin.find(p => p.id === viewingProfileInfo.helperProfileId) : allHelperProfilesForAdmin.find(p => p.userId === viewingProfileInfo?.userId);
+        return <PublicProfilePage user={userForProfile} helperProfile={helperProfileForPage} onBack={() => navigateTo(sourceViewForPublicProfile || View.FindHelpers)} currentUser={currentUser} onVouchForUser={(userToVouch) => setVouchModalData({ userToVouch })} onShowVouches={(userToList) => setVouchListModalData({userToList})} />;
+      case View.Safety:
+        return <SafetyPage />;
+      case View.Webboard:
+        return <WebboardPage currentUser={currentUser} users={allUsers} comments={webboardComments} onAddOrUpdatePost={(data, id) => webboardActions.addOrUpdateWebboardPost(data, id)} onAddComment={(postId, text) => webboardActions.addWebboardComment(postId, text)} onToggleLike={webboardActions.toggleWebboardPostLike} onSavePost={userActions.saveWebboardPost} onSharePost={(id, title) => {/*TODO*/}} onDeletePost={webboardActions.deleteWebboardPost} onPinPost={adminActions.pinWebboardPost} onEditPost={(post) => {/*TODO*/}} onDeleteComment={webboardActions.deleteWebboardComment} onUpdateComment={webboardActions.updateWebboardComment} selectedPostId={selectedPostId} setSelectedPostId={setSelectedPostId} navigateTo={navigateTo} editingPost={itemToEdit as WebboardPost} onCancelEdit={onCancelEditOrPost} getUserDisplayBadge={(user) => getUserDisplayBadge(user, allWebboardPostsForAdmin, webboardComments)} requestLoginForAction={requestLoginForAction} onNavigateToPublicProfile={(info) => navigateTo(View.PublicProfile, info)} checkWebboardPostLimits={webboardActions.checkWebboardPostLimits} checkWebboardCommentLimits={webboardActions.checkWebboardCommentLimits} pageSize={10} getAuthorDisplayName={getAuthorDisplayName} />;
+      case View.Blog:
+        const enrichedBlogPosts = allBlogPosts.map(p => ({...p, author: allUsers.find(u => u.id === p.authorId)}));
+        return <BlogPage posts={enrichedBlogPosts} onSelectPost={setSelectedBlogPostSlug} />;
+      case View.ArticleEditor:
+        return <ArticleEditor onCancel={onCancelEditOrPost} initialData={itemToEdit as BlogPost} isEditing={!!itemToEdit} currentUser={currentUser!} />;
+      case View.PasswordReset:
+        return <PasswordResetPage navigateTo={navigateTo} />;
+      default:
+        return renderHome();
     }
   };
 
   if (isLoadingAuth || isLoadingData) {
     return (
-      <div className="flex justify-center items-center h-screen bg-neutral-light">
-        <p className="text-xl font-semibold text-primary-dark animate-pulse">กำลังโหลด...</p>
+      <div className="flex justify-center items-center h-screen bg-primary-light">
+        <div className="text-center">
+          <div className="text-4xl animate-pulse">✨</div>
+          <p className="text-primary-dark font-sans font-medium mt-2">กำลังโหลด...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={`font-serif bg-neutral-light min-h-screen flex flex-col`}>
+    <div className="flex flex-col min-h-screen bg-neutral-light">
       <SiteLockOverlay isLocked={isSiteLocked} />
-      <ConfirmModal
-        isOpen={isConfirmModalOpen}
-        onClose={closeConfirmModal}
-        onConfirm={onConfirmDeletion}
-        title={confirmModalTitle}
-        message={confirmModalMessage}
-      />
-      {vouchModalData && currentUser && (
-        <VouchModal
-          isOpen={true}
-          onClose={() => setVouchModalData(null)}
-          userToVouch={vouchModalData.userToVouch}
-          currentUser={currentUser}
-        />
-      )}
-      {vouchListModalData && (
-        <VouchesListModal
-          isOpen={true}
-          onClose={() => setVouchListModalData(null)}
-          userToList={vouchListModalData.userToList}
-          onReportVouch={(vouch) => setReportVouchModalData({ vouchToReport: vouch })}
-          navigateToPublicProfile={(userId) => navigateTo(View.PublicProfile, { userId })}
-          currentUser={currentUser}
-        />
-      )}
-      {reportVouchModalData && (
-        <ReportVouchModal
-          isOpen={true}
-          onClose={() => setReportVouchModalData(null)}
-          vouchToReport={reportVouchModalData.vouchToReport}
-        />
-      )}
-      <ForgotPasswordModal
-        isOpen={isForgotPasswordModalOpen}
-        onClose={() => setIsForgotPasswordModalOpen(false)}
-        onSendResetEmail={authActions.sendPasswordResetEmail}
-      />
-      <FeedbackForm
-        isOpen={isFeedbackModalOpen}
-        onClose={() => setIsFeedbackModalOpen(false)}
-        currentUserEmail={currentUser?.email}
-      />
-
       {renderHeader()}
-      {renderMobileMenu()}
-      
       <main className="flex-grow">
-        {currentView === View.Home ? (
-           renderHome()
-        ) : (
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentView}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.2 }}
-              >
-                {renderCurrentView()}
-              </motion.div>
-            </AnimatePresence>
-          </div>
-        )}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentView}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.25 }}
+          >
+            {renderCurrentView()}
+          </motion.div>
+        </AnimatePresence>
       </main>
+      <footer className="text-center py-6 bg-white border-t border-primary-light">
+        <div className="flex justify-center gap-4 text-sm mb-2">
+            <button onClick={() => navigateTo(View.AboutUs)} className="text-neutral-dark hover:text-primary">เกี่ยวกับเรา</button>
+            <span className="text-neutral-DEFAULT">·</span>
+            <button onClick={() => navigateTo(View.Safety)} className="text-neutral-dark hover:text-primary">ความปลอดภัย</button>
+            <span className="text-neutral-DEFAULT">·</span>
+            <button onClick={() => setIsFeedbackModalOpen(true)} className="text-neutral-dark hover:text-primary">Feedback</button>
+        </div>
+        <p className="text-xs text-neutral-medium">
+          &copy; {new Date().getFullYear()} HAJOBJA.COM - All rights reserved.
+        </p>
+        <p className="text-xs text-neutral-medium mt-1">
+          Created by <a href="https://www.bluecat.house" target="_blank" rel="noopener noreferrer" className="text-primary-dark hover:underline">Blue Cat House</a>
+        </p>
+      </footer>
 
-      {renderFooter()}
-
-      <AnimatePresence>
-          {copiedLinkNotification && (
-              <motion.div
-                  initial={{ opacity: 0, y: 50, scale: 0.3 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 20, scale: 0.5 }}
-                  transition={{ type: 'spring' as const, stiffness: 500, damping: 30 }}
-                  className="fixed bottom-10 right-10 bg-neutral-dark text-white text-sm font-sans font-medium px-4 py-2 rounded-lg shadow-xl z-50"
-              >
-                  {copiedLinkNotification}
-              </motion.div>
-          )}
-      </AnimatePresence>
+      {/* Modals */}
+      <ConfirmModal isOpen={isConfirmModalOpen} onClose={closeConfirmModal} onConfirm={onConfirmDeletion} title={confirmModalTitle} message={confirmModalMessage} />
+      <FeedbackForm isOpen={isFeedbackModalOpen} onClose={() => setIsFeedbackModalOpen(false)} currentUserEmail={currentUser?.email} />
+      <ForgotPasswordModal isOpen={isForgotPasswordModalOpen} onClose={() => setIsForgotPasswordModalOpen(false)} onSendResetEmail={authActions.sendPasswordResetEmail} />
+      {vouchModalData && currentUser && <VouchModal isOpen={!!vouchModalData} onClose={() => setVouchModalData(null)} userToVouch={vouchModalData.userToVouch} currentUser={currentUser} />}
+      {vouchListModalData && <VouchesListModal isOpen={!!vouchListModalData} onClose={() => setVouchListModalData(null)} userToList={vouchListModalData.userToList} navigateToPublicProfile={(id) => navigateTo(View.PublicProfile, { userId: id })} onReportVouch={(vouch) => setReportVouchModalData({ vouchToReport: vouch })} currentUser={currentUser} />}
+      {reportVouchModalData && <ReportVouchModal isOpen={!!reportVouchModalData} onClose={() => setReportVouchModalData(null)} vouchToReport={reportVouchModalData.vouchToReport} />}
     </div>
   );
 };
