@@ -59,4 +59,87 @@ export const useUser = () => {
     }
   }, [currentUser]);
 
-  const vouchForUser = useCallback(async (voucheeId: string, vouchType
+  const vouchForUser = useCallback(async (voucheeId: string, vouchType: VouchType, comment?: string): Promise<void> => {
+    if (!currentUser) {
+        alert("กรุณาเข้าสู่ระบบเพื่อรับรองผู้ใช้");
+        return;
+    }
+
+    const VOUCH_LIMIT_PER_MONTH = 5;
+    const now = new Date();
+    const currentPeriodStart = new Date(currentUser.postingLimits.vouchingActivity.periodStart as string);
+
+    let currentCount = currentUser.postingLimits.vouchingActivity.monthlyCount;
+    let periodNeedsReset = false;
+    
+    // Check if we are in a new month
+    if (now.getMonth() !== currentPeriodStart.getMonth() || now.getFullYear() !== currentPeriodStart.getFullYear()) {
+        periodNeedsReset = true;
+        currentCount = 0;
+    }
+
+    if (currentCount >= VOUCH_LIMIT_PER_MONTH) {
+        alert(`คุณใช้สิทธิ์การรับรองครบ ${VOUCH_LIMIT_PER_MONTH} ครั้งในเดือนนี้แล้ว`);
+        return;
+    }
+
+    try {
+      // The service expects IP and user agent. Since we cannot get this reliably on the client,
+      // this should ideally be a Cloud Function call. For now, we pass placeholders.
+      await vouchForUserService(currentUser, voucheeId, vouchType, 'not_recorded', 'not_recorded', comment);
+      
+      // Update user's vouch count locally for immediate feedback, though Firestore trigger is the source of truth
+      const updatedUser = { ...currentUser };
+      if (periodNeedsReset) {
+          updatedUser.postingLimits.vouchingActivity = {
+              monthlyCount: 1,
+              periodStart: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(),
+          };
+      } else {
+          updatedUser.postingLimits.vouchingActivity.monthlyCount += 1;
+      }
+      setCurrentUser(updatedUser);
+
+      alert("ขอบคุณสำหรับการรับรอง!");
+    } catch (error) {
+      logFirebaseError("useUser.vouchForUser", error);
+      alert(`เกิดข้อผิดพลาดในการรับรอง: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  }, [currentUser, setCurrentUser]);
+
+  const reportVouch = useCallback(async (vouch: Vouch, comment: string): Promise<void> => {
+    if (!currentUser) {
+        alert("กรุณาเข้าสู่ระบบเพื่อรายงาน");
+        return;
+    }
+    try {
+        await reportVouchService(vouch, currentUser.id, comment);
+        alert("ขอบคุณสำหรับรายงาน เราจะทำการตรวจสอบโดยเร็วที่สุด");
+    } catch (error) {
+        logFirebaseError("useUser.reportVouch", error);
+        alert("เกิดข้อผิดพลาดในการส่งรายงาน");
+    }
+  }, [currentUser]);
+
+  const logContact = useCallback(async (helperProfileId: string) => {
+    if (!currentUser) return;
+    try {
+      const helperProfile = await getHelperProfileDocument(helperProfileId);
+      if (!helperProfile) throw new Error('Helper profile not found.');
+      if (helperProfile.userId === currentUser.id) return; // Don't log self-contact
+      await logHelperContactInteractionService(helperProfileId, currentUser.id, helperProfile.userId);
+    } catch (error) {
+      logFirebaseError('useUser.logContact', error);
+      // Fail silently, not critical for user experience
+    }
+  }, [currentUser]);
+
+  return {
+    updateUserProfile,
+    toggleInterest,
+    saveWebboardPost,
+    vouchForUser,
+    reportVouch,
+    logContact,
+  };
+};
