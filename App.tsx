@@ -217,7 +217,7 @@ const App: React.FC = () => {
     };
 
     const navItemSpanClass = "inline-flex items-center gap-1.5";
-    const activeClass = "active"; // Use CSS class for active state
+    const activeClass = "active";
 
     if (currentUser) {
         return (
@@ -513,6 +513,7 @@ const App: React.FC = () => {
 
     const activeUserJobs = jobsList
       .filter(job => 
+          job && // Safety check
           job.isExpired === false && 
           job.expiresAt && !isDateInPast(job.expiresAt) &&
           job.isHired === false
@@ -613,6 +614,7 @@ const App: React.FC = () => {
     }
 
     const activeAndAvailableHelperProfiles = helperProfilesList.filter(p =>
+      p && // Safety check
       p.isExpired === false &&
       p.expiresAt && !isDateInPast(p.expiresAt) &&
       p.isUnavailable === false
