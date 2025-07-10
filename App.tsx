@@ -288,40 +288,50 @@ const App: React.FC = () => {
   };
 
   const AnimatedHamburgerIcon = () => {
-    const topVariants: Variants = {
-      closed: { rotate: 0, y: 0 },
-      open: { rotate: 45, y: 5.5 },
-    };
-    const middleVariants: Variants = {
-      closed: { opacity: 1 },
-      open: { opacity: 0 },
-    };
-    const bottomVariants: Variants = {
-      closed: { rotate: 0, y: 0 },
-      open: { rotate: -45, y: -5.5 },
-    };
-    const lineStyle: React.CSSProperties = {
-      width: '16px',
-      height: '2px',
-      backgroundColor: 'var(--primary-dark)',
-      borderRadius: '1px',
-      position: 'absolute',
-      left: '4px',
-      transformOrigin: 'center',
-    };
+    // A component for the animated SVG path
+    const Path = (props: any) => (
+      <motion.path
+        fill="transparent"
+        strokeWidth="2.5"
+        stroke="var(--primary-dark)"
+        strokeLinecap="round"
+        {...props}
+      />
+    );
 
     return (
       <motion.button
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="relative w-6 h-6 focus:outline-none"
+        className="relative w-8 h-8 focus:outline-none flex items-center justify-center rounded-full hover:bg-primary-light/50 transition-colors"
         aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
         aria-expanded={isMobileMenuOpen}
         animate={isMobileMenuOpen ? "open" : "closed"}
         initial={false}
       >
-        <motion.div style={{ ...lineStyle, top: '5px' }} variants={topVariants} transition={{ duration: 0.3, ease: "easeInOut" as const }} />
-        <motion.div style={{ ...lineStyle, top: '11px' }} variants={middleVariants} transition={{ duration: 0.15, ease: "easeInOut" as const }} />
-        <motion.div style={{ ...lineStyle, top: '17px' }} variants={bottomVariants} transition={{ duration: 0.3, ease: "easeInOut" as const }} />
+        <svg width="20" height="20" viewBox="0 0 20 20">
+          <Path
+            variants={{
+              closed: { d: "M 2 3.5 L 18 3.5" },
+              open: { d: "M 3 16.5 L 17 2.5" },
+            }}
+            transition={{ duration: 0.3 }}
+          />
+          <Path
+            d="M 2 10 L 18 10"
+            variants={{
+              closed: { opacity: 1 },
+              open: { opacity: 0 },
+            }}
+            transition={{ duration: 0.1 }}
+          />
+          <Path
+            variants={{
+              closed: { d: "M 2 16.5 L 18 16.5" },
+              open: { d: "M 3 2.5 L 17 16.5" },
+            }}
+            transition={{ duration: 0.3 }}
+          />
+        </svg>
       </motion.button>
     );
   };
