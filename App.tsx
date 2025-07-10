@@ -603,7 +603,11 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     if (isLoadingAuth || isLoadingData) {
-      return <div className="text-center p-10 font-sans text-xl">กำลังโหลด ✨</div>;
+      return (
+        <div className="flex flex-grow justify-center items-center p-10 font-sans text-xl text-neutral-dark">
+          กำลังโหลด ✨
+        </div>
+      );
     }
     switch (currentView) {
       case View.Home: return renderHome();
