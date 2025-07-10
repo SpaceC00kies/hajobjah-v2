@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -221,12 +222,8 @@ const App: React.FC = () => {
                 {currentUser.activityBadge?.isActive && <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm" />}
               </div>
             )}
-            {!isMobile && (
-               <div className={`font-sans font-medium mr-4 text-sm lg:text-base items-center flex gap-2 text-primary-dark`}>
-                สวัสดี, {currentUser.publicDisplayName}!
-                {currentUser.activityBadge?.isActive && <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm" />}
-              </div>
-            )}
+            
+            {/* Desktop greeting is now rendered in the header directly */}
 
             {currentView !== View.Home && (
               <button onClick={() => navigateTo(View.Home)} className={getButtonClass(View.Home)}>
@@ -340,20 +337,31 @@ const App: React.FC = () => {
         className="main-navbar sticky top-0 z-30 w-full bg-white text-primary-dark p-4 sm:p-5 lg:p-6 shadow-md border-b border-primary-light"
       >
         <div className="container mx-auto flex justify-between items-center">
-          <div className="flex-shrink-0">
-            <span
-              onClick={() => { navigateTo(View.Home); setIsMobileMenuOpen(false); }}
-              className="cursor-pointer font-sans font-bold text-lg sm:text-xl lg:text-2xl"
-              style={{color: 'var(--primary-blue)'}}
-            >
-              HAJOBJA.COM
-            </span>
+          <div className="flex items-center gap-x-4 lg:gap-x-6">
+            <div className="flex-shrink-0">
+                <span
+                onClick={() => { navigateTo(View.Home); setIsMobileMenuOpen(false); }}
+                className="cursor-pointer font-sans font-bold text-lg sm:text-xl lg:text-2xl"
+                style={{color: 'var(--primary-blue)'}}
+                >
+                HAJOBJA.COM
+                </span>
+            </div>
+            {currentUser && (
+                <div className={`hidden lg:flex font-sans font-medium items-center gap-2 text-primary-dark`}>
+                    สวัสดี, {currentUser.publicDisplayName}!
+                    {currentUser.activityBadge?.isActive && <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm" />}
+                </div>
+            )}
           </div>
-          <nav className="hidden lg:flex items-center space-x-2">
-            {renderNavLinks(false)}
-          </nav>
-          <div className="lg:hidden">
-            <AnimatedHamburgerIcon />
+
+          <div>
+            <nav className="hidden lg:flex items-center space-x-2">
+                {renderNavLinks(false)}
+            </nav>
+            <div className="lg:hidden">
+                <AnimatedHamburgerIcon />
+            </div>
           </div>
         </div>
       </header>
