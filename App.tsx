@@ -1,4 +1,10 @@
 
+
+
+
+
+
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -305,7 +311,7 @@ const App: React.FC = () => {
       animate={isOpen ? "open" : "closed"}
       initial={false}
     >
-      <motion.svg width="23" height="23" viewBox="0 0 23 23">
+      <motion.svg width="23" height="23" viewBox="0 0 23 23" variants={{}}>
         <Path
           variants={{
             closed: { d: "M 2 2.5 L 20 2.5" },
