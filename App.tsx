@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -56,21 +57,16 @@ const menuPanelVariants = {
   closed: { x: '100%', transition: { type: 'spring' as const, stiffness: 400, damping: 40 } },
 };
 
-const menuItemsContainerVariants = {
-  open: { transition: { staggerChildren: 0.07, delayChildren: 0.2 } },
-  closed: { transition: { staggerChildren: 0.05, staggerDirection: -1 } },
-};
-
-const menuItemVariants = {
+const menuContentVariants = {
   open: {
-    y: 0,
     opacity: 1,
-    transition: { y: { stiffness: 1000, velocity: -100 } },
+    y: 0,
+    transition: { delay: 0.2, duration: 0.4, ease: "easeOut" as const }
   },
   closed: {
-    y: 50,
     opacity: 0,
-    transition: { y: { stiffness: 1000 } },
+    y: 20,
+    transition: { duration: 0.2 }
   },
 };
 
@@ -248,17 +244,15 @@ const App: React.FC = () => {
         ];
 
     const mobileItemWrapper = (item: any) => (
-      <motion.div variants={menuItemVariants} className="w-full">
-         <button
-          onClick={() => (item.action ? item.action() : navigateTo(item.view))}
-          className={`${getButtonClass(item.view)} w-full justify-start text-left`}
-        >
-          <span className="inline-flex items-center gap-2.5">
-            <span>{item.emoji}</span>
-            <span>{item.label}</span>
-          </span>
-        </button>
-      </motion.div>
+       <button
+        onClick={() => (item.action ? item.action() : navigateTo(item.view))}
+        className={`${getButtonClass(item.view)} w-full justify-start text-left py-3`}
+      >
+        <span className="inline-flex items-center gap-2.5">
+          <span>{item.emoji}</span>
+          <span>{item.label}</span>
+        </span>
+      </button>
     );
 
     const desktopItemWrapper = (item: any) => (
@@ -274,14 +268,13 @@ const App: React.FC = () => {
     );
 
     const mobileGreeting = currentUser && (
-      <motion.div
-        variants={menuItemVariants}
+      <div
         className={`font-sans font-medium text-base mb-3 py-2 px-4 border-b border-primary-light w-full text-left text-primary-dark`}
       >
         สวัสดี, {currentUser.publicDisplayName}!
         <UserLevelBadge level={displayBadgeForProfile} size="sm" />
         {currentUser.activityBadge?.isActive && <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm" />}
-      </motion.div>
+      </div>
     );
 
     if (isMobile) {
@@ -395,7 +388,7 @@ const App: React.FC = () => {
             </div>
             <motion.div
               className="flex flex-col items-start p-5 space-y-2"
-              variants={menuItemsContainerVariants}
+              variants={menuContentVariants}
             >
               {renderNavLinks(true)}
             </motion.div>
@@ -672,7 +665,7 @@ const App: React.FC = () => {
   if(selectedBlogPostSlug) {
       const post = allBlogPosts.find(p => p.slug === selectedBlogPostSlug);
       if(post) {
-        return <BlogArticlePage post={{...post, author: allUsers.find(u => u.id === post.authorId)}} onBack={() => { setSelectedBlogPostSlug(null); navigateTo(View.Blog); }} comments={[]} currentUser={currentUser} canEditOrDelete={webboardActions.canEditOrDelete} />;
+        return <BlogArticlePage post={{...post, author: allUsers.find(u => u.id === p.authorId)}} onBack={() => { setSelectedBlogPostSlug(null); navigateTo(View.Blog); }} comments={[]} currentUser={currentUser} canEditOrDelete={webboardActions.canEditOrDelete} />;
       }
   }
   const mainContentClass = currentView === View.Home ? 'hero-section flex-grow flex items-center' : 'container mx-auto p-4 sm:p-6 lg:p-8 flex-grow';
