@@ -1,7 +1,4 @@
 
-
-
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -665,7 +662,7 @@ const App: React.FC = () => {
   if(selectedBlogPostSlug) {
       const post = allBlogPosts.find(p => p.slug === selectedBlogPostSlug);
       if(post) {
-        return <BlogArticlePage post={{...post, author: allUsers.find(u => u.id === p.authorId)}} onBack={() => { setSelectedBlogPostSlug(null); navigateTo(View.Blog); }} comments={[]} currentUser={currentUser} canEditOrDelete={webboardActions.canEditOrDelete} />;
+        return <BlogArticlePage post={{...post, author: allUsers.find(u => u.id === post.authorId)}} onBack={() => { setSelectedBlogPostSlug(null); navigateTo(View.Blog); }} comments={[]} currentUser={currentUser} canEditOrDelete={webboardActions.canEditOrDelete} />;
       }
   }
   const mainContentClass = currentView === View.Home ? 'hero-section flex-grow flex items-center' : 'container mx-auto p-4 sm:p-6 lg:p-8 flex-grow';
