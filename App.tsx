@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -250,9 +251,9 @@ const App: React.FC = () => {
       <motion.div variants={menuItemVariants}>
         <button
           onClick={() => (item.action ? item.action() : navigateTo(item.view))}
-          className={`${getButtonClass(item.view)} w-full justify-start !text-base !py-2.5 !px-6`}
+          className={`w-full text-left py-3 px-4 text-lg font-medium font-sans rounded-lg transition-colors ${currentView === item.view ? 'bg-primary-light text-primary-dark' : 'text-neutral-dark hover:bg-primary-light/50'}`}
         >
-          <span className="inline-flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-2.5">
             <span>{item.emoji}</span>
             <span>{item.label}</span>
           </span>
@@ -275,7 +276,7 @@ const App: React.FC = () => {
     const mobileGreeting = currentUser && (
       <motion.div
         variants={menuItemVariants}
-        className={`font-sans font-medium text-base mb-3 py-2 px-4 border-b border-primary-light w-full text-center text-primary-dark`}
+        className={`font-sans font-medium text-base mb-3 py-2 px-4 border-b border-primary-light w-full text-left text-primary-dark`}
       >
         สวัสดี, {currentUser.publicDisplayName}!
         <UserLevelBadge level={displayBadgeForProfile} size="sm" />
@@ -300,51 +301,19 @@ const App: React.FC = () => {
   };
 
 
-  const MenuToggle = ({ toggle, isOpen }: { toggle: () => void, isOpen: boolean }) => {
-    // This Path component is now locally scoped inside MenuToggle to prevent style conflicts.
-    const Path = (props: any) => (
-      <motion.path
-        fill="transparent"
-        strokeWidth="2.5"
-        stroke="var(--primary-dark)"
-        strokeLinecap="round"
-        {...props}
-      />
-    );
-
+  const MenuToggle = ({ toggle }: { toggle: () => void }) => {
     return (
-      <motion.button
+      <button
         onClick={toggle}
-        // This className ensures the button is correctly sized and aligned.
         className="relative w-8 h-8 p-0 flex items-center justify-center rounded-full focus:outline-none hover:bg-primary-light/50 transition-colors"
-        aria-label={isOpen ? "Close menu" : "Open menu"}
-        aria-expanded={isOpen}
-        animate={isOpen ? "open" : "closed"}
-        initial={false}
+        aria-label="Open menu"
       >
-        <svg width="23" height="23" viewBox="0 0 23 23">
-          <Path
-            variants={{
-              closed: { d: "M 2 2.5 L 20 2.5" },
-              open: { d: "M 3 16.5 L 17 2.5" },
-            }}
-          />
-          <Path
-            d="M 2 9.423 L 20 9.423"
-            variants={{
-              closed: { opacity: 1 },
-              open: { opacity: 0 },
-            }}
-            transition={{ duration: 0.1 }}
-          />
-          <Path
-            variants={{
-              closed: { d: "M 2 16.346 L 20 16.346" },
-              open: { d: "M 3 2.5 L 17 16.346" },
-            }}
-          />
-        </svg>
-      </motion.button>
+        <div className="space-y-1.5">
+            <span className="block w-6 h-0.5 bg-primary-dark"></span>
+            <span className="block w-6 h-0.5 bg-primary-dark"></span>
+            <span className="block w-4 h-0.5 bg-primary-dark"></span>
+        </div>
+      </button>
     );
   };
 
@@ -381,7 +350,7 @@ const App: React.FC = () => {
                 {renderNavLinks(false)}
             </nav>
             <div className="lg:hidden">
-                <MenuToggle toggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
+                <MenuToggle toggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
             </div>
           </div>
         </div>
@@ -410,8 +379,20 @@ const App: React.FC = () => {
           <motion.div
             key="menuPanel"
             variants={menuPanelVariants}
-            className="fixed top-0 right-0 h-full w-4/5 max-w-xs bg-white shadow-xl z-50 overflow-y-auto"
+            className="fixed top-0 right-0 h-full w-full bg-white shadow-xl z-50 overflow-y-auto"
           >
+            <div className="flex justify-between items-center p-4 border-b border-primary-light">
+                <h2 className="text-xl font-bold font-sans text-primary">เมนู</h2>
+                <button
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="p-2 -mr-2 text-primary-dark"
+                    aria-label="Close menu"
+                >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
             <motion.div
               className="flex flex-col items-start p-5 space-y-2"
               variants={menuItemsContainerVariants}
