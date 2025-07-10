@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -217,13 +218,12 @@ const App: React.FC = () => {
     const getButtonClass = (viewTarget: View) => {
       const baseClass = 'nav-pill';
       const isActive = currentView === viewTarget;
-      const specialViews = [View.AdminDashboard, View.MyRoom];
-
       let specificClass = 'nav-pill-default';
-      if (viewTarget === View.Login) { 
-        specificClass = 'nav-pill-logout';
-      } else if (specialViews.includes(viewTarget)) {
-        specificClass = 'nav-pill-special';
+
+      if (viewTarget === View.Login) { // Specifically for the logout button
+          specificClass = 'nav-pill-logout';
+      } else if ([View.AdminDashboard, View.MyRoom].includes(viewTarget)) {
+          specificClass = 'nav-pill-special';
       }
 
       return `${baseClass} ${specificClass} ${isActive ? 'active' : ''}`;
@@ -248,10 +248,10 @@ const App: React.FC = () => {
         ];
 
     const mobileItemWrapper = (item: any) => (
-      <motion.div variants={menuItemVariants}>
-        <button
+      <motion.div variants={menuItemVariants} className="w-full">
+         <button
           onClick={() => (item.action ? item.action() : navigateTo(item.view))}
-          className={`w-full text-left py-3 px-4 text-lg font-medium font-sans rounded-lg transition-colors ${currentView === item.view ? 'bg-primary-light text-primary-dark' : 'text-neutral-dark hover:bg-primary-light/50'}`}
+          className={`${getButtonClass(item.view)} w-full justify-start text-left`}
         >
           <span className="inline-flex items-center gap-2.5">
             <span>{item.emoji}</span>
@@ -311,7 +311,7 @@ const App: React.FC = () => {
         <div className="space-y-1.5">
             <span className="block w-6 h-0.5 bg-primary-dark"></span>
             <span className="block w-6 h-0.5 bg-primary-dark"></span>
-            <span className="block w-4 h-0.5 bg-primary-dark"></span>
+            <span className="block w-6 h-0.5 bg-primary-dark"></span>
         </div>
       </button>
     );
@@ -379,7 +379,7 @@ const App: React.FC = () => {
           <motion.div
             key="menuPanel"
             variants={menuPanelVariants}
-            className="fixed top-0 right-0 h-full w-full bg-white shadow-xl z-50 overflow-y-auto"
+            className="fixed top-0 right-0 h-full w-4/5 max-w-xs bg-white shadow-xl z-50 overflow-y-auto"
           >
             <div className="flex justify-between items-center p-4 border-b border-primary-light">
                 <h2 className="text-xl font-bold font-sans text-primary">เมนู</h2>
