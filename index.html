@@ -158,30 +158,68 @@
 
       /* --- Navigation Pills --- */
       .nav-pill {
-          padding: 8px 20px;
-          border-radius: 20px;
-          background: var(--primary-light);
-          color: var(--primary-dark);
-          text-decoration: none;
+          padding: 6px 16px;
+          border-radius: 9999px;
           font-weight: 500;
-          font-size: 14px;
+          font-size: 12px;
           font-family: 'Prompt', 'Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', '"Noto Sans"', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"';
-          transition: all 0.3s ease;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          border: 2px solid transparent;
+          text-decoration: none;
+          border: 1px solid transparent;
+          box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
       }
-      .nav-pill:hover {
-          background: var(--primary-medium);
+
+      /* Default Blue Style */
+      .nav-pill-default {
+        background-color: var(--primary-light);
+        border-color: var(--primary-blue);
+        color: var(--primary-dark);
+      }
+      .nav-pill-default:hover {
+        background-color: var(--primary-medium);
+        border-color: var(--primary-medium);
+        color: white;
+        transform: translateY(-1px);
+      }
+      .nav-pill-default.active {
+        background-color: var(--primary-dark);
+        border-color: var(--primary-dark);
+        color: white;
+        font-weight: 600;
+      }
+
+      /* Special Peach buttons */
+      .nav-pill-special {
+          background-color: transparent;
+          border-color: var(--accent-peach);
+          color: var(--neutral-gray);
+      }
+      .nav-pill-special:hover {
+          background-color: var(--accent-peach);
+          color: var(--neutral-dark);
+          transform: translateY(-1px);
+      }
+      .nav-pill-special.active {
+          background-color: var(--accent-peach-hover);
+          border-color: var(--accent-peach-hover);
+          color: var(--neutral-dark);
+          font-weight: 600;
+      }
+
+      /* Logout button */
+      .nav-pill-logout {
+          background-color: var(--primary-light);
+          border-color: var(--primary-light);
+          color: #b91c1c; /* A slightly darker red for better contrast */
+      }
+      .nav-pill-logout:hover {
+          background-color: #ef4444; /* red-500 */
+          border-color: #ef4444;
           color: white;
           transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(135, 206, 235, 0.3);
-      }
-      .nav-pill.active {
-          background: var(--primary-dark);
-          color: white;
-          font-weight: 600;
       }
       
       /* --- Detailed Card Styles --- */

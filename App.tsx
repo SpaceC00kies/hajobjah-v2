@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -186,13 +187,28 @@ const App: React.FC = () => {
     const navItemSpanClass = "inline-flex items-center gap-1.5";
     const activeClass = "active";
 
-    const getButtonClass = (viewTarget: View, isAccent: boolean = false) => {
-        let baseClass = isMobile ? 'w-full text-left justify-start py-3 px-4 text-base font-medium text-primary-dark rounded-md hover:bg-primary-light' : 'nav-pill';
-        if(isAccent) {
-            baseClass = isMobile ? `${baseClass} !text-red-700 hover:!bg-red-100` : `${baseClass} !bg-red-100 !text-red-700 hover:!bg-red-500 hover:!text-white`;
+    const getButtonClass = (viewTarget: View) => {
+      if (isMobile) {
+        let mobileBaseClass = 'w-full text-left justify-start py-3 px-4 text-base font-medium text-primary-dark rounded-md hover:bg-primary-light';
+        if (viewTarget === View.Login) { // Logout button
+            mobileBaseClass += ' !text-red-700 hover:!bg-red-100';
         }
-        const isActive = !isMobile && currentView === viewTarget;
-        return `${baseClass} ${isActive ? activeClass : ''}`;
+        return mobileBaseClass;
+      }
+
+      // Desktop styles
+      const baseClass = 'nav-pill';
+      const isActive = currentView === viewTarget;
+      const specialViews = [View.AdminDashboard, View.MyRoom];
+      
+      let specificClass = 'nav-pill-default'; // Default blue style
+      if (viewTarget === View.Login) { // Represents logout when logged in
+        specificClass = 'nav-pill-logout';
+      } else if (specialViews.includes(viewTarget)) {
+        specificClass = 'nav-pill-special';
+      }
+      
+      return `${baseClass} ${specificClass} ${isActive ? activeClass : ''}`;
     };
 
     if (currentUser) {
@@ -244,7 +260,7 @@ const App: React.FC = () => {
               <span className={navItemSpanClass}><span>💬</span><span>กระทู้พูดคุย</span></span>
             </button>
             
-            <button onClick={onLogout} className={getButtonClass(View.Login, true)}>
+            <button onClick={onLogout} className={getButtonClass(View.Login)}>
               <span className={navItemSpanClass}><span>🔓</span><span>ออกจากระบบ</span></span>
             </button>
           </>
@@ -328,6 +344,7 @@ const App: React.FC = () => {
             <span
               onClick={() => { navigateTo(View.Home); setIsMobileMenuOpen(false); }}
               className="cursor-pointer font-sans font-bold text-lg sm:text-xl lg:text-2xl"
+              style={{color: 'var(--primary-blue)'}}
             >
               HAJOBJA.COM
             </span>
