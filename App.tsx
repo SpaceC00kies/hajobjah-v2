@@ -1,7 +1,4 @@
 
-
-
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -347,16 +344,16 @@ const App: React.FC = () => {
                 HAJOBJA.COM
                 </span>
             </div>
-            {currentUser && (
-                <div className={`hidden lg:flex font-sans font-medium items-center gap-2 text-primary-dark`}>
-                    สวัสดี, {currentUser.publicDisplayName}!
-                    {currentUser.activityBadge?.isActive && <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm" />}
-                </div>
-            )}
           </div>
 
           <div>
-            <nav className="hidden lg:flex items-center space-x-2">
+            <nav className="hidden lg:flex items-center space-x-4">
+                {currentUser && (
+                    <div className="flex items-center gap-2 font-sans font-medium text-primary-dark whitespace-nowrap">
+                        สวัสดี, {currentUser.publicDisplayName}!
+                        {currentUser.activityBadge?.isActive && <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm" />}
+                    </div>
+                )}
                 {renderNavLinks(false)}
             </nav>
             <div className="lg:hidden">
