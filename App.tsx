@@ -402,12 +402,18 @@ const App: React.FC = () => {
               className="home-card cursor-pointer"
             >
               <h3 className="card-section-title">ประกาศงาน</h3>
-              <div className="space-y-3">
+              <div className="space-y-4">
                  <button onClick={(e) => { e.stopPropagation(); navigateTo(View.FindJobs); }} className="btn-primary-home">
-                  <span className="text-base">🔎 ดูประกาศงานทั้งหมด</span>
+                  <span className="flex items-center justify-center">
+                    <span className="text-lg mr-2">📢</span>
+                    <span>ดูประกาศงานทั้งหมด</span>
+                  </span>
                 </button>
                 <button onClick={(e) => { e.stopPropagation(); currentUser ? navigateTo(View.PostJob) : requestLoginForAction(View.PostJob); }} className="btn-secondary-home">
-                  <span className="text-base">📝 ลงประกาศงาน</span>
+                  <span className="flex items-center justify-center">
+                    <span className="text-lg mr-2">📝</span>
+                    <span>ลงประกาศงาน</span>
+                  </span>
                 </button>
               </div>
             </div>
@@ -416,13 +422,19 @@ const App: React.FC = () => {
               onClick={() => navigateTo(View.FindHelpers)}
               className="home-card cursor-pointer"
             >
-              <h3 className="card-section-title">โปรไฟล์ผู้ช่วย</h3>
-              <div className="space-y-3">
+              <h3 className="card-section-title">โปรไฟล์ผู้ช่วยและบริการ</h3>
+              <div className="space-y-4">
                  <button onClick={(e) => { e.stopPropagation(); navigateTo(View.FindHelpers); }} className="btn-primary-home">
-                  <span className="text-base">🤝 หาคนช่วยงาน</span>
+                  <span className="flex items-center justify-center">
+                    <span className="text-lg mr-2">👥</span>
+                    <span>ดูโปรไฟล์ทั้งหมด</span>
+                  </span>
                 </button>
                 <button onClick={(e) => { e.stopPropagation(); currentUser ? navigateTo(View.OfferHelp) : requestLoginForAction(View.OfferHelp); }} className="btn-secondary-home">
-                  <span className="text-base">💪 เสนอตัวช่วยงาน</span>
+                  <span className="flex items-center justify-center">
+                    <span className="text-lg mr-2">🙋</span>
+                    <span>สร้างโปรไฟล์</span>
+                  </span>
                 </button>
               </div>
             </div>
@@ -591,7 +603,7 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     if (isLoadingAuth || isLoadingData) {
-      return <div className="text-center p-10 font-sans text-xl">Loading...</div>;
+      return <div className="text-center p-10 font-sans text-xl">กำลังโหลด ✨</div>;
     }
     switch (currentView) {
       case View.Home: return renderHome();
