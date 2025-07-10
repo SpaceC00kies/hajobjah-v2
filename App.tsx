@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -344,16 +345,16 @@ const App: React.FC = () => {
                 HAJOBJA.COM
                 </span>
             </div>
+            {currentUser && (
+                <div className="hidden lg:flex items-center gap-2 font-sans font-medium text-primary-dark whitespace-nowrap">
+                    สวัสดี, {currentUser.publicDisplayName}!
+                    {currentUser.activityBadge?.isActive && <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm" />}
+                </div>
+            )}
           </div>
 
           <div>
-            <nav className="hidden lg:flex items-center space-x-4">
-                {currentUser && (
-                    <div className="flex items-center gap-2 font-sans font-medium text-primary-dark whitespace-nowrap">
-                        สวัสดี, {currentUser.publicDisplayName}!
-                        {currentUser.activityBadge?.isActive && <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm" />}
-                    </div>
-                )}
+            <nav className="hidden lg:flex items-center space-x-2">
                 {renderNavLinks(false)}
             </nav>
             <div className="lg:hidden">
@@ -414,7 +415,7 @@ const App: React.FC = () => {
   const renderHome = () => {
     return (
       <div className="w-full h-full flex items-center justify-center">
-        <div className="container mx-auto flex flex-col items-center px-6 text-center">
+        <div className="container mx-auto flex flex-col items-center px-6 text-center py-12 sm:py-20">
           <h1 className="hero-title">✨ หาจ๊อบจ้า ✨</h1>
           <p className="hero-subtitle">แพลตฟอร์มที่อยู่เคียงข้างคนขยัน</p>
 
