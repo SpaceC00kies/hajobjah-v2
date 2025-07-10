@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -43,23 +44,14 @@ import { FindJobsPage } from './components/FindJobsPage.tsx';
 import { FindHelpersPage } from './components/FindHelpersPage.tsx';
 
 // --- Animation Variants for Mobile Menu ---
-const sidebarVariants: Variants = {
+const panelVariants: Variants = {
   open: {
-    clipPath: `circle(150vmax at 38px 42px)`,
-    transition: {
-      type: "spring",
-      stiffness: 20,
-      restDelta: 2,
-    },
+    x: 0,
+    transition: { type: "spring", stiffness: 300, damping: 30 }
   },
   closed: {
-    clipPath: "circle(24px at 38px 42px)",
-    transition: {
-      delay: 0.3,
-      type: "spring",
-      stiffness: 400,
-      damping: 40,
-    },
+    x: "100%",
+    transition: { type: "spring", stiffness: 300, damping: 30 }
   },
 };
 
@@ -68,7 +60,7 @@ const navigationVariants: Variants = {
       transition: { staggerChildren: 0.07, delayChildren: 0.2 },
     },
     closed: {
-      transition: { staggerChildren: 0.05, staggerDirection: -1 },
+      transition: { staggerChildren: 0.05, staggerDirection: -1, when: "afterChildren" },
     },
 };
 
@@ -81,7 +73,7 @@ const menuItemVariants: Variants = {
       },
     },
     closed: {
-      y: 50,
+      y: 20,
       opacity: 0,
       transition: {
         y: { stiffness: 1000 },
@@ -234,21 +226,13 @@ const App: React.FC = () => {
     const getButtonClass = (viewTarget: View) => {
       const baseClass = 'nav-pill';
       const isActive = currentView === viewTarget;
-      const specialViews = [View.AdminDashboard, View.MyRoom];
-
       let specificClass = 'nav-pill-default';
       if (viewTarget === View.Login) { 
         specificClass = 'nav-pill-logout';
-      } else if (specialViews.includes(viewTarget)) {
+      } else if ([View.AdminDashboard, View.MyRoom].includes(viewTarget)) {
         specificClass = 'nav-pill-special';
       }
-
-      const commonClasses = `${baseClass} ${specificClass} ${isActive ? 'active' : ''}`;
-
-      if (isMobile) {
-        return `${commonClasses} w-full justify-start !text-lg !font-semibold !py-2.5 !px-4 !rounded-lg`;
-      }
-      return commonClasses;
+      return `${baseClass} ${specificClass} ${isActive ? 'active' : ''}`;
     };
     
     const navItems = currentUser ? [
@@ -275,65 +259,62 @@ const App: React.FC = () => {
       </motion.div>
     ) : null;
     
-    const renderedItems = navItems.map(item => (
-      <motion.li key={item.view} variants={menuItemVariants} className="w-full">
-        <button onClick={() => item.action ? item.action() : navigateTo(item.view)} className={getButtonClass(item.view)}>
-          <span className={navItemSpanClass}>
-            <span className="text-xl">{item.icon}</span>
-            <span>{item.label}</span>
-          </span>
-        </button>
-      </motion.li>
-    ));
+    const renderedItems = navItems.map(item => {
+      const buttonClasses = isMobile ? 'w-full text-left text-lg p-2 rounded-lg hover:bg-primary-light transition-colors' : getButtonClass(item.view);
+      return (
+        <motion.li key={item.view} variants={menuItemVariants} className="w-full">
+          <button onClick={() => item.action ? item.action() : navigateTo(item.view)} className={buttonClasses}>
+            <span className={navItemSpanClass}>
+              <span className="text-xl">{item.icon}</span>
+              <span>{item.label}</span>
+            </span>
+          </button>
+        </motion.li>
+      );
+    });
 
     return isMobile ? [mobileHeader, ...renderedItems] : renderedItems;
   };
-
-  const Path = (props: any) => (
-    <motion.path
-      fill="transparent"
-      strokeWidth="2.5"
-      stroke="var(--primary-dark)"
-      strokeLinecap="round"
-      {...props}
-    />
-  );
   
-  const MenuToggle = ({ toggle, isOpen }: { toggle: () => void, isOpen: boolean }) => (
-    <motion.button
-      onClick={toggle}
-      className="relative w-10 h-10 focus:outline-none flex items-center justify-center rounded-full hover:bg-primary-light/50 transition-colors z-50"
-      aria-label={isOpen ? "Close menu" : "Open menu"}
-      aria-expanded={isOpen}
-      animate={isOpen ? "open" : "closed"}
-      initial={false}
-    >
-      <svg width="23" height="23" viewBox="0 0 23 23">
-        <Path
-          variants={{
-            closed: { d: "M 2 2.5 L 20 2.5" },
-            open: { d: "M 3 16.5 L 17 2.5" },
-          }}
-          transition={{ duration: 0.3 }}
-        />
-        <Path
-          d="M 2 9.423 L 20 9.423"
-          variants={{
-            closed: { opacity: 1 },
-            open: { opacity: 0 },
-          }}
-          transition={{ duration: 0.1 }}
-        />
-        <Path
-          variants={{
-            closed: { d: "M 2 16.346 L 20 16.346" },
-            open: { d: "M 3 2.5 L 17 16.346" },
-          }}
-          transition={{ duration: 0.3 }}
-        />
-      </svg>
-    </motion.button>
-  );
+  const MenuToggle = ({ toggle, isOpen }: { toggle: () => void, isOpen: boolean }) => {
+    // Path component is now locally scoped to prevent it from rendering elsewhere.
+    const Path = (props: any) => (
+      <motion.path
+        fill="transparent"
+        strokeWidth="2.5"
+        stroke="var(--primary-dark)"
+        strokeLinecap="round"
+        {...props}
+      />
+    );
+
+    return (
+      <motion.button
+        onClick={toggle}
+        className="relative w-10 h-10 p-0 flex items-center justify-center rounded-full hover:bg-primary-light/50 transition-colors z-50 focus:outline-none"
+        aria-label={isOpen ? "Close menu" : "Open menu"}
+        aria-expanded={isOpen}
+        animate={isOpen ? "open" : "closed"}
+        initial={false}
+      >
+        <svg width="23" height="23" viewBox="0 0 23 23">
+          <Path
+            variants={{ closed: { d: "M 2 2.5 L 20 2.5" }, open: { d: "M 3 16.5 L 17 2.5" } }}
+            transition={{ duration: 0.3 }}
+          />
+          <Path
+            d="M 2 9.423 L 20 9.423"
+            variants={{ closed: { opacity: 1 }, open: { opacity: 0 } }}
+            transition={{ duration: 0.1 }}
+          />
+          <Path
+            variants={{ closed: { d: "M 2 16.346 L 20 16.346" }, open: { d: "M 3 2.5 L 17 16.346" } }}
+            transition={{ duration: 0.3 }}
+          />
+        </svg>
+      </motion.button>
+    );
+  };
 
   const renderHeader = () => {
       if ((currentView === View.PasswordReset && !currentUser) || isLoadingAuth) {
@@ -341,7 +322,7 @@ const App: React.FC = () => {
       }
       return (
       <header
-        className="main-navbar sticky top-0 z-30 w-full bg-white text-primary-dark p-4 sm:p-5 lg:p-6 shadow-md border-b border-primary-light"
+        className="main-navbar sticky top-0 z-40 w-full bg-white text-primary-dark p-4 sm:p-5 lg:p-6 shadow-md border-b border-primary-light"
       >
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center gap-x-4 lg:gap-x-6">
@@ -379,29 +360,33 @@ const App: React.FC = () => {
     return (
       <AnimatePresence>
         {isMobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-20 lg:hidden"
-            role="dialog"
-            aria-modal="true"
-          >
+          <>
             <motion.div
-              variants={sidebarVariants}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+              onClick={() => setIsMobileMenuOpen(false)}
+              aria-hidden="true"
+            />
+            <motion.div
+              variants={panelVariants}
               initial="closed"
               animate="open"
               exit="closed"
-              className="absolute inset-0 bg-white"
-            />
-            <motion.ul
-              variants={navigationVariants}
-              className="absolute top-28 left-0 w-full p-6 space-y-2"
+              className="fixed top-0 right-0 bottom-0 w-4/5 max-w-sm bg-white z-50 lg:hidden"
+              role="dialog"
+              aria-modal="true"
             >
-              {renderNavLinks(true)}
-            </motion.ul>
-          </motion.div>
+              <motion.ul
+                variants={navigationVariants}
+                className="flex flex-col h-full p-6 pt-24 space-y-2"
+              >
+                {renderNavLinks(true)}
+              </motion.ul>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     );
