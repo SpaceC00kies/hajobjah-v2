@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -287,54 +288,49 @@ const App: React.FC = () => {
     }
   };
 
-  const AnimatedHamburgerIcon = () => {
-    // A component for the animated SVG path
-    const Path = (props: any) => (
-      <motion.path
-        fill="transparent"
-        strokeWidth="2.5"
-        stroke="var(--primary-dark)"
-        strokeLinecap="round"
-        {...props}
-      />
-    );
-
-    return (
-      <motion.button
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="relative w-8 h-8 focus:outline-none flex items-center justify-center rounded-full hover:bg-primary-light/50 transition-colors"
-        aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
-        aria-expanded={isMobileMenuOpen}
-        animate={isMobileMenuOpen ? "open" : "closed"}
-        initial={false}
-      >
-        <svg width="20" height="20" viewBox="0 0 20 20">
-          <Path
-            variants={{
-              closed: { d: "M 2 3.5 L 18 3.5" },
-              open: { d: "M 3 16.5 L 17 2.5" },
-            }}
-            transition={{ duration: 0.3 }}
-          />
-          <Path
-            d="M 2 10 L 18 10"
-            variants={{
-              closed: { opacity: 1 },
-              open: { opacity: 0 },
-            }}
-            transition={{ duration: 0.1 }}
-          />
-          <Path
-            variants={{
-              closed: { d: "M 2 16.5 L 18 16.5" },
-              open: { d: "M 3 2.5 L 17 16.5" },
-            }}
-            transition={{ duration: 0.3 }}
-          />
-        </svg>
-      </motion.button>
-    );
-  };
+  const Path = (props: any) => (
+    <motion.path
+      fill="transparent"
+      strokeWidth="2.5"
+      stroke="var(--primary-dark)"
+      strokeLinecap="round"
+      {...props}
+    />
+  );
+  
+  const MenuToggle = ({ toggle, isOpen }: { toggle: () => void, isOpen: boolean }) => (
+    <motion.button
+      onClick={toggle}
+      className="relative w-8 h-8 focus:outline-none flex items-center justify-center rounded-full hover:bg-primary-light/50 transition-colors"
+      aria-label={isOpen ? "Close menu" : "Open menu"}
+      aria-expanded={isOpen}
+      animate={isOpen ? "open" : "closed"}
+      initial={false}
+    >
+      <svg width="23" height="23" viewBox="0 0 23 23">
+        <Path
+          variants={{
+            closed: { d: "M 2 2.5 L 20 2.5" },
+            open: { d: "M 3 16.5 L 17 2.5" },
+          }}
+        />
+        <Path
+          d="M 2 9.423 L 20 9.423"
+          variants={{
+            closed: { opacity: 1 },
+            open: { opacity: 0 },
+          }}
+          transition={{ duration: 0.1 }}
+        />
+        <Path
+          variants={{
+            closed: { d: "M 2 16.346 L 20 16.346" },
+            open: { d: "M 3 2.5 L 17 16.346" },
+          }}
+        />
+      </svg>
+    </motion.button>
+  );
 
   const renderHeader = () => {
       if ((currentView === View.PasswordReset && !currentUser) || isLoadingAuth) {
@@ -368,7 +364,7 @@ const App: React.FC = () => {
                 {renderNavLinks(false)}
             </nav>
             <div className="lg:hidden">
-                <AnimatedHamburgerIcon />
+                <MenuToggle toggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} isOpen={isMobileMenuOpen} />
             </div>
           </div>
         </div>
