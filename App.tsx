@@ -187,27 +187,27 @@ const App: React.FC = () => {
     const activeClass = "active";
 
     const getButtonClass = (viewTarget: View) => {
-      if (isMobile) {
-        let mobileBaseClass = 'w-full text-left justify-start py-3 px-4 text-base font-medium text-primary-dark rounded-md hover:bg-primary-light';
-        if (viewTarget === View.Login) { // Logout button
-            mobileBaseClass += ' !text-red-700 hover:!bg-red-100';
-        }
-        return mobileBaseClass;
-      }
-
-      // Desktop styles
+      // Common classes for both desktop and mobile
       const baseClass = 'nav-pill';
       const isActive = currentView === viewTarget;
       const specialViews = [View.AdminDashboard, View.MyRoom];
-      
-      let specificClass = 'nav-pill-default'; // Default blue style
+
+      let specificClass = 'nav-pill-default';
       if (viewTarget === View.Login) { // Represents logout when logged in
         specificClass = 'nav-pill-logout';
       } else if (specialViews.includes(viewTarget)) {
         specificClass = 'nav-pill-special';
       }
-      
-      return `${baseClass} ${specificClass} ${isActive ? activeClass : ''}`;
+
+      const commonClasses = `${baseClass} ${specificClass} ${isActive ? 'active' : ''}`;
+
+      if (isMobile) {
+        // Apply mobile-specific overrides for a similar look to desktop but adapted for a vertical menu.
+        return `${commonClasses} w-full justify-start !text-base !py-2.5 !px-6`;
+      }
+
+      // Return desktop classes
+      return commonClasses;
     };
 
     if (currentUser) {
