@@ -1,10 +1,4 @@
 
-
-
-
-
-
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -41,12 +35,42 @@ import { VouchModal } from './components/VouchModal.tsx';
 import { VouchesListModal } from './components/VouchesListModal.tsx';
 import { ReportVouchModal } from './components/ReportVouchModal.tsx';
 import { UserLevelBadge } from './components/UserLevelBadge.tsx';
-import { AnimatePresence, motion, type Transition, type Variants } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { getUserDisplayBadge } from './utils/userUtils.ts';
 import { BlogArticlePage } from './components/BlogArticlePage.tsx';
 import { getUserDocument } from './services/userService.ts';
 import { FindJobsPage } from './components/FindJobsPage.tsx';
 import { FindHelpersPage } from './components/FindHelpersPage.tsx';
+
+
+// Animation Variants for the Mobile Menu
+const menuBackdropVariants = {
+  open: { opacity: 1, transition: { duration: 0.3 } },
+  closed: { opacity: 0, transition: { duration: 0.3, delay: 0.2 } },
+};
+
+const menuPanelVariants = {
+  open: { x: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 30 } },
+  closed: { x: '100%', transition: { type: 'spring' as const, stiffness: 400, damping: 40 } },
+};
+
+const menuItemsContainerVariants = {
+  open: { transition: { staggerChildren: 0.07, delayChildren: 0.2 } },
+  closed: { transition: { staggerChildren: 0.05, staggerDirection: -1 } },
+};
+
+const menuItemVariants = {
+  open: {
+    y: 0,
+    opacity: 1,
+    transition: { y: { stiffness: 1000, velocity: -100 } },
+  },
+  closed: {
+    y: 50,
+    opacity: 0,
+    transition: { y: { stiffness: 1000 } },
+  },
+};
 
 
 const App: React.FC = () => {
@@ -188,153 +212,142 @@ const App: React.FC = () => {
 
   const renderNavLinks = (isMobile: boolean) => {
     const displayBadgeForProfile = getUserDisplayBadge(currentUser, allWebboardPostsForAdmin, webboardComments);
-    const navItemSpanClass = "inline-flex items-center gap-1.5";
-    const activeClass = "active";
 
     const getButtonClass = (viewTarget: View) => {
-      // Common classes for both desktop and mobile
       const baseClass = 'nav-pill';
       const isActive = currentView === viewTarget;
       const specialViews = [View.AdminDashboard, View.MyRoom];
 
       let specificClass = 'nav-pill-default';
-      if (viewTarget === View.Login) { // Represents logout when logged in
+      if (viewTarget === View.Login) { 
         specificClass = 'nav-pill-logout';
       } else if (specialViews.includes(viewTarget)) {
         specificClass = 'nav-pill-special';
       }
 
-      const commonClasses = `${baseClass} ${specificClass} ${isActive ? 'active' : ''}`;
-
-      if (isMobile) {
-        // Apply mobile-specific overrides for a similar look to desktop but adapted for a vertical menu.
-        return `${commonClasses} w-full justify-start !text-base !py-2.5 !px-6`;
-      }
-
-      // Return desktop classes
-      return commonClasses;
+      return `${baseClass} ${specificClass} ${isActive ? 'active' : ''}`;
     };
 
-    if (currentUser) {
-        return (
-          <>
-            {isMobile && (
-              <div className={`font-sans font-medium text-base mb-3 py-2 px-4 border-b border-primary-light w-full text-center text-primary-dark`}>
-                สวัสดี, {currentUser.publicDisplayName}!
-                <UserLevelBadge level={displayBadgeForProfile} size="sm" />
-                {currentUser.activityBadge?.isActive && <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm" />}
-              </div>
-            )}
-            
-            {/* Desktop greeting is now rendered in the header directly */}
+    const navItems = currentUser
+      ? [
+          ...(currentView !== View.Home ? [{ label: "หน้าแรก", emoji: "🏠", view: View.Home }] : []),
+          ...((currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer) ? [{ label: "Admin", emoji: "🔐", view: View.AdminDashboard }] : []),
+          { label: "ห้องของฉัน", emoji: "🛋️", view: View.MyRoom },
+          { label: "ประกาศงาน", emoji: "📢", view: View.FindJobs },
+          { label: "โปรไฟล์ผู้ช่วย", emoji: "👥", view: View.FindHelpers },
+          { label: "บทความ", emoji: "📖", view: View.Blog },
+          { label: "กระทู้พูดคุย", emoji: "💬", view: View.Webboard },
+          { label: "ออกจากระบบ", emoji: "🔓", view: View.Login, action: onLogout },
+        ]
+      : [
+          ...(currentView !== View.Home ? [{ label: "หน้าแรก", emoji: "🏠", view: View.Home }] : []),
+          { label: "เข้าสู่ระบบ", emoji: "🔑", view: View.Login },
+          { label: "ลงทะเบียน", emoji: "📝", view: View.Register },
+          { label: "กระทู้พูดคุย", emoji: "💬", view: View.Webboard },
+        ];
 
-            {currentView !== View.Home && (
-              <button onClick={() => navigateTo(View.Home)} className={getButtonClass(View.Home)}>
-                <span className={navItemSpanClass}><span>🏠</span><span>หน้าแรก</span></span>
-              </button>
-            )}
-            
-            {(currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer) && (
-              <button onClick={() => navigateTo(View.AdminDashboard)} className={getButtonClass(View.AdminDashboard)}>
-                 <span className={navItemSpanClass}><span>🔐</span><span>Admin</span></span>
-              </button>
-            )}
+    const mobileItemWrapper = (item: any) => (
+      <motion.div variants={menuItemVariants}>
+        <button
+          onClick={() => (item.action ? item.action() : navigateTo(item.view))}
+          className={`${getButtonClass(item.view)} w-full justify-start !text-base !py-2.5 !px-6`}
+        >
+          <span className="inline-flex items-center gap-1.5">
+            <span>{item.emoji}</span>
+            <span>{item.label}</span>
+          </span>
+        </button>
+      </motion.div>
+    );
 
-            <button onClick={() => navigateTo(View.MyRoom)} className={getButtonClass(View.MyRoom)}>
-              <span className={navItemSpanClass}><span>🛋️</span><span>ห้องของฉัน</span></span>
-            </button>
-            
-            <button onClick={() => navigateTo(View.FindJobs)} className={getButtonClass(View.FindJobs)}>
-              <span className={navItemSpanClass}><span>📢</span><span>ประกาศงาน</span></span>
-            </button>
-            
-            <button onClick={() => navigateTo(View.FindHelpers)} className={getButtonClass(View.FindHelpers)}>
-              <span className={navItemSpanClass}><span>👥</span><span>โปรไฟล์ผู้ช่วย</span></span>
-            </button>
-            
-            <button onClick={() => navigateTo(View.Blog)} className={getButtonClass(View.Blog)}>
-              <span className={navItemSpanClass}><span>📖</span><span>บทความ</span></span>
-            </button>
-            
-            <button onClick={() => navigateTo(View.Webboard)} className={getButtonClass(View.Webboard)}>
-              <span className={navItemSpanClass}><span>💬</span><span>กระทู้พูดคุย</span></span>
-            </button>
-            
-            <button onClick={onLogout} className={getButtonClass(View.Login)}>
-              <span className={navItemSpanClass}><span>🔓</span><span>ออกจากระบบ</span></span>
-            </button>
-          </>
-        );
-    } else {
-        if (currentView === View.PasswordReset) {
-            return null;
-        }
-        return (
-            <>
-              {currentView !== View.Home && (
-                <button onClick={() => navigateTo(View.Home)} className={getButtonClass(View.Home)}>
-                   <span className={navItemSpanClass}><span>🏠</span><span>หน้าแรก</span></span>
-                </button>
-              )}
-              
-              <button onClick={() => navigateTo(View.Login)} className={getButtonClass(View.Login)}>
-                  <span className={navItemSpanClass}><span>🔑</span><span>เข้าสู่ระบบ</span></span>
-              </button>
-              <button onClick={() => navigateTo(View.Register)} className={getButtonClass(View.Register)}>
-                 <span className={navItemSpanClass}><span>📝</span><span>ลงทะเบียน</span></span>
-              </button>
+    const desktopItemWrapper = (item: any) => (
+      <button
+        onClick={() => (item.action ? item.action() : navigateTo(item.view))}
+        className={getButtonClass(item.view)}
+      >
+        <span className="inline-flex items-center gap-1.5">
+          <span>{item.emoji}</span>
+          <span>{item.label}</span>
+        </span>
+      </button>
+    );
 
-              <button onClick={() => navigateTo(View.Webboard)} className={getButtonClass(View.Webboard)}>
-                <span className={navItemSpanClass}><span>💬</span><span>กระทู้พูดคุย</span></span>
-              </button>
-            </>
-        );
+    const mobileGreeting = currentUser && (
+      <motion.div
+        variants={menuItemVariants}
+        className={`font-sans font-medium text-base mb-3 py-2 px-4 border-b border-primary-light w-full text-center text-primary-dark`}
+      >
+        สวัสดี, {currentUser.publicDisplayName}!
+        <UserLevelBadge level={displayBadgeForProfile} size="sm" />
+        {currentUser.activityBadge?.isActive && <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm" />}
+      </motion.div>
+    );
+
+    if (isMobile) {
+      return (
+        <>
+          {mobileGreeting}
+          {navItems.map(item => (
+            <React.Fragment key={item.label}>{mobileItemWrapper(item)}</React.Fragment>
+          ))}
+        </>
+      );
     }
+
+    return navItems.map(item => (
+      <React.Fragment key={item.label}>{desktopItemWrapper(item)}</React.Fragment>
+    ));
   };
 
-  const Path = (props: any) => (
-    <motion.path
-      fill="transparent"
-      strokeWidth="2.5"
-      stroke="var(--primary-dark)"
-      strokeLinecap="round"
-      {...props}
-    />
-  );
-  
-  const MenuToggle = ({ toggle, isOpen }: { toggle: () => void, isOpen: boolean }) => (
-    <motion.button
-      onClick={toggle}
-      className="relative w-8 h-8 focus:outline-none flex items-center justify-center rounded-full hover:bg-primary-light/50 transition-colors"
-      aria-label={isOpen ? "Close menu" : "Open menu"}
-      aria-expanded={isOpen}
-      animate={isOpen ? "open" : "closed"}
-      initial={false}
-    >
-      <motion.svg width="23" height="23" viewBox="0 0 23 23" variants={{}}>
-        <Path
-          variants={{
-            closed: { d: "M 2 2.5 L 20 2.5" },
-            open: { d: "M 3 16.5 L 17 2.5" },
-          }}
-        />
-        <Path
-          d="M 2 9.423 L 20 9.423"
-          variants={{
-            closed: { opacity: 1 },
-            open: { opacity: 0 },
-          }}
-          transition={{ duration: 0.1 }}
-        />
-        <Path
-          variants={{
-            closed: { d: "M 2 16.346 L 20 16.346" },
-            open: { d: "M 3 2.5 L 17 16.346" },
-          }}
-        />
-      </motion.svg>
-    </motion.button>
-  );
+
+  const MenuToggle = ({ toggle, isOpen }: { toggle: () => void, isOpen: boolean }) => {
+    // This Path component is now locally scoped inside MenuToggle to prevent style conflicts.
+    const Path = (props: any) => (
+      <motion.path
+        fill="transparent"
+        strokeWidth="2.5"
+        stroke="var(--primary-dark)"
+        strokeLinecap="round"
+        {...props}
+      />
+    );
+
+    return (
+      <motion.button
+        onClick={toggle}
+        // This className ensures the button is correctly sized and aligned.
+        className="relative w-8 h-8 p-0 flex items-center justify-center rounded-full focus:outline-none hover:bg-primary-light/50 transition-colors"
+        aria-label={isOpen ? "Close menu" : "Open menu"}
+        aria-expanded={isOpen}
+        animate={isOpen ? "open" : "closed"}
+        initial={false}
+      >
+        <svg width="23" height="23" viewBox="0 0 23 23">
+          <Path
+            variants={{
+              closed: { d: "M 2 2.5 L 20 2.5" },
+              open: { d: "M 3 16.5 L 17 2.5" },
+            }}
+          />
+          <Path
+            d="M 2 9.423 L 20 9.423"
+            variants={{
+              closed: { opacity: 1 },
+              open: { opacity: 0 },
+            }}
+            transition={{ duration: 0.1 }}
+          />
+          <Path
+            variants={{
+              closed: { d: "M 2 16.346 L 20 16.346" },
+              open: { d: "M 3 2.5 L 17 16.346" },
+            }}
+          />
+        </svg>
+      </motion.button>
+    );
+  };
+
 
   const renderHeader = () => {
       if ((currentView === View.PasswordReset && !currentUser) || isLoadingAuth) {
@@ -376,50 +389,40 @@ const App: React.FC = () => {
     );
   };
   
-  const renderMobileMenu = () => {
-    return (
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true">
-             <motion.div
-              key="backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 } as Transition}
-              className="fixed inset-0 bg-neutral-dark/60 backdrop-blur-sm"
-              onClick={() => setIsMobileMenuOpen(false)}
-              aria-hidden="true"
-            />
+  const renderMobileMenu = () => (
+    <AnimatePresence>
+      {isMobileMenuOpen && (
+        <motion.div
+          className="fixed inset-0 z-40 lg:hidden"
+          role="dialog"
+          aria-modal="true"
+          initial="closed"
+          animate="open"
+          exit="closed"
+        >
+          <motion.div
+            key="backdrop"
+            variants={menuBackdropVariants}
+            className="fixed inset-0 bg-neutral-dark/60 backdrop-blur-sm"
+            onClick={() => setIsMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
+          <motion.div
+            key="menuPanel"
+            variants={menuPanelVariants}
+            className="fixed top-0 right-0 h-full w-4/5 max-w-xs bg-white shadow-xl z-50 overflow-y-auto"
+          >
             <motion.div
-              key="menuPanel"
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "tween", ease: "easeInOut", duration: 0.3 } as Transition}
-              className="fixed top-0 right-0 h-full w-4/5 max-w-xs bg-white shadow-xl p-5 z-50 overflow-y-auto"
+              className="flex flex-col items-start p-5 space-y-2"
+              variants={menuItemsContainerVariants}
             >
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-lg font-sans font-semibold text-primary-dark">เมนู</h2>
-                 <button 
-                  onClick={() => setIsMobileMenuOpen(false)} 
-                  className="p-1 rounded-md text-primary-dark hover:bg-primary-light/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-light" 
-                  aria-label="Close menu"
-                >
-                  <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <nav className="flex flex-col space-y-2">
-                {renderNavLinks(true)}
-              </nav>
+              {renderNavLinks(true)}
             </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-    );
-  };
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 
 
   const renderHome = () => {
