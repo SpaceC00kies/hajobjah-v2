@@ -360,10 +360,6 @@
         display: flex;
         gap: 8px;
       }
-      /* New class for interest buttons to ensure uniform size */
-      .job-card-action-buttons .btn-interest, .helper-card-action-buttons .btn-interest {
-        min-width: 90px;
-      }
       .helper-card-trust-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
       .helper-card-trust-badge {
         font-size: 11px;
@@ -382,11 +378,6 @@
         font-weight: 500;
         text-align: center;
         border-bottom: 1px solid;
-      }
-      .status-banner-pinned { 
-        background-color: color-mix(in srgb, var(--accent-peach) 60%, transparent); 
-        color: var(--neutral-dark); 
-        border-color: var(--accent-peach); 
       }
       .status-banner-unavailable, .status-banner-suspicious { 
         background-color: color-mix(in srgb, var(--error-red) 50%, white); 
@@ -409,6 +400,23 @@
         -webkit-line-clamp: 3;
         overflow: hidden;
         text-overflow: ellipsis;
+      }
+      .card-pin-icon {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 28px;
+        height: 28px;
+        background-color: rgba(255, 255, 255, 0.6);
+        border-radius: 9999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        cursor: help;
       }
     </style>
 

@@ -96,9 +96,6 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
       <div
         className="app-card"
       >
-        {job.isPinned && (
-          <div className="job-card-status-banner status-banner-pinned">📌 ปักหมุดโดยแอดมิน</div>
-        )}
         {job.isHired && !jobIsTrulyExpired && (
           <div className="job-card-status-banner status-banner-hired">✅ มีคนทำแล้ว</div>
         )}
@@ -110,6 +107,11 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
         )}
 
         <div className="job-card-header">
+           {job.isPinned && (
+            <div className="card-pin-icon" title="ปักหมุดโดยแอดมิน">
+              📌
+            </div>
+          )}
            <div className="job-card-header-content">
                 <div 
                     className="job-card-main-title"
@@ -198,10 +200,11 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
                     variant={isInterested ? "primary" : "outline"}
                     colorScheme="primary"
                     size="sm"
+                    isIcon
+                    title={isInterested ? "เลิกสนใจ" : "สนใจ"}
                     disabled={job.isHired || jobIsTrulyExpired}
-                    className="btn-interest"
                 >
-                    {isInterested ? '⭐ สนใจแล้ว' : '⭐ สนใจ'}
+                    {isInterested ? '⭐' : '☆'}
                 </Button>
             )}
             {onEditJobFromFindView && currentUser?.id === job.userId ? (

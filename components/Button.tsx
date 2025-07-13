@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { motion } from 'framer-motion';
 
@@ -7,6 +8,7 @@ interface ButtonOwnProps {
   size?: 'sm' | 'md' | 'lg';
   children: React.ReactNode;
   colorScheme?: 'primary' | 'secondary' | 'accent' | 'neutral' | 'brandGreen';
+  isIcon?: boolean;
 }
 
 // Combine own props with all valid props for motion.button
@@ -17,6 +19,7 @@ export const Button: React.FC<ButtonProps> = ({
   variant = 'primary',
   size = 'md',
   colorScheme = 'primary',
+  isIcon = false,
   className: passedClassName,
   ...restProps 
 }) => {
@@ -66,13 +69,13 @@ export const Button: React.FC<ButtonProps> = ({
   let sizeStyle = '';
   switch (size) {
     case 'sm':
-      sizeStyle = 'py-1 px-3 text-xs';
+      sizeStyle = isIcon ? 'p-1.5 text-base' : 'py-1 px-3 text-xs';
       break;
     case 'md':
-      sizeStyle = 'py-2.5 px-6 text-sm';
+      sizeStyle = isIcon ? 'p-2.5 text-lg' : 'py-2.5 px-6 text-sm';
       break;
     case 'lg':
-      sizeStyle = 'py-3 px-8 text-base';
+      sizeStyle = isIcon ? 'p-3 text-xl' : 'py-3 px-8 text-base';
       break;
   }
 
