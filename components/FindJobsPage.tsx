@@ -125,13 +125,6 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
           <div className="sticky top-24 bg-white p-4 rounded-xl shadow-lg border border-primary-light">
             <div className="space-y-6">
                 <div>
-                    <label htmlFor="province-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">เลือกจังหวัด:</label>
-                    <select id="province-filter" value={selectedProvince} onChange={(e) => setSelectedProvince(e.target.value as Province | 'all')} className="w-full font-serif !rounded-[12px] text-base">
-                    <option value="all">ทุกจังหวัด</option>
-                    {Object.values(Province).map(prov => <option key={prov} value={prov}>{prov}</option>)}
-                    </select>
-                </div>
-                <div>
                     <label htmlFor="category-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">เลือกหมวดหมู่:</label>
                     <select id="category-filter" value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value as FilterableCategory)} className="w-full font-serif !rounded-[12px] text-base">
                         <option value="all">หมวดหมู่ทั้งหมด</option>
@@ -145,6 +138,13 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
                     {availableSubCategories.map(subCat => <option key={subCat} value={subCat}>{subCat}</option>)}
                     </select>
                 </div>
+                <div>
+                    <label htmlFor="province-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">เลือกจังหวัด:</label>
+                    <select id="province-filter" value={selectedProvince} onChange={(e) => setSelectedProvince(e.target.value as Province | 'all')} className="w-full font-serif !rounded-[12px] text-base">
+                    <option value="all">ทุกจังหวัด</option>
+                    {Object.values(Province).map(prov => <option key={prov} value={prov}>{prov}</option>)}
+                    </select>
+                </div>
                  <div>
                     <label htmlFor="main-search-input" className="sr-only">ค้นหางาน</label>
                     <input
@@ -153,7 +153,7 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         placeholder="ค้นหางาน, รายละเอียด..."
-                        className="w-full font-serif !rounded-[12px] text-base p-3.5"
+                        className="w-full font-serif !rounded-[12px] text-base"
                         aria-label="ค้นหางาน"
                     />
                 </div>
