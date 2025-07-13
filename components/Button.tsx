@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 
 // Define own props for the Button
 interface ButtonOwnProps {
-  variant?: 'primary' | 'secondary' | 'accent' | 'outline' | 'login';
+  variant?: 'primary' | 'secondary' | 'accent' | 'outline' | 'login' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   children: React.ReactNode;
   colorScheme?: 'primary' | 'secondary' | 'accent' | 'neutral' | 'brandGreen';
@@ -38,6 +38,9 @@ export const Button: React.FC<ButtonProps> = ({
       break;
     case 'login': // Alias for brandGreen
       variantStyle = `bg-brandGreen text-white hover:bg-brandGreen focus:ring-brandGreen`;
+      break;
+    case 'ghost':
+      variantStyle = `bg-transparent hover:bg-neutral-light/50 text-neutral-dark focus:ring-neutral-dark`;
       break;
     case 'outline': {
       const scheme = colorScheme;

@@ -277,24 +277,26 @@ export const HelperCard: React.FC<HelperCardProps> = ({
         </div>
 
         <div className="helper-card-footer">
-          <div className="helper-card-posted-time">
-            {formattedPostedAt}
+          <div className="flex items-center gap-2">
+            {currentUser?.id !== profile.userId && (
+              <Button
+                onClick={handleInterestClick}
+                variant="ghost"
+                colorScheme="primary"
+                size="sm"
+                isIcon
+                title={isInterested ? "เลิกสนใจ" : "สนใจ"}
+                disabled={profile.isUnavailable || profileIsTrulyExpired}
+                className="text-lg"
+              >
+                {isInterested ? '⭐' : '☆'}
+              </Button>
+            )}
+            <div className="helper-card-posted-time">
+              {formattedPostedAt}
+            </div>
           </div>
           <div className="helper-card-action-buttons">
-            {currentUser?.id !== profile.userId && (
-                <Button
-                    onClick={handleInterestClick}
-                    variant={isInterested ? "primary" : "outline"}
-                    colorScheme="primary"
-                    size="sm"
-                    isIcon
-                    title={isInterested ? "เลิกสนใจ" : "สนใจ"}
-                    disabled={profile.isUnavailable || profileIsTrulyExpired}
-                >
-                    {isInterested ? '⭐' : '☆'}
-                </Button>
-            )}
-
             {onEditProfileFromFindView && currentUser?.id === profile.userId ? (
                  <Button
                     onClick={() => onEditProfileFromFindView(profile.id)}

@@ -189,24 +189,28 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
 
 
         <div className="job-card-footer">
-          <div className="job-card-posted-time">
-            <span title="จำนวนผู้สนใจ">⭐ {job.interestedCount || 0}</span>
-            <span className="ml-2">| {formattedPostedAt}</span>
+          <div className="flex items-center gap-2 text-sm">
+            {currentUser?.id !== job.userId && (
+              <Button
+                onClick={handleInterestClick}
+                variant="ghost"
+                colorScheme="primary"
+                size="sm"
+                isIcon
+                title={isInterested ? "เลิกสนใจ" : "สนใจ"}
+                disabled={job.isHired || jobIsTrulyExpired}
+                className="text-lg"
+              >
+                {isInterested ? '⭐' : '☆'}
+              </Button>
+            )}
+            <div className="job-card-posted-time">
+              <span title="จำนวนผู้สนใจ">{job.interestedCount || 0}</span>
+              <span className="text-neutral-medium mx-1.5">|</span>
+              <span>{formattedPostedAt}</span>
+            </div>
           </div>
           <div className="job-card-action-buttons">
-            {currentUser?.id !== job.userId && (
-                <Button
-                    onClick={handleInterestClick}
-                    variant={isInterested ? "primary" : "outline"}
-                    colorScheme="primary"
-                    size="sm"
-                    isIcon
-                    title={isInterested ? "เลิกสนใจ" : "สนใจ"}
-                    disabled={job.isHired || jobIsTrulyExpired}
-                >
-                    {isInterested ? '⭐' : '☆'}
-                </Button>
-            )}
             {onEditJobFromFindView && currentUser?.id === job.userId ? (
              <Button
                 onClick={() => onEditJobFromFindView(job.id)}
