@@ -109,7 +109,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
         )}
 
         <div className="job-card-header">
-           <div className="flex-grow">
+           <div className="job-card-header-content">
                 <div 
                     className="job-card-main-title"
                     title={job.title}
@@ -129,18 +129,17 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
                         </span>
                     )}
                 </div>
+                {(job.category || job.subCategory) && (
+                  <div
+                    className="job-card-header-categories-combined"
+                    title={job.category && job.subCategory ? `${job.category} - ${job.subCategory}` : job.category || job.subCategory}
+                  >
+                    {job.category}
+                    {job.category && job.subCategory && <span className="category-separator">›</span>}
+                    {job.subCategory}
+                  </div>
+                )}
            </div>
-
-          {(job.category || job.subCategory) && (
-            <div
-              className="job-card-header-categories-combined"
-              title={job.category && job.subCategory ? `${job.category} - ${job.subCategory}` : job.category || job.subCategory}
-            >
-              {job.category}
-              {job.category && job.subCategory && <span className="category-separator">›</span>}
-              {job.subCategory}
-            </div>
-          )}
         </div>
         
         <div className="job-card-info-grid">
