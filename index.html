@@ -35,7 +35,6 @@
       }
 
       /* --- Base Form Element Styles --- */
-      /* Note: font-family is now handled by a local const in each form component */
       input, textarea, select {
         padding: 12px 16px;
         border: 1px solid var(--primary-light);
@@ -47,6 +46,7 @@
         -webkit-appearance: none;
         -moz-appearance: none;
         appearance: none;
+        width: 100%; /* Ensure form elements take full width of their container */
       }
 
       input:focus, textarea:focus, select:focus {
@@ -65,7 +65,6 @@
 
       select {
         font-family: 'Sarabun', 'ui-serif', 'Georgia', 'Cambria', '"Times New Roman"', 'Times', 'serif';
-        /* Applying user-provided styles to fix Thai character spacing */
         padding-right: 40px; /* Make space for the arrow */
         background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%234A90A4' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
         background-position: right 0.75rem center;

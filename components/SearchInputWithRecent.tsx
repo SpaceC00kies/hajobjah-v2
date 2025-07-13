@@ -48,21 +48,9 @@ export const SearchInputWithRecent: React.FC<SearchInputWithRecentProps> = ({
         value={searchTerm}
         onChange={(e) => onSearchTermChange(e.target.value)}
         onFocus={() => setIsInputFocused(true)}
-        onBlur={() => setIsInputFocused(false)} // Handle blur to hide underline
         placeholder={placeholder}
-        className="w-full p-3 bg-white border border-primary-light rounded-lg text-primary-dark placeholder-neutral-medium text-base font-sans transition-colors duration-150 ease-in-out focus:outline-none focus:bg-white" // Removed focus:ring styles
         aria-label={ariaLabel}
         autoComplete="off"
-      />
-      {/* Animated underline */}
-      <motion.div
-        className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
-        initial={{ scaleX: 0, opacity: 0 }}
-        animate={{
-          scaleX: isInputFocused ? 1 : 0,
-          opacity: isInputFocused ? 1 : 0,
-        }}
-        transition={{ duration: 0.2, ease: "easeOut" as const }}
       />
       {showRecentSearches && (
         <ul
