@@ -167,21 +167,21 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
               />
               <div>
                 <label htmlFor="province-filter-helper" className="block text-sm font-sans font-medium text-primary-dark mb-1">จังหวัด:</label>
-                <select id="province-filter-helper" value={selectedProvince} onChange={(e) => setSelectedProvince(e.target.value as Province | 'all')} className="w-full font-sans">
+                <select id="province-filter-helper" value={selectedProvince} onChange={(e) => setSelectedProvince(e.target.value as Province | 'all')} className="w-full">
                   <option value="all">ทุกจังหวัด</option>
                   {Object.values(Province).map(prov => <option key={prov} value={prov}>{prov}</option>)}
                 </select>
               </div>
               <div>
                 <label htmlFor="category-filter-helper" className="block text-sm font-sans font-medium text-primary-dark mb-1">หมวดหมู่:</label>
-                <select id="category-filter-helper" value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value as FilterableCategory)} className="w-full font-sans">
+                <select id="category-filter-helper" value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value as FilterableCategory)} className="w-full">
                     <option value="all">ทุกหมวดหมู่</option>
                     {Object.values(JobCategory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
               </div>
               <div>
                 <label htmlFor="subcategory-filter-helper" className="block text-sm font-sans font-medium text-primary-dark mb-1">หมวดหมู่ย่อย:</label>
-                <select id="subcategory-filter-helper" value={selectedSubCategory} onChange={(e) => setSelectedSubCategory(e.target.value as JobSubCategory | 'all')} disabled={availableSubCategories.length === 0} className="w-full font-sans">
+                <select id="subcategory-filter-helper" value={selectedSubCategory} onChange={(e) => setSelectedSubCategory(e.target.value as JobSubCategory | 'all')} disabled={availableSubCategories.length === 0} className="w-full">
                   <option value="all">ทุกหมวดหมู่ย่อย</option>
                   {availableSubCategories.map(subCat => <option key={subCat} value={subCat}>{subCat}</option>)}
                 </select>

@@ -16,7 +16,7 @@ export const CategoryFilterBar: React.FC<CategoryFilterBarProps> = ({
   onSelectCategory,
 }) => {
   const allItemsLabel = 'หมวดหมู่ทั้งหมด';
-  const inputBaseStyle = "w-full p-3 bg-white border border-primary-light rounded-[10px] text-primary-dark font-sans font-normal focus:outline-none transition-colors duration-150 ease-in-out";
+  const inputBaseStyle = "w-full p-3 bg-white border border-primary-light rounded-[10px] text-primary-dark font-normal focus:outline-none transition-colors duration-150 ease-in-out";
   const selectBaseStyle = `${inputBaseStyle} appearance-none`;
   // Using a neutral focus style for the dropdown, similar to form inputs
   const inputFocusStyle = "focus:border-primary-blue focus:ring-1 focus:ring-primary-blue focus:ring-opacity-50";

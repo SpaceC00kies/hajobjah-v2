@@ -126,21 +126,21 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
             <div className="space-y-6">
                 <div>
                     <label htmlFor="category-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">เลือกหมวดหมู่:</label>
-                    <select id="category-filter" value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value as FilterableCategory)} className="w-full font-sans !rounded-[12px] text-base">
+                    <select id="category-filter" value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value as FilterableCategory)} className="w-full !rounded-[12px] text-base">
                         <option value="all">หมวดหมู่ทั้งหมด</option>
                         {Object.values(JobCategory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
                     </select>
                 </div>
                 <div>
                     <label htmlFor="subcategory-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">เลือกหมวดหมู่ย่อย:</label>
-                    <select id="subcategory-filter" value={selectedSubCategory} onChange={(e) => setSelectedSubCategory(e.target.value as JobSubCategory | 'all')} disabled={availableSubCategories.length === 0} className="w-full font-sans !rounded-[12px] text-base">
+                    <select id="subcategory-filter" value={selectedSubCategory} onChange={(e) => setSelectedSubCategory(e.target.value as JobSubCategory | 'all')} disabled={availableSubCategories.length === 0} className="w-full !rounded-[12px] text-base">
                     <option value="all">หมวดหมู่ย่อยทั้งหมด</option>
                     {availableSubCategories.map(subCat => <option key={subCat} value={subCat}>{subCat}</option>)}
                     </select>
                 </div>
                 <div>
                     <label htmlFor="province-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">เลือกจังหวัด:</label>
-                    <select id="province-filter" value={selectedProvince} onChange={(e) => setSelectedProvince(e.target.value as Province | 'all')} className="w-full font-sans !rounded-[12px] text-base">
+                    <select id="province-filter" value={selectedProvince} onChange={(e) => setSelectedProvince(e.target.value as Province | 'all')} className="w-full !rounded-[12px] text-base">
                     <option value="all">ทุกจังหวัด</option>
                     {Object.values(Province).map(prov => <option key={prov} value={prov}>{prov}</option>)}
                     </select>
