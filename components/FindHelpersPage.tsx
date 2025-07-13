@@ -186,7 +186,7 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
                 </select>
               </div>
               <Button onClick={() => currentUser ? navigateTo(View.OfferHelp) : requestLoginForAction(View.OfferHelp)} variant="secondary" className="w-full !rounded-full !py-3">
-                + สร้างโปรไฟล์
+                สร้างโปรไฟล์
               </Button>
             </div>
           </div>

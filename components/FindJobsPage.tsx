@@ -156,7 +156,7 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
                         aria-label="ค้นหางาน"
                     />
                 </div>
-              <Button onClick={() => currentUser ? navigateTo(View.PostJob) : requestLoginForAction(View.PostJob)} variant="primary" className="w-full !rounded-full !py-3">
+              <Button onClick={() => currentUser ? navigateTo(View.PostJob) : requestLoginForAction(View.PostJob)} variant="secondary" className="w-full !rounded-full !py-3">
                 ลงประกาศงาน
               </Button>
             </div>
