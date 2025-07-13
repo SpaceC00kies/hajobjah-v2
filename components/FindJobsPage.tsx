@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { Job, FilterableCategory, JobSubCategory, User, PaginatedDocsResponse } from '../types/types.ts';
 import { View, JobCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
 import { JobCard } from './JobCard.tsx';
+import { Button } from './Button.tsx';
 import { SearchInputWithRecent } from './SearchInputWithRecent.tsx';
 import { getJobsPaginated } from '../services/jobService.ts';
 import { getRecentSearches, addRecentSearch } from '../utils/localStorageUtils.ts';
@@ -40,7 +41,6 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
   requestLoginForAction,
   getAuthorDisplayName,
 }) => {
-  // --- STATE MANAGEMENT: All hooks are at the top level ---
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lastVisible, setLastVisible] = useState<DocumentSnapshot | null>(null);
@@ -58,7 +58,6 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
   const recentSearchesKey = 'recentJobSearches';
   const [recentSearches, setRecentSearches] = useState<string[]>(getRecentSearches(recentSearchesKey));
 
-  // --- DATA FETCHING ---
   const loadJobs = useCallback(async (isInitialLoad = false) => {
     if (isLoading && !isInitialLoad) return;
     setIsLoading(true);
@@ -84,8 +83,6 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
     }
   }, [debouncedSearchTerm, selectedCategory, selectedSubCategory, selectedProvince, lastVisible, isLoading]);
 
-  // --- EFFECTS ---
-  // Debounce search input
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
@@ -97,12 +94,10 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  // Trigger initial load or filter change
   useEffect(() => {
     loadJobs(true);
   }, [debouncedSearchTerm, selectedCategory, selectedSubCategory, selectedProvince]);
 
-  // Update available subcategories when category changes
   useEffect(() => {
     if (selectedCategory !== 'all' && JOB_SUBCATEGORIES_MAP[selectedCategory]) {
       setAvailableSubCategories(JOB_SUBCATEGORIES_MAP[selectedCategory]);
@@ -112,7 +107,6 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
     setSelectedSubCategory('all');
   }, [selectedCategory]);
 
-  // Infinite scroll observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -133,95 +127,88 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
 
 
   return (
-    <div className="container mx-auto p-4 sm:p-6">
-      <h2 className="text-3xl font-sans font-semibold text-neutral-dark mb-6 text-center">📢 ประกาศงานทั้งหมด</h2>
-
-      {/* --- Filter Bar --- */}
-      <div className="bg-white p-4 rounded-xl shadow-md border border-primary-light mb-8 space-y-4">
-        <SearchInputWithRecent
-            searchTerm={searchTerm}
-            onSearchTermChange={setSearchTerm}
-            placeholder="ค้นหาชื่องาน, สถานที่, หรือรายละเอียด..."
-            recentSearches={recentSearches}
-            onRecentSearchSelect={handleRecentSearchSelect}
-        />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-1">
-             <label htmlFor="province-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">
-                จังหวัด:
-            </label>
-            <select
-              id="province-filter"
-              value={selectedProvince}
-              onChange={(e) => setSelectedProvince(e.target.value as Province | 'all')}
-            >
-              <option value="all">ทุกจังหวัด</option>
-              {Object.values(Province).map(prov => <option key={prov} value={prov}>{prov}</option>)}
-            </select>
-          </div>
-          <div className="md:col-span-1">
-            <label htmlFor="category-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">
-                หมวดหมู่:
-            </label>
-            <select
-                id="category-filter"
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value as FilterableCategory)}
-            >
-                <option value="all">ทุกหมวดหมู่</option>
-                {Object.values(JobCategory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
-            </select>
-          </div>
-          <div className="md:col-span-1">
-            <label htmlFor="subcategory-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">
-                หมวดหมู่ย่อย:
-            </label>
-            <select
-              id="subcategory-filter"
-              value={selectedSubCategory}
-              onChange={(e) => setSelectedSubCategory(e.target.value as JobSubCategory | 'all')}
-              disabled={availableSubCategories.length === 0}
-            >
-              <option value="all">ทุกหมวดหมู่ย่อย</option>
-              {availableSubCategories.map(subCat => <option key={subCat} value={subCat}>{subCat}</option>)}
-            </select>
-          </div>
-        </div>
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="text-center mb-8">
+        <h2 className="text-3xl font-sans font-bold text-primary-dark mb-2">📢 ประกาศงานทั้งหมด</h2>
+        <p className="text-neutral-medium font-serif">ค้นหางานพาร์ทไทม์ งานด่วน และบริการที่ตรงใจคุณ!</p>
       </div>
-      
-      {isLoading && jobs.length === 0 ? (
-        <div className="text-center py-10 text-primary-dark font-sans">กำลังโหลด...</div>
-      ) : jobs.length === 0 ? (
-        <div className="text-center py-10 bg-white rounded-lg shadow">
-          <p className="text-xl text-neutral-dark">ไม่พบประกาศงานที่ตรงกับเงื่อนไข</p>
-        </div>
-      ) : (
-        <motion.div
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          {jobs.map(job => (
-            <motion.div key={job.id} variants={itemVariants}>
-              <JobCard
-                job={job}
-                navigateTo={navigateTo}
-                currentUser={currentUser}
-                requestLoginForAction={requestLoginForAction}
-                onEditJobFromFindView={onEditJobFromFindView}
-                getAuthorDisplayName={getAuthorDisplayName}
-                onToggleInterest={userActions.toggleInterest}
-                isInterested={userInterests.some(i => i.targetId === job.id)}
-              />
-            </motion.div>
-          ))}
-        </motion.div>
-      )}
 
-      <div ref={loaderRef} className="h-10 flex justify-center items-center">
-        {isLoading && jobs.length > 0 && <p className="text-sm text-neutral-medium">กำลังโหลดเพิ่มเติม...</p>}
-        {!hasMore && jobs.length > 0 && <p className="text-sm text-neutral-medium">คุณดูครบทุกรายการแล้ว</p>}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-x-8">
+        <aside className="lg:col-span-3 mb-8 lg:mb-0">
+          <div className="sticky top-24 bg-white p-4 rounded-xl shadow-lg border border-primary-light">
+            <div className="space-y-6">
+              <SearchInputWithRecent
+                  searchTerm={searchTerm}
+                  onSearchTermChange={setSearchTerm}
+                  placeholder="ค้นหางาน, สถานที่..."
+                  recentSearches={recentSearches}
+                  onRecentSearchSelect={handleRecentSearchSelect}
+                  ariaLabel="ค้นหางาน"
+              />
+              <div>
+                <label htmlFor="province-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">จังหวัด:</label>
+                <select id="province-filter" value={selectedProvince} onChange={(e) => setSelectedProvince(e.target.value as Province | 'all')} className="w-full font-sans">
+                  <option value="all">ทุกจังหวัด</option>
+                  {Object.values(Province).map(prov => <option key={prov} value={prov}>{prov}</option>)}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="category-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">หมวดหมู่:</label>
+                <select id="category-filter" value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value as FilterableCategory)} className="w-full font-sans">
+                    <option value="all">ทุกหมวดหมู่</option>
+                    {Object.values(JobCategory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="subcategory-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">หมวดหมู่ย่อย:</label>
+                <select id="subcategory-filter" value={selectedSubCategory} onChange={(e) => setSelectedSubCategory(e.target.value as JobSubCategory | 'all')} disabled={availableSubCategories.length === 0} className="w-full font-sans">
+                  <option value="all">ทุกหมวดหมู่ย่อย</option>
+                  {availableSubCategories.map(subCat => <option key={subCat} value={subCat}>{subCat}</option>)}
+                </select>
+              </div>
+              <Button onClick={() => currentUser ? navigateTo(View.PostJob) : requestLoginForAction(View.PostJob)} variant="secondary" className="w-full">
+                + ลงประกาศงาน
+              </Button>
+            </div>
+          </div>
+        </aside>
+
+        <section className="lg:col-span-9">
+          {isLoading && jobs.length === 0 ? (
+            <div className="text-center py-10 text-primary-dark font-sans">กำลังโหลด...</div>
+          ) : jobs.length === 0 ? (
+            <div className="text-center py-10 bg-white rounded-lg shadow h-full flex items-center justify-center">
+              <p className="text-xl text-neutral-dark">ไม่พบประกาศงานที่ตรงกับเงื่อนไข</p>
+            </div>
+          ) : (
+            <motion.div
+              className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {jobs.map(job => (
+                <motion.div key={job.id} variants={itemVariants}>
+                  <JobCard
+                    job={job}
+                    navigateTo={navigateTo}
+                    currentUser={currentUser}
+                    requestLoginForAction={requestLoginForAction}
+                    onEditJobFromFindView={onEditJobFromFindView}
+                    getAuthorDisplayName={getAuthorDisplayName}
+                    onToggleInterest={userActions.toggleInterest}
+                    isInterested={userInterests.some(i => i.targetId === job.id)}
+                  />
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+
+          <div ref={loaderRef} className="h-10 flex justify-center items-center mt-4">
+            {isLoading && jobs.length > 0 && <p className="text-sm text-neutral-medium">กำลังโหลดเพิ่มเติม...</p>}
+            {!hasMore && jobs.length > 0 && <p className="text-sm text-neutral-medium mt-4">🎉 คุณดูครบทุกรายการแล้ว</p>}
+          </div>
+        </section>
       </div>
     </div>
   );
