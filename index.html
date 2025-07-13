@@ -35,7 +35,7 @@
       }
 
       /* --- Base Form Element Styles --- */
-      input, textarea, select {
+      #root input, #root textarea, #root select {
         padding: 12px 16px;
         border: 1px solid var(--primary-light);
         border-radius: 12px;
@@ -49,21 +49,21 @@
         width: 100%; /* Ensure form elements take full width of their container */
       }
 
-      input:focus, textarea:focus, select:focus {
+      #root input:focus, #root textarea:focus, #root select:focus {
         outline: none;
         border-color: var(--primary-blue);
         box-shadow: 0 0 0 3px rgba(135, 206, 235, 0.25);
       }
       
-      .input-error {
+      #root .input-error {
         border-color: var(--error-red) !important;
       }
-      .input-error:focus {
+      #root .input-error:focus {
         border-color: var(--error-red) !important;
         box-shadow: 0 0 0 3px rgba(255, 181, 181, 0.25) !important;
       }
 
-      select {
+      #root select {
         font-family: 'Sarabun', 'ui-serif', 'Georgia', 'Cambria', '"Times New Roman"', 'Times', 'serif';
         padding-right: 40px; /* Make space for the arrow */
         background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%234A90A4' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
