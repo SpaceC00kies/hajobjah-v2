@@ -20,7 +20,7 @@ export const Button: React.FC<ButtonProps> = ({
   className: passedClassName,
   ...restProps 
 }) => {
-  const baseStyle = 'font-sans font-medium rounded-full shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-opacity-60 active:shadow-inner transition-all duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none';
+  const baseStyle = 'inline-flex items-center justify-center font-sans font-medium rounded-full shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-opacity-60 active:shadow-inner transition-all duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none';
 
   let variantStyle = '';
   switch (variant) {
@@ -66,7 +66,7 @@ export const Button: React.FC<ButtonProps> = ({
   let sizeStyle = '';
   switch (size) {
     case 'sm':
-      sizeStyle = 'py-1.5 px-4 text-xs';
+      sizeStyle = 'py-1 px-3 text-xs';
       break;
     case 'md':
       sizeStyle = 'py-2.5 px-6 text-sm';

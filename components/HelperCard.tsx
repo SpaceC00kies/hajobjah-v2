@@ -286,7 +286,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({
                     colorScheme="primary"
                     size="sm"
                     disabled={profile.isUnavailable || profileIsTrulyExpired}
-                    className="!px-2.5"
+                    className="btn-interest"
                 >
                     {isInterested ? '⭐ สนใจแล้ว' : '⭐ สนใจ'}
                 </Button>

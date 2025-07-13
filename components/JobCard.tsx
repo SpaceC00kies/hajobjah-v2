@@ -199,7 +199,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
                     colorScheme="primary"
                     size="sm"
                     disabled={job.isHired || jobIsTrulyExpired}
-                    className="!px-2.5"
+                    className="btn-interest"
                 >
                     {isInterested ? '⭐ สนใจแล้ว' : '⭐ สนใจ'}
                 </Button>
