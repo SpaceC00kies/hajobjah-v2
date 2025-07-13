@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { Job, FilterableCategory, JobSubCategory, User, PaginatedDocsResponse } from '../types/types.ts';
 import { View, JobCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
@@ -140,34 +139,34 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
               <SearchInputWithRecent
                   searchTerm={searchTerm}
                   onSearchTermChange={setSearchTerm}
-                  placeholder="ค้นหางาน, สถานที่..."
+                  placeholder="ค้นหางาน, รายละเอียด..."
                   recentSearches={recentSearches}
                   onRecentSearchSelect={handleRecentSearchSelect}
                   ariaLabel="ค้นหางาน"
               />
               <div>
-                <label htmlFor="province-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">จังหวัด:</label>
+                <label htmlFor="province-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">เลือกจังหวัด:</label>
                 <select id="province-filter" value={selectedProvince} onChange={(e) => setSelectedProvince(e.target.value as Province | 'all')} className="w-full font-sans">
                   <option value="all">ทุกจังหวัด</option>
                   {Object.values(Province).map(prov => <option key={prov} value={prov}>{prov}</option>)}
                 </select>
               </div>
               <div>
-                <label htmlFor="category-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">หมวดหมู่:</label>
+                <label htmlFor="category-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">เลือกหมวดหมู่:</label>
                 <select id="category-filter" value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value as FilterableCategory)} className="w-full font-sans">
                     <option value="all">ทุกหมวดหมู่</option>
                     {Object.values(JobCategory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
               </div>
               <div>
-                <label htmlFor="subcategory-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">หมวดหมู่ย่อย:</label>
+                <label htmlFor="subcategory-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">เลือกหมวดหมู่ย่อย:</label>
                 <select id="subcategory-filter" value={selectedSubCategory} onChange={(e) => setSelectedSubCategory(e.target.value as JobSubCategory | 'all')} disabled={availableSubCategories.length === 0} className="w-full font-sans">
                   <option value="all">ทุกหมวดหมู่ย่อย</option>
                   {availableSubCategories.map(subCat => <option key={subCat} value={subCat}>{subCat}</option>)}
                 </select>
               </div>
-              <Button onClick={() => currentUser ? navigateTo(View.PostJob) : requestLoginForAction(View.PostJob)} variant="secondary" className="w-full">
-                + ลงประกาศงาน
+              <Button onClick={() => currentUser ? navigateTo(View.PostJob) : requestLoginForAction(View.PostJob)} variant="primary" className="w-full">
+                ลงประกาศงาน
               </Button>
             </div>
           </div>
