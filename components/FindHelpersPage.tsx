@@ -51,7 +51,7 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<FilterableCategory>('all');
   const [selectedSubCategory, setSelectedSubCategory] = useState<JobSubCategory | 'all'>('all');
-  const [selectedProvince, setSelectedProvince] = useState<Province | 'all'>(Province.ChiangMai);
+  const [selectedProvince, setSelectedProvince] = useState<Province | 'all'>('all');
   const [availableSubCategories, setAvailableSubCategories] = useState<JobSubCategory[]>([]);
   const { users, userInterests } = useData();
   const userActions = useUser();
@@ -156,21 +156,6 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
         <aside className="lg:col-span-3 mb-8 lg:mb-0">
           <div className="sticky top-24 bg-white p-4 rounded-xl shadow-lg border border-primary-light">
             <div className="space-y-6">
-              <SearchInputWithRecent
-                  searchTerm={searchTerm}
-                  onSearchTermChange={setSearchTerm}
-                  placeholder="ค้นหาทักษะ, พื้นที่..."
-                  recentSearches={recentSearches}
-                  onRecentSearchSelect={handleRecentSearchSelect}
-                  ariaLabel="ค้นหาโปรไฟล์ผู้ช่วย"
-              />
-              <div>
-                <label htmlFor="province-filter-helper" className="block text-sm font-sans font-medium text-primary-dark mb-1">จังหวัด:</label>
-                <select id="province-filter-helper" value={selectedProvince} onChange={(e) => setSelectedProvince(e.target.value as Province | 'all')}>
-                  <option value="all">ทุกจังหวัด</option>
-                  {Object.values(Province).map(prov => <option key={prov} value={prov}>{prov}</option>)}
-                </select>
-              </div>
               <div>
                 <label htmlFor="category-filter-helper" className="block text-sm font-sans font-medium text-primary-dark mb-1">หมวดหมู่:</label>
                 <select id="category-filter-helper" value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value as FilterableCategory)}>
@@ -185,6 +170,21 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
                   {availableSubCategories.map(subCat => <option key={subCat} value={subCat}>{subCat}</option>)}
                 </select>
               </div>
+              <div>
+                <label htmlFor="province-filter-helper" className="block text-sm font-sans font-medium text-primary-dark mb-1">จังหวัด:</label>
+                <select id="province-filter-helper" value={selectedProvince} onChange={(e) => setSelectedProvince(e.target.value as Province | 'all')}>
+                  <option value="all">ทุกจังหวัด</option>
+                  {Object.values(Province).map(prov => <option key={prov} value={prov}>{prov}</option>)}
+                </select>
+              </div>
+              <SearchInputWithRecent
+                  searchTerm={searchTerm}
+                  onSearchTermChange={setSearchTerm}
+                  placeholder="ค้นหาทักษะ, พื้นที่..."
+                  recentSearches={recentSearches}
+                  onRecentSearchSelect={handleRecentSearchSelect}
+                  ariaLabel="ค้นหาโปรไฟล์ผู้ช่วย"
+              />
               <Button onClick={() => currentUser ? navigateTo(View.OfferHelp) : requestLoginForAction(View.OfferHelp)} variant="secondary" className="w-full !rounded-full !py-3">
                 สร้างโปรไฟล์
               </Button>
