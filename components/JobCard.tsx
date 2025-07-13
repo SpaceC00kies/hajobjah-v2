@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import type { Job, User } from '../types/types.ts';
 import { View, JobCategory, JOB_CATEGORY_EMOJIS_MAP, JobDesiredEducationLevelOption, Province } from '../types/types.ts';
@@ -142,48 +143,50 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
            </div>
         </div>
         
-        <div className="job-card-info-grid">
-            {renderInfoItem("📍", job.location, "Location", `${job.location}, ${job.province}`)}
-            {renderInfoItem("💰", job.payment, "Payment")}
-            {job.dateTime && renderInfoItem("⏰", job.dateTime, "Date & Time")}
-            {job.dateNeededFrom && renderInfoItem("🗓️", `เริ่ม ${formatDateDisplay(job.dateNeededFrom)}${job.dateNeededTo ? ` - ${formatDateDisplay(job.dateNeededTo)}` : ''}`, "Dates Needed")}
-            {job.timeNeededStart && renderInfoItem("⏱️", `ช่วง ${job.timeNeededStart}${job.timeNeededEnd ? ` - ${job.timeNeededEnd}` : ''}`, "Time Needed")}
+        <div className="card-content-wrapper">
+            <div className="job-card-info-grid">
+                {renderInfoItem("📍", job.location, "Location", `${job.location}, ${job.province}`)}
+                {renderInfoItem("💰", job.payment, "Payment")}
+                {job.dateTime && renderInfoItem("⏰", job.dateTime, "Date & Time")}
+                {job.dateNeededFrom && renderInfoItem("🗓️", `เริ่ม ${formatDateDisplay(job.dateNeededFrom)}${job.dateNeededTo ? ` - ${formatDateDisplay(job.dateNeededTo)}` : ''}`, "Dates Needed")}
+                {job.timeNeededStart && renderInfoItem("⏱️", `ช่วง ${job.timeNeededStart}${job.timeNeededEnd ? ` - ${job.timeNeededEnd}` : ''}`, "Time Needed")}
+            </div>
+
+
+            <div className="job-card-details-box">
+              <h5 className="job-card-details-title text-sm">
+                รายละเอียดงาน
+              </h5>
+              <ul className="mt-1">
+                <li className={`text-xs ${detailsNeedsTruncation && !showFullDetails && !(currentUser && !jobIsTrulyExpired) ? "details-line-clamp" : ""}`}>
+                  {displayDetails}
+                </li>
+              </ul>
+              {detailsNeedsTruncation && !(currentUser && !jobIsTrulyExpired) && (
+                <button
+                    onClick={toggleShowFullDetails}
+                    className="text-xs text-primary-dark hover:underline mt-1 font-medium"
+                    aria-expanded={showFullDetails}
+                  >
+                    {showFullDetails ? "แสดงน้อยลง" : "ดูเพิ่มเติม"}
+                  </button>
+              )}
+              
+              {(job.desiredAgeStart || job.desiredAgeEnd || job.preferredGender || job.desiredEducationLevel) && (
+                <>
+                    <h6 className="text-xs font-semibold text-neutral-dark mt-3 mb-0">คุณสมบัติที่ต้องการ (ถ้ามี):</h6>
+                    <ul className="qualifications-list text-xs">
+                        {job.desiredAgeStart && <li>อายุ: {job.desiredAgeStart}{job.desiredAgeEnd ? ` - ${job.desiredAgeEnd}` : '+'} ปี</li>}
+                        {job.preferredGender && <li>เพศ: {job.preferredGender}</li>}
+                        {job.desiredEducationLevel && job.desiredEducationLevel !== JobDesiredEducationLevelOption.Any && <li>การศึกษา: {job.desiredEducationLevel}</li>}
+                    </ul>
+                </>
+              )}
+            </div>
         </div>
 
 
-        <div className="job-card-details-box">
-          <h5 className="job-card-details-title text-sm">
-            รายละเอียดงาน
-          </h5>
-          <ul className="mt-1">
-            <li className={`text-xs ${detailsNeedsTruncation && !showFullDetails && !(currentUser && !jobIsTrulyExpired) ? "details-line-clamp" : ""}`}>
-              {displayDetails}
-            </li>
-          </ul>
-          {detailsNeedsTruncation && !(currentUser && !jobIsTrulyExpired) && (
-            <button
-                onClick={toggleShowFullDetails}
-                className="text-xs text-primary-dark hover:underline mt-1 font-medium"
-                aria-expanded={showFullDetails}
-              >
-                {showFullDetails ? "แสดงน้อยลง" : "ดูเพิ่มเติม"}
-              </button>
-          )}
-          
-          {(job.desiredAgeStart || job.desiredAgeEnd || job.preferredGender || job.desiredEducationLevel) && (
-            <>
-                <h6 className="text-xs font-semibold text-neutral-dark mt-3 mb-0">คุณสมบัติที่ต้องการ (ถ้ามี):</h6>
-                <ul className="qualifications-list text-xs">
-                    {job.desiredAgeStart && <li>อายุ: {job.desiredAgeStart}{job.desiredAgeEnd ? ` - ${job.desiredAgeEnd}` : '+'} ปี</li>}
-                    {job.preferredGender && <li>เพศ: {job.preferredGender}</li>}
-                    {job.desiredEducationLevel && job.desiredEducationLevel !== JobDesiredEducationLevelOption.Any && <li>การศึกษา: {job.desiredEducationLevel}</li>}
-                </ul>
-            </>
-          )}
-        </div>
-
-
-        <div className="job-card-footer mt-auto">
+        <div className="job-card-footer">
           <div className="job-card-posted-time">
             <span title="จำนวนผู้สนใจ">⭐ {job.interestedCount || 0}</span>
             <span className="ml-2">| {formattedPostedAt}</span>

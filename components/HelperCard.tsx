@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import type { EnrichedHelperProfile, User } from '../types/types.ts';
 import { View, Province, ACTIVITY_BADGE_DETAILS } from '../types/types.ts';
@@ -242,36 +243,38 @@ export const HelperCard: React.FC<HelperCardProps> = ({
           </div>
         </div>
 
-        <div className="helper-card-info-grid">
-          <div className="helper-card-info-item">
-            <span className="info-icon" role="img" aria-label="Work area">🌐</span> {profile.area.length > 40 ? profile.area.substring(0,37) + "..." : profile.area}
+        <div className="card-content-wrapper">
+          <div className="helper-card-info-grid">
+            <div className="helper-card-info-item">
+              <span className="info-icon" role="img" aria-label="Work area">🌐</span> {profile.area.length > 40 ? profile.area.substring(0,37) + "..." : profile.area}
+            </div>
+            <div className="helper-card-info-item">
+              <span className="info-icon" role="img" aria-label="Availability">⏰</span> {getAvailabilityText()}
+            </div>
           </div>
-          <div className="helper-card-info-item">
-            <span className="info-icon" role="img" aria-label="Availability">⏰</span> {getAvailabilityText()}
+
+          <div className="helper-card-details-box">
+            <h5 className="helper-card-details-title text-sm">
+              รายละเอียด
+            </h5>
+            <ul>
+              <li className={`text-xs ${detailsNeedsTruncation && !showFullDetails && !(currentUser && !profileIsTrulyExpired) ? "details-line-clamp" : ""}`}>
+                {displayDetails}
+              </li>
+            </ul>
+            {detailsNeedsTruncation && !(currentUser && !profileIsTrulyExpired) && (
+               <button
+                  onClick={toggleShowFullDetails}
+                  className="text-xs text-primary-dark hover:underline mt-1 font-medium"
+                  aria-expanded={showFullDetails}
+                >
+                  {showFullDetails ? "แสดงน้อยลง" : "ดูเพิ่มเติม"}
+                </button>
+            )}
           </div>
         </div>
 
-        <div className="helper-card-details-box">
-          <h5 className="helper-card-details-title text-sm">
-            รายละเอียด
-          </h5>
-          <ul>
-            <li className={`text-xs ${detailsNeedsTruncation && !showFullDetails && !(currentUser && !profileIsTrulyExpired) ? "details-line-clamp" : ""}`}>
-              {displayDetails}
-            </li>
-          </ul>
-          {detailsNeedsTruncation && !(currentUser && !profileIsTrulyExpired) && (
-             <button
-                onClick={toggleShowFullDetails}
-                className="text-xs text-primary-dark hover:underline mt-1 font-medium"
-                aria-expanded={showFullDetails}
-              >
-                {showFullDetails ? "แสดงน้อยลง" : "ดูเพิ่มเติม"}
-              </button>
-          )}
-        </div>
-
-        <div className="helper-card-footer mt-auto">
+        <div className="helper-card-footer">
           <div className="helper-card-posted-time">
             {formattedPostedAt}
           </div>
