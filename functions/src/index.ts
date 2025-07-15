@@ -107,16 +107,21 @@ Analyze the user data and populate the JSON. To ensure consistency, you MUST cal
         config: { systemInstruction: systemInstructionForUserJSON, responseMimeType: "application/json", responseSchema: userAnalysisSchema, temperature: 0 },
       });
       
-      const responseText = geminiResponse.text;
-      if (!responseText) {
-        throw new functions.https.HttpsError("internal", "Orion AI returned an empty response for user analysis.");
+      if (geminiResponse.promptFeedback?.blockReason) {
+        throw new functions.https.HttpsError("invalid-argument", `Request was blocked by the API for safety reasons: ${geminiResponse.promptFeedback.blockReason}. Please rephrase your command.`);
       }
+      
+      const responseText = geminiResponse.text;
+      if (!responseText || responseText.trim() === "") {
+        throw new functions.https.HttpsError("internal", "Orion AI returned an empty response. The model may have refused to answer or encountered an error.");
+      }
+      
       let parsedData;
       try {
         parsedData = JSON.parse(responseText);
       } catch (e) {
         console.error("Failed to parse AI JSON response:", responseText, e);
-        throw new functions.https.HttpsError("internal", `Orion's response was not in the correct format. Raw response: ${responseText}`);
+        throw new functions.https.HttpsError("internal", `Orion's response was not in the correct JSON format. Raw response: ${responseText}`);
       }
       
       const formattedReply = `@${parsedData.username} - Trust Score: ${parsedData.trustScore}/100 ${parsedData.emoji}\n\nHey admin, ${parsedData.summary}.\n\nHere's what I found:\n${parsedData.findings.map((f: string) => `• ${f}`).join("\n")}\n\nMy take: ${parsedData.recommendation}`.trim().replace(/^\s*[\r\n]/gm, "");
@@ -145,16 +150,21 @@ Analyze the user data and populate the JSON. To ensure consistency, you MUST cal
         config: { systemInstruction: systemInstructionForScenarioJSON, responseMimeType: "application/json", responseSchema: scenarioAnalysisSchema, temperature: 0 },
       });
       
-      const responseText = geminiResponse.text;
-      if (!responseText) {
-          throw new functions.https.HttpsError("internal", "Orion AI returned an empty response for general analysis.");
+      if (geminiResponse.promptFeedback?.blockReason) {
+        throw new functions.https.HttpsError("invalid-argument", `Request was blocked by the API for safety reasons: ${geminiResponse.promptFeedback.blockReason}. Please rephrase your command.`);
       }
+
+      const responseText = geminiResponse.text;
+      if (!responseText || responseText.trim() === "") {
+          throw new functions.https.HttpsError("internal", "Orion AI returned an empty response. The model may have refused to answer or encountered an error.");
+      }
+
       let parsedData;
       try {
         parsedData = JSON.parse(responseText);
       } catch (e) {
         console.error("Failed to parse AI JSON response:", responseText, e);
-        throw new functions.https.HttpsError("internal", `Orion's response was not in the correct format. Raw response: ${responseText}`);
+        throw new functions.https.HttpsError("internal", `Orion's response was not in the correct JSON format. Raw response: ${responseText}`);
       }
 
       const formattedReply = `${parsedData.analysisTitle} - Fraud Risk: ${parsedData.fraudRisk}/100 ${parsedData.riskEmoji}\n\nHey admin, ${parsedData.summary}.\n\nHere's the breakdown:\n${parsedData.findings.map((f: string) => `• ${f}`).join("\n")}\n\nMy take: ${parsedData.recommendation}`.trim().replace(/^\s*[\r\n]/gm, "");
@@ -165,8 +175,8 @@ Analyze the user data and populate the JSON. To ensure consistency, you MUST cal
     if (error instanceof functions.https.HttpsError) {
       throw error; // Re-throw HttpsError instances directly
     }
-    // For other errors, wrap them in a generic internal error
-    throw new functions.https.HttpsError("internal", "An internal error occurred while processing your request.");
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+    throw new functions.https.HttpsError("internal", `An internal error occurred while processing your request: ${errorMessage}`);
   }
 });
 
