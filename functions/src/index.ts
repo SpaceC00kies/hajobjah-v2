@@ -1,17 +1,13 @@
 
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
-import { GoogleGenAI, Type } from "@google/genai";
-import type { User, Vouch, WebboardPost, WebboardComment } from "./types";
-// import type { CallableContext } from "firebase-functions/v1/https";
-
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import type { User, Vouch } from "./types";
 
 admin.initializeApp();
 const db = admin.firestore();
 
-
 export const orionAnalyze = functions.https.onCall(async (request: any) => {
-  // 1. Authentication and Authorization Check (handled by onCall)
   if (request.auth?.token?.role !== "Admin") {
     throw new functions.https.HttpsError(
       "permission-denied",
@@ -19,13 +15,14 @@ export const orionAnalyze = functions.https.onCall(async (request: any) => {
     );
   }
 
-  // 2. API Key and Argument Validation
   const geminiApiKey = functions.config().gemini?.api_key;
   if (!geminiApiKey) {
     console.error("CRITICAL: GEMINI_API_KEY environment variable not set.");
     throw new functions.https.HttpsError("failed-precondition", "Server is not configured correctly. Missing API Key.");
   }
-  const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+  
+  const genAI = new GoogleGenerativeAI(geminiApiKey);
+  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
   const command: string = request.data.command;
   if (!command || typeof command !== "string") {
@@ -35,12 +32,10 @@ export const orionAnalyze = functions.https.onCall(async (request: any) => {
     );
   }
 
-  // 3. Main Logic
   try {
     const usernameMatch = command.match(/@(\w+)/);
 
     if (usernameMatch && usernameMatch[1]) {
-      // --- USER-SPECIFIC ANALYSIS PATH ---
       const username = usernameMatch[1];
       const usersRef = db.collection("users");
       const userQuery = await usersRef.where("username", "==", username).limit(1).get();
@@ -82,43 +77,32 @@ export const orionAnalyze = functions.https.onCall(async (request: any) => {
         activitySummary: { postCount: postsQuery.size, commentCount: commentsQuery.size },
       };
 
-      const systemInstructionForUserJSON = `You are Orion, a world-class security and behavior analyst for the HAJOBJA.COM platform.
+      const combinedPrompt = `You are Orion, a world-class security and behavior analyst for the HAJOBJA.COM platform.
 Your response MUST be a valid JSON object matching this exact schema. Do not add any other text, markdown, or explanations.
 { "username": string, "trustScore": number, "emoji": "✅" | "⚠️" | "🚨", "summary": string, "findings": string[], "recommendation": string }
-Analyze the user data and populate the JSON. To ensure consistency, you MUST calculate the trustScore using this rubric: Start with 50. Account Age: <30d = -20, 6-12mo = +10, >1y = +20. Vouches Received: worked_together=+5, colleague/community=+3, personal=+1. Activity: +2/post, +0.5/comment (max +15). Red Flags: High vouches given/zero received = -10. IP match with voucher = -15. Cap score 0-100. Emoji/summary must reflect this score.`;
-
-      const userPrompt = `Analyze this JSON data and generate a report using the schema provided in the system instruction:\n\`\`\`json\n${JSON.stringify(analysisPayload, null, 2)}\n\`\`\``;
-
-      const userAnalysisSchema = {
-          type: Type.OBJECT,
-          properties: {
-              username: { type: Type.STRING },
-              trustScore: { type: Type.NUMBER },
-              emoji: { type: Type.STRING, enum: ["✅", "⚠️", "🚨"] },
-              summary: { type: Type.STRING },
-              findings: { type: Type.ARRAY, items: { type: Type.STRING } },
-              recommendation: { type: Type.STRING }
-          },
-          required: ["username", "trustScore", "emoji", "summary", "findings", "recommendation"]
-      };
-
-      const geminiResponse = await ai.models.generateContent({
-        model: "gemini-2.5-flash", contents: userPrompt,
-        config: { systemInstruction: systemInstructionForUserJSON, responseMimeType: "application/json", responseSchema: userAnalysisSchema, temperature: 0 },
-      });
+Analyze the user data and populate the JSON. To ensure consistency, you MUST calculate the trustScore using this rubric: Start with 50. Account Age: <30d = -20, 6-12mo = +10, >1y = +20. Vouches Received: worked_together=+5, colleague/community=+3, personal=+1. Activity: +2/post, +0.5/comment (max +15). Red Flags: High vouches given/zero received = -10. IP match with voucher = -15. Cap score 0-100. Emoji/summary must reflect this score.
+        
+DATA TO ANALYZE:
+\`\`\`json
+${JSON.stringify(analysisPayload, null, 2)}
+\`\`\``;
+      
+      const result = await model.generateContent(combinedPrompt);
+      const geminiResponse = result.response;
       
       if (geminiResponse.promptFeedback?.blockReason) {
         throw new functions.https.HttpsError("invalid-argument", `Request was blocked by the API for safety reasons: ${geminiResponse.promptFeedback.blockReason}. Please rephrase your command.`);
       }
       
-      const responseText = geminiResponse.text;
+      const responseText = geminiResponse.text();
       if (!responseText || responseText.trim() === "") {
         throw new functions.https.HttpsError("internal", "Orion AI returned an empty response. The model may have refused to answer or encountered an error.");
       }
       
       let parsedData;
       try {
-        parsedData = JSON.parse(responseText);
+        const cleanedText = responseText.replace(/^```json\s*/, '').replace(/```$/, '');
+        parsedData = JSON.parse(cleanedText);
       } catch (e) {
         console.error("Failed to parse AI JSON response:", responseText, e);
         throw new functions.https.HttpsError("internal", `Orion's response was not in the correct JSON format. Raw response: ${responseText}`);
@@ -128,40 +112,28 @@ Analyze the user data and populate the JSON. To ensure consistency, you MUST cal
       return { reply: formattedReply };
 
     } else {
-      // --- GENERAL SCENARIO ANALYSIS PATH ---
-      const systemInstructionForScenarioJSON = `You are Orion, an AI analyst. Your response must be a valid JSON object. Do not add other text.
-{ "analysisTitle": string, "fraudRisk": number, "riskEmoji": "✅" | "⚠️" | "🚨", "summary": string, "findings": string[], "recommendation": string }`;
+      const combinedPrompt = `You are Orion, an AI analyst. Your response must be a valid JSON object. Do not add other text.
+{ "analysisTitle": string, "fraudRisk": number, "riskEmoji": "✅" | "⚠️" | "🚨", "summary": string, "findings": string[], "recommendation": string }
 
-      const scenarioAnalysisSchema = {
-          type: Type.OBJECT,
-          properties: {
-              analysisTitle: { type: Type.STRING },
-              fraudRisk: { type: Type.NUMBER },
-              riskEmoji: { type: Type.STRING, enum: ["✅", "⚠️", "🚨"] },
-              summary: { type: Type.STRING },
-              findings: { type: Type.ARRAY, items: { type: Type.STRING } },
-              recommendation: { type: Type.STRING }
-          },
-          required: ["analysisTitle", "fraudRisk", "riskEmoji", "summary", "findings", "recommendation"]
-      };
-
-      const geminiResponse = await ai.models.generateContent({
-        model: "gemini-2.5-flash", contents: command,
-        config: { systemInstruction: systemInstructionForScenarioJSON, responseMimeType: "application/json", responseSchema: scenarioAnalysisSchema, temperature: 0 },
-      });
+USER COMMAND:
+"${command}"`;
+      
+      const result = await model.generateContent(combinedPrompt);
+      const geminiResponse = result.response;
       
       if (geminiResponse.promptFeedback?.blockReason) {
         throw new functions.https.HttpsError("invalid-argument", `Request was blocked by the API for safety reasons: ${geminiResponse.promptFeedback.blockReason}. Please rephrase your command.`);
       }
 
-      const responseText = geminiResponse.text;
+      const responseText = geminiResponse.text();
       if (!responseText || responseText.trim() === "") {
           throw new functions.https.HttpsError("internal", "Orion AI returned an empty response. The model may have refused to answer or encountered an error.");
       }
 
       let parsedData;
       try {
-        parsedData = JSON.parse(responseText);
+        const cleanedText = responseText.replace(/^```json\s*/, '').replace(/```$/, '');
+        parsedData = JSON.parse(cleanedText);
       } catch (e) {
         console.error("Failed to parse AI JSON response:", responseText, e);
         throw new functions.https.HttpsError("internal", `Orion's response was not in the correct JSON format. Raw response: ${responseText}`);
