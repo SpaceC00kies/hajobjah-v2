@@ -41,7 +41,7 @@ export const Button: React.FC<ButtonProps> = ({
       variantStyle = `bg-transparent hover:bg-neutral-light/50 text-neutral-dark focus:ring-neutral-dark`;
       break;
     case 'icon':
-      variantStyle = 'bg-transparent shadow-none hover:bg-transparent focus:outline-none focus:ring-0 focus:ring-offset-0';
+      variantStyle = 'bg-transparent shadow-none hover:shadow-none hover:bg-transparent focus:outline-none focus:ring-0 focus:ring-offset-0';
       break;
     case 'outline': {
       const scheme = colorScheme;
@@ -106,10 +106,15 @@ export const Button: React.FC<ButtonProps> = ({
     .filter(Boolean)
     .join(' ');
 
+  // Define hover animations based on variant to fix "sticky hover" on mobile
+  const hoverAnimation = variant === 'icon' 
+    ? { scale: 1.1 } // For icon, just scale, no y-transform to avoid shadow issues
+    : { scale: 1.03, y: -1 }; // For other buttons, keep the lift effect
+
   return (
     <motion.button
       className={finalClassName}
-      whileHover={{ scale: 1.03, y: -1 }}
+      whileHover={hoverAnimation} // Use the conditional animation
       whileTap={{ scale: 0.97, y: 0 }}
       transition={{ duration: 0.2, ease: "easeOut" as const }}
       {...restProps}
