@@ -213,7 +213,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
                 isIcon
                 title={isInterested ? "เลิกสนใจ" : "สนใจ"}
                 disabled={job.isHired || jobIsTrulyExpired}
-                className={`${isInterested ? 'text-amber-400 hover:text-amber-500' : 'text-neutral-medium hover:text-amber-400'} bg-transparent hover:bg-transparent focus:ring-0 shadow-none hover:shadow-none active:shadow-none`}
+                className={`${isInterested ? 'text-amber-400 hover:text-amber-500' : 'text-neutral-medium hover:text-amber-400'} bg-transparent hover:bg-transparent focus:ring-0 focus:outline-none focus-visible:outline-none shadow-none hover:shadow-none active:shadow-none`}
               >
                 <StarIcon filled={isInterested} />
               </Button>

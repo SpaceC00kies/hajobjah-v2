@@ -301,7 +301,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({
                 isIcon
                 title={isInterested ? "เลิกสนใจ" : "สนใจ"}
                 disabled={profile.isUnavailable || profileIsTrulyExpired}
-                className={`${isInterested ? 'text-amber-400 hover:text-amber-500' : 'text-neutral-medium hover:text-amber-400'} bg-transparent hover:bg-transparent focus:ring-0 shadow-none hover:shadow-none active:shadow-none`}
+                className={`${isInterested ? 'text-amber-400 hover:text-amber-500' : 'text-neutral-medium hover:text-amber-400'} bg-transparent hover:bg-transparent focus:ring-0 focus:outline-none focus-visible:outline-none shadow-none hover:shadow-none active:shadow-none`}
               >
                 <StarIcon filled={isInterested} />
               </Button>
