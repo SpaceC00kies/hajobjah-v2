@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import type { Job, User } from '../types/types.ts';
 import { View, JobCategory, JOB_CATEGORY_EMOJIS_MAP, JobDesiredEducationLevelOption, Province } from '../types/types.ts';
@@ -10,6 +11,7 @@ import { motion } from 'framer-motion';
 interface JobCardProps {
   job: Job; // Already includes posterIsAdminVerified?
   navigateTo: (view: View, payload?: any) => void; // Updated to accept payload
+  onNavigateToPublicProfile: (profileInfo: { userId: string }) => void;
   currentUser: User | null;
   requestLoginForAction: (view: View, payload?: any) => void;
   onEditJobFromFindView?: (jobId: string) => void; 
@@ -44,7 +46,7 @@ const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
   return dateObject.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, requestLoginForAction, onEditJobFromFindView, getAuthorDisplayName, onToggleInterest, isInterested }) => {
+export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, onNavigateToPublicProfile, currentUser, requestLoginForAction, onEditJobFromFindView, getAuthorDisplayName, onToggleInterest, isInterested }) => {
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
   const [showFullDetails, setShowFullDetails] = useState(false);
@@ -136,7 +138,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, currentUser, 
                 <div className="job-card-author-name-container">
                     <h3 
                         className="job-card-author-name text-sm" 
-                        onClick={() => navigateTo(View.PublicProfile, {userId: job.userId})}
+                        onClick={() => onNavigateToPublicProfile({userId: job.userId})}
                     >
                         {authorActualDisplayName}
                         <span className="name-arrow">→</span>

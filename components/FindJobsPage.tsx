@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { Job, FilterableCategory, JobSubCategory, User, PaginatedDocsResponse } from '../types/types.ts';
 import { View, JobCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
@@ -12,6 +13,7 @@ import { motion } from 'framer-motion';
 
 interface FindJobsPageProps {
   navigateTo: (view: View, payload?: any) => void;
+  onNavigateToPublicProfile: (profileInfo: { userId: string }) => void;
   onEditJobFromFindView: (jobId: string) => void;
   currentUser: User | null;
   requestLoginForAction: (view: View, payload?: any) => void;
@@ -33,6 +35,7 @@ const itemVariants = {
 
 export const FindJobsPage: React.FC<FindJobsPageProps> = ({
   navigateTo,
+  onNavigateToPublicProfile,
   onEditJobFromFindView,
   currentUser,
   requestLoginForAction,
@@ -182,6 +185,7 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
                   <JobCard
                     job={job}
                     navigateTo={navigateTo}
+                    onNavigateToPublicProfile={onNavigateToPublicProfile}
                     currentUser={currentUser}
                     requestLoginForAction={requestLoginForAction}
                     onEditJobFromFindView={onEditJobFromFindView}
