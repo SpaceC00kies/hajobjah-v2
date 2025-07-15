@@ -22,6 +22,21 @@ interface HelperCardProps {
   isInterested: boolean; // New prop
 }
 
+const StarIcon = ({ filled = false, className = "" }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill={filled ? 'currentColor' : 'none'}
+    stroke="currentColor"
+    strokeWidth={1.5}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={`w-5 h-5 ${className}`}
+  >
+    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+  </svg>
+);
+
 const FallbackAvatarDisplay: React.FC<{ name?: string, size?: string, className?: string }> = ({ name, size = "w-[80px] h-[80px]", className = "" }) => {
   const initial = name ? name.charAt(0).toUpperCase() : '👤';
   return (
@@ -282,14 +297,13 @@ export const HelperCard: React.FC<HelperCardProps> = ({
               <Button
                 onClick={handleInterestClick}
                 variant="ghost"
-                colorScheme="primary"
                 size="sm"
                 isIcon
                 title={isInterested ? "เลิกสนใจ" : "สนใจ"}
                 disabled={profile.isUnavailable || profileIsTrulyExpired}
-                className="text-lg"
+                className={isInterested ? 'text-amber-400 hover:text-amber-500' : 'text-neutral-medium hover:text-amber-400'}
               >
-                {isInterested ? '⭐' : '☆'}
+                <StarIcon filled={isInterested} />
               </Button>
             )}
             <div className="helper-card-posted-time">
