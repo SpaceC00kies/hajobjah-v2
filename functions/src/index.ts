@@ -1,3 +1,4 @@
+
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { GoogleGenAI } from "@google/genai";
@@ -171,7 +172,7 @@ Calculate the final score and cap it between 0 and 100. The emoji and summary MU
         const userPrompt = `Analyze this JSON data and generate a report using the schema provided in the system instruction:\n\`\`\`json\n${JSON.stringify(analysisPayload, null, 2)}\n\`\`\``;
 
         const geminiResponse = await ai.models.generateContent({
-          model: "gemini-2.5-flash-preview-04-17",
+          model: "gemini-2.5-flash",
           contents: userPrompt,
           config: {
             systemInstruction: systemInstructionForUserJSON,
@@ -225,7 +226,7 @@ My take: ${parsedData.recommendation}
         const userPrompt = command;
 
         const geminiResponse = await ai.models.generateContent({
-          model: "gemini-2.5-flash-preview-04-17",
+          model: "gemini-2.5-flash",
           contents: userPrompt,
           config: {
             systemInstruction: systemInstructionForScenarioJSON,
