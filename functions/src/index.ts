@@ -1,17 +1,17 @@
 
 import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { User, Vouch } from "./types";
 
 admin.initializeApp();
 const db = admin.firestore();
 
-export const orionAnalyze = functions.https.onCall(async (request: any) => {
-  if (!request.auth?.uid) {
+export const orionAnalyze = functions.https.onCall(async (data: any, context: functions.https.CallableContext) => {
+  if (!context.auth?.uid) {
     throw new functions.https.HttpsError("unauthenticated", "The function must be called while authenticated.");
   }
-  const requestingUserDoc = await db.collection("users").doc(request.auth.uid).get();
+  const requestingUserDoc = await db.collection("users").doc(context.auth.uid).get();
   if (!requestingUserDoc.exists || requestingUserDoc.data()?.role !== "Admin") {
     throw new functions.https.HttpsError(
       "permission-denied",
@@ -19,13 +19,14 @@ export const orionAnalyze = functions.https.onCall(async (request: any) => {
     );
   }
 
-  if (!process.env.API_KEY) {
+  const geminiApiKey = process.env.API_KEY;
+  if (!geminiApiKey) {
     console.error("CRITICAL: API_KEY environment variable not set.");
     throw new functions.https.HttpsError("failed-precondition", "Server is not configured correctly. Missing API Key.");
   }
-  const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
+  const genAI = new GoogleGenerativeAI(geminiApiKey);
 
-  const command: string = request.data.command;
+  const command: string = data.command;
   if (!command || typeof command !== "string") {
     throw new functions.https.HttpsError(
       "invalid-argument",
@@ -35,6 +36,7 @@ export const orionAnalyze = functions.https.onCall(async (request: any) => {
 
   try {
     const usernameMatch = command.match(/@(\w+)/);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     if (usernameMatch && usernameMatch[1]) {
       const username = usernameMatch[1];
@@ -51,11 +53,9 @@ export const orionAnalyze = functions.https.onCall(async (request: any) => {
 
       let accountAge = "N/A";
       if (userData.createdAt) {
-        const createdAt = userData.createdAt instanceof admin.firestore.Timestamp
-            ? userData.createdAt.toDate()
-            : new Date(userData.createdAt as string | Date);
-        if (!isNaN(createdAt.getTime())) {
-            const diffDays = Math.ceil(Math.abs(new Date().getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+        const createdAtDate = (userData.createdAt as any).toDate ? (userData.createdAt as any).toDate() : new Date(userData.createdAt as string);
+        if (!isNaN(createdAtDate.getTime())) {
+            const diffDays = Math.ceil(Math.abs(new Date().getTime() - createdAtDate.getTime()) / (1000 * 60 * 60 * 24));
             if (diffDays < 30) accountAge = `${diffDays} days`;
             else if (diffDays < 365) accountAge = `${Math.floor(diffDays / 30)} months`;
             else accountAge = `${Math.floor(diffDays / 365)} years`;
@@ -88,16 +88,10 @@ DATA TO ANALYZE:
 ${JSON.stringify(analysisPayload, null, 2)}
 \`\`\``;
       
-      const result = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: combinedPrompt,
-      });
+      const result = await model.generateContent(combinedPrompt);
+      const response = result.response;
+      const responseText = response.text();
       
-      if (result.promptFeedback?.blockReason) {
-        throw new functions.https.HttpsError("invalid-argument", `Request was blocked by the API for safety reasons: ${result.promptFeedback.blockReason}. Please rephrase your command.`);
-      }
-      
-      const responseText = result.text;
       if (!responseText || responseText.trim() === "") {
         throw new functions.https.HttpsError("internal", "Orion AI returned an empty response. The model may have refused to answer or encountered an error.");
       }
@@ -121,16 +115,10 @@ ${JSON.stringify(analysisPayload, null, 2)}
 USER COMMAND:
 "${command}"`;
       
-      const result = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: combinedPrompt,
-      });
+      const result = await model.generateContent(combinedPrompt);
+      const response = result.response;
+      const responseText = response.text();
       
-      if (result.promptFeedback?.blockReason) {
-        throw new functions.https.HttpsError("invalid-argument", `Request was blocked by the API for safety reasons: ${result.promptFeedback.blockReason}. Please rephrase your command.`);
-      }
-
-      const responseText = result.text;
       if (!responseText || responseText.trim() === "") {
           throw new functions.https.HttpsError("internal", "Orion AI returned an empty response. The model may have refused to answer or encountered an error.");
       }
@@ -157,16 +145,16 @@ USER COMMAND:
   }
 });
 
-export const setUserRole = functions.https.onCall(async (request: any) => {
-  if (!request.auth?.uid) {
+export const setUserRole = functions.https.onCall(async (data: any, context: functions.https.CallableContext) => {
+  if (!context.auth?.uid) {
     throw new functions.https.HttpsError("unauthenticated", "The function must be called while authenticated.");
   }
-  const adminUserDoc = await db.collection("users").doc(request.auth.uid).get();
+  const adminUserDoc = await db.collection("users").doc(context.auth.uid).get();
   if (!adminUserDoc.exists || adminUserDoc.data()?.role !== "Admin") {
     throw new functions.https.HttpsError("permission-denied", "Only administrators can set user roles.");
   }
 
-  const {userId, role} = request.data;
+  const {userId, role} = data;
   if (!userId || !role) {
     throw new functions.https.HttpsError("invalid-argument", "The function must be called with a 'userId' and 'role'.");
   }
@@ -181,13 +169,13 @@ export const setUserRole = functions.https.onCall(async (request: any) => {
   }
 });
 
-export const syncUserClaims = functions.https.onCall(async (request: any) => {
-  if (!request.auth) {
+export const syncUserClaims = functions.https.onCall(async (data: any, context: functions.https.CallableContext) => {
+  if (!context.auth) {
     throw new functions.https.HttpsError("unauthenticated", "The function must be called while authenticated.");
   }
 
-  const userId = request.auth.uid;
-  const currentTokenRole = request.auth.token.role;
+  const userId = context.auth.uid;
+  const currentTokenRole = context.auth.token.role;
   let userDoc: admin.firestore.DocumentSnapshot;
 
   try {
