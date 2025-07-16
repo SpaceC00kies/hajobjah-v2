@@ -14,7 +14,9 @@
     "react-dom": "^19.1.0",
     "firebase": "11.10.0",
     "framer-motion": "^11.3.11",
-    "recharts": "^2.12.7"
+    "recharts": "^2.12.7",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
