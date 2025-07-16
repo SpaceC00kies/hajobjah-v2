@@ -1,3 +1,4 @@
+
 {
   "name": "hajobja-com",
   "private": true,
@@ -10,18 +11,16 @@
     "deploy:functions": "npm install --prefix functions && npm run build --prefix functions && firebase deploy --only functions"
   },
   "dependencies": {
-    "firebase": "11.10.0",
-    "framer-motion": "^11.3.11",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-markdown": "^10.1.0",
-    "remark-gfm": "^4.0.1"
+    "firebase": "11.10.0",
+    "framer-motion": "^11.3.11",
+    "recharts": "^2.12.7"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^4.6.0",
-    "firebase-tools": "^13.13.2",
     "typescript": "~5.7.2",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "firebase-tools": "^13.13.2"
   }
 }

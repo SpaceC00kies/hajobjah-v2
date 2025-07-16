@@ -3,8 +3,8 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import admin from "firebase-admin";
 import { GoogleGenAI, Type } from "@google/genai";
 import type { CallableRequest } from "firebase-functions/v2/https";
-import type { User, Vouch } from './types.js';
-import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
+import { type User, type Vouch, type AdminDashboardData, JobCategory, type PlatformVitals, type ChartDataPoint, type CategoryDataPoint } from './types.js';
+import type { QueryDocumentSnapshot, Timestamp } from 'firebase-admin/firestore';
 
 
 admin.initializeApp();
@@ -193,21 +193,13 @@ ${JSON.stringify(analysisPayload, null, 2)}
       }
       const parsedData = JSON.parse(aiResponse.text);
 
-      const formattedReply = `
-**THREAT LEVEL: ${parsedData.threat_level}**
-**TRUST SCORE: ${trustScore}/100 ${emoji}**
+      const replyPayload = {
+        ...parsedData,
+        trust_score: trustScore,
+        emoji: emoji,
+      };
 
-**EXECUTIVE SUMMARY:**
-${parsedData.executive_summary}
-
-**KEY INTEL:**
-${parsedData.key_intel.map((f: string) => `• ${f}`).join("\n")}
-
-**RECOMMENDED ACTION:**
-${parsedData.recommended_action}
-`.trim().replace(/^\s*[\r\n]/gm, "");
-
-      return { reply: formattedReply };
+      return { reply: replyPayload };
 
     } else {
       // Fallback for general commands remains the same for now
@@ -226,6 +218,69 @@ ${parsedData.recommended_action}
     throw new HttpsError("internal", `An internal error occurred while processing your request: ${errorMessage}`);
   }
 });
+
+export const getAdminDashboardData = onCall(async (request: CallableRequest): Promise<AdminDashboardData> => {
+    if (!request.auth?.uid) {
+        throw new HttpsError("unauthenticated", "The function must be called while authenticated.");
+    }
+    const requestingUserDoc = await db.collection("users").doc(request.auth.uid).get();
+    if (!requestingUserDoc.exists || requestingUserDoc.data()?.role !== "Admin") {
+        throw new HttpsError("permission-denied", "Permission denied. You must be an administrator.");
+    }
+
+    try {
+        // 1. Platform Vitals
+        const now = new Date();
+        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const newUsersQuery = db.collection('users').where('createdAt', '>=', yesterday).count().get();
+        const activeJobsQuery = db.collection('jobs').where('isExpired', '!=', true).count().get();
+        const activeHelpersQuery = db.collection('helperProfiles').where('isExpired', '!=', true).count().get();
+        const pendingReportsQuery = db.collection('vouchReports').where('status', '==', 'pending_review').count().get();
+
+        const [newUsersSnap, activeJobsSnap, activeHelpersSnap, pendingReportsSnap] = await Promise.all([
+            newUsersQuery, activeJobsQuery, activeHelpersQuery, pendingReportsQuery
+        ]);
+
+        const vitals: PlatformVitals = {
+            newUsers24h: newUsersSnap.data().count,
+            activeJobs: activeJobsSnap.data().count,
+            activeHelpers: activeHelpersSnap.data().count,
+            pendingReports: pendingReportsSnap.data().count,
+        };
+
+        // 2. User Growth (last 30 days)
+        const thirtyDaysAgo = new Date(now.setDate(now.getDate() - 30));
+        const userGrowthQuery = await db.collection('users').where('createdAt', '>=', thirtyDaysAgo).orderBy('createdAt').get();
+        const userGrowthData: { [key: string]: number } = {};
+        userGrowthQuery.forEach(doc => {
+            const createdAt = (doc.data().createdAt as Timestamp).toDate();
+            const dateString = createdAt.toISOString().split('T')[0]; // YYYY-MM-DD
+            userGrowthData[dateString] = (userGrowthData[dateString] || 0) + 1;
+        });
+        const userGrowth: ChartDataPoint[] = Object.entries(userGrowthData).map(([date, count]) => ({ date, count }));
+        
+        // 3. Post Activity by Category
+        const jobsSnapshot = await db.collection('jobs').get();
+        const categoryCounts: { [key: string]: number } = {};
+        Object.values(JobCategory).forEach(cat => { categoryCounts[cat] = 0; });
+        jobsSnapshot.forEach(doc => {
+            const job = doc.data() as { category: JobCategory };
+            if (job.category && categoryCounts.hasOwnProperty(job.category)) {
+                categoryCounts[job.category]++;
+            }
+        });
+        const postActivity: CategoryDataPoint[] = Object.entries(categoryCounts)
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count);
+
+        return { vitals, userGrowth, postActivity };
+
+    } catch (error: unknown) {
+        console.error("Error in getAdminDashboardData:", error);
+        throw new HttpsError("internal", "Failed to fetch dashboard data.");
+    }
+});
+
 
 export const setUserRole = onCall(async (request: CallableRequest) => {
   if (!request.auth?.uid) {

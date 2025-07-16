@@ -1,3 +1,4 @@
+
 import type { DocumentSnapshot, DocumentData } from 'firebase/firestore';
 
 export interface PaginatedDocsResponse<T> {
@@ -619,9 +620,43 @@ export interface UserSavedWebboardPostEntry {
 }
 
 // For Orion Command Center
+export interface OrionInsightData {
+  threat_level: 'LOW' | 'GUARDED' | 'ELEVATED' | 'SEVERE' | 'CRITICAL';
+  trust_score: number;
+  emoji: string;
+  executive_summary: string;
+  key_intel: string[];
+  recommended_action: string;
+}
+
 export interface OrionMessage {
   id: string;
-  text: string;
   sender: 'user' | 'orion';
   isError?: boolean;
+  text?: string;
+  insightPayload?: OrionInsightData;
+}
+
+// Types for Admin Mission Control Dashboard
+export interface PlatformVitals {
+  newUsers24h: number;
+  activeJobs: number;
+  activeHelpers: number;
+  pendingReports: number;
+}
+
+export interface ChartDataPoint {
+  date: string; // e.g., "Jun 20"
+  count: number;
+}
+
+export interface CategoryDataPoint {
+  name: string;
+  count: number;
+}
+
+export interface AdminDashboardData {
+  vitals: PlatformVitals;
+  userGrowth: ChartDataPoint[];
+  postActivity: CategoryDataPoint[];
 }

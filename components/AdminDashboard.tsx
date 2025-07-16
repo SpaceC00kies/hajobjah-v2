@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect } from 'react';
 import type { Job, HelperProfile, User, Interaction, WebboardPost, WebboardComment, UserLevel, VouchReport, Vouch, VouchType, BlogPost } from '../types/types.ts';
 import { UserRole, VouchReportStatus, VOUCH_TYPE_LABELS } from '../types/types.ts';
@@ -12,6 +13,7 @@ import { useWebboard } from '../hooks/useWebboard.ts';
 import { useBlog } from '../hooks/useBlog.ts';
 import { formatDateDisplay } from '../utils/dateUtils.ts';
 import { checkProfileCompleteness } from '../utils/userUtils.ts';
+import { AdminOverview } from './admin/AdminOverview.tsx';
 
 export interface AdminItem {
   id: string;
@@ -33,7 +35,7 @@ export interface AdminItem {
   publishedAt?: string | Date; // For BlogPost
 }
 
-type AdminTab = 'jobs' | 'profiles' | 'webboard' | 'articles' | 'users' | 'site_controls' | 'vouch_reports' | 'orion_command_center';
+type AdminTab = 'overview' | 'jobs' | 'profiles' | 'webboard' | 'articles' | 'users' | 'site_controls' | 'vouch_reports' | 'orion_command_center';
 
 interface AdminDashboardProps {
   jobs: Job[];
@@ -68,7 +70,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   getUserDisplayBadge,
   getUserDocument,
 }) => {
-  const [activeTab, setActiveTab] = useState<AdminTab>('orion_command_center');
+  const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [blogStatusFilter, setBlogStatusFilter] = useState<'all' | 'draft' | 'published' | 'archived'>('all');
   const [selectedReport, setSelectedReport] = useState<VouchReport | null>(null);
@@ -82,6 +84,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const admin = useAdmin();
 
   useEffect(() => setSearchTerm(''), [activeTab]);
+
+  const handleSelectReport = (report: VouchReport) => {
+      setSelectedReport(report);
+      setActiveTab('vouch_reports');
+  };
 
   useEffect(() => {
     setHudAnalysis({ ipMatch: null, voucherIsNew: null, error: null });
@@ -152,6 +159,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   
   const pendingVouchReportsCount = vouchReports.filter(r => r.status === 'pending_review').length;
   let TABS: { id: AdminTab; label: string, badgeCount?: number }[] = [
+    { id: 'overview', label: '🚀 Mission Control' },
     { id: 'orion_command_center', label: 'Orion 🤖' }, { id: 'vouch_reports', label: '🛡️ รายงาน Vouch', badgeCount: pendingVouchReportsCount }, { id: 'jobs', label: '📢 งาน' }, { id: 'profiles', label: '🧑‍🔧 โปรไฟล์ผู้ช่วย' }, { id: 'webboard', label: '💬 กระทู้' }, { id: 'articles', label: '📖 บทความ' }, { id: 'users', label: '👥 จัดการผู้ใช้' }, { id: 'site_controls', label: '⚙️ ควบคุมระบบ' },
   ];
   if (currentUser?.role === UserRole.Writer) { TABS = [{ id: 'articles', label: '📖 บทความ' }]; if (activeTab !== 'articles') setActiveTab('articles'); }
@@ -160,6 +168,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     <div className="p-4 sm:p-6 bg-white shadow-lg rounded-xl">
       <h2 className="text-2xl font-sans font-semibold mb-4 text-center">🔐 Admin Dashboard</h2>
       <div className="border-b border-neutral-DEFAULT mb-4"><nav className="-mb-px flex flex-wrap gap-x-6" aria-label="Tabs">{TABS.map(tab => (<button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`${activeTab === tab.id ? 'border-secondary text-secondary' : 'border-transparent text-neutral-medium hover:text-neutral-dark hover:border-neutral-DEFAULT'} whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center gap-1`} aria-current={activeTab === tab.id ? 'page' : undefined}>{tab.label}{tab.badgeCount && tab.badgeCount > 0 ? (<span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full">{tab.badgeCount}</span>) : null}</button>))}</nav></div>
+      
+      {activeTab === 'overview' && currentUser?.role === UserRole.Admin && (
+          <AdminOverview 
+              vouchReports={vouchReports} 
+              users={users}
+              onSelectReport={handleSelectReport}
+              getAuthorDisplayName={getAuthorDisplayName}
+          />
+      )}
+
       {['jobs', 'profiles', 'webboard', 'articles', 'users'].includes(activeTab) && (<div className="mb-4 flex flex-col sm:flex-row gap-4"><input type="search" placeholder={`ค้นหาใน ${activeTab}...`} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full sm:flex-grow" />{activeTab === 'articles' && (<div className="flex-shrink-0 w-full sm:w-48"><label htmlFor="blogStatusFilter" className="sr-only">Filter by status</label><select id="blogStatusFilter" value={blogStatusFilter} onChange={e => setBlogStatusFilter(e.target.value as any)} className="w-full"><option value="all">All Statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="archived">Archived</option></select></div>)}</div>)}
       {activeTab === 'articles' && (<div><Button onClick={() => onStartEditItem({itemType: 'blogPost', originalItem: {} as BlogPost} as AdminItem)} variant="primary" size="sm" className="mb-4">+ Create New Post</Button><div className="overflow-x-auto"><table className="min-w-full divide-y divide-neutral-DEFAULT"><thead className="bg-neutral-light/50"><tr><th scope="col">Title</th><th scope="col">Author</th><th scope="col">Status</th><th scope="col">Published Date</th><th scope="col">Actions</th></tr></thead><tbody className="bg-white divide-y divide-neutral-DEFAULT">{filteredItems.filter(item => item.itemType === 'blogPost').map(item => { const canEdit = currentUser?.role === UserRole.Admin || (currentUser?.role === UserRole.Writer && item.userId === currentUser.id); return(<tr key={item.id}><td>{item.title}</td><td>{item.authorDisplayName}</td><td><span>{item.status}</span></td><td>{item.publishedAt ? formatDateDisplay(item.publishedAt) : '—'}</td><td><div>{canEdit && <Button onClick={() => onStartEditItem(item)} size="sm">Edit</Button>}{canEdit && <Button onClick={() => admin.deleteBlogPost(item.id, (item.originalItem as BlogPost).coverImageURL)} size="sm" colorScheme="accent">Delete</Button>}</div></td></tr>)})}</tbody></table></div></div>)}
       {['jobs', 'profiles', 'webboard'].includes(activeTab) && (<div className="overflow-x-auto"><table className="min-w-full divide-y divide-neutral-DEFAULT"><thead><tr><th>Title</th><th>Author</th><th>Status</th><th>Actions</th></tr></thead><tbody className="bg-white divide-y divide-neutral-DEFAULT">{filteredItems.map(item => (<tr key={`${item.itemType}-${item.id}`}><td>{item.title}</td><td>{item.authorDisplayName}</td><td>{item.isPinned && <span>Pinned </span>}{item.isSuspicious && <span>Suspicious </span>}{item.isHiredOrUnavailable && <span>Hired/Unavailable</span>}</td><td><div className="flex flex-wrap gap-2 justify-end"><Button onClick={() => onStartEditItem(item)} size="sm">Edit</Button><Button onClick={() => { if(item.itemType === 'job') deleteJob(item.id); else if (item.itemType === 'profile') deleteHelperProfile(item.id); else deleteWebboardPost(item.id); }} size="sm" colorScheme="accent">Delete</Button>{item.itemType === 'job' && (<><Button onClick={() => admin.toggleSuspiciousJob(item.id)} size="sm" variant="outline" colorScheme="accent">{item.isSuspicious ? 'Unsuspicious' : 'Suspicious'}</Button><Button onClick={() => admin.togglePinnedJob(item.id)} size="sm" variant="outline">{item.isPinned ? 'Unpin' : 'Pin'}</Button><Button onClick={() => toggleHiredJob(item.id)} size="sm" variant="outline">{item.isHiredOrUnavailable ? 'Set Available' : 'Set Hired'}</Button></>)}{item.itemType === 'profile' && (<><Button onClick={() => admin.toggleSuspiciousHelperProfile(item.id)} size="sm" variant="outline" colorScheme="accent">{item.isSuspicious ? 'Unsuspicious' : 'Suspicious'}</Button><Button onClick={() => admin.togglePinnedHelperProfile(item.id)} size="sm" variant="outline">{item.isPinned ? 'Unpin' : 'Pin'}</Button><Button onClick={() => onToggleUnavailableHelperProfileForUserOrAdmin(item.id)} size="sm" variant="outline">{item.isHiredOrUnavailable ? 'Set Available' : 'Set Unavailable'}</Button><Button onClick={() => admin.toggleVerifiedExperience(item.id)} size="sm" variant="outline">{item.adminVerifiedExperience ? 'Unverify' : 'Verify Exp.'}</Button></>)}{item.itemType === 'webboardPost' && (<Button onClick={() => admin.pinWebboardPost(item.id)} size="sm" variant="outline">{item.isPinned ? 'Unpin' : 'Pin'}</Button>)}</div></td></tr>))}</tbody></table></div>)}
