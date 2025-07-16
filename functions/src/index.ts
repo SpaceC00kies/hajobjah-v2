@@ -1,11 +1,13 @@
 
-import * as functions from "firebase-functions/v1";
-import * as admin from "firebase-admin";
+import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { initializeApp } from "firebase-admin/app";
+import { getFirestore, QueryDocumentSnapshot } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 import { GoogleGenAI, Type } from "@google/genai";
-import type { User, Vouch } from "./types";
+import type { User, Vouch } from "./types.js";
 
-admin.initializeApp();
-const db = admin.firestore();
+initializeApp();
+const db = getFirestore();
 
 // Helper function to calculate the Trust Score server-side for deterministic results
 const calculateTrustScore = (userData: User, vouchesGivenCount: number, postCount: number, commentCount: number, ipMatchCount: number): number => {
@@ -44,13 +46,13 @@ const calculateTrustScore = (userData: User, vouchesGivenCount: number, postCoun
 };
 
 
-export const orionAnalyze = functions.https.onCall(async (data: any, context: functions.https.CallableContext) => {
-  if (!context.auth?.uid) {
-    throw new functions.https.HttpsError("unauthenticated", "The function must be called while authenticated.");
+export const orionAnalyze = onCall(async (request) => {
+  if (!request.auth?.uid) {
+    throw new HttpsError("unauthenticated", "The function must be called while authenticated.");
   }
-  const requestingUserDoc = await db.collection("users").doc(context.auth.uid).get();
+  const requestingUserDoc = await db.collection("users").doc(request.auth.uid).get();
   if (!requestingUserDoc.exists || requestingUserDoc.data()?.role !== "Admin") {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "permission-denied",
       "Permission denied. You must be an administrator."
     );
@@ -59,13 +61,13 @@ export const orionAnalyze = functions.https.onCall(async (data: any, context: fu
   const geminiApiKey = process.env.API_KEY;
   if (!geminiApiKey) {
     console.error("CRITICAL: API_KEY environment variable not set.");
-    throw new functions.https.HttpsError("failed-precondition", "Server is not configured correctly. Missing API Key.");
+    throw new HttpsError("failed-precondition", "Server is not configured correctly. Missing API Key.");
   }
   const ai = new GoogleGenAI({apiKey: geminiApiKey});
 
-  const command: string = data.command;
+  const command: string = request.data.command;
   if (!command || typeof command !== "string") {
-    throw new functions.https.HttpsError(
+    throw new HttpsError(
       "invalid-argument",
       "The function must be called with a 'command' string in the data payload."
     );
@@ -103,8 +105,8 @@ export const orionAnalyze = functions.https.onCall(async (data: any, context: fu
       const postsQuery = await db.collection("webboardPosts").where("userId", "==", userId).limit(10).get();
       const commentsQuery = await db.collection("webboardComments").where("userId", "==", userId).limit(20).get();
       
-      const vouchesGivenData = vouchesGivenQuery.docs.map(d => d.data() as Vouch);
-      const ipMatchCount = (await Promise.all(vouchesGivenData.map(async (vouch) => {
+      const vouchesGivenData = vouchesGivenQuery.docs.map((d: QueryDocumentSnapshot) => d.data() as Vouch);
+      const ipMatchCount = (await Promise.all(vouchesGivenData.map(async (vouch: Vouch) => {
           const voucheeDoc = await db.collection("users").doc(vouch.voucheeId).get();
           if (!voucheeDoc.exists) return false;
           const voucheeData = voucheeDoc.data() as User;
@@ -117,9 +119,9 @@ export const orionAnalyze = functions.https.onCall(async (data: any, context: fu
       
       const analysisPayload = {
         userProfile: { id: userId, username: userData.username, publicDisplayName: userData.publicDisplayName, role: userData.role, accountAge: accountAge, createdAt: userData.createdAt, vouchInfo: userData.vouchInfo, lastLoginIP: userData.lastLoginIP },
-        vouchesGiven: vouchesGivenQuery.docs.map((doc) => doc.data() as Vouch),
-        vouchesReceived: vouchesReceivedQuery.docs.map((doc) => doc.data() as Vouch),
-        latestPosts: postsQuery.docs.map((p) => {
+        vouchesGiven: vouchesGivenQuery.docs.map((doc: QueryDocumentSnapshot) => doc.data() as Vouch),
+        vouchesReceived: vouchesReceivedQuery.docs.map((doc: QueryDocumentSnapshot) => doc.data() as Vouch),
+        latestPosts: postsQuery.docs.map((p: QueryDocumentSnapshot) => {
             const postData = p.data();
             return {title: postData.title, body: postData.body.substring(0, 50)};
         }),
@@ -146,6 +148,9 @@ export const orionAnalyze = functions.https.onCall(async (data: any, context: fu
           }
       });
       
+      if (!aiResponse.text) {
+        throw new HttpsError("internal", "Orion AI failed to generate a valid JSON response.");
+      }
       const parsedData = JSON.parse(aiResponse.text);
 
       const formattedReply = `@${userData.username} - Trust Score: ${trustScore}/100 ${emoji}\n\n${parsedData.summary}\n\nHere's what I found:\n${parsedData.findings.map((f: string) => `• ${f}`).join("\n")}\n\nMy take: ${parsedData.recommendation}`.trim().replace(/^\s*[\r\n]/gm, "");
@@ -161,55 +166,55 @@ export const orionAnalyze = functions.https.onCall(async (data: any, context: fu
     }
   } catch (error) {
     console.error("Error in orionAnalyze function logic:", error);
-    if (error instanceof functions.https.HttpsError) {
+    if (error instanceof HttpsError) {
       throw error; // Re-throw HttpsError instances directly
     }
     const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-    throw new functions.https.HttpsError("internal", `An internal error occurred while processing your request: ${errorMessage}`);
+    throw new HttpsError("internal", `An internal error occurred while processing your request: ${errorMessage}`);
   }
 });
 
-export const setUserRole = functions.https.onCall(async (data: any, context: functions.https.CallableContext) => {
-  if (!context.auth?.uid) {
-    throw new functions.https.HttpsError("unauthenticated", "The function must be called while authenticated.");
+export const setUserRole = onCall(async (request) => {
+  if (!request.auth?.uid) {
+    throw new HttpsError("unauthenticated", "The function must be called while authenticated.");
   }
-  const adminUserDoc = await db.collection("users").doc(context.auth.uid).get();
+  const adminUserDoc = await db.collection("users").doc(request.auth.uid).get();
   if (!adminUserDoc.exists || adminUserDoc.data()?.role !== "Admin") {
-    throw new functions.https.HttpsError("permission-denied", "Only administrators can set user roles.");
+    throw new HttpsError("permission-denied", "Only administrators can set user roles.");
   }
 
-  const {userId, role} = data;
+  const {userId, role} = request.data;
   if (!userId || !role) {
-    throw new functions.https.HttpsError("invalid-argument", "The function must be called with a 'userId' and 'role'.");
+    throw new HttpsError("invalid-argument", "The function must be called with a 'userId' and 'role'.");
   }
 
   try {
-    await admin.auth().setCustomUserClaims(userId, {role});
+    await getAuth().setCustomUserClaims(userId, {role});
     await db.collection("users").doc(userId).update({role});
     return {status: "success", message: `Role for user ${userId} updated to ${role}.`};
   } catch (error) {
     console.error("Error setting user role:", error);
-    throw new functions.https.HttpsError("internal", "An error occurred while setting the user role.");
+    throw new HttpsError("internal", "An error occurred while setting the user role.");
   }
 });
 
-export const syncUserClaims = functions.https.onCall(async (data: any, context: functions.https.CallableContext) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError("unauthenticated", "The function must be called while authenticated.");
+export const syncUserClaims = onCall(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "The function must be called while authenticated.");
   }
 
-  const userId = context.auth.uid;
-  const currentTokenRole = context.auth.token.role;
-  let userDoc: admin.firestore.DocumentSnapshot;
+  const userId = request.auth.uid;
+  const currentTokenRole = request.auth.token.role;
+  let userDoc: FirebaseFirestore.DocumentSnapshot;
 
   try {
     userDoc = await db.collection("users").doc(userId).get();
     if (!userDoc.exists) {
-      throw new functions.https.HttpsError("not-found", "User document not found during claim sync.");
+      throw new HttpsError("not-found", "User document not found during claim sync.");
     }
   } catch (error: any) {
     console.error(`Error syncing claims for user ${userId} (Firestore read):`, error);
-    throw new functions.https.HttpsError("internal", `Failed to read user document. Error: ${error.message} (Code: ${error.code || "N/A"})`);
+    throw new HttpsError("internal", `Failed to read user document. Error: ${error.message} (Code: ${error.code || "N/A"})`);
   }
 
   const firestoreRole = userDoc.data()?.role;
@@ -221,7 +226,7 @@ export const syncUserClaims = functions.https.onCall(async (data: any, context: 
   console.log(`Syncing claims for user ${userId}. Token role: '${currentTokenRole}', Firestore role: '${firestoreRole}'.`);
 
   try {
-    await admin.auth().setCustomUserClaims(userId, {role: firestoreRole});
+    await getAuth().setCustomUserClaims(userId, {role: firestoreRole});
     console.log(`Successfully synced claims for user ${userId} to '${firestoreRole}'.`);
     return {status: "synced", newRole: firestoreRole};
   } catch (error: any) {
@@ -229,6 +234,6 @@ export const syncUserClaims = functions.https.onCall(async (data: any, context: 
         errorMessage: error.message,
         errorCode: error.code,
     });
-    throw new functions.https.HttpsError("internal", `Failed to set custom claims. This is likely an IAM permission issue. Error: ${error.message} (Code: ${error.code || "N/A"})`);
+    throw new HttpsError("internal", `Failed to set custom claims. This is likely an IAM permission issue. Error: ${error.message} (Code: ${error.code || "N/A"})`);
   }
 });

@@ -1,6 +1,7 @@
-import * as admin from "firebase-admin";
 
-type DateLike = string | Date | admin.firestore.Timestamp;
+import type { Timestamp } from "firebase-admin/firestore";
+
+type DateLike = string | Date | Timestamp;
 
 export enum Province {
   ChiangMai = 'เชียงใหม่',
