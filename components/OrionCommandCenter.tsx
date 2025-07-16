@@ -3,7 +3,7 @@ import { orionAnalyzeService } from '../services/adminService.ts';
 import type { OrionMessage } from '../types/types';
 import { Button } from './Button.tsx';
 import { motion, AnimatePresence } from 'framer-motion';
-import ReactMarkdown from 'react-markdown'; // <-- IMPORT THE NEW LIBRARY
+import ReactMarkdown from 'react-markdown'; // Import the new library
 
 const TypingIndicator = () => (
   <motion.div
@@ -12,7 +12,9 @@ const TypingIndicator = () => (
     animate={{ opacity: 1 }}
     transition={{ duration: 0.3 }}
   >
-    {/* ... Typing indicator dots ... */}
+    <motion.span className="w-2 h-2 bg-neutral-medium rounded-full" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" }} />
+    <motion.span className="w-2 h-2 bg-neutral-medium rounded-full" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.8, delay: 0.2, repeat: Infinity, ease: "easeInOut" }} />
+    <motion.span className="w-2 h-2 bg-neutral-medium rounded-full" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.8, delay: 0.4, repeat: Infinity, ease: "easeInOut" }} />
   </motion.div>
 );
 
@@ -56,7 +58,6 @@ export const OrionCommandCenter: React.FC = () => {
       let orionReplyText: string;
 
       if (typeof replyData === 'object' && replyData !== null && 'threat_level' in replyData) {
-        // --- THIS IS THE CORRECTED FORMATTING LOGIC ---
         const intelBullets = Array.isArray(replyData.key_intel)
           ? replyData.key_intel.map((item: string) => `• ${item}`).join("\n")
           : 'No intelligence data provided.';
@@ -113,7 +114,7 @@ ${replyData.recommended_action || 'No action recommended.'}
             >
               {message.sender === 'orion' && <span className="text-xl">🤖</span>}
               <div
-                className={`max-w-xl p-3 rounded-lg prose prose-sm ${
+                className={`max-w-xl p-3 rounded-lg ${
                   message.sender === 'user'
                     ? 'bg-blue-100 text-neutral-dark'
                     : message.isError
@@ -121,25 +122,46 @@ ${replyData.recommended_action || 'No action recommended.'}
                     : 'bg-neutral-light text-neutral-dark'
                 }`}
               >
-                {/* --- THIS IS THE KEY CHANGE --- */}
                 {/* Use the Markdown renderer for Orion's messages */}
                 {message.sender === 'orion' ? (
-                  <ReactMarkdown>{message.text}</ReactMarkdown>
+                  <div className="prose prose-sm">
+                    <ReactMarkdown>{message.text}</ReactMarkdown>
+                  </div>
                 ) : (
                   message.text
                 )}
-                {/* --- END KEY CHANGE --- */}
               </div>
             </motion.div>
           ))}
           {isLoading && (
-             // ...
+            <motion.div
+              key="typing"
+              className="flex items-start gap-3"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <span className="text-xl">🤖</span>
+              <div className="max-w-xl p-3 rounded-lg bg-neutral-light">
+                <TypingIndicator />
+              </div>
+            </motion.div>
           )}
         </AnimatePresence>
         <div ref={messagesEndRef} />
       </div>
       <form onSubmit={handleSubmit} className="flex gap-3">
-        {/* ... */}
+        <input
+          type="text"
+          value={inputCommand}
+          onChange={(e) => setInputCommand(e.target.value)}
+          placeholder="Enter command..."
+          className="flex-grow w-full p-3 bg-white border border-neutral-DEFAULT rounded-lg text-neutral-dark focus:outline-none focus:ring-2 focus:ring-accent"
+          disabled={isLoading}
+        />
+        <Button type="submit" variant="primary" size="md" disabled={isLoading}>
+          {isLoading ? 'Sending...' : 'Send'}
+        </Button>
       </form>
     </div>
   );
