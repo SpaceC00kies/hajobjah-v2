@@ -3,15 +3,11 @@ import { orionAnalyzeService } from '../services/adminService.ts';
 import type { OrionMessage } from '../types/types';
 import { Button } from './Button.tsx';
 import { motion, AnimatePresence } from 'framer-motion';
-import ReactMarkdown from 'react-markdown'; // Import the new library
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm'; // <-- IMPORT THE NEW PLUGIN
 
 const TypingIndicator = () => (
-  <motion.div
-    className="flex items-center space-x-1.5"
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    transition={{ duration: 0.3 }}
-  >
+  <motion.div className="flex items-center space-x-1.5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
     <motion.span className="w-2 h-2 bg-neutral-medium rounded-full" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" }} />
     <motion.span className="w-2 h-2 bg-neutral-medium rounded-full" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.8, delay: 0.2, repeat: Infinity, ease: "easeInOut" }} />
     <motion.span className="w-2 h-2 bg-neutral-medium rounded-full" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.8, delay: 0.4, repeat: Infinity, ease: "easeInOut" }} />
@@ -35,7 +31,7 @@ export const OrionCommandCenter: React.FC = () => {
   };
 
   useEffect(scrollToBottom, [messages]);
-  
+
   const handleSend = async () => {
     const command = inputCommand.trim();
     if (!command || isLoading) return;
@@ -59,7 +55,7 @@ export const OrionCommandCenter: React.FC = () => {
 
       if (typeof replyData === 'object' && replyData !== null && 'threat_level' in replyData) {
         const intelBullets = Array.isArray(replyData.key_intel)
-          ? replyData.key_intel.map((item: string) => `• ${item}`).join("\n")
+          ? replyData.key_intel.map((item: string) => `* ${item}`).join("\n")
           : 'No intelligence data provided.';
 
         orionReplyText = `
@@ -122,10 +118,9 @@ ${replyData.recommended_action || 'No action recommended.'}
                     : 'bg-neutral-light text-neutral-dark'
                 }`}
               >
-                {/* Use the Markdown renderer for Orion's messages */}
                 {message.sender === 'orion' ? (
-                  <div className="prose prose-sm">
-                    <ReactMarkdown>{message.text}</ReactMarkdown>
+                  <div className="prose prose-sm max-w-none">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.text}</ReactMarkdown>
                   </div>
                 ) : (
                   message.text
@@ -134,13 +129,7 @@ ${replyData.recommended_action || 'No action recommended.'}
             </motion.div>
           ))}
           {isLoading && (
-            <motion.div
-              key="typing"
-              className="flex items-start gap-3"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
+            <motion.div key="typing" className="flex items-start gap-3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
               <span className="text-xl">🤖</span>
               <div className="max-w-xl p-3 rounded-lg bg-neutral-light">
                 <TypingIndicator />
