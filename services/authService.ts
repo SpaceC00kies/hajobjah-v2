@@ -211,6 +211,10 @@ export const onAuthChangeService = (callback: (user: User | null) => void): (() 
         await firebaseUser.getIdToken(true);
       } catch (error) {
         logFirebaseError("onAuthChangeService.sync", error);
+        alert("A critical error occurred while synchronizing your permissions. You will be logged out. Please contact support if this issue persists.");
+        await signOut(auth); // Sign out the user because sync failed
+        callback(null);
+        return; // Stop further execution
       }
 
       const userDocRef = doc(db, 'users', firebaseUser.uid);
