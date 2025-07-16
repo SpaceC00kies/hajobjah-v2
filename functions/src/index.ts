@@ -1,21 +1,29 @@
 
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { initializeApp } from "firebase-admin/app";
-import { getFirestore, QueryDocumentSnapshot } from "firebase-admin/firestore";
-import { getAuth } from "firebase-admin/auth";
+import admin from "firebase-admin";
 import { GoogleGenAI, Type } from "@google/genai";
-import type { User, Vouch } from "./types.js";
+import type { CallableRequest } from "firebase-functions/v2/https";
+import type { User, Vouch } from './types.js';
+import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
-initializeApp();
-const db = getFirestore();
+
+admin.initializeApp();
+const db = admin.firestore();
+
+// Helper function to get error message and code safely
+const getErrorMessage = (e: unknown): { message: string, code?: string } => {
+  if (e instanceof Error) return { message: e.message, code: (e as any).code };
+  return { message: String(e) };
+};
+
 
 // Helper function to calculate the Trust Score server-side for deterministic results
-const calculateTrustScore = (userData: User, vouchesGivenCount: number, postCount: number, commentCount: number, ipMatchCount: number): number => {
+const calculateTrustScore = (userData: any, vouchesGivenCount: number, postCount: number, commentCount: number, ipMatchCount: number): number => {
     let score = 50; // Base score
 
     // Account Age
     if (userData.createdAt) {
-        const createdAtDate = (userData.createdAt as any).toDate ? (userData.createdAt as any).toDate() : new Date(userData.createdAt as string);
+        const createdAtDate = (userData.createdAt).toDate ? (userData.createdAt).toDate() : new Date(userData.createdAt);
         if (!isNaN(createdAtDate.getTime())) {
             const diffDays = Math.ceil(Math.abs(new Date().getTime() - createdAtDate.getTime()) / (1000 * 60 * 60 * 24));
             if (diffDays < 30) score -= 20;
@@ -46,7 +54,7 @@ const calculateTrustScore = (userData: User, vouchesGivenCount: number, postCoun
 };
 
 
-export const orionAnalyze = onCall(async (request) => {
+export const orionAnalyze = onCall(async (request: CallableRequest) => {
   if (!request.auth?.uid) {
     throw new HttpsError("unauthenticated", "The function must be called while authenticated.");
   }
@@ -65,7 +73,7 @@ export const orionAnalyze = onCall(async (request) => {
   }
   const ai = new GoogleGenAI({apiKey: geminiApiKey});
 
-  const command: string = request.data.command;
+  const command = request.data.command;
   if (!command || typeof command !== "string") {
     throw new HttpsError(
       "invalid-argument",
@@ -164,17 +172,17 @@ export const orionAnalyze = onCall(async (request) => {
       });
       return { reply: response.text };
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error in orionAnalyze function logic:", error);
     if (error instanceof HttpsError) {
       throw error; // Re-throw HttpsError instances directly
     }
-    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+    const errorMessage = getErrorMessage(error).message;
     throw new HttpsError("internal", `An internal error occurred while processing your request: ${errorMessage}`);
   }
 });
 
-export const setUserRole = onCall(async (request) => {
+export const setUserRole = onCall(async (request: CallableRequest) => {
   if (!request.auth?.uid) {
     throw new HttpsError("unauthenticated", "The function must be called while authenticated.");
   }
@@ -189,32 +197,33 @@ export const setUserRole = onCall(async (request) => {
   }
 
   try {
-    await getAuth().setCustomUserClaims(userId, {role});
+    await admin.auth().setCustomUserClaims(userId, {role});
     await db.collection("users").doc(userId).update({role});
     return {status: "success", message: `Role for user ${userId} updated to ${role}.`};
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error setting user role:", error);
     throw new HttpsError("internal", "An error occurred while setting the user role.");
   }
 });
 
-export const syncUserClaims = onCall(async (request) => {
+export const syncUserClaims = onCall(async (request: CallableRequest) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "The function must be called while authenticated.");
   }
 
   const userId = request.auth.uid;
   const currentTokenRole = request.auth.token.role;
-  let userDoc: FirebaseFirestore.DocumentSnapshot;
+  let userDoc;
 
   try {
     userDoc = await db.collection("users").doc(userId).get();
     if (!userDoc.exists) {
       throw new HttpsError("not-found", "User document not found during claim sync.");
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = getErrorMessage(error);
     console.error(`Error syncing claims for user ${userId} (Firestore read):`, error);
-    throw new HttpsError("internal", `Failed to read user document. Error: ${error.message} (Code: ${error.code || "N/A"})`);
+    throw new HttpsError("internal", `Failed to read user document. Error: ${err.message} (Code: ${err.code || "N/A"})`);
   }
 
   const firestoreRole = userDoc.data()?.role;
@@ -226,14 +235,15 @@ export const syncUserClaims = onCall(async (request) => {
   console.log(`Syncing claims for user ${userId}. Token role: '${currentTokenRole}', Firestore role: '${firestoreRole}'.`);
 
   try {
-    await getAuth().setCustomUserClaims(userId, {role: firestoreRole});
+    await admin.auth().setCustomUserClaims(userId, {role: firestoreRole});
     console.log(`Successfully synced claims for user ${userId} to '${firestoreRole}'.`);
     return {status: "synced", newRole: firestoreRole};
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = getErrorMessage(error);
     console.error(`CRITICAL ERROR syncing claims for user ${userId} (setCustomUserClaims):`, {
-        errorMessage: error.message,
-        errorCode: error.code,
+        errorMessage: err.message,
+        errorCode: err.code,
     });
-    throw new HttpsError("internal", `Failed to set custom claims. This is likely an IAM permission issue. Error: ${error.message} (Code: ${error.code || "N/A"})`);
+    throw new HttpsError("internal", `Failed to set custom claims. This is likely an IAM permission issue. Error: ${err.message} (Code: ${err.code || "N/A"})`);
   }
 });
