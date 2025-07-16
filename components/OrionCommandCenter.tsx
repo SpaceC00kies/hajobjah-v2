@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { orionAnalyzeService } from '../services/adminService.ts';
 import type { OrionMessage } from '../types/types';
@@ -48,27 +47,25 @@ export const OrionCommandCenter: React.FC = () => {
 
   useEffect(scrollToBottom, [messages]);
   
-  const appendMessage = (message: { text: string; from: 'user' | 'orion'; isError?: boolean }) => {
-    const newMessage: OrionMessage = {
-      id: `${message.from}-${Date.now()}`,
-      text: message.text,
-      sender: message.from,
-      isError: message.isError || false,
-    };
-    setMessages(prev => [...prev, newMessage]);
-  };
-
-
   const handleSend = async () => {
     const command = inputCommand.trim();
     if (!command || isLoading) return;
 
-    appendMessage({ text: command, from: 'user' });
+    // Add user's command to the chat
+    const userMessage: OrionMessage = { id: `user-${Date.now()}`, text: command, sender: 'user' };
+    setMessages(prev => [...prev, userMessage]);
     setInputCommand('');
     setIsLoading(true);
 
     try {
-      const result = await orionAnalyzeService({ command });
+      // Create the history to send to the backend
+      const historyForAPI = messages.map(m => ({
+        role: m.sender === 'user' ? 'user' : 'model',
+        parts: [{ text: m.text }]
+      }));
+      historyForAPI.push({ role: 'user', parts: [{ text: command }] });
+
+      const result = await orionAnalyzeService({ command: command, history: historyForAPI });
       const replyData = result.data.reply as any;
       
       let orionReplyText: string;
@@ -80,8 +77,8 @@ export const OrionCommandCenter: React.FC = () => {
           : 'No intelligence data provided.';
 
         orionReplyText = `
-**THREAT LEVEL:** ${replyData.threat_level || 'N/A'}
-**TRUST SCORE:** ${replyData.trust_score || 'N/A'}/100 ${replyData.emoji || ''}
+**THREAT LEVEL: ${replyData.threat_level || 'N/A'}**
+**TRUST SCORE: ${replyData.trust_score || 'N/A'}/100 ${replyData.emoji || ''}**
 
 **EXECUTIVE SUMMARY:**
 ${replyData.executive_summary || 'No summary provided.'}
@@ -93,7 +90,7 @@ ${intelBullets}
 ${replyData.recommended_action || 'No action recommended.'}
         `.trim().replace(/^\s*[\r\n]/gm, "");
       } else if (typeof replyData === 'string') {
-        // Handle fallback for simple string replies, which might be the case for general commands
+        // Handle fallback for simple string replies
         orionReplyText = replyData;
       } else {
         // Handle unexpected format
@@ -101,11 +98,13 @@ ${replyData.recommended_action || 'No action recommended.'}
         console.warn("Unexpected Orion response:", replyData);
       }
 
-      appendMessage({ text: orionReplyText, from: 'orion' });
+      const orionMessage: OrionMessage = { id: `orion-${Date.now()}`, text: orionReplyText, sender: 'orion' };
+      setMessages(prev => [...prev, orionMessage]);
 
     } catch (e: any) {
       const errorMessage = e.message || 'An unknown error occurred.';
-      appendMessage({ text: "Error: " + errorMessage, from: 'orion', isError: true });
+      const errorMsg: OrionMessage = { id: `error-${Date.now()}`, text: "Error: " + errorMessage, sender: 'orion', isError: true };
+      setMessages(prev => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
     }
