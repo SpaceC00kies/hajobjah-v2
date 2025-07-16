@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { orionAnalyzeService } from '../services/adminService.ts';
 import type { OrionMessage } from '../types/types';
@@ -68,8 +69,40 @@ export const OrionCommandCenter: React.FC = () => {
 
     try {
       const result = await orionAnalyzeService({ command });
-      const reply = result.data.reply;
-      appendMessage({ text: reply, from: 'orion' });
+      const replyData = result.data.reply as any;
+      
+      let orionReplyText: string;
+
+      // Check if the reply is the structured object we expect
+      if (typeof replyData === 'object' && replyData !== null && 'threat_level' in replyData) {
+        const intelBullets = Array.isArray(replyData.key_intel)
+          ? replyData.key_intel.map((item: string) => `• ${item}`).join("\n")
+          : 'No intelligence data provided.';
+
+        orionReplyText = `
+**THREAT LEVEL:** ${replyData.threat_level || 'N/A'}
+**TRUST SCORE:** ${replyData.trust_score || 'N/A'}/100 ${replyData.emoji || ''}
+
+**EXECUTIVE SUMMARY:**
+${replyData.executive_summary || 'No summary provided.'}
+
+**KEY INTEL:**
+${intelBullets}
+
+**RECOMMENDED ACTION:**
+${replyData.recommended_action || 'No action recommended.'}
+        `.trim().replace(/^\s*[\r\n]/gm, "");
+      } else if (typeof replyData === 'string') {
+        // Handle fallback for simple string replies, which might be the case for general commands
+        orionReplyText = replyData;
+      } else {
+        // Handle unexpected format
+        orionReplyText = 'Received an unexpected response format from Orion.';
+        console.warn("Unexpected Orion response:", replyData);
+      }
+
+      appendMessage({ text: orionReplyText, from: 'orion' });
+
     } catch (e: any) {
       const errorMessage = e.message || 'An unknown error occurred.';
       appendMessage({ text: "Error: " + errorMessage, from: 'orion', isError: true });
