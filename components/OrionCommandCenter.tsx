@@ -7,10 +7,10 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 const TypingIndicator = () => (
-  <motion.div className="flex items-center space-x-1.5">
-    <motion.span className="w-2 h-2 bg-neutral-medium rounded-full" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" as const }} />
-    <motion.span className="w-2 h-2 bg-neutral-medium rounded-full" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.8, delay: 0.2, repeat: Infinity, ease: "easeInOut" as const }} />
-    <motion.span className="w-2 h-2 bg-neutral-medium rounded-full" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.8, delay: 0.4, repeat: Infinity, ease: "easeInOut" as const }} />
+  <motion.div className="flex items-center space-x-1.5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
+    <motion.span className="w-2 h-2 bg-neutral-medium rounded-full" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" }} />
+    <motion.span className="w-2 h-2 bg-neutral-medium rounded-full" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.8, delay: 0.2, repeat: Infinity, ease: "easeInOut" }} />
+    <motion.span className="w-2 h-2 bg-neutral-medium rounded-full" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.8, delay: 0.4, repeat: Infinity, ease: "easeInOut" }} />
   </motion.div>
 );
 
@@ -42,7 +42,6 @@ export const OrionCommandCenter: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // The history now correctly includes the new user message before sending
       const historyForAPI = [...messages, userMessage].map(m => ({
         role: m.sender === 'user' ? 'user' : 'model',
         parts: [{ text: m.text }]
