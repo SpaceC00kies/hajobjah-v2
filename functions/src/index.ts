@@ -10,6 +10,12 @@ import type { QueryDocumentSnapshot, Timestamp } from 'firebase-admin/firestore'
 admin.initializeApp();
 const db = admin.firestore();
 
+// Common HTTPS options for all callable functions to handle CORS
+const commonHttpsOptions = {
+    cors: ["https://www.hajobja.com", "https://hajobja.com", "http://localhost:5173"],
+};
+
+
 // Helper function to get error message and code safely
 const getErrorMessage = (e: unknown): { message: string, code?: string } => {
   if (e instanceof Error) return { message: e.message, code: (e as any).code };
@@ -54,7 +60,7 @@ const calculateTrustScore = (userData: any, vouchesGivenCount: number, postCount
 };
 
 
-export const orionAnalyze = onCall(async (request: CallableRequest) => {
+export const orionAnalyze = onCall(commonHttpsOptions, async (request: CallableRequest) => {
   if (!request.auth?.uid) {
     throw new HttpsError("unauthenticated", "The function must be called while authenticated.");
   }
@@ -219,7 +225,7 @@ ${JSON.stringify(analysisPayload, null, 2)}
   }
 });
 
-export const getAdminDashboardData = onCall(async (request: CallableRequest): Promise<AdminDashboardData> => {
+export const getAdminDashboardData = onCall(commonHttpsOptions, async (request: CallableRequest): Promise<AdminDashboardData> => {
     if (!request.auth?.uid) {
         throw new HttpsError("unauthenticated", "The function must be called while authenticated.");
     }
@@ -249,7 +255,7 @@ export const getAdminDashboardData = onCall(async (request: CallableRequest): Pr
         };
 
         // 2. User Growth (last 30 days)
-        const thirtyDaysAgo = new Date(now.setDate(now.getDate() - 30));
+        const thirtyDaysAgo = new Date(new Date().setDate(new Date().getDate() - 30));
         const userGrowthQuery = await db.collection('users').where('createdAt', '>=', thirtyDaysAgo).orderBy('createdAt').get();
         const userGrowthData: { [key: string]: number } = {};
         userGrowthQuery.forEach(doc => {
@@ -282,7 +288,7 @@ export const getAdminDashboardData = onCall(async (request: CallableRequest): Pr
 });
 
 
-export const setUserRole = onCall(async (request: CallableRequest) => {
+export const setUserRole = onCall(commonHttpsOptions, async (request: CallableRequest) => {
   if (!request.auth?.uid) {
     throw new HttpsError("unauthenticated", "The function must be called while authenticated.");
   }
@@ -306,7 +312,7 @@ export const setUserRole = onCall(async (request: CallableRequest) => {
   }
 });
 
-export const syncUserClaims = onCall(async (request: CallableRequest) => {
+export const syncUserClaims = onCall(commonHttpsOptions, async (request: CallableRequest) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "The function must be called while authenticated.");
   }
@@ -347,3 +353,4 @@ export const syncUserClaims = onCall(async (request: CallableRequest) => {
     throw new HttpsError("internal", `Failed to set custom claims. This is likely an IAM permission issue. Error: ${err.message} (Code: ${err.code || "N/A"})`);
   }
 });
+
