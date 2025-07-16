@@ -34,7 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // If we are already listening to this user's doc, do nothing.
-      if (currentUser?.id === user.id && userSnapshotUnsubscribe) {
+      if (currentUser?.id === user.uid && userSnapshotUnsubscribe) {
         setIsLoadingAuth(false);
         return;
       }
@@ -45,7 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       // Set up a new real-time listener for the logged-in user's document.
-      const userDocRef = doc(db, 'users', user.id);
+      const userDocRef = doc(db, 'users', user.uid);
       userSnapshotUnsubscribe = onSnapshot(userDocRef, (docSnap) => {
         if (docSnap.exists()) {
           // Update the currentUser state with the latest data from Firestore.

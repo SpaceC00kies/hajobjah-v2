@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -209,42 +210,47 @@ const App: React.FC = () => {
   const renderNavLinks = (isMobile: boolean) => {
     const displayBadgeForProfile = getUserDisplayBadge(currentUser, allWebboardPostsForAdmin, webboardComments);
 
-    const getButtonClass = (viewTarget: View) => {
-      const baseClass = 'nav-pill';
-      const isActive = currentView === viewTarget;
-      let specificClass = 'nav-pill-default';
-
-      if (viewTarget === View.Login) { // Specifically for the logout button
-          specificClass = 'nav-pill-logout';
-      } else if ([View.AdminDashboard, View.MyRoom].includes(viewTarget)) {
-          specificClass = 'nav-pill-special';
-      }
-
-      return `${baseClass} ${specificClass} ${isActive ? 'active' : ''}`;
+    type NavItem = {
+      label: string;
+      emoji: string;
+      view: View;
+      action?: () => void;
+      specialStyle?: 'login' | 'logout' | 'special';
     };
 
-    const navItems = currentUser
+    const getButtonClass = (item: NavItem) => {
+      const baseClass = 'nav-pill';
+      const isActive = currentView === item.view;
+      
+      if (item.specialStyle === 'login') return `${baseClass} nav-pill-login`;
+      if (item.specialStyle === 'logout') return `${baseClass} nav-pill-logout`;
+      if (item.specialStyle === 'special') return `${baseClass} nav-pill-special ${isActive ? 'active' : ''}`;
+      
+      return `${baseClass} nav-pill-default ${isActive ? 'active' : ''}`;
+    };
+
+    const navItems: NavItem[] = currentUser
       ? [
           ...(currentView !== View.Home ? [{ label: "หน้าแรก", emoji: "🏠", view: View.Home }] : []),
-          ...((currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer) ? [{ label: "Admin", emoji: "🔐", view: View.AdminDashboard }] : []),
-          { label: "ห้องของฉัน", emoji: "🛋️", view: View.MyRoom },
+          ...((currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer) ? [{ label: "Admin", emoji: "🔐", view: View.AdminDashboard, specialStyle: 'special' as const }] : []),
+          { label: "ห้องของฉัน", emoji: "🛋️", view: View.MyRoom, specialStyle: 'special' as const },
           { label: "ประกาศงาน", emoji: "📢", view: View.FindJobs },
           { label: "โปรไฟล์ผู้ช่วย", emoji: "👥", view: View.FindHelpers },
           { label: "บทความ", emoji: "📖", view: View.Blog },
           { label: "กระทู้พูดคุย", emoji: "💬", view: View.Webboard },
-          { label: "ออกจากระบบ", emoji: "🔓", view: View.Login, action: onLogout },
+          { label: "ออกจากระบบ", emoji: "🔓", view: View.Login, action: onLogout, specialStyle: 'logout' as const },
         ]
       : [
           ...(currentView !== View.Home ? [{ label: "หน้าแรก", emoji: "🏠", view: View.Home }] : []),
-          { label: "เข้าสู่ระบบ", emoji: "🔑", view: View.Login },
+          { label: "เข้าสู่ระบบ", emoji: "🔑", view: View.Login, specialStyle: 'login' as const },
           { label: "ลงทะเบียน", emoji: "📝", view: View.Register },
-          { label: "กระทู้พูดคุย", emoji: "💬", view: View.Webboard },
+          { label: "บทความ", emoji: "📖", view: View.Blog },
         ];
 
-    const mobileItemWrapper = (item: any) => (
+    const mobileItemWrapper = (item: NavItem) => (
        <button
         onClick={() => (item.action ? item.action() : navigateTo(item.view))}
-        className={`${getButtonClass(item.view)} w-full justify-start text-left py-3`}
+        className={`${getButtonClass(item)} w-full justify-start text-left py-3`}
       >
         <span className="inline-flex items-center gap-2.5">
           <span>{item.emoji}</span>
@@ -253,10 +259,10 @@ const App: React.FC = () => {
       </button>
     );
 
-    const desktopItemWrapper = (item: any) => (
+    const desktopItemWrapper = (item: NavItem) => (
       <button
         onClick={() => (item.action ? item.action() : navigateTo(item.view))}
-        className={getButtonClass(item.view)}
+        className={getButtonClass(item)}
       >
         <span className="inline-flex items-center gap-1.5">
           <span>{item.emoji}</span>
@@ -406,12 +412,12 @@ const App: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
             <div
-              onClick={() => navigateTo(View.FindJobs)}
+              onClick={() => currentUser ? navigateTo(View.FindJobs) : requestLoginForAction(View.FindJobs)}
               className="home-card cursor-pointer"
             >
               <h3 className="card-section-title">ประกาศงาน</h3>
               <div className="space-y-4">
-                 <button onClick={(e) => { e.stopPropagation(); navigateTo(View.FindJobs); }} className="btn-primary-home">
+                 <button onClick={(e) => { e.stopPropagation(); currentUser ? navigateTo(View.FindJobs) : requestLoginForAction(View.FindJobs); }} className="btn-primary-home">
                   <span className="flex items-center justify-center">
                     <span className="text-lg mr-2">📢</span>
                     <span>ดูประกาศงานทั้งหมด</span>
@@ -427,12 +433,12 @@ const App: React.FC = () => {
             </div>
 
             <div
-              onClick={() => navigateTo(View.FindHelpers)}
+              onClick={() => currentUser ? navigateTo(View.FindHelpers) : requestLoginForAction(View.FindHelpers)}
               className="home-card cursor-pointer"
             >
               <h3 className="card-section-title">โปรไฟล์ผู้ช่วยและบริการ</h3>
               <div className="space-y-4">
-                 <button onClick={(e) => { e.stopPropagation(); navigateTo(View.FindHelpers); }} className="btn-primary-home">
+                 <button onClick={(e) => { e.stopPropagation(); currentUser ? navigateTo(View.FindHelpers) : requestLoginForAction(View.FindHelpers); }} className="btn-primary-home">
                   <span className="flex items-center justify-center">
                     <span className="text-lg mr-2">👥</span>
                     <span>ดูโปรไฟล์ทั้งหมด</span>
@@ -619,11 +625,17 @@ const App: React.FC = () => {
     }
     switch (currentView) {
       case View.Home: return renderHome();
-      case View.PostJob: return <PostJobForm currentUser={currentUser!} onCancel={onCancelEditOrPost} initialData={editingItemType === 'job' ? itemToEdit as Job : undefined} isEditing={editingItemType === 'job'} allJobsForAdmin={allJobsForAdmin} navigateTo={navigateTo} sourceViewForForm={sourceViewForForm} />;
-      case View.OfferHelp: return <OfferHelpForm currentUser={currentUser} onCancel={onCancelEditOrPost} initialData={editingItemType === 'profile' ? itemToEdit as HelperProfile : undefined} isEditing={editingItemType === 'profile'} />;
+      case View.PostJob:
+        if (!currentUser) { navigateTo(View.Login); return null; }
+        return <PostJobForm currentUser={currentUser!} onCancel={onCancelEditOrPost} initialData={editingItemType === 'job' ? itemToEdit as Job : undefined} isEditing={editingItemType === 'job'} allJobsForAdmin={allJobsForAdmin} navigateTo={navigateTo} sourceViewForForm={sourceViewForForm} />;
+      case View.OfferHelp:
+        if (!currentUser) { navigateTo(View.Login); return null; }
+        return <OfferHelpForm currentUser={currentUser} onCancel={onCancelEditOrPost} initialData={editingItemType === 'profile' ? itemToEdit as HelperProfile : undefined} isEditing={editingItemType === 'profile'} />;
       case View.Register: return <RegistrationForm onRegister={onRegister} onSwitchToLogin={() => navigateTo(View.Login)} />;
       case View.Login: return <LoginForm onLogin={onLogin} onSwitchToRegister={() => navigateTo(View.Register)} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />;
-      case View.AdminDashboard: return currentUser && (currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer) ? <AdminDashboard onStartEditItem={handleStartEditItem} jobs={allJobsForAdmin} helperProfiles={allHelperProfilesForAdmin} users={allUsers} interactions={interactions} webboardPosts={allWebboardPostsForAdmin} webboardComments={webboardComments} vouchReports={vouchReports} allBlogPostsForAdmin={allBlogPostsForAdmin} currentUser={currentUser} isSiteLocked={isSiteLocked} getAuthorDisplayName={getAuthorDisplayName} getUserDisplayBadge={(user) => getUserDisplayBadge(user, allWebboardPostsForAdmin, webboardComments)} getUserDocument={getUserDocument}/> : <div>Permission Denied</div>;
+      case View.AdminDashboard: 
+        if (!currentUser || !(currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer)) { navigateTo(View.Login); return <div>Permission Denied</div>; }
+        return <AdminDashboard onStartEditItem={handleStartEditItem} jobs={allJobsForAdmin} helperProfiles={allHelperProfilesForAdmin} users={allUsers} interactions={interactions} webboardPosts={allWebboardPostsForAdmin} webboardComments={webboardComments} vouchReports={vouchReports} allBlogPostsForAdmin={allBlogPostsForAdmin} currentUser={currentUser} isSiteLocked={isSiteLocked} getAuthorDisplayName={getAuthorDisplayName} getUserDisplayBadge={(user) => getUserDisplayBadge(user, allWebboardPostsForAdmin, webboardComments)} getUserDocument={getUserDocument}/>;
       case View.AboutUs: return <AboutUsPage />;
       case View.Safety: return <SafetyPage />;
       case View.PasswordReset: return <PasswordResetPage navigateTo={navigateTo} />;
@@ -646,14 +658,18 @@ const App: React.FC = () => {
         return <PublicProfilePage user={user} helperProfile={helperProfile} onBack={() => navigateTo(sourceViewForPublicProfile)} currentUser={currentUser} onVouchForUser={handleVouchForUser} onShowVouches={handleShowVouches} />;
       }
       case View.Webboard:
+          if (!currentUser) { navigateTo(View.Login); return null; }
           return <WebboardPage currentUser={currentUser} users={allUsers} comments={webboardComments} onAddOrUpdatePost={(data, id) => webboardActions.addOrUpdateWebboardPost(data, id).then(newPostId => { if(id) setSelectedPostId(id); else if (newPostId) setSelectedPostId(newPostId); })} onAddComment={webboardActions.addWebboardComment} onToggleLike={webboardActions.toggleWebboardPostLike} onSavePost={userActions.saveWebboardPost} onSharePost={handleSharePost} onDeletePost={(id) => openConfirmModal('ยืนยันการลบ', 'คุณแน่ใจหรือไม่ว่าต้องการลบกระทู้นี้?', () => { webboardActions.deleteWebboardPost(id); setSelectedPostId(null); })} onPinPost={adminActions.pinWebboardPost} onEditPost={(post) => handleEditItem(post.id, 'webboardPost', View.Webboard)} onDeleteComment={(id) => openConfirmModal('ยืนยันการลบ', 'คุณแน่ใจหรือไม่ว่าต้องการลบคอมเมนต์นี้?', () => webboardActions.deleteWebboardComment(id))} onUpdateComment={webboardActions.updateWebboardComment} selectedPostId={selectedPostId} setSelectedPostId={setSelectedPostId} navigateTo={navigateTo} editingPost={editingItemType === 'webboardPost' ? itemToEdit as WebboardPost : undefined} onCancelEdit={() => { setItemToEdit(null); setEditingItemType(null); setSelectedPostId(null); }} getUserDisplayBadge={(user) => getUserDisplayBadge(user, allWebboardPostsForAdmin, webboardComments)} requestLoginForAction={requestLoginForAction} onNavigateToPublicProfile={(info) => handleNavigateToPublicProfile(info)} checkWebboardPostLimits={webboardActions.checkWebboardPostLimits} checkWebboardCommentLimits={webboardActions.checkWebboardCommentLimits} pageSize={20} getAuthorDisplayName={getAuthorDisplayName} />;
       case View.Blog:
         return <BlogPage posts={allBlogPosts.map(p => ({...p, author: allUsers.find(u => u.id === p.authorId)}))} onSelectPost={(slug) => { setSelectedBlogPostSlug(slug); navigateTo(View.Blog, { article: slug }); }} />;
       case View.ArticleEditor:
+        if (!currentUser || !(currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer)) { navigateTo(View.Login); return null; }
         return <ArticleEditor onCancel={() => navigateTo(View.AdminDashboard)} initialData={editingItemType === 'blogPost' ? itemToEdit as BlogPost : undefined} isEditing={!!(editingItemType === 'blogPost')} currentUser={currentUser!} />;
       case View.FindJobs:
+        if (!currentUser) { navigateTo(View.Login); return null; }
         return <FindJobsPage navigateTo={navigateTo} onNavigateToPublicProfile={handleNavigateToPublicProfile} onEditJobFromFindView={(jobId) => handleEditItem(jobId, 'job', View.FindJobs)} currentUser={currentUser} requestLoginForAction={requestLoginForAction} getAuthorDisplayName={getAuthorDisplayName} />;
       case View.FindHelpers:
+        if (!currentUser) { navigateTo(View.Login); return null; }
         return <FindHelpersPage navigateTo={navigateTo} onNavigateToPublicProfile={handleNavigateToPublicProfile} currentUser={currentUser} requestLoginForAction={requestLoginForAction} onEditProfileFromFindView={(profileId) => handleEditItem(profileId, 'profile', View.FindHelpers)} getAuthorDisplayName={getAuthorDisplayName} />;
       default:
         return renderHome();
