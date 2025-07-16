@@ -4,13 +4,13 @@ import type { OrionMessage } from '../types/types';
 import { Button } from './Button.tsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm'; // <-- IMPORT THE NEW PLUGIN
+import remarkGfm from 'remark-gfm';
 
 const TypingIndicator = () => (
-  <motion.div className="flex items-center space-x-1.5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
-    <motion.span className="w-2 h-2 bg-neutral-medium rounded-full" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" }} />
-    <motion.span className="w-2 h-2 bg-neutral-medium rounded-full" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.8, delay: 0.2, repeat: Infinity, ease: "easeInOut" }} />
-    <motion.span className="w-2 h-2 bg-neutral-medium rounded-full" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.8, delay: 0.4, repeat: Infinity, ease: "easeInOut" }} />
+  <motion.div className="flex items-center space-x-1.5">
+    <motion.span className="w-2 h-2 bg-neutral-medium rounded-full" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.8, repeat: Infinity, ease: "easeInOut" as const }} />
+    <motion.span className="w-2 h-2 bg-neutral-medium rounded-full" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.8, delay: 0.2, repeat: Infinity, ease: "easeInOut" as const }} />
+    <motion.span className="w-2 h-2 bg-neutral-medium rounded-full" animate={{ y: [0, -4, 0] }} transition={{ duration: 0.8, delay: 0.4, repeat: Infinity, ease: "easeInOut" as const }} />
   </motion.div>
 );
 
@@ -42,11 +42,11 @@ export const OrionCommandCenter: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const historyForAPI = messages.map(m => ({
+      // The history now correctly includes the new user message before sending
+      const historyForAPI = [...messages, userMessage].map(m => ({
         role: m.sender === 'user' ? 'user' : 'model',
         parts: [{ text: m.text }]
       }));
-      historyForAPI.push({ role: 'user', parts: [{ text: command }] });
 
       const result = await orionAnalyzeService({ command: command, history: historyForAPI });
       const replyData = result.data.reply as any;
@@ -58,16 +58,7 @@ export const OrionCommandCenter: React.FC = () => {
           ? replyData.key_intel.map((item: string) => `* ${item}`).join("\n")
           : 'No intelligence data provided.';
 
-        orionReplyText = `
-**THREAT LEVEL:** ${replyData.threat_level || 'N/A'}\n
-**TRUST SCORE:** ${replyData.trust_score || 'N/A'}/100 ${replyData.emoji || ''}\n
-\n**EXECUTIVE SUMMARY:**\n
-${replyData.executive_summary || 'No summary provided.'}\n
-\n**KEY INTEL:**\n
-${intelBullets}\n
-\n**RECOMMENDED ACTION:**\n
-${replyData.recommended_action || 'No action recommended.'}
-        `;
+        orionReplyText = `**THREAT LEVEL:** ${replyData.threat_level || 'N/A'}\n\n**TRUST SCORE:** ${replyData.trust_score || 'N/A'}/100 ${replyData.emoji || ''}\n\n**EXECUTIVE SUMMARY:**\n\n${replyData.executive_summary || 'No summary provided.'}\n\n**KEY INTEL:**\n${intelBullets}\n\n**RECOMMENDED ACTION:**\n\n${replyData.recommended_action || 'No action recommended.'}`;
       } else if (typeof replyData === 'string') {
         orionReplyText = replyData;
       } else {
@@ -110,7 +101,7 @@ ${replyData.recommended_action || 'No action recommended.'}
             >
               {message.sender === 'orion' && <span className="text-xl">🤖</span>}
               <div
-                className={`max-w-xl p-3 rounded-lg ${
+                className={`max-w-xl p-3 rounded-lg text-sm ${
                   message.sender === 'user'
                     ? 'bg-blue-100 text-neutral-dark'
                     : message.isError
@@ -119,9 +110,15 @@ ${replyData.recommended_action || 'No action recommended.'}
                 }`}
               >
                 {message.sender === 'orion' ? (
-                  <div className="prose prose-sm max-w-none">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.text}</ReactMarkdown>
-                  </div>
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                      strong: ({node, ...props}) => <strong className="font-bold" {...props} />,
+                    }}
+                  >
+                    {message.text}
+                  </ReactMarkdown>
                 ) : (
                   message.text
                 )}
@@ -129,11 +126,9 @@ ${replyData.recommended_action || 'No action recommended.'}
             </motion.div>
           ))}
           {isLoading && (
-            <motion.div key="typing" className="flex items-start gap-3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+            <motion.div key="typing" className="flex items-start gap-3">
               <span className="text-xl">🤖</span>
-              <div className="max-w-xl p-3 rounded-lg bg-neutral-light">
-                <TypingIndicator />
-              </div>
+              <div className="p-3 rounded-lg bg-neutral-light"><TypingIndicator /></div>
             </motion.div>
           )}
         </AnimatePresence>
