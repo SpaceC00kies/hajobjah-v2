@@ -39,3 +39,5 @@ services/firebaseService copy.ts
 functions/src/index copy.ts
 components/BlogPage copy.tsx
 components/ArticleEditor copy.tsx
+echo "functions/.env" >> .gitignore
+functions/.env

@@ -138,18 +138,50 @@ export const orionAnalyze = onCall(async (request: CallableRequest) => {
       };
 
       const responseSchema = {
-          type: Type.OBJECT,
-          properties: {
-              summary: { type: Type.STRING, description: "A brief, one-sentence summary of the user's status." },
-              findings: { type: Type.ARRAY, items: { type: Type.STRING }, description: "A list of key observations, both positive and negative." },
-              recommendation: { type: Type.STRING, description: "Your final recommendation or assessment for the administrator." },
+        type: Type.OBJECT,
+        properties: {
+          threat_level: {
+            type: Type.STRING,
+            description: "A single keyword threat assessment for the user: LOW, GUARDED, ELEVATED, SEVERE, or CRITICAL."
           },
-          required: ["summary", "findings", "recommendation"],
+          executive_summary: {
+            type: Type.STRING,
+            description: "A concise, one-sentence executive summary of the user's status, addressed to the administrator."
+          },
+          key_intel: {
+            type: Type.ARRAY,
+            description: "A list of bullet-point findings, both positive and negative, that support the assessment.",
+            items: {
+              type: Type.STRING
+            }
+          },
+          recommended_action: {
+            type: Type.STRING,
+            description: "A clear, direct, and actionable recommendation for the administrator (e.g., 'Monitor activity.', 'No action required.', 'Immediate review recommended.')."
+          }
+        },
+        required: ["threat_level", "executive_summary", "key_intel", "recommended_action"]
       };
+
+      const prompt = `
+System Instruction:
+You are Orion, an elite security and intelligence analyst for the HAJOBJA.COM platform.
+Your mission is to analyze user data and provide a sharp, professional, and actionable intelligence report directly to the system administrator.
+Your tone is concise and direct. All analysis must be based solely on the data provided.
+
+Task:
+Analyze the following user data payload and generate an intelligence report. Populate all fields in the requested JSON schema.
+
+Data Payload:
+\`\`\`json
+${JSON.stringify(analysisPayload, null, 2)}
+\`\`\`
+`.trim();
+
 
       const aiResponse = await ai.models.generateContent({
           model: "gemini-2.5-flash",
-          contents: `You are Orion, a world-class security and behavior analyst. Analyze the user data provided and generate a summary, key findings, and a recommendation based on the pre-calculated trust score. Be insightful and concise. DATA TO ANALYZE: \`\`\`json\n${JSON.stringify(analysisPayload, null, 2)}\n\`\`\``,
+          contents: prompt,
           config: {
             responseMimeType: "application/json",
             responseSchema: responseSchema,
@@ -161,7 +193,20 @@ export const orionAnalyze = onCall(async (request: CallableRequest) => {
       }
       const parsedData = JSON.parse(aiResponse.text);
 
-      const formattedReply = `@${userData.username} - Trust Score: ${trustScore}/100 ${emoji}\n\n${parsedData.summary}\n\nHere's what I found:\n${parsedData.findings.map((f: string) => `• ${f}`).join("\n")}\n\nMy take: ${parsedData.recommendation}`.trim().replace(/^\s*[\r\n]/gm, "");
+      const formattedReply = `
+**THREAT LEVEL: ${parsedData.threat_level}**
+**TRUST SCORE: ${trustScore}/100 ${emoji}**
+
+**EXECUTIVE SUMMARY:**
+${parsedData.executive_summary}
+
+**KEY INTEL:**
+${parsedData.key_intel.map((f: string) => `• ${f}`).join("\n")}
+
+**RECOMMENDED ACTION:**
+${parsedData.recommended_action}
+`.trim().replace(/^\s*[\r\n]/gm, "");
+
       return { reply: formattedReply };
 
     } else {
