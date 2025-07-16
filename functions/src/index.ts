@@ -1,5 +1,5 @@
 
-import * as functions from "firebase-functions";
+import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { User, Vouch } from "./types";
@@ -22,7 +22,7 @@ export const orionAnalyze = functions.https.onCall(async (request: any) => {
   }
   
   const genAI = new GoogleGenerativeAI(geminiApiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   const command: string = request.data.command;
   if (!command || typeof command !== "string") {
