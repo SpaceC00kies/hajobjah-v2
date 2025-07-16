@@ -1,28 +1,29 @@
 
 import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import type { User, Vouch } from "./types";
 
 admin.initializeApp();
 const db = admin.firestore();
 
 export const orionAnalyze = functions.https.onCall(async (request: any) => {
-  if (request.auth?.token?.role !== "Admin") {
+  if (!request.auth?.uid) {
+    throw new functions.https.HttpsError("unauthenticated", "The function must be called while authenticated.");
+  }
+  const requestingUserDoc = await db.collection("users").doc(request.auth.uid).get();
+  if (!requestingUserDoc.exists || requestingUserDoc.data()?.role !== "Admin") {
     throw new functions.https.HttpsError(
       "permission-denied",
       "Permission denied. You must be an administrator."
     );
   }
 
-  const geminiApiKey = functions.config().gemini?.api_key;
-  if (!geminiApiKey) {
-    console.error("CRITICAL: GEMINI_API_KEY environment variable not set.");
+  if (!process.env.API_KEY) {
+    console.error("CRITICAL: API_KEY environment variable not set.");
     throw new functions.https.HttpsError("failed-precondition", "Server is not configured correctly. Missing API Key.");
   }
-  
-  const genAI = new GoogleGenerativeAI(geminiApiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
 
   const command: string = request.data.command;
   if (!command || typeof command !== "string") {
@@ -87,21 +88,23 @@ DATA TO ANALYZE:
 ${JSON.stringify(analysisPayload, null, 2)}
 \`\`\``;
       
-      const result = await model.generateContent(combinedPrompt);
-      const geminiResponse = result.response;
+      const result = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: combinedPrompt,
+      });
       
-      if (geminiResponse.promptFeedback?.blockReason) {
-        throw new functions.https.HttpsError("invalid-argument", `Request was blocked by the API for safety reasons: ${geminiResponse.promptFeedback.blockReason}. Please rephrase your command.`);
+      if (result.promptFeedback?.blockReason) {
+        throw new functions.https.HttpsError("invalid-argument", `Request was blocked by the API for safety reasons: ${result.promptFeedback.blockReason}. Please rephrase your command.`);
       }
       
-      const responseText = geminiResponse.text();
+      const responseText = result.text;
       if (!responseText || responseText.trim() === "") {
         throw new functions.https.HttpsError("internal", "Orion AI returned an empty response. The model may have refused to answer or encountered an error.");
       }
       
       let parsedData;
       try {
-        const cleanedText = responseText.replace(/^```json\s*/, '').replace(/```$/, '');
+        const cleanedText = responseText.replace(/^```json\s*/, "").replace(/```$/, "");
         parsedData = JSON.parse(cleanedText);
       } catch (e) {
         console.error("Failed to parse AI JSON response:", responseText, e);
@@ -118,21 +121,23 @@ ${JSON.stringify(analysisPayload, null, 2)}
 USER COMMAND:
 "${command}"`;
       
-      const result = await model.generateContent(combinedPrompt);
-      const geminiResponse = result.response;
+      const result = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: combinedPrompt,
+      });
       
-      if (geminiResponse.promptFeedback?.blockReason) {
-        throw new functions.https.HttpsError("invalid-argument", `Request was blocked by the API for safety reasons: ${geminiResponse.promptFeedback.blockReason}. Please rephrase your command.`);
+      if (result.promptFeedback?.blockReason) {
+        throw new functions.https.HttpsError("invalid-argument", `Request was blocked by the API for safety reasons: ${result.promptFeedback.blockReason}. Please rephrase your command.`);
       }
 
-      const responseText = geminiResponse.text();
+      const responseText = result.text;
       if (!responseText || responseText.trim() === "") {
           throw new functions.https.HttpsError("internal", "Orion AI returned an empty response. The model may have refused to answer or encountered an error.");
       }
 
       let parsedData;
       try {
-        const cleanedText = responseText.replace(/^```json\s*/, '').replace(/```$/, '');
+        const cleanedText = responseText.replace(/^```json\s*/, "").replace(/```$/, "");
         parsedData = JSON.parse(cleanedText);
       } catch (e) {
         console.error("Failed to parse AI JSON response:", responseText, e);
@@ -153,7 +158,11 @@ USER COMMAND:
 });
 
 export const setUserRole = functions.https.onCall(async (request: any) => {
-  if (request.auth?.token?.role !== "Admin") {
+  if (!request.auth?.uid) {
+    throw new functions.https.HttpsError("unauthenticated", "The function must be called while authenticated.");
+  }
+  const adminUserDoc = await db.collection("users").doc(request.auth.uid).get();
+  if (!adminUserDoc.exists || adminUserDoc.data()?.role !== "Admin") {
     throw new functions.https.HttpsError("permission-denied", "Only administrators can set user roles.");
   }
 

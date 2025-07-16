@@ -205,17 +205,10 @@ export const signOutUserService = async (): Promise<void> => {
 export const onAuthChangeService = (callback: (user: User | null) => void): (() => void) => {
   return onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
     if (firebaseUser) {
-      try {
-        const syncUserClaimsFunction = httpsCallable(functions, 'syncUserClaims');
-        await syncUserClaimsFunction();
-        await firebaseUser.getIdToken(true);
-      } catch (error) {
-        logFirebaseError("onAuthChangeService.sync", error);
-        alert("A critical error occurred while synchronizing your permissions. You will be logged out. Please contact support if this issue persists.");
-        await signOut(auth); // Sign out the user because sync failed
-        callback(null);
-        return; // Stop further execution
-      }
+      // The call to syncUserClaims has been removed to prevent login failures
+      // in environments where service account permissions for setCustomUserClaims
+      // might be misconfigured. Backend functions now verify roles directly
+      // from Firestore, which is the source of truth.
 
       const userDocRef = doc(db, 'users', firebaseUser.uid);
       try {
