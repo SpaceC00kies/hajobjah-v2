@@ -1,3 +1,4 @@
+
 /**
  * @fileoverview
  * This service module handles all user authentication logic. It provides a
@@ -202,63 +203,9 @@ export const signOutUserService = async (): Promise<void> => {
   }
 };
 
-export const onAuthChangeService = (callback: (user: User | null) => void): (() => void) => {
+export const onAuthChangeService = (callback: (user: FirebaseUser | null) => void): (() => void) => {
   return onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-    if (firebaseUser) {
-      // The call to syncUserClaims has been removed to prevent login failures
-      // in environments where service account permissions for setCustomUserClaims
-      // might be misconfigured. Backend functions now verify roles directly
-      // from Firestore, which is the source of truth.
-
-      const userDocRef = doc(db, 'users', firebaseUser.uid);
-      try {
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) {
-          const userData = userDocSnap.data();
-          const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
-          const postingLimits = userData.postingLimits || {
-            lastJobPostDate: threeDaysAgo.toISOString(),
-            lastHelperProfileDate: threeDaysAgo.toISOString(),
-            dailyWebboardPosts: { count: 0, resetDate: new Date(0).toISOString() },
-            hourlyComments: { count: 0, resetTime: new Date(0).toISOString() },
-            lastBumpDates: {},
-             vouchingActivity: { monthlyCount: 0, periodStart: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString() }
-          };
-          const activityBadge = userData.activityBadge || { isActive: false, last30DaysActivity: 0 };
-          const tier = userData.tier || ('free' as UserTier);
-          const savedWebboardPosts = userData.savedWebboardPosts || [];
-          const vouchInfo = userData.vouchInfo || { total: 0, worked_together: 0, colleague: 0, community: 0, personal: 0 };
-
-          const fullUserData = {
-            ...convertTimestamps(userData),
-            isBusinessProfile: userData.isBusinessProfile || false,
-            businessName: userData.businessName || '',
-            businessType: userData.businessType || '',
-            businessAddress: userData.businessAddress || '',
-            businessWebsite: userData.businessWebsite || '',
-            businessSocialProfileLink: userData.businessSocialProfileLink || '',
-            aboutBusiness: userData.aboutBusiness || '',
-            lastPublicDisplayNameChangeAt: userData.lastPublicDisplayNameChangeAt || undefined,
-            publicDisplayNameUpdateCount: userData.publicDisplayNameUpdateCount || 0,
-            tier,
-            postingLimits: convertTimestamps(postingLimits),
-            activityBadge: convertTimestamps(activityBadge),
-            savedWebboardPosts,
-            vouchInfo,
-          };
-          callback({ id: firebaseUser.uid, ...fullUserData } as User);
-        } else {
-          logFirebaseError("onAuthChangeService", new Error(`User ${firebaseUser.uid} not found in Firestore.`));
-          callback(null);
-          await signOut(auth);
-        }
-      } catch (error) {
-        logFirebaseError("onAuthChangeService - getDoc", error);
-        callback(null);
-      }
-    } else {
-      callback(null);
-    }
+    callback(firebaseUser);
   });
 };
 
