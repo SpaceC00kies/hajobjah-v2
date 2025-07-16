@@ -11,6 +11,7 @@ admin.initializeApp();
 const db = admin.firestore();
 
 // Common HTTPS options for all callable functions to handle CORS
+// This configuration is critical for allowing the web app to call the functions.
 const commonHttpsOptions = {
     cors: ["https://www.hajobja.com", "https://hajobja.com", "http://localhost:5173"],
 };
@@ -226,6 +227,9 @@ ${JSON.stringify(analysisPayload, null, 2)}
 });
 
 export const getAdminDashboardData = onCall(commonHttpsOptions, async (request: CallableRequest): Promise<AdminDashboardData> => {
+    // Adding a log to force redeployment and confirm execution.
+    console.log("Executing getAdminDashboardData v2 with updated CORS config.");
+
     if (!request.auth?.uid) {
         throw new HttpsError("unauthenticated", "The function must be called while authenticated.");
     }
@@ -254,8 +258,9 @@ export const getAdminDashboardData = onCall(commonHttpsOptions, async (request: 
             pendingReports: pendingReportsSnap.data().count,
         };
 
-        // 2. User Growth (last 30 days)
-        const thirtyDaysAgo = new Date(new Date().setDate(new Date().getDate() - 30));
+        // 2. User Growth (last 30 days) - Corrected date handling
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         const userGrowthQuery = await db.collection('users').where('createdAt', '>=', thirtyDaysAgo).orderBy('createdAt').get();
         const userGrowthData: { [key: string]: number } = {};
         userGrowthQuery.forEach(doc => {
@@ -353,4 +358,3 @@ export const syncUserClaims = onCall(commonHttpsOptions, async (request: Callabl
     throw new HttpsError("internal", `Failed to set custom claims. This is likely an IAM permission issue. Error: ${err.message} (Code: ${err.code || "N/A"})`);
   }
 });
-
