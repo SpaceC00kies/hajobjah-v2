@@ -88,7 +88,7 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = (props) => {
   const helperCount = useMemo(() => searchResults.filter(r => r.resultType === 'helper').length, [searchResults]);
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
       <div className="mb-4">
         <Button onClick={onGoBack} variant="outline" size="sm">&larr; กลับไปหน้าค้นหา</Button>
       </div>

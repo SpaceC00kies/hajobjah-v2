@@ -36,6 +36,19 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
   return (
     <div className="sticky top-24 bg-white p-4 rounded-xl shadow-lg border border-primary-light">
       <div className="space-y-6">
+        {onSearchTermChange && (
+          <div>
+            <label htmlFor="sidebar-search-input" className="block text-sm font-sans font-medium text-primary-dark mb-1">ค้นหา</label>
+            <input
+              id="sidebar-search-input"
+              type="search"
+              value={searchTerm}
+              onChange={(e) => onSearchTermChange(e.target.value)}
+              placeholder={searchPlaceholder}
+              aria-label={searchPlaceholder}
+            />
+          </div>
+        )}
         <div>
           <label htmlFor="category-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">หมวดหมู่</label>
           <select id="category-filter" value={selectedCategory} onChange={(e) => onCategoryChange(e.target.value as FilterableCategory)}>
@@ -57,21 +70,8 @@ export const FilterSidebar: React.FC<FilterSidebarProps> = ({
             {Object.values(Province).map(prov => <option key={prov} value={prov}>{prov}</option>)}
           </select>
         </div>
-        {onSearchTermChange && (
-          <div>
-            <label htmlFor="sidebar-search-input" className="sr-only">{searchPlaceholder}</label>
-            <input
-              id="sidebar-search-input"
-              type="search"
-              value={searchTerm}
-              onChange={(e) => onSearchTermChange(e.target.value)}
-              placeholder={searchPlaceholder}
-              aria-label={searchPlaceholder}
-            />
-          </div>
-        )}
         {actionButtonText && onActionButtonClick && (
-          <Button onClick={onActionButtonClick} variant="secondary" className="w-full !rounded-full !py-3">
+          <Button onClick={onActionButtonClick} variant="secondary" className="w-full !rounded-lg !py-3">
             {actionButtonText}
           </Button>
         )}

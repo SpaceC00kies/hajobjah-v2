@@ -3,9 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { HelperProfile, EnrichedHelperProfile, FilterableCategory, JobSubCategory, User, PaginatedDocsResponse } from '../types/types.ts';
 import { View, JobCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
 import { HelperCard } from './HelperCard.tsx';
-import { SearchInputWithRecent } from './SearchInputWithRecent.tsx';
 import { getHelperProfilesPaginated } from '../services/helperProfileService.ts';
-import { getRecentSearches, addRecentSearch } from '../utils/localStorageUtils.ts';
 import { useUser } from '../hooks/useUser.ts';
 import { useHelpers } from '../hooks/useHelpers.ts';
 import { useData } from '../context/DataContext.tsx';
@@ -59,8 +57,14 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
   const helperActions = useHelpers();
   
   const loaderRef = useRef<HTMLDivElement>(null);
-  const recentSearchesKey = 'recentHelperSearches';
-  const [recentSearches, setRecentSearches] = useState<string[]>(getRecentSearches(recentSearchesKey));
+  const isLoadingRef = useRef(isLoading);
+  const hasMoreRef = useRef(hasMore);
+
+  useEffect(() => {
+    isLoadingRef.current = isLoading;
+    hasMoreRef.current = hasMore;
+  }, [isLoading, hasMore]);
+
 
   const enrichProfiles = useCallback((profilesToEnrich: HelperProfile[]): EnrichedHelperProfile[] => {
     return profilesToEnrich.map(profile => {
@@ -78,9 +82,7 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
   }, [users]);
 
   const loadProfiles = useCallback(async (isInitialLoad = false) => {
-    if (isLoading && !isInitialLoad) return;
     setIsLoading(true);
-
     const startAfterDoc = isInitialLoad ? null : lastVisible;
     try {
       const result: PaginatedDocsResponse<HelperProfile> = await getHelperProfilesPaginated(
@@ -92,7 +94,7 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
         selectedProvince
       );
       const activeProfiles = result.items.filter(profile => 
-        !profile.isExpired && (!profile.expiresAt || !isDateInPast(profile.expiresAt))
+        !profile.isExpired && (!profile.expiresAt || !isDateInPast(profile.expiresAt as string))
       );
       const enriched = enrichProfiles(activeProfiles);
       setProfiles(prev => isInitialLoad ? enriched : [...prev, ...enriched]);
@@ -104,22 +106,18 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearchTerm, selectedCategory, selectedSubCategory, selectedProvince, lastVisible, isLoading, enrichProfiles]);
+  }, [debouncedSearchTerm, lastVisible, selectedCategory, selectedSubCategory, selectedProvince, enrichProfiles]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
-      if(searchTerm) {
-          addRecentSearch(recentSearchesKey, searchTerm);
-          setRecentSearches(getRecentSearches(recentSearchesKey));
-      }
     }, 500);
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
   useEffect(() => {
     loadProfiles(true);
-  }, [debouncedSearchTerm, selectedCategory, selectedSubCategory, selectedProvince, enrichProfiles, loadProfiles]);
+  }, [debouncedSearchTerm, selectedCategory, selectedSubCategory, selectedProvince, loadProfiles]);
 
   useEffect(() => {
     if (selectedCategory !== 'all' && JOB_SUBCATEGORIES_MAP[selectedCategory]) {
@@ -127,13 +125,15 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
     } else {
       setAvailableSubCategories([]);
     }
-    setSelectedSubCategory('all');
+    if (selectedCategory !== 'all') {
+        setSelectedSubCategory('all');
+    }
   }, [selectedCategory]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoading) {
+        if (entries[0].isIntersecting && hasMoreRef.current && !isLoadingRef.current) {
           loadProfiles();
         }
       },
@@ -142,13 +142,8 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
     const currentLoader = loaderRef.current;
     if (currentLoader) observer.observe(currentLoader);
     return () => { if (currentLoader) observer.unobserve(currentLoader); };
-  }, [hasMore, isLoading, loadProfiles]);
+  }, [loadProfiles]);
   
-  const handleRecentSearchSelect = (term: string) => {
-    setSearchTerm(term);
-  };
-
-
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="text-center mb-8">

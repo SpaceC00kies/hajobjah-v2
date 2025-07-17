@@ -55,12 +55,19 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
   const userActions = useUser();
   
   const loaderRef = useRef<HTMLDivElement>(null);
+  const isLoadingRef = useRef(isLoading);
+  const hasMoreRef = useRef(hasMore);
+
+  useEffect(() => {
+    isLoadingRef.current = isLoading;
+    hasMoreRef.current = hasMore;
+  }, [isLoading, hasMore]);
+
 
   const loadJobs = useCallback(async (isInitialLoad = false) => {
-    if (isLoading && !isInitialLoad) return;
     setIsLoading(true);
-
     const startAfterDoc = isInitialLoad ? null : lastVisible;
+
     try {
       const result: PaginatedDocsResponse<Job> = await getJobsPaginated(
         12,
@@ -70,9 +77,11 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
         selectedSubCategory,
         selectedProvince
       );
+      
       const activeJobs = result.items.filter(job => 
-        !job.isExpired && (!job.expiresAt || !isDateInPast(job.expiresAt))
+        !job.isExpired && (!job.expiresAt || !isDateInPast(job.expiresAt as string))
       );
+      
       setJobs(prev => isInitialLoad ? activeJobs : [...prev, ...activeJobs]);
       setLastVisible(result.lastVisibleDoc);
       setHasMore(result.items.length === 12 && result.lastVisibleDoc !== null);
@@ -82,7 +91,8 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearchTerm, selectedCategory, selectedSubCategory, selectedProvince, lastVisible, isLoading]);
+  }, [debouncedSearchTerm, lastVisible, selectedCategory, selectedProvince, selectedSubCategory]);
+
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -93,7 +103,7 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
 
   useEffect(() => {
     loadJobs(true);
-  }, [debouncedSearchTerm, selectedCategory, selectedSubCategory, selectedProvince, loadJobs]);
+  }, [debouncedSearchTerm, selectedCategory, selectedSubCategory, selectedProvince]);
 
   useEffect(() => {
     if (selectedCategory !== 'all' && JOB_SUBCATEGORIES_MAP[selectedCategory]) {
@@ -101,13 +111,15 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
     } else {
       setAvailableSubCategories([]);
     }
-    setSelectedSubCategory('all');
+    if (selectedCategory !== 'all') {
+      setSelectedSubCategory('all');
+    }
   }, [selectedCategory]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoading) {
+        if (entries[0].isIntersecting && hasMoreRef.current && !isLoadingRef.current) {
           loadJobs();
         }
       },
@@ -116,7 +128,7 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
     const currentLoader = loaderRef.current;
     if (currentLoader) observer.observe(currentLoader);
     return () => { if (currentLoader) observer.unobserve(currentLoader); };
-  }, [hasMore, isLoading, loadJobs]);
+  }, [loadJobs]);
   
 
   return (
