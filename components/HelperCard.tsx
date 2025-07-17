@@ -190,8 +190,8 @@ export const HelperCard: React.FC<HelperCardProps> = ({
         className="app-card"
       >
         {profile.isPinned && (
-          <div className="card-pin-ribbon-wrapper" title="ปักหมุดโดยแอดมิน">
-            <div className="card-pin-ribbon">📌</div>
+          <div className="card-pin-icon" title="ปักหมุดโดยแอดมิน">
+            📌
           </div>
         )}
         {profile.isUnavailable && !profileIsTrulyExpired && (

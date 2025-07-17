@@ -135,8 +135,8 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, onNavigateToP
         className="app-card"
       >
         {job.isPinned && (
-          <div className="card-pin-ribbon-wrapper" title="ปักหมุดโดยแอดมิน">
-            <div className="card-pin-ribbon">📌</div>
+          <div className="card-pin-icon" title="ปักหมุดโดยแอดมิน">
+            📌
           </div>
         )}
         {job.isHired && !jobIsTrulyExpired && (
