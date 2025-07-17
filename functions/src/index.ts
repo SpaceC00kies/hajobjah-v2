@@ -1,6 +1,7 @@
 
-import { onCall, HttpsError } from "firebase-functions/v2/https";
 import admin from "firebase-admin";
+
+import { onCall, HttpsError } from "firebase-functions/v2/https";
 import type { CallableRequest } from "firebase-functions/v2/https";
 import { type AdminDashboardData, JobCategory, type PlatformVitals, type ChartDataPoint, type CategoryDataPoint } from './types.js';
 import type { Timestamp } from 'firebase-admin/firestore';
@@ -9,7 +10,6 @@ import type { Timestamp } from 'firebase-admin/firestore';
 export { universalSearch } from './universalSearch.js';
 
 
-admin.initializeApp();
 const db = admin.firestore();
 
 // Common HTTPS options for all callable functions to handle CORS
