@@ -1,6 +1,7 @@
+
 import React, { useState, useMemo } from 'react';
-import type { EnrichedBlogPost, FilterableBlogCategory } from '../types/types';
-import { BlogCategory } from '../types/types';
+import type { EnrichedBlogPost, FilterableBlogCategory } from '../types/types.ts';
+import { BlogCategory } from '../types/types.ts';
 import { BlogCard } from './BlogCard.tsx';
 import { motion } from 'framer-motion';
 
@@ -42,8 +43,8 @@ export const BlogPage: React.FC<BlogPageProps> = ({ posts, onSelectPost }) => {
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="text-center mb-8">
-        <h1 className="text-4xl sm:text-5xl font-bold font-sans text-neutral-dark tracking-tight">
-          HAJOBJA Journal
+        <h1 className="text-4xl sm:text-5xl font-bold font-sans text-primary-dark tracking-tight">
+          📖 บทความ
         </h1>
         <p className="mt-4 text-lg text-neutral-medium font-serif">
           เรื่องราว, เคล็ดลับ, และแรงบันดาลใจสำหรับคนทำงาน

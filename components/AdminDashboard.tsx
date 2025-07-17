@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useEffect } from 'react';
 import type { Job, HelperProfile, User, Interaction, WebboardPost, WebboardComment, UserLevel, VouchReport, Vouch, VouchType, BlogPost } from '../types/types.ts';
 import { UserRole, VouchReportStatus, VOUCH_TYPE_LABELS } from '../types/types.ts';
@@ -97,16 +95,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setIsHudLoading(false);
       return;
     }
-    setIsHudLoading(true);
+    
     const analyzeReport = async () => {
+      setIsHudLoading(true);
       try {
         const vouch = await admin.getVouchDocument(selectedReport.vouchId);
         setSelectedVouch(vouch);
-        if (!vouch) throw new Error("Vouch document could not be found.");
-        if (!getUserDocument) throw new Error("getUserDocument service is not available.");
+
+        if (!vouch) {
+          setHudAnalysis({ ipMatch: null, voucherIsNew: null, error: "Vouch document not found. It may have been deleted." });
+          setIsHudLoading(false);
+          return;
+        }
+
+        if (!getUserDocument) {
+           setHudAnalysis({ ipMatch: null, voucherIsNew: null, error: "User service is unavailable for analysis." });
+           setIsHudLoading(false);
+           return;
+        }
+
         const voucherUser = await getUserDocument(vouch.voucherId);
         const voucheeUser = await getUserDocument(vouch.voucheeId);
-        if (!voucherUser || !voucheeUser) throw new Error(`Could not fetch full user data.`);
+        if (!voucherUser || !voucheeUser) {
+            setHudAnalysis({ ipMatch: null, voucherIsNew: null, error: "Could not fetch full user data for analysis." });
+            setIsHudLoading(false);
+            return;
+        }
+        
         const ipMatch = !!(voucherUser.lastLoginIP && voucheeUser.lastLoginIP && voucherUser.lastLoginIP === voucheeUser.lastLoginIP);
         let voucherIsNew = false;
         if (voucherUser.createdAt) {
@@ -166,7 +181,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   return (
     <div className="p-4 sm:p-6 bg-white shadow-lg rounded-xl">
-      <h2 className="text-2xl font-sans font-semibold mb-4 text-center">🔐 Admin Dashboard</h2>
+      <h2 className="text-2xl font-sans font-semibold mb-4 text-center text-primary-dark">🔐 Admin Dashboard</h2>
       <div className="border-b border-neutral-DEFAULT mb-4"><nav className="-mb-px flex flex-wrap gap-x-6" aria-label="Tabs">{TABS.map(tab => (<button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`${activeTab === tab.id ? 'border-secondary text-secondary' : 'border-transparent text-neutral-medium hover:text-neutral-dark hover:border-neutral-DEFAULT'} whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center gap-1`} aria-current={activeTab === tab.id ? 'page' : undefined}>{tab.label}{tab.badgeCount && tab.badgeCount > 0 ? (<span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full">{tab.badgeCount}</span>) : null}</button>))}</nav></div>
       
       {activeTab === 'overview' && currentUser?.role === UserRole.Admin && (

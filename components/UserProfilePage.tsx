@@ -304,7 +304,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
 
   return (
     <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-xl mx-auto my-10 border border-neutral-DEFAULT">
-      <h2 className="text-3xl font-sans font-semibold text-secondary-hover mb-6 text-center">👤 โปรไฟล์ของฉัน</h2>
+      <h2 className="text-3xl font-sans font-semibold text-primary-dark mb-6 text-center">👤 โปรไฟล์ของฉัน</h2>
       
       <ProfileCompletenessWizard currentUser={currentUser} />
 

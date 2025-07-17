@@ -3,10 +3,11 @@
 
 
 
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 // Corrected import path for types
-import type { WebboardPost, WebboardComment, User, EnrichedWebboardPost, EnrichedWebboardComment, UserLevel, UserRole } from '../types/types';
-import { View, USER_LEVELS, WebboardCategory } from '../types/types';
+import type { WebboardPost, WebboardComment, User, EnrichedWebboardPost, EnrichedWebboardComment, UserLevel, UserRole } from '../types/types.ts';
+import { View, USER_LEVELS, WebboardCategory } from '../types/types.ts';
 import { Button } from './Button.tsx';
 import { WebboardPostCard } from './WebboardPostCard.tsx';
 import { WebboardPostDetail } from './WebboardPostDetail.tsx';
@@ -361,7 +362,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
             exit="exit"
           >
             <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-              <h2 className="text-2xl sm:text-3xl font-sans font-semibold text-neutral-700 text-center sm:text-left">
+              <h2 className="text-2xl sm:text-3xl font-sans font-semibold text-primary-dark text-center sm:text-left">
                 💬 กระทู้พูดคุย
               </h2>
               <Button
