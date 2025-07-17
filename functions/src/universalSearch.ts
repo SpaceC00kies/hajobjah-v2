@@ -10,20 +10,20 @@ const db = admin.firestore();
 export const universalSearch = onCall({
   cors: ["https://www.hajobja.com","https://hajobja.com","http://localhost:5173"]
 }, async (request) => {
-  // 1) Authentication
+  // 1) Auth
   if (!request.auth?.uid) {
     throw new HttpsError("unauthenticated","You must be logged in.");
   }
 
-  // 2) Validate input
+  // 2) Validate
   const raw = request.data.query as string;
   if (!raw || typeof raw !== "string") {
     throw new HttpsError("invalid-argument","Please enter a search term.");
   }
 
-  // 3) Split into keyword + optional province
+  // 3) Split keyword + optional province
   const parts = raw.trim().split(/\s+/);
-  const keyword = parts[0];
+  const keyword = parts[0].toLowerCase();
   let province = parts[1];
   const provinceMap: Record<string,string> = {
     "กรุงเทพ": "กรุงเทพมหานคร",
@@ -33,49 +33,36 @@ export const universalSearch = onCall({
     province = provinceMap[province];
   }
 
-  // 4) Build Firestore queries
-  let jobsQ = db.collection("jobs")
-    .where("isExpired","==",false);
-  let helpersQ = db.collection("helperProfiles")
-    .where("isExpired","==",false);
-
-  if (province) {
-    jobsQ = jobsQ.where("province","==",province);
-    helpersQ = helpersQ.where("province","==",province);
-  }
-
-  // prefix search on title / profileTitle
-  jobsQ = jobsQ
-    .orderBy("title")
-    .startAt(keyword)
-    .endAt(keyword + "\uf8ff")
-    .limit(50);
-
-  helpersQ = helpersQ
-    .orderBy("profileTitle")
-    .startAt(keyword)
-    .endAt(keyword + "\uf8ff")
-    .limit(50);
-
-  // 5) Execute both
+  // 4) Fetch a small batch of active docs
   const [jobsSnap, helpersSnap] = await Promise.all([
-    jobsQ.get(),
-    helpersQ.get()
+    db.collection("jobs")
+      .where("isExpired","==",false)
+      .limit(100)
+      .get(),
+    db.collection("helperProfiles")
+      .where("isExpired","==",false)
+      .limit(100)
+      .get()
   ]);
 
-  // 6) Map results
-  const jobResults: SearchResultItem[] = jobsSnap.docs.map(doc => ({
-    ...(doc.data() as Job),
-    id: doc.id,
-    resultType: "job"
-  }));
+  // 5) In-memory filter
+  const matches = (text: any) =>
+    typeof text === "string" && text.toLowerCase().includes(keyword);
 
-  const helperResults: SearchResultItem[] = helpersSnap.docs.map(doc => ({
-    ...(doc.data() as HelperProfile),
-    id: doc.id,
-    resultType: "helper"
-  }));
+  const jobResults: SearchResultItem[] = jobsSnap.docs
+    .map(d => ({ ...(d.data() as Job), id: d.id, resultType: "job" as const }))
+    .filter(job =>
+      matches(job.title) &&
+      (!province || job.province === province)
+    );
 
-  // 7) Merge & return
+  const helperResults: SearchResultItem[] = helpersSnap.docs
+    .map(d => ({ ...(d.data() as HelperProfile), id: d.id, resultType: "helper" as const }))
+    .filter(help =>
+      matches(help.profileTitle) &&
+      (!province || help.province === province)
+    );
+
+  // 6) Return
   return { results: [...jobResults, ...helperResults] };
 });
