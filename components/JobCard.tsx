@@ -1,5 +1,4 @@
 
-
 import React, { useState } from 'react';
 import type { Job, User } from '../types/types.ts';
 import { View, JobCategory, JOB_CATEGORY_EMOJIS_MAP, JobDesiredEducationLevelOption, Province } from '../types/types.ts';
@@ -106,6 +105,28 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, onNavigateToP
       </div>
     );
   };
+  
+  const formattedDateTime = () => {
+    const parts = [];
+    if(job.dateNeededFrom) {
+        let dateStr = `เริ่ม ${formatDateDisplay(job.dateNeededFrom)}`;
+        if (job.dateNeededTo) {
+            dateStr += ` - ${formatDateDisplay(job.dateNeededTo)}`;
+        }
+        parts.push(dateStr);
+    }
+    if (job.timeNeededStart) {
+        let timeStr = `ช่วง ${job.timeNeededStart}`;
+        if (job.timeNeededEnd) {
+            timeStr += ` - ${job.timeNeededEnd}`;
+        }
+        parts.push(timeStr);
+    }
+    if(job.dateTime && parts.length === 0) {
+        parts.push(job.dateTime);
+    }
+    return parts.join(', ') || null;
+  };
 
 
   return (
@@ -129,29 +150,33 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, onNavigateToP
               📌
             </div>
           )}
-           <div className="job-card-header-content">
-                <div 
-                    className="job-card-main-title"
+           <div className="job-card-header-content items-start">
+                <h4
+                    className="job-card-main-title text-left"
                     title={job.title}
-                    dangerouslySetInnerHTML={{ __html: `${categoryEmoji} ${job.title}` }}
-                />
-                <div className="job-card-author-name-container">
+                >
+                    <span className="mr-2" role="img" aria-label="category emoji">{categoryEmoji}</span>
+                    {job.title}
+                </h4>
+                <div className="job-card-author-name-container mt-1">
+                    <span className="text-xs text-neutral-dark mr-1">by:</span>
                     <h3 
                         className="job-card-author-name text-sm" 
-                        onClick={() => onNavigateToPublicProfile({userId: job.userId})}
+                        onClick={(e) => { e.stopPropagation(); onNavigateToPublicProfile({userId: job.userId})}}
                     >
                         {authorActualDisplayName}
                         <span className="name-arrow">→</span>
                     </h3>
                     {job.posterIsAdminVerified && (
-                        <span className="ml-1.5 bg-secondary text-neutral-dark text-xs px-1.5 py-0.5 rounded-full font-medium">
-                            ⭐ ยืนยันตัวตน
+                        <span className="ml-1.5 bg-secondary text-primary-dark text-xs px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1">
+                            <span>⭐</span>
+                            <span>Verified</span>
                         </span>
                     )}
                 </div>
                 {(job.category || job.subCategory) && (
                   <div
-                    className="job-card-header-categories-combined"
+                    className="job-card-header-categories-combined !text-xs mt-1"
                     title={job.category && job.subCategory ? `${job.category} - ${job.subCategory}` : job.category || job.subCategory}
                   >
                     {job.category}
@@ -164,11 +189,9 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, onNavigateToP
         
         <div className="card-content-wrapper">
             <div className="job-card-info-grid">
-                {renderInfoItem("📍", job.location, "Location", `${job.location}, ${job.province}`)}
+                {renderInfoItem("📍", `${job.location}, ${job.province}`, "Location")}
                 {renderInfoItem("💰", job.payment, "Payment")}
-                {job.dateTime && renderInfoItem("⏰", job.dateTime, "Date & Time")}
-                {job.dateNeededFrom && renderInfoItem("🗓️", `เริ่ม ${formatDateDisplay(job.dateNeededFrom)}${job.dateNeededTo ? ` - ${formatDateDisplay(job.dateNeededTo)}` : ''}`, "Dates Needed")}
-                {job.timeNeededStart && renderInfoItem("⏱️", `ช่วง ${job.timeNeededStart}${job.timeNeededEnd ? ` - ${job.timeNeededEnd}` : ''}`, "Time Needed")}
+                {formattedDateTime() && renderInfoItem("⏰", formattedDateTime(), "Date & Time")}
             </div>
 
 
@@ -191,9 +214,9 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, onNavigateToP
                   </button>
               )}
               
-              {(job.desiredAgeStart || job.desiredAgeEnd || job.preferredGender || job.desiredEducationLevel) && (
+              {(job.desiredAgeStart || job.desiredAgeEnd || job.preferredGender || (job.desiredEducationLevel && job.desiredEducationLevel !== JobDesiredEducationLevelOption.Any)) && (
                 <>
-                    <h6 className="text-xs font-semibold text-neutral-dark mt-3 mb-0">คุณสมบัติที่ต้องการ (ถ้ามี):</h6>
+                    <h6 className="text-xs font-semibold text-neutral-dark mt-3 mb-0">คุณสมบัติเพิ่มเติม:</h6>
                     <ul className="qualifications-list text-xs">
                         {job.desiredAgeStart && <li>อายุ: {job.desiredAgeStart}{job.desiredAgeEnd ? ` - ${job.desiredAgeEnd}` : '+'} ปี</li>}
                         {job.preferredGender && <li>เพศ: {job.preferredGender}</li>}
@@ -206,7 +229,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, onNavigateToP
 
 
         <div className="job-card-footer">
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-1 text-sm">
             {currentUser?.id !== job.userId && (
               <Button
                 onClick={handleInterestClick}
