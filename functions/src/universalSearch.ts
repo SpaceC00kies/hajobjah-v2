@@ -87,27 +87,19 @@ export const universalSearch = onCall(httpsOptions, async (request) => {
         console.log("🤖 parsed searchParams:", searchParams);
 
 
-        // Phase 2: Parallel Firestore Queries
+        // Phase 2: Parallel Firestore Queries (FIXED QUERIES)
         const jobsQuery = () => {
-            let q = db.collection('jobs').where("isExpired", "!=", true);
-            if (searchParams.location) {
-                q = q.where("province", "==", searchParams.location);
-            }
-            if (searchParams.category && Object.values(JobCategory).includes(searchParams.category)) {
-                q = q.where("category", "==", searchParams.category);
-            }
-            return q.limit(50).get();
+          return db.collection("jobs")
+            .where("isExpired","==",false)
+            .limit(50)
+            .get();
         };
 
         const helpersQuery = () => {
-            let q = db.collection('helperProfiles').where("isExpired", "!=", true);
-            if (searchParams.location) {
-                q = q.where("province", "==", searchParams.location);
-            }
-            if (searchParams.category && Object.values(JobCategory).includes(searchParams.category)) {
-                q = q.where("category", "==", searchParams.category);
-            }
-            return q.limit(50).get();
+          return db.collection("helperProfiles")
+            .where("isExpired","==",false)
+            .limit(50)
+            .get();
         };
         
         const [jobsSnap, helpersSnap] = await Promise.all([jobsQuery(), helpersQuery()]);
