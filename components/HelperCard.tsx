@@ -232,13 +232,13 @@ export const HelperCard: React.FC<HelperCardProps> = ({
           </div>
 
           <div className="helper-card-header-content">
-            <h4 className="helper-card-main-title" title={profile.profileTitle}>{profile.profileTitle}</h4>
+            <h4 className="helper-card-main-title" title={authorActualDisplayName}>{authorActualDisplayName}</h4>
             <div className="helper-card-name-container">
               <h3 
                 className="helper-card-name text-sm"
                 onClick={() => onNavigateToPublicProfile({ userId: profile.userId, helperProfileId: profile.id })}
               >
-                {authorActualDisplayName}
+                {profile.profileTitle}
                 <span className="name-arrow">→</span>
               </h3>
             </div>

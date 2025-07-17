@@ -41,3 +41,9 @@ components/BlogPage copy.tsx
 components/ArticleEditor copy.tsx
 echo "functions/.env" >> .gitignore
 functions/.env
+functions/lib/functions/src/index.js
+functions/lib/functions/src/index.js.map
+functions/lib/functions/src/types.js
+functions/lib/functions/src/types.js.map
+functions/lib/types/types.js
+functions/lib/types/types.js.map
