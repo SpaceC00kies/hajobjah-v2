@@ -158,17 +158,16 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, onNavigateToP
                     <span className="mr-2" role="img" aria-label="category emoji">{categoryEmoji}</span>
                     {job.title}
                 </h4>
-                <div className="job-card-author-name-container mt-1">
-                    <span className="text-xs text-neutral-dark mr-1">by:</span>
-                    <h3 
+                <div className="flex items-center gap-1.5 mt-1">
+                    <span 
                         className="job-card-author-name text-sm" 
                         onClick={(e) => { e.stopPropagation(); onNavigateToPublicProfile({userId: job.userId})}}
                     >
                         {authorActualDisplayName}
                         <span className="name-arrow">→</span>
-                    </h3>
+                    </span>
                     {job.posterIsAdminVerified && (
-                        <span className="ml-1.5 bg-secondary text-primary-dark text-xs px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1">
+                        <span className="bg-secondary text-primary-dark text-xs px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1">
                             <span>⭐</span>
                             <span>Verified</span>
                         </span>
