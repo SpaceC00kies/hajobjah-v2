@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -123,12 +121,36 @@ const App: React.FC = () => {
   const parseUrlAndSetInitialState = useCallback(() => {
     const params = new URLSearchParams(window.location.search);
     const viewFromUrl = params.get('view') as View | null;
+
+    // Check for password reset mode from Firebase Auth links
+    const mode = params.get('mode');
+    const oobCode = params.get('oobCode');
+    if (mode === 'resetPassword' && oobCode) {
+      setCurrentView(View.PasswordReset);
+      return; // Exit early
+    }
+
     if (viewFromUrl && Object.values(View).includes(viewFromUrl)) {
       setCurrentView(viewFromUrl);
+
+      // Handle deep links for specific views on initial load
+      if (viewFromUrl === View.Webboard) {
+        const postIdFromUrl = params.get('post');
+        if (postIdFromUrl) {
+          setSelectedPostId(postIdFromUrl);
+        }
+      } else if (viewFromUrl === View.Blog) {
+        const articleSlugFromUrl = params.get('article');
+        if (articleSlugFromUrl) {
+            setSelectedBlogPostSlug(articleSlugFromUrl);
+        }
+      }
     } else {
+      // Default to Home if no specific view is requested
       setCurrentView(View.Home);
     }
-  }, []);
+  }, [setSelectedPostId, setSelectedBlogPostSlug]); // Add state setters as dependencies
+
 
   useEffect(() => {
     parseUrlAndSetInitialState();
