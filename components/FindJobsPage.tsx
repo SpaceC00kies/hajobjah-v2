@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { Job, FilterableCategory, JobSubCategory, User, PaginatedDocsResponse } from '../types/types.ts';
 import { View, JobCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
@@ -10,6 +9,7 @@ import { useUser } from '../hooks/useUser.ts';
 import { useData } from '../context/DataContext.tsx';
 import type { DocumentSnapshot } from 'firebase/firestore';
 import { motion } from 'framer-motion';
+import { isDateInPast } from '../utils/dateUtils.ts';
 
 interface FindJobsPageProps {
   navigateTo: (view: View, payload?: any) => void;
@@ -70,7 +70,10 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
         selectedSubCategory,
         selectedProvince
       );
-      setJobs(prev => isInitialLoad ? result.items : [...prev, ...result.items]);
+      const activeJobs = result.items.filter(job => 
+        !job.isExpired && (!job.expiresAt || !isDateInPast(job.expiresAt))
+      );
+      setJobs(prev => isInitialLoad ? activeJobs : [...prev, ...activeJobs]);
       setLastVisible(result.lastVisibleDoc);
       setHasMore(result.items.length === 12 && result.lastVisibleDoc !== null);
     } catch (error) {

@@ -189,6 +189,11 @@ export const HelperCard: React.FC<HelperCardProps> = ({
       <div
         className="app-card"
       >
+        {profile.isPinned && (
+          <div className="card-pin-ribbon-wrapper" title="ปักหมุดโดยแอดมิน">
+            <div className="card-pin-ribbon">📌</div>
+          </div>
+        )}
         {profile.isUnavailable && !profileIsTrulyExpired && (
           <div className="helper-card-status-banner status-banner-unavailable">🚫 ไม่ว่างแล้ว</div>
         )}
@@ -200,11 +205,6 @@ export const HelperCard: React.FC<HelperCardProps> = ({
         )}
 
         <div className="helper-card-header">
-           {profile.isPinned && (
-            <div className="card-pin-icon" title="ปักหมุดโดยแอดมิน">
-              📌
-            </div>
-          )}
           <div className="helper-card-header-avatar-wrapper">
             {profile.userPhoto ? (
               <img

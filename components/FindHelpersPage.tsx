@@ -12,6 +12,7 @@ import { useHelpers } from '../hooks/useHelpers.ts';
 import { useData } from '../context/DataContext.tsx';
 import type { DocumentSnapshot } from 'firebase/firestore';
 import { motion } from 'framer-motion';
+import { isDateInPast } from '../utils/dateUtils.ts';
 
 interface FindHelpersPageProps {
   navigateTo: (view: View, payload?: any) => void;
@@ -90,7 +91,10 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
         selectedSubCategory,
         selectedProvince
       );
-      const enriched = enrichProfiles(result.items);
+      const activeProfiles = result.items.filter(profile => 
+        !profile.isExpired && (!profile.expiresAt || !isDateInPast(profile.expiresAt))
+      );
+      const enriched = enrichProfiles(activeProfiles);
       setProfiles(prev => isInitialLoad ? enriched : [...prev, ...enriched]);
       setLastVisible(result.lastVisibleDoc);
       setHasMore(result.items.length === 12 && result.lastVisibleDoc !== null);
