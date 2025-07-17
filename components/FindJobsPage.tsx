@@ -3,13 +3,13 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { Job, FilterableCategory, JobSubCategory, User, PaginatedDocsResponse } from '../types/types.ts';
 import { View, JobCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
 import { JobCard } from './JobCard.tsx';
-import { Button } from './Button.tsx';
 import { getJobsPaginated } from '../services/jobService.ts';
 import { useUser } from '../hooks/useUser.ts';
 import { useData } from '../context/DataContext.tsx';
 import type { DocumentSnapshot } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 import { isDateInPast } from '../utils/dateUtils.ts';
+import { FilterSidebar } from './FilterSidebar.tsx';
 
 interface FindJobsPageProps {
   navigateTo: (view: View, payload?: any) => void;
@@ -93,7 +93,7 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
 
   useEffect(() => {
     loadJobs(true);
-  }, [debouncedSearchTerm, selectedCategory, selectedSubCategory, selectedProvince]);
+  }, [debouncedSearchTerm, selectedCategory, selectedSubCategory, selectedProvince, loadJobs]);
 
   useEffect(() => {
     if (selectedCategory !== 'all' && JOB_SUBCATEGORIES_MAP[selectedCategory]) {
@@ -128,45 +128,20 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-x-8">
         <aside className="lg:col-span-3 mb-8 lg:mb-0">
-          <div className="sticky top-24 bg-white p-4 rounded-xl shadow-lg border border-primary-light">
-            <div className="space-y-6">
-                <div>
-                    <label htmlFor="category-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">หมวดหมู่</label>
-                    <select id="category-filter" value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value as FilterableCategory)}>
-                        <option value="all">หมวดหมู่ทั้งหมด</option>
-                        {Object.values(JobCategory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                    </select>
-                </div>
-                <div>
-                    <label htmlFor="subcategory-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">หมวดหมู่ย่อย</label>
-                    <select id="subcategory-filter" value={selectedSubCategory} onChange={(e) => setSelectedSubCategory(e.target.value as JobSubCategory | 'all')} disabled={availableSubCategories.length === 0}>
-                    <option value="all">หมวดหมู่ย่อยทั้งหมด</option>
-                    {availableSubCategories.map(subCat => <option key={subCat} value={subCat}>{subCat}</option>)}
-                    </select>
-                </div>
-                <div>
-                    <label htmlFor="province-filter" className="block text-sm font-sans font-medium text-primary-dark mb-1">จังหวัด</label>
-                    <select id="province-filter" value={selectedProvince} onChange={(e) => setSelectedProvince(e.target.value as Province | 'all')}>
-                    <option value="all">ทุกจังหวัด</option>
-                    {Object.values(Province).map(prov => <option key={prov} value={prov}>{prov}</option>)}
-                    </select>
-                </div>
-                 <div>
-                    <label htmlFor="main-search-input" className="sr-only">ค้นหางาน</label>
-                    <input
-                        id="main-search-input"
-                        type="search"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="ค้นหางาน, รายละเอียด..."
-                        aria-label="ค้นหางาน"
-                    />
-                </div>
-              <Button onClick={() => currentUser ? navigateTo(View.PostJob) : requestLoginForAction(View.PostJob)} variant="secondary" className="w-full !rounded-full !py-3">
-                ลงประกาศงาน
-              </Button>
-            </div>
-          </div>
+          <FilterSidebar
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+            availableSubCategories={availableSubCategories}
+            selectedSubCategory={selectedSubCategory}
+            onSubCategoryChange={setSelectedSubCategory}
+            selectedProvince={selectedProvince}
+            onProvinceChange={setSelectedProvince}
+            searchTerm={searchTerm}
+            onSearchTermChange={setSearchTerm}
+            searchPlaceholder="ค้นหางาน, รายละเอียด..."
+            actionButtonText="ลงประกาศงาน"
+            onActionButtonClick={() => currentUser ? navigateTo(View.PostJob) : requestLoginForAction(View.PostJob)}
+          />
         </aside>
 
         <section className="lg:col-span-9">

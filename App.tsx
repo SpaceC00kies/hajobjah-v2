@@ -7,7 +7,7 @@ import { useUser } from './hooks/useUser.ts';
 import { useWebboard } from './hooks/useWebboard.ts';
 import { useBlog } from './hooks/useBlog.ts';
 import { useAdmin } from './hooks/useAdmin.ts';
-import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Vouch, VouchReport, BlogPost, RegistrationDataType } from './types/types.ts';
+import type { User, Job, HelperProfile, WebboardPost, WebboardComment, Vouch, VouchReport, BlogPost, RegistrationDataType, SearchResultItem } from './types/types.ts';
 import type { AdminItem as AdminItemType } from './components/AdminDashboard.tsx';
 import { View, UserRole, ACTIVITY_BADGE_DETAILS } from './types/types.ts';
 import { useAuth } from './context/AuthContext.tsx';
@@ -41,6 +41,9 @@ import { BlogArticlePage } from './components/BlogArticlePage.tsx';
 import { getUserDocument } from './services/userService.ts';
 import { FindJobsPage } from './components/FindJobsPage.tsx';
 import { FindHelpersPage } from './components/FindHelpersPage.tsx';
+import { UniversalSearchBar } from './components/UniversalSearchBar.tsx';
+import { SearchResultsPage } from './components/SearchResultsPage.tsx';
+import { universalSearchService } from './services/searchService.ts';
 
 
 // Animation Variants for the Mobile Menu
@@ -118,6 +121,11 @@ const App: React.FC = () => {
   const [copiedLinkNotification, setCopiedLinkNotification] = useState<string | null>(null);
   const copiedNotificationTimerRef = useRef<number | null>(null);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
+  const [searchError, setSearchError] = useState<string | null>(null);
+
   const parseUrlAndSetInitialState = useCallback(() => {
     const params = new URLSearchParams(window.location.search);
     const viewFromUrl = params.get('view') as View | null;
@@ -178,7 +186,12 @@ const App: React.FC = () => {
     const result = await authActions.login(loginIdentifier, passwordAttempt);
     if (result.success) {
       if (loginRedirectInfo) {
-        navigateTo(loginRedirectInfo.view, loginRedirectInfo.payload);
+        // Special handling for post-login search
+        if (loginRedirectInfo.payload?.intent === 'search' && loginRedirectInfo.payload?.query) {
+            handleSearch(loginRedirectInfo.payload.query);
+        } else {
+            navigateTo(loginRedirectInfo.view, loginRedirectInfo.payload);
+        }
         setLoginRedirectInfo(null);
       } else {
         navigateTo(View.Home);
@@ -228,6 +241,28 @@ const App: React.FC = () => {
   const closeConfirmModal = () => { setIsConfirmModalOpen(false); setConfirmModalMessage(''); setConfirmModalTitle(''); setOnConfirmAction(null); };
   
   const onConfirmDeletion = () => { if (onConfirmAction) onConfirmAction(); closeConfirmModal(); };
+
+  const handleSearch = async (query: string) => {
+    if (!currentUser) {
+      requestLoginForAction(View.Home, { intent: 'search', query });
+      return;
+    }
+    setIsSearching(true);
+    setSearchQuery(query);
+    setSearchError(null);
+    navigateTo(View.SearchResults); // Navigate immediately to show loading state
+
+    try {
+      const result = await universalSearchService({ query });
+      setSearchResults(result.data.results);
+    } catch (err: any) {
+      console.error("Universal search failed:", err);
+      setSearchError(err.message || "An unexpected error occurred during search.");
+      setSearchResults([]); // Clear previous results on error
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   const renderNavLinks = (isMobile: boolean) => {
     const displayBadgeForProfile = getUserDisplayBadge(currentUser, allWebboardPostsForAdmin, webboardComments);
@@ -431,49 +466,17 @@ const App: React.FC = () => {
         <div className="container mx-auto flex flex-col items-center px-6 text-center py-12 sm:py-20">
           <h1 className="hero-title">✨ หาจ๊อบจ้า ✨</h1>
           <p className="hero-subtitle">แพลตฟอร์มที่อยู่เคียงข้างคนขยัน</p>
+          
+          <UniversalSearchBar onSearch={handleSearch} isLoading={isSearching} />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
-            <div
-              onClick={() => currentUser ? navigateTo(View.FindJobs) : requestLoginForAction(View.FindJobs)}
-              className="home-card cursor-pointer"
-            >
-              <h3 className="card-section-title">ประกาศงาน</h3>
-              <div className="space-y-4">
-                 <button onClick={(e) => { e.stopPropagation(); currentUser ? navigateTo(View.FindJobs) : requestLoginForAction(View.FindJobs); }} className="btn-primary-home">
-                  <span className="flex items-center justify-center">
-                    <span className="text-lg mr-2">📢</span>
-                    <span>ดูประกาศงานทั้งหมด</span>
-                  </span>
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); currentUser ? navigateTo(View.PostJob) : requestLoginForAction(View.PostJob); }} className="btn-secondary-home">
-                  <span className="flex items-center justify-center">
-                    <span className="text-lg mr-2">📝</span>
-                    <span>ลงประกาศงาน</span>
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            <div
-              onClick={() => currentUser ? navigateTo(View.FindHelpers) : requestLoginForAction(View.FindHelpers)}
-              className="home-card cursor-pointer"
-            >
-              <h3 className="card-section-title">โปรไฟล์ผู้ช่วยและบริการ</h3>
-              <div className="space-y-4">
-                 <button onClick={(e) => { e.stopPropagation(); currentUser ? navigateTo(View.FindHelpers) : requestLoginForAction(View.FindHelpers); }} className="btn-primary-home">
-                  <span className="flex items-center justify-center">
-                    <span className="text-lg mr-2">👥</span>
-                    <span>ดูโปรไฟล์ทั้งหมด</span>
-                  </span>
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); currentUser ? navigateTo(View.OfferHelp) : requestLoginForAction(View.OfferHelp); }} className="btn-secondary-home">
-                  <span className="flex items-center justify-center">
-                    <span className="text-lg mr-2">🙋</span>
-                    <span>สร้างโปรไฟล์</span>
-                  </span>
-                </button>
-              </div>
-            </div>
+          <div className="flex items-center space-x-6">
+            <button onClick={() => navigateTo(View.FindJobs)} className="secondary-browse-link">
+              ดูประกาศงานทั้งหมด
+            </button>
+            <span className="text-neutral-medium">|</span>
+            <button onClick={() => navigateTo(View.FindHelpers)} className="secondary-browse-link">
+              ดูโปรไฟล์ทั้งหมด
+            </button>
           </div>
         </div>
       </div>
@@ -693,6 +696,26 @@ const App: React.FC = () => {
       case View.FindHelpers:
         if (!currentUser) { navigateTo(View.Login); return null; }
         return <FindHelpersPage navigateTo={navigateTo} onNavigateToPublicProfile={handleNavigateToPublicProfile} currentUser={currentUser} requestLoginForAction={requestLoginForAction} onEditProfileFromFindView={(profileId) => handleEditItem(profileId, 'profile', View.FindHelpers)} getAuthorDisplayName={getAuthorDisplayName} />;
+      case View.SearchResults:
+        return <SearchResultsPage 
+                  searchQuery={searchQuery} 
+                  searchResults={searchResults} 
+                  isLoading={isSearching}
+                  searchError={searchError}
+                  currentUser={currentUser}
+                  users={allUsers}
+                  userInterests={userInterests}
+                  getAuthorDisplayName={getAuthorDisplayName}
+                  navigateTo={navigateTo}
+                  onNavigateToPublicProfile={handleNavigateToPublicProfile}
+                  requestLoginForAction={requestLoginForAction}
+                  onEditJobFromFindView={(jobId) => handleEditItem(jobId, 'job', View.SearchResults)}
+                  onEditProfileFromFindView={(profileId) => handleEditItem(profileId, 'profile', View.SearchResults)}
+                  onLogHelperContact={userActions.logContact}
+                  onBumpProfile={helperActions.onBumpHelperProfile}
+                  onToggleInterest={userActions.toggleInterest}
+                  onGoBack={() => navigateTo(View.Home)}
+                />;
       default:
         return renderHome();
     }

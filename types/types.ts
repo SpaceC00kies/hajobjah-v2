@@ -225,6 +225,7 @@ export enum View {
   PasswordReset = 'PASSWORD_RESET',
   Blog = 'BLOG', // New view for the blog/journal
   ArticleEditor = 'ARTICLE_EDITOR', // New view for the blog post editor
+  SearchResults = 'SEARCH_RESULTS',
 }
 
 export interface EnrichedHelperProfile extends HelperProfile {
@@ -660,3 +661,6 @@ export interface AdminDashboardData {
   userGrowth: ChartDataPoint[];
   postActivity: CategoryDataPoint[];
 }
+
+// Type for Universal Search results
+export type SearchResultItem = (Job | HelperProfile) & { resultType: 'job' | 'helper' };
