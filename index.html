@@ -36,7 +36,7 @@
       }
 
       /* --- Base Form Element Styles --- */
-      #root input:not([type="radio"]):not([type="checkbox"]):not([type="search"]), #root textarea, #root select {
+      #root input:not([type="radio"]):not([type="checkbox"]), #root textarea, #root select {
         padding: 12px 16px;
         border: 1px solid var(--primary-light);
         border-radius: 12px;
@@ -50,7 +50,7 @@
         width: 100%; /* Ensure form elements take full width of their container */
       }
 
-      #root input:not([type="radio"]):not([type="checkbox"]):not([type="search"]):focus, #root textarea:focus, #root select:focus {
+      #root input:not([type="radio"]):not([type="checkbox"]):focus, #root textarea:focus, #root select:focus {
         outline: none;
         border-color: var(--primary-blue);
         box-shadow: 0 0 0 3px rgba(135, 206, 235, 0.25);
@@ -544,7 +544,6 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 </head>
   <body class="bg-neutral-light font-serif text-neutral-dark">
     <div id="root"></div>
