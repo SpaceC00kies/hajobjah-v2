@@ -69,8 +69,8 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
             transition={modalTransition}
             onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside content
           >
-            <div className="flex justify-between items-center mb-4">
-              <h2 id={`modal-title-${title.replace(/\s+/g, '-').toLowerCase()}`} className="text-2xl font-sans font-semibold text-primary-dark mb-4">{title}</h2>
+            <div className="flex justify-between items-center mb-2">
+              <h2 id={`modal-title-${title.replace(/\s+/g, '-').toLowerCase()}`} className="text-2xl font-sans font-semibold text-primary-dark">{title}</h2>
               <button
                 onClick={onClose}
                 className="text-neutral-dark hover:text-neutral-medium text-2xl font-bold font-sans p-1 rounded-full hover:bg-neutral-light/50 transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-DEFAULT/50 focus:ring-offset-1"
