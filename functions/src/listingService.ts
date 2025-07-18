@@ -31,27 +31,21 @@ interface FilterParams {
     };
 }
 
+// This function now fetches a broad set of recent items and then applies all filters in-memory.
 export const performFilterAndSearch = async (params: FilterParams) => {
-    const { resultType, searchTerm, category, subCategory, province, pageSize = 12, paginationCursor } = params;
+    const { resultType, searchTerm, category, subCategory, province, pageSize = 12 } = params;
+    // Note: paginationCursor is ignored in this simplified, more robust implementation for now.
 
-    const fetchCollection = async (collectionName: 'jobs' | 'helperProfiles'): Promise<SearchResultItem[]> => {
-        let q: Query<DocumentData> = db.collection(collectionName)
+    const fetchRecentItems = async (collectionName: 'jobs' | 'helperProfiles'): Promise<SearchResultItem[]> => {
+        const q: Query<DocumentData> = db.collection(collectionName)
             .where("isExpired", "==", false)
             .orderBy("isPinned", "desc")
             .orderBy("updatedAt", "desc")
-            .limit(pageSize);
-
-        if (province && province !== 'all') q = q.where("province", "==", province);
-        if (category && category !== 'all') q = q.where("category", "==", category);
-        if (subCategory && subCategory !== 'all') q = q.where("subCategory", "==", subCategory);
-
-        if (paginationCursor) {
-            q = q.startAfter(paginationCursor.isPinned, new Date(paginationCursor.updatedAt));
-        }
+            .limit(150); // Fetch a larger pool of recent items for effective in-memory filtering
 
         const snapshot = await q.get();
         const resultTypeKey = collectionName === 'jobs' ? 'job' : 'helper';
-        const items: SearchResultItem[] = snapshot.docs.map(doc => {
+        return snapshot.docs.map(doc => {
             const data = doc.data();
             // Ensure date fields are converted to strings for JSON serialization
             if (data.updatedAt) data.updatedAt = safeGetDate(data.updatedAt).toISOString();
@@ -63,48 +57,63 @@ export const performFilterAndSearch = async (params: FilterParams) => {
                 resultType: resultTypeKey
             } as SearchResultItem;
         });
-        return items;
     };
 
-    let results: SearchResultItem[] = [];
-    if (resultType === 'job') {
-        results = await fetchCollection('jobs');
-    } else if (resultType === 'helper') {
-        results = await fetchCollection('helperProfiles');
-    } else {
-        const [jobResults, helperResults] = await Promise.all([
-            fetchCollection('jobs'),
-            fetchCollection('helperProfiles'),
-        ]);
-        results = [...jobResults, ...helperResults].sort((a, b) => {
+    let allRecentItems: SearchResultItem[] = [];
+    if (resultType === 'job' || resultType === 'all') {
+        allRecentItems.push(...await fetchRecentItems('jobs'));
+    }
+    if (resultType === 'helper' || resultType === 'all') {
+        allRecentItems.push(...await fetchRecentItems('helperProfiles'));
+    }
+
+    // Sort combined results if we fetched both
+    if (resultType === 'all') {
+        allRecentItems.sort((a, b) => {
             if (a.isPinned && !b.isPinned) return -1;
             if (!a.isPinned && b.isPinned) return 1;
             return safeGetDate(b.updatedAt).getTime() - safeGetDate(a.updatedAt).getTime();
-        }).slice(0, pageSize);
-    }
-
-    if (searchTerm && searchTerm.trim()) {
-        const keywords = searchTerm.toLowerCase().split(/\s+/).filter(Boolean);
-        const filterFields = ["title", "description", "details", "category", "subCategory", "location", "province", "profileTitle", "area"];
-        
-        results = results.filter(item => {
-            return keywords.some(kw => 
-                filterFields.some(field => 
-                    (item as any)[field] && typeof (item as any)[field] === 'string' && (item as any)[field].toLowerCase().includes(kw)
-                )
-            );
         });
     }
 
-    const lastItem = results.length > 0 ? results[results.length - 1] : null;
-    const nextCursor = lastItem ? {
-        updatedAt: safeGetDate(lastItem.updatedAt).toISOString(),
-        isPinned: lastItem.isPinned || false
-    } : null;
+    // Apply all filters in-memory
+    const filteredResults = allRecentItems.filter(item => {
+        // Province filter
+        if (province && province !== 'all' && item.province !== province) {
+            return false;
+        }
+        // Category filter
+        if (category && category !== 'all' && item.category !== category) {
+            return false;
+        }
+        // Sub-category filter
+        if (subCategory && subCategory !== 'all' && item.subCategory !== subCategory) {
+            return false;
+        }
+        // Search term filter
+        if (searchTerm && searchTerm.trim()) {
+            const keywords = searchTerm.toLowerCase().split(/\s+/).filter(Boolean);
+            const filterFields = ["title", "description", "details", "category", "subCategory", "location", "province", "profileTitle", "area"];
+            const itemMatchesKeyword = keywords.some(kw =>
+                filterFields.some(field =>
+                    (item as any)[field] && typeof (item as any)[field] === 'string' && (item as any)[field].toLowerCase().includes(kw)
+                )
+            );
+            if (!itemMatchesKeyword) {
+                return false;
+            }
+        }
+        // If all checks pass, keep the item
+        return true;
+    });
+
+    const paginatedItems = filteredResults.slice(0, pageSize);
     
+    // For now, pagination is simplified and we don't return a next cursor.
+    // This can be enhanced later if deep pagination on filtered results is needed.
     return {
-        items: results,
-        cursor: results.length < pageSize ? null : nextCursor
+        items: paginatedItems,
+        cursor: null 
     };
 };
 
@@ -114,7 +123,6 @@ export const filterListings = onCall({
     if (!request.auth?.uid) {
         throw new HttpsError("unauthenticated", "You must be logged in to perform this action.");
     }
-    // Basic validation
     const data = request.data as FilterParams;
     if (!data.resultType || !data.pageSize) {
         throw new HttpsError("invalid-argument", "Missing required parameters.");
