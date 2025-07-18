@@ -8,9 +8,10 @@ interface UniversalSearchBarProps {
   isLoading: boolean;
   selectedProvince: string;
   onProvinceChange: (province: string) => void;
+  onOpenLocationModal: () => void;
 }
 
-export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({ onSearch, isLoading, selectedProvince, onProvinceChange }) => {
+export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({ onSearch, isLoading, selectedProvince, onProvinceChange, onOpenLocationModal }) => {
   const [query, setQuery] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -20,10 +21,11 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({ onSearch
     }
   };
 
-  const locationPills: { id: SelectedProvince, label: string }[] = [
-    { id: 'all', label: 'ทั้งหมด' },
-    { id: Province.ChiangMai, label: '📍 เชียงใหม่' },
-    { id: Province.Bangkok, label: '📍 กรุงเทพมหานคร' }
+  const locationPills: { id: SelectedProvince | 'more', label: string, action: () => void }[] = [
+    { id: 'all', label: 'ทั้งหมด', action: () => onProvinceChange('all') },
+    { id: Province.ChiangMai, label: '📍 เชียงใหม่', action: () => onProvinceChange(Province.ChiangMai) },
+    { id: Province.Bangkok, label: '📍 กรุงเทพมหานคร', action: () => onProvinceChange(Province.Bangkok) },
+    { id: 'more', label: '... เลือกจังหวัดอื่น', action: onOpenLocationModal }
   ];
 
   return (
@@ -57,7 +59,7 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({ onSearch
         {locationPills.map(pill => (
           <button
             key={pill.id}
-            onClick={() => onProvinceChange(pill.id)}
+            onClick={pill.action}
             className={`location-pill ${selectedProvince === pill.id ? 'active' : ''}`}
           >
             {pill.label}

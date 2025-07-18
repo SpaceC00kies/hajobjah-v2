@@ -230,6 +230,61 @@
         font-weight: 600;
       }
 
+      /* --- NEW Location Modal Styles --- */
+      .location-modal-search {
+        position: sticky;
+        top: -24px; /* Adjust based on modal padding */
+        padding-top: 24px;
+        padding-bottom: 16px;
+        background: var(--white);
+        z-index: 10;
+      }
+      .location-modal-search-input {
+        width: 100%;
+        padding: 12px 16px 12px 40px;
+        border-radius: 12px;
+        border: 1px solid var(--primary-light);
+        font-family: 'Prompt', sans-serif;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5' viewBox='0 0 20 20' fill='%234A90A4'%3E%3Cpath fill-rule='evenodd' d='M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z' clip-rule='evenodd' /%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: 12px center;
+        background-size: 20px;
+      }
+      .location-modal-search-input:focus {
+        outline: none;
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 3px rgba(135, 206, 235, 0.25);
+      }
+      .location-modal-list {
+        max-height: 50vh;
+        overflow-y: auto;
+      }
+      .location-modal-region-title {
+        font-family: 'Sarabun', sans-serif;
+        font-weight: 600;
+        color: var(--primary-dark);
+        margin-top: 16px;
+        margin-bottom: 8px;
+        padding-bottom: 4px;
+        border-bottom: 1px solid var(--primary-light);
+      }
+      .location-modal-province-item {
+        padding: 10px 8px;
+        font-family: 'Prompt', sans-serif;
+        cursor: pointer;
+        border-radius: 8px;
+        transition: background-color 0.2s ease-in-out;
+        color: var(--neutral-gray);
+      }
+      .location-modal-province-item:hover {
+        background-color: var(--primary-light);
+      }
+      .location-modal-province-item.active {
+        background-color: var(--accent-peach);
+        color: var(--primary-dark);
+        font-weight: 500;
+      }
+
       /* --- Navigation Pills --- */
       .nav-pill {
           padding: 6px 16px;
@@ -577,7 +632,6 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 </head>
   <body class="bg-neutral-light font-serif text-neutral-dark">
     <div id="root"></div>

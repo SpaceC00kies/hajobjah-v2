@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -45,6 +46,7 @@ import { FindHelpersPage } from './components/FindHelpersPage.tsx';
 import { UniversalSearchBar } from './components/UniversalSearchBar.tsx';
 import { SearchResultsPage } from './components/SearchResultsPage.tsx';
 import { universalSearchService } from './services/searchService.ts';
+import { LocationModal } from './components/LocationModal.tsx';
 
 
 // Animation Variants for the Mobile Menu
@@ -121,6 +123,8 @@ const App: React.FC = () => {
   const [selectedBlogPostSlug, setSelectedBlogPostSlug] = useState<string | null>(null);
   const [copiedLinkNotification, setCopiedLinkNotification] = useState<string | null>(null);
   const copiedNotificationTimerRef = useRef<number | null>(null);
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -477,6 +481,7 @@ const App: React.FC = () => {
             isLoading={isSearching} 
             selectedProvince={homeProvince}
             onProvinceChange={setHomeProvince}
+            onOpenLocationModal={() => setIsLocationModalOpen(true)}
           />
 
           <div className="flex items-center space-x-6 mt-6">
@@ -807,6 +812,12 @@ const App: React.FC = () => {
           vouchToReport={reportVouchModalData.vouchToReport}
         />
       )}
+       <LocationModal
+        isOpen={isLocationModalOpen}
+        onClose={() => setIsLocationModalOpen(false)}
+        onSelectProvince={(province) => setHomeProvince(province)}
+        currentProvince={homeProvince}
+      />
     </div>
   );
 };
