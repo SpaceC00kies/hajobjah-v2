@@ -1,10 +1,12 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { orionAnalyzeService } from '../services/adminService.ts';
-import type { OrionMessage } from '../types/types';
+import type { OrionMessage, OrionInsightData } from '../types/types.ts';
 import { Button } from './Button.tsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { OrionInsightCard } from './orion/OrionInsightCard.tsx';
 
 const TypingIndicator = () => (
     <motion.div className="flex items-center space-x-1.5">
@@ -44,28 +46,36 @@ export const OrionCommandCenter: React.FC = () => {
         try {
             const historyForAPI = [...messages, userMessage].map(m => ({
                 role: m.sender === 'user' ? 'user' : 'model',
-                parts: [{ text: m.text }]
+                parts: [{ text: m.text || 'Analysis Request' }]
             }));
 
             const result = await orionAnalyzeService({ command: command, history: historyForAPI });
             const replyData = result.data.reply as any;
             
-            let orionReplyText: string;
+            let orionMessage: OrionMessage;
 
             if (typeof replyData === 'object' && replyData !== null && 'threat_level' in replyData) {
-                const intelBullets = Array.isArray(replyData.key_intel)
-                    ? replyData.key_intel.map((item: string) => `* ${item}`).join("\n")
-                    : 'No intelligence data provided.';
-
-                orionReplyText = `**THREAT LEVEL:** ${replyData.threat_level || 'N/A'}\n**TRUST SCORE:** ${replyData.trust_score || 'N/A'}/100 ${replyData.emoji || ''}\n\n**EXECUTIVE SUMMARY:**\n${replyData.executive_summary || 'No summary provided.'}\n\n**KEY INTEL:**\n${intelBullets}\n\n**RECOMMENDED ACTION:**\n${replyData.recommended_action || 'No action recommended.'}`;
+                orionMessage = {
+                    id: `orion-${Date.now()}`,
+                    sender: 'orion',
+                    insightPayload: replyData as OrionInsightData,
+                };
             } else if (typeof replyData === 'string') {
-                orionReplyText = replyData;
+                orionMessage = {
+                    id: `orion-${Date.now()}`,
+                    sender: 'orion',
+                    text: replyData,
+                };
             } else {
-                orionReplyText = 'Received an unexpected response format from Orion.';
+                 orionMessage = {
+                    id: `error-${Date.now()}`,
+                    sender: 'orion',
+                    text: "Received an unexpected response format from Orion.",
+                    isError: true,
+                };
                 console.warn("Unexpected Orion response:", replyData);
             }
 
-            const orionMessage: OrionMessage = { id: `orion-${Date.now()}`, text: orionReplyText.trim(), sender: 'orion' };
             setMessages(prev => [...prev, orionMessage]);
 
         } catch (e: any) {
@@ -83,11 +93,11 @@ export const OrionCommandCenter: React.FC = () => {
     };
 
     return (
-        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg border border-neutral-DEFAULT h-[70vh] flex flex-col">
-            <h3 className="text-xl font-semibold text-accent mb-4 text-center">
+        <div className="orion-command-center-container bg-white p-4 sm:p-6 rounded-lg shadow-lg border border-neutral-DEFAULT h-[70vh] flex flex-col">
+            <h3 className="orion-title text-xl font-semibold text-accent mb-4 text-center">
                 🤖 Orion Command Center
             </h3>
-            <div className="flex-grow overflow-y-auto mb-4 p-4 bg-neutral-light/50 rounded-md space-y-4">
+            <div className="orion-message-history flex-grow overflow-y-auto mb-4 p-4 bg-neutral-light/50 rounded-md space-y-4">
                 <AnimatePresence>
                     {messages.map((message) => (
                         <motion.div
@@ -95,18 +105,30 @@ export const OrionCommandCenter: React.FC = () => {
                             className={`flex items-start gap-3 ${message.sender === 'user' ? 'justify-end' : ''}`}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
+                            layout
                         >
                             {message.sender === 'orion' && <span className="text-xl">🤖</span>}
                             <div
-                                className={`max-w-xl p-3 rounded-lg text-sm whitespace-pre-wrap ${ // <-- CRITICAL FIX HERE
+                                className={`max-w-xl rounded-lg ${
+                                    message.insightPayload ? '' : 'p-3'
+                                } ${
                                     message.sender === 'user'
                                         ? 'bg-blue-100 text-neutral-dark'
                                         : message.isError
                                         ? 'bg-red-100 text-red-800'
+                                        : message.insightPayload 
+                                        ? 'bg-transparent w-full'
                                         : 'bg-neutral-light text-neutral-dark'
                                 }`}
                             >
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.text}</ReactMarkdown>
+                               {message.text && (
+                                   <div className="text-sm whitespace-pre-wrap">
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.text}</ReactMarkdown>
+                                   </div>
+                                )}
+                                {message.insightPayload && (
+                                    <OrionInsightCard payload={message.insightPayload} />
+                                )}
                             </div>
                         </motion.div>
                     ))}
@@ -125,7 +147,7 @@ export const OrionCommandCenter: React.FC = () => {
                     value={inputCommand}
                     onChange={(e) => setInputCommand(e.target.value)}
                     placeholder="Enter command..."
-                    className="flex-grow w-full p-3 bg-white border border-neutral-DEFAULT rounded-lg text-neutral-dark focus:outline-none focus:ring-2 focus:ring-accent"
+                    className="orion-input flex-grow w-full p-3 bg-white border border-neutral-DEFAULT rounded-lg text-neutral-dark focus:outline-none focus:ring-2 focus:ring-accent"
                     disabled={isLoading}
                 />
                 <Button type="submit" variant="primary" size="md" disabled={isLoading}>

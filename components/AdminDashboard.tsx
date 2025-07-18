@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { Job, HelperProfile, User, Interaction, WebboardPost, WebboardComment, UserLevel, VouchReport, Vouch, VouchType, BlogPost } from '../types/types.ts';
 import { UserRole, VouchReportStatus, VOUCH_TYPE_LABELS } from '../types/types.ts';
 import { Button } from './Button.tsx';
@@ -32,7 +32,9 @@ export interface AdminItem {
   publishedAt?: string | Date; // For BlogPost
 }
 
-type AdminTab = 'overview' | 'jobs' | 'profiles' | 'webboard' | 'articles' | 'users' | 'site_controls' | 'vouch_reports' | 'orion_command_center';
+type AdminTab = 'overview' | 'action_hub' | 'vouch_reports' | 'orion_command_center' | 'articles' | 'site_controls';
+type ActionHubSearchType = 'job' | 'profile' | 'webboardPost' | 'user';
+
 
 interface AdminDashboardProps {
   jobs: Job[];
@@ -77,11 +79,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isHudLoading, setIsHudLoading] = useState(false);
   const [hudAnalysis, setHudAnalysis] = useState<{ ipMatch: boolean | null; voucherIsNew: boolean | null; error?: string | null }>({ ipMatch: null, voucherIsNew: null, error: null });
   
+  const [actionHubSearchType, setActionHubSearchType] = useState<ActionHubSearchType>('job');
+
   const { toggleHiredJob } = useJobs();
   const { onToggleUnavailableHelperProfileForUserOrAdmin } = useHelpers();
   const admin = useAdmin();
 
-  useEffect(() => setSearchTerm(''), [activeTab]);
+  useEffect(() => {
+    setSearchTerm('');
+    if (activeTab !== 'action_hub') {
+        // Reset search type if navigating away from the hub
+        setActionHubSearchType('job');
+    }
+  }, [activeTab]);
+
 
   const handleSelectReport = (report: VouchReport) => {
       setSelectedReport(report);
@@ -143,45 +154,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const ensureStringDate = (dateInput: string | Date | undefined): string | undefined => dateInput ? (dateInput instanceof Date ? dateInput.toISOString() : dateInput) : undefined;
   
-  const allContentItems: AdminItem[] = [
-    ...(activeTab === 'articles' ? allBlogPostsForAdmin.map(post => ({ id: post.id, itemType: 'blogPost' as const, title: post.title, authorDisplayName: getAuthorDisplayName(post.authorId, post.authorDisplayName), userId: post.authorId, postedAt: ensureStringDate(post.createdAt), status: post.status, publishedAt: ensureStringDate(post.publishedAt), originalItem: post })) : []),
-    ...(activeTab === 'jobs' ? jobs.map(job => ({ id: job.id, itemType: 'job' as const, title: job.title, authorDisplayName: getAuthorDisplayName(job.userId, job.authorDisplayName), userId: job.userId, postedAt: ensureStringDate(job.postedAt), isPinned: job.isPinned, isSuspicious: job.isSuspicious, isHiredOrUnavailable: job.isHired, originalItem: job })) : []),
-    ...(activeTab === 'profiles' ? helperProfiles.map(profile => ({ id: profile.id, itemType: 'profile' as const, title: profile.profileTitle, authorDisplayName: getAuthorDisplayName(profile.userId, profile.authorDisplayName), userId: profile.userId, postedAt: ensureStringDate(profile.postedAt), isPinned: profile.isPinned, isSuspicious: profile.isSuspicious, isHiredOrUnavailable: profile.isUnavailable, adminVerifiedExperience: profile.adminVerifiedExperience, profileComplete: users.find(u => u.id === profile.userId) ? checkProfileCompleteness(users.find(u => u.id === profile.userId)!) : false, originalItem: profile })) : []),
-    ...(activeTab === 'webboard' ? webboardPosts.map(post => ({ id: post.id, itemType: 'webboardPost' as const, title: post.title, authorDisplayName: getAuthorDisplayName(post.userId, post.authorDisplayName), userId: post.userId, postedAt: ensureStringDate(post.createdAt), isPinned: post.isPinned, isSuspicious: false, isHiredOrUnavailable: false, likesCount: post.likes.length, commentsCount: webboardComments.filter(c => c.postId === post.id).length, authorLevel: users.find(u => u.id === post.userId) ? getUserDisplayBadge(users.find(u => u.id === post.userId)!) : undefined, originalItem: post })) : []),
-  ].sort((a, b) => new Date(b.postedAt || 0).getTime() - new Date(a.postedAt || 0).getTime());
+  const filteredBlogItems = allBlogPostsForAdmin.filter(post => {
+    if (blogStatusFilter !== 'all' && post.status !== blogStatusFilter) return false;
+    if (searchTerm.trim() && activeTab === 'articles') {
+      const term = searchTerm.toLowerCase();
+      return post.title.toLowerCase().includes(term) || getAuthorDisplayName(post.authorId, post.authorDisplayName).toLowerCase().includes(term);
+    }
+    return true;
+  });
 
-  const filteredItems = allContentItems.filter(item => {
-    if (activeTab === 'jobs' && item.itemType !== 'job') return false;
-    if (activeTab === 'profiles' && item.itemType !== 'profile') return false;
-    if (activeTab === 'webboard' && item.itemType !== 'webboardPost') return false;
-    if (activeTab === 'articles' && item.itemType !== 'blogPost') return false;
-    if (item.itemType === 'blogPost' && blogStatusFilter !== 'all' && item.status !== blogStatusFilter) return false;
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
-      const user = users.find(u => u.id === item.userId);
-      return item.title.toLowerCase().includes(term) || (item.authorDisplayName && item.authorDisplayName.toLowerCase().includes(term)) || (user && user.username.toLowerCase().includes(term)) || (user && user.email.toLowerCase().includes(term)) || item.id.toLowerCase().includes(term);
+  const actionHubResults = useMemo(() => {
+    if (!searchTerm.trim()) {
+        return [];
     }
-    return true;
-  });
-  
-  const filteredUsers = users.filter(user => {
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
-      return user.publicDisplayName.toLowerCase().includes(term) || user.username.toLowerCase().includes(term) || user.email.toLowerCase().includes(term) || user.id.toLowerCase().includes(term) || (user.mobile && user.mobile.includes(term));
+    const term = searchTerm.toLowerCase();
+
+    switch (actionHubSearchType) {
+        case 'job':
+            return jobs.filter(item => item.title.toLowerCase().includes(term) || getAuthorDisplayName(item.userId, item.authorDisplayName).toLowerCase().includes(term) || item.id.toLowerCase().includes(term));
+        case 'profile':
+            return helperProfiles.filter(item => item.profileTitle.toLowerCase().includes(term) || getAuthorDisplayName(item.userId, item.authorDisplayName).toLowerCase().includes(term) || item.id.toLowerCase().includes(term));
+        case 'webboardPost':
+            return webboardPosts.filter(item => item.title.toLowerCase().includes(term) || getAuthorDisplayName(item.userId, item.authorDisplayName).toLowerCase().includes(term) || item.id.toLowerCase().includes(term));
+        case 'user':
+            return users.filter(user => user.publicDisplayName.toLowerCase().includes(term) || user.username.toLowerCase().includes(term) || user.email.toLowerCase().includes(term) || user.id.toLowerCase().includes(term) || (user.mobile && user.mobile.includes(term)));
+        default:
+            return [];
     }
-    return true;
-  });
+  }, [searchTerm, actionHubSearchType, jobs, helperProfiles, webboardPosts, users, getAuthorDisplayName]);
+
   
   const pendingVouchReportsCount = vouchReports.filter(r => r.status === 'pending_review').length;
   let TABS: { id: AdminTab; label: string; icon: string, badgeCount?: number }[] = [
     { id: 'overview', label: 'Mission Control', icon: '🎯' },
-    { id: 'orion_command_center', label: 'Orion', icon: '🤖' },
+    { id: 'action_hub', label: 'Action Hub', icon: '🔍' },
     { id: 'vouch_reports', label: 'รายงาน Vouch', icon: '🛡️', badgeCount: pendingVouchReportsCount },
-    { id: 'jobs', label: 'งาน', icon: '📢' },
-    { id: 'profiles', label: 'โปรไฟล์ผู้ช่วย', icon: '🧑‍🔧' },
-    { id: 'webboard', label: 'กระทู้', icon: '💬' },
+    { id: 'orion_command_center', label: 'Orion', icon: '🤖' },
     { id: 'articles', label: 'บทความ', icon: '📖' },
-    { id: 'users', label: 'จัดการผู้ใช้', icon: '👥' },
     { id: 'site_controls', label: 'ควบคุมระบบ', icon: '⚙️' },
   ];
 
@@ -189,6 +198,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     TABS = [{ id: 'articles', label: 'บทความ', icon: '📖' }];
     if (activeTab !== 'articles') setActiveTab('articles');
   }
+
+  const searchTypes: { id: ActionHubSearchType; label: string; icon: string }[] = [
+    { id: 'job', label: 'งาน', icon: '📢' },
+    { id: 'profile', label: 'โปรไฟล์ผู้ช่วย', icon: '🧑‍🔧' },
+    { id: 'webboardPost', label: 'กระทู้', icon: '💬' },
+    { id: 'user', label: 'ผู้ใช้', icon: '👥' },
+  ];
+
 
   return (
     <div className="p-4 sm:p-6 w-full">
@@ -226,12 +243,73 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           />
       )}
 
-      {['jobs', 'profiles', 'webboard', 'articles', 'users'].includes(activeTab) && (<div className="mb-4 flex flex-col sm:flex-row gap-4"><input type="search" placeholder={`ค้นหาใน ${activeTab}...`} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full sm:flex-grow" />{activeTab === 'articles' && (<div className="flex-shrink-0 w-full sm:w-48"><label htmlFor="blogStatusFilter" className="sr-only">Filter by status</label><select id="blogStatusFilter" value={blogStatusFilter} onChange={e => setBlogStatusFilter(e.target.value as any)} className="w-full"><option value="all">All Statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="archived">Archived</option></select></div>)}</div>)}
-      {activeTab === 'articles' && (<div><Button onClick={() => onStartEditItem({itemType: 'blogPost', originalItem: {} as BlogPost} as AdminItem)} variant="primary" size="sm" className="mb-4">+ Create New Post</Button><div className="overflow-x-auto"><table className="min-w-full divide-y divide-neutral-DEFAULT"><thead className="bg-neutral-light/50"><tr><th scope="col">Title</th><th scope="col">Author</th><th scope="col">Status</th><th scope="col">Published Date</th><th scope="col">Actions</th></tr></thead><tbody className="bg-white divide-y divide-neutral-DEFAULT">{filteredItems.filter(item => item.itemType === 'blogPost').map(item => { const canEdit = currentUser?.role === UserRole.Admin || (currentUser?.role === UserRole.Writer && item.userId === currentUser.id); return(<tr key={item.id}><td>{item.title}</td><td>{item.authorDisplayName}</td><td><span>{item.status}</span></td><td>{item.publishedAt ? formatDateDisplay(item.publishedAt) : '—'}</td><td><div>{canEdit && <Button onClick={() => onStartEditItem(item)} size="sm">Edit</Button>}{canEdit && <Button onClick={() => admin.deleteBlogPost(item.id, (item.originalItem as BlogPost).coverImageURL)} size="sm" colorScheme="accent">Delete</Button>}</div></td></tr>)})}</tbody></table></div></div>)}
-      {['jobs', 'profiles', 'webboard'].includes(activeTab) && (<div className="overflow-x-auto"><table className="min-w-full divide-y divide-neutral-DEFAULT"><thead><tr><th>Title</th><th>Author</th><th>Status</th><th>Actions</th></tr></thead><tbody className="bg-white divide-y divide-neutral-DEFAULT">{filteredItems.map(item => (<tr key={`${item.itemType}-${item.id}`}><td>{item.title}</td><td>{item.authorDisplayName}</td><td>{item.isPinned && <span>Pinned </span>}{item.isSuspicious && <span>Suspicious </span>}{item.isHiredOrUnavailable && <span>Hired/Unavailable</span>}</td><td><div className="flex flex-wrap gap-2 justify-end"><Button onClick={() => onStartEditItem(item)} size="sm">Edit</Button><Button onClick={() => onDeleteItem(item.id, item.itemType as 'job' | 'profile' | 'webboardPost')} size="sm" colorScheme="accent">Delete</Button>{item.itemType === 'job' && (<><Button onClick={() => admin.toggleSuspiciousJob(item.id)} size="sm" variant="outline" colorScheme="accent">{item.isSuspicious ? 'Unsuspicious' : 'Suspicious'}</Button><Button onClick={() => admin.togglePinnedJob(item.id)} size="sm" variant="outline">{item.isPinned ? 'Unpin' : 'Pin'}</Button><Button onClick={() => toggleHiredJob(item.id)} size="sm" variant="outline">{item.isHiredOrUnavailable ? 'Set Available' : 'Set Hired'}</Button></>)}{item.itemType === 'profile' && (<><Button onClick={() => admin.toggleSuspiciousHelperProfile(item.id)} size="sm" variant="outline" colorScheme="accent">{item.isSuspicious ? 'Unsuspicious' : 'Suspicious'}</Button><Button onClick={() => admin.togglePinnedHelperProfile(item.id)} size="sm" variant="outline">{item.isPinned ? 'Unpin' : 'Pin'}</Button><Button onClick={() => onToggleUnavailableHelperProfileForUserOrAdmin(item.id)} size="sm" variant="outline">{item.isHiredOrUnavailable ? 'Set Available' : 'Set Unavailable'}</Button><Button onClick={() => admin.toggleVerifiedExperience(item.id)} size="sm" variant="outline">{item.adminVerifiedExperience ? 'Unverify' : 'Verify Exp.'}</Button></>)}{item.itemType === 'webboardPost' && (<Button onClick={() => admin.pinWebboardPost(item.id)} size="sm" variant="outline">{item.isPinned ? 'Unpin' : 'Pin'}</Button>)}</div></td></tr>))}</tbody></table></div>)}
-      {activeTab === 'users' && currentUser?.role === UserRole.Admin && (<div className="overflow-x-auto"><table className="min-w-full divide-y divide-neutral-DEFAULT"><thead className="bg-neutral-light/50"><tr><th>User</th><th>Role</th><th>Actions</th></tr></thead><tbody className="bg-white divide-y divide-neutral-DEFAULT">{filteredUsers.map(user => (<tr key={user.id}><td>{user.publicDisplayName} (@{user.username})</td><td>{user.role}</td><td><select value={user.role} onChange={e => admin.setUserRole(user.id, e.target.value as UserRole)} disabled={user.id === currentUser?.id}>{Object.values(UserRole).map(role => <option key={role} value={role}>{role}</option>)}</select></td></tr>))}</tbody></table></div>)}
+      {activeTab === 'action_hub' && (
+        <div>
+            <div className="mb-4 flex gap-2 flex-wrap">
+                {searchTypes.map(type => (
+                    <button 
+                        key={type.id}
+                        onClick={() => setActionHubSearchType(type.id)}
+                        className={`dashboard-nav-pill ${actionHubSearchType === type.id ? 'active' : ''}`}
+                    >
+                        {type.icon} {type.label}
+                    </button>
+                ))}
+            </div>
+            <input type="search" placeholder={`Search for a ${actionHubSearchType}...`} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full mb-4" />
+            
+            {searchTerm.trim() && (
+                 <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-neutral-DEFAULT">
+                        <thead className="bg-neutral-light/50">
+                            <tr>
+                                <th scope="col">{actionHubSearchType === 'user' ? 'User' : 'Title'}</th>
+                                <th scope="col">{actionHubSearchType === 'user' ? 'Email / Role' : 'Author'}</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-neutral-DEFAULT">
+                            {actionHubResults.map(item => {
+                                let title: string, author: string, status: React.ReactNode, actions: React.ReactNode;
+                                const itemType = actionHubSearchType;
+
+                                if (itemType === 'user') {
+                                    const user = item as User;
+                                    title = `${user.publicDisplayName} (@${user.username})`;
+                                    author = `${user.email} | ${user.role}`;
+                                    status = <span>-</span>;
+                                    actions = (<select value={user.role} onChange={e => admin.setUserRole(user.id, e.target.value as UserRole)} disabled={user.id === currentUser?.id}>{Object.values(UserRole).map(role => <option key={role} value={role}>{role}</option>)}</select>);
+                                } else {
+                                    const contentItem = item as Job | HelperProfile | WebboardPost;
+                                    title = 'title' in contentItem ? contentItem.title : contentItem.profileTitle;
+                                    author = getAuthorDisplayName(contentItem.userId, contentItem.authorDisplayName);
+                                    status = <>{contentItem.isPinned && <span>Pinned </span>}{'isSuspicious' in contentItem && contentItem.isSuspicious && <span>Suspicious </span>}{('isHired' in contentItem && contentItem.isHired) || ('isUnavailable' in contentItem && contentItem.isUnavailable) && <span>Hired/Unavailable</span>}</>
+                                    actions = (
+                                        <div className="flex flex-wrap gap-2 justify-end">
+                                            <Button onClick={() => onStartEditItem({id: item.id, itemType: itemType, originalItem: item, title: title})} size="sm">Edit</Button>
+                                            <Button onClick={() => onDeleteItem(item.id, itemType as 'job' | 'profile' | 'webboardPost')} size="sm" colorScheme="accent">Delete</Button>
+                                            {itemType === 'job' && (<><Button onClick={() => admin.toggleSuspiciousJob(item.id)} size="sm" variant="outline" colorScheme="accent">{'isSuspicious' in contentItem && contentItem.isSuspicious ? 'Unsuspicious' : 'Suspicious'}</Button><Button onClick={() => admin.togglePinnedJob(item.id)} size="sm" variant="outline">{contentItem.isPinned ? 'Unpin' : 'Pin'}</Button><Button onClick={() => toggleHiredJob(item.id)} size="sm" variant="outline">{('isHired' in contentItem && contentItem.isHired) ? 'Set Available' : 'Set Hired'}</Button></>)}
+                                            {itemType === 'profile' && (<><Button onClick={() => admin.toggleSuspiciousHelperProfile(item.id)} size="sm" variant="outline" colorScheme="accent">{'isSuspicious' in contentItem && contentItem.isSuspicious ? 'Unsuspicious' : 'Suspicious'}</Button><Button onClick={() => admin.togglePinnedHelperProfile(item.id)} size="sm" variant="outline">{contentItem.isPinned ? 'Unpin' : 'Pin'}</Button><Button onClick={() => onToggleUnavailableHelperProfileForUserOrAdmin(item.id)} size="sm" variant="outline">{('isUnavailable' in contentItem && contentItem.isUnavailable) ? 'Set Available' : 'Set Unavailable'}</Button><Button onClick={() => admin.toggleVerifiedExperience(item.id)} size="sm" variant="outline">{('adminVerifiedExperience' in contentItem && contentItem.adminVerifiedExperience) ? 'Unverify' : 'Verify Exp.'}</Button></>)}
+                                            {itemType === 'webboardPost' && (<Button onClick={() => admin.pinWebboardPost(item.id)} size="sm" variant="outline">{contentItem.isPinned ? 'Unpin' : 'Pin'}</Button>)}
+                                        </div>
+                                    )
+                                }
+                                return (<tr key={item.id}><td>{title}</td><td>{author}</td><td>{status}</td><td>{actions}</td></tr>)
+                            })}
+                        </tbody>
+                    </table>
+                 </div>
+            )}
+        </div>
+      )}
+
+      {activeTab === 'articles' && (<div><div className="mb-4 flex flex-col sm:flex-row gap-4"><input type="search" placeholder={`ค้นหาใน ${activeTab}...`} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full sm:flex-grow" /><div className="flex-shrink-0 w-full sm:w-48"><label htmlFor="blogStatusFilter" className="sr-only">Filter by status</label><select id="blogStatusFilter" value={blogStatusFilter} onChange={e => setBlogStatusFilter(e.target.value as any)} className="w-full"><option value="all">All Statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="archived">Archived</option></select></div></div><Button onClick={() => onStartEditItem({itemType: 'blogPost', originalItem: {} as BlogPost} as AdminItem)} variant="primary" size="sm" className="mb-4">+ Create New Post</Button><div className="overflow-x-auto"><table className="min-w-full divide-y divide-neutral-DEFAULT"><thead className="bg-neutral-light/50"><tr><th scope="col">Title</th><th scope="col">Author</th><th scope="col">Status</th><th scope="col">Published Date</th><th scope="col">Actions</th></tr></thead><tbody className="bg-white divide-y divide-neutral-DEFAULT">{filteredBlogItems.map(item => { const canEdit = currentUser?.role === UserRole.Admin || (currentUser?.role === UserRole.Writer && item.authorId === currentUser.id); return(<tr key={item.id}><td>{item.title}</td><td>{getAuthorDisplayName(item.authorId, item.authorDisplayName)}</td><td><span>{item.status}</span></td><td>{item.publishedAt ? formatDateDisplay(item.publishedAt) : '—'}</td><td><div>{canEdit && <Button onClick={() => onStartEditItem({id: item.id, itemType: 'blogPost', originalItem: item, title: item.title})} size="sm">Edit</Button>}{canEdit && <Button onClick={() => admin.deleteBlogPost(item.id, (item as BlogPost).coverImageURL)} size="sm" colorScheme="accent">Delete</Button>}</div></td></tr>)})}</tbody></table></div></div>)}
+      
       {activeTab === 'site_controls' && currentUser?.role === UserRole.Admin && (<div className="p-4 bg-neutral-light/50 rounded-lg"><h3 className="text-lg font-semibold text-neutral-700 mb-3">Site Controls</h3><div className="flex items-center justify-between p-4 bg-white rounded shadow"><p className="font-medium">Site Lock: {isSiteLocked ? "ON" : "OFF"}</p><Button onClick={() => admin.toggleSiteLock(isSiteLocked)} colorScheme={isSiteLocked ? "accent" : "primary"}>{isSiteLocked ? "Unlock Site" : "Lock Site"}</Button></div></div>)}
-      {activeTab === 'orion_command_center' && currentUser?.role === UserRole.Admin && (<OrionCommandCenter />)}
+      
+      {activeTab === 'orion_command_center' && currentUser?.role === UserRole.Admin && (<div className="orion-cockpit"><OrionCommandCenter /></div>)}
+
       {activeTab === 'vouch_reports' && currentUser?.role === UserRole.Admin && (<div className="grid grid-cols-1 md:grid-cols-3 gap-6"><div className="md:col-span-1"><h3 className="text-lg font-semibold text-neutral-700 mb-3">Pending Reports ({pendingVouchReportsCount})</h3><div className="space-y-2 max-h-96 overflow-y-auto">{vouchReports.map(report => (<button key={report.id} onClick={() => setSelectedReport(report)} className={`block w-full text-left p-3 rounded-md ${selectedReport?.id === report.id ? 'bg-blue-100' : 'bg-neutral-light/50 hover:bg-neutral-light'}`}><p className="text-sm font-semibold truncate">Report on Vouch <code className="text-xs">{report.vouchId.substring(0, 6)}...</code></p><p className="text-xs text-neutral-medium">By: {getAuthorDisplayName(report.reporterId).substring(0, 15)}...</p></button>))}</div></div><div className="md:col-span-2 p-4 bg-neutral-light/50 rounded-lg"><h3 className="text-lg font-semibold text-neutral-700 mb-3">Report Details & HUD</h3>{selectedReport ? (<div><p><strong>Reporter Comment:</strong> {selectedReport.reporterComment}</p><hr className="my-2" /><p className="font-semibold">Vouch Info:</p>{isHudLoading ? <p>Loading Vouch Details...</p> : selectedVouch ? (<div><p>From: {selectedVouch.voucherDisplayName} ({selectedVouch.voucherId.substring(0,10)}...)</p><p>To: {getAuthorDisplayName(selectedVouch.voucheeId)} ({selectedVouch.voucheeId.substring(0,10)}...)</p><p>Type: {VOUCH_TYPE_LABELS[selectedVouch.vouchType]}</p><p>Vouch Comment: "{selectedVouch.comment}"</p></div>) : <p className="text-red-500">Vouch data not found.</p>}<hr className="my-2" /><p className="font-semibold">Risk Signals:</p>{isHudLoading ? <p>Analyzing...</p> : hudAnalysis.error ? (<p className="font-bold text-red-500">⚠️ Analysis Error: {hudAnalysis.error}</p>) : (<div>{hudAnalysis.ipMatch === null ? <p>IP check pending...</p> : hudAnalysis.ipMatch ? <p className="font-bold text-red-500">⚠️ IP ADDRESS MATCH</p> : <p className="text-green-600">✅ IP addresses do not match.</p>}{hudAnalysis.voucherIsNew === null ? <p>Account age check pending...</p> : hudAnalysis.voucherIsNew ? <p className="font-bold text-orange-500">⚠️ VOUCHER IS NEW ACCOUNT (&lt;7 days)</p> : <p className="text-green-600">✅ Voucher account is not new.</p>}</div>)}<div className="mt-4 flex gap-4"><Button onClick={() => admin.resolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedKept, selectedReport.vouchId, selectedReport.voucheeId, selectedVouch!.vouchType)} colorScheme="primary" disabled={isHudLoading || !selectedVouch}>Keep Vouch</Button><Button onClick={() => admin.resolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedDeleted, selectedReport.vouchId, selectedReport.voucheeId, selectedVouch!.vouchType)} colorScheme="accent" disabled={isHudLoading || !selectedVouch}>Delete Vouch</Button></div></div>) : <p>Select a report to view details.</p>}</div></div>)}
     </div>
   );
