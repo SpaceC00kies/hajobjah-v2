@@ -35,19 +35,15 @@ export const performFilterAndSearch = async (params: FilterParams) => {
     const { resultType, searchTerm, category, subCategory, province, pageSize = 12 } = params;
 
     const fetchRecentItems = async (collectionName: 'jobs' | 'helperProfiles'): Promise<SearchResultItem[]> => {
-        // STEP 1: "Can't-Fail" Database Fetch
-        // A query with a single orderBy on a timestamp does not require a custom index.
-        // This is guaranteed to work for both collections and fixes the empty job page bug.
         const q: Query<DocumentData> = db.collection(collectionName)
             .orderBy("updatedAt", "desc")
-            .limit(150); // Fetch a broad pool of recent items for in-memory filtering.
+            .limit(150);
 
         const snapshot = await q.get();
 
         const resultTypeKey = collectionName === 'jobs' ? 'job' : 'helper';
         return snapshot.docs.map(doc => {
             const data = doc.data();
-            // Ensure all potential date fields are converted for consistent processing and JSON serialization.
             if (data.updatedAt) data.updatedAt = safeGetDate(data.updatedAt).toISOString();
             if (data.postedAt) data.postedAt = safeGetDate(data.postedAt).toISOString();
             if (data.createdAt) data.createdAt = safeGetDate(data.createdAt).toISOString();
@@ -71,27 +67,37 @@ export const performFilterAndSearch = async (params: FilterParams) => {
     // STEP 2: Robust In-Memory Processing
     const now = new Date();
 
-    // a) Filter Expired Items: This is the first and most crucial filter.
+    // ================== FIX IMPLEMENTED HERE ==================
+    // a) Filter Expired Items AND Province FIRST for strict filtering.
+    // This ensures only active items from the correct province are processed further.
     const activeItems = allRecentItems.filter(item => {
+        // Exclude expired items
         const isExpiredFlag = item.isExpired === true;
         const hasExpiredDate = item.expiresAt ? new Date(item.expiresAt as string) < now : false;
-        return !isExpiredFlag && !hasExpiredDate;
-    });
+        if (isExpiredFlag || hasExpiredDate) {
+            return false;
+        }
 
-    // b) Sort by Pinned Status, then fall back to the recent date.
+        // Strictly filter by province if provided
+        if (province && province !== 'all') {
+            return item.province === province;
+        }
+
+        return true;
+    });
+    // ==========================================================
+
+    // b) Sort the pre-filtered items by Pinned Status, then fall back to the recent date.
     const sortedItems = activeItems.sort((a, b) => {
         if (a.isPinned && !b.isPinned) return -1;
         if (!a.isPinned && b.isPinned) return 1;
-        // The original fetch was already sorted by updatedAt, this preserves that order for non-pinned items.
         return safeGetDate(b.updatedAt).getTime() - safeGetDate(a.updatedAt).getTime();
     });
 
-    // c) Apply All Other User-Selected Filters
+    // c) Apply All Other User-Selected Filters to the already-filtered and sorted list.
     const filteredResults = sortedItems.filter(item => {
-        // Province filter (fixes homepage pill bug)
-        if (province && province !== 'all' && item.province !== province) {
-            return false;
-        }
+        // Province filter is already applied, so no need to check again.
+        
         // Category filter
         if (category && category !== 'all' && item.category !== category) {
             return false;
@@ -119,8 +125,6 @@ export const performFilterAndSearch = async (params: FilterParams) => {
 
     const paginatedItems = filteredResults.slice(0, pageSize);
     
-    // Pagination is simplified in this model. For true infinite scroll on heavily filtered results,
-    // a more complex backend cursor strategy would be needed. This serves the immediate need to fix bugs.
     return {
         items: paginatedItems,
         cursor: null 
