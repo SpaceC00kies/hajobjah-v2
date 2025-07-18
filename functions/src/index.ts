@@ -69,8 +69,14 @@ export const getAdminDashboardData = onCall(commonHttpsOptions, async (request: 
         const now = new Date();
         const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
         const newUsersQuery = db.collection('users').where('createdAt', '>=', yesterday).count().get();
-        const activeJobsQuery = db.collection('jobs').where('isExpired', '!=', true).count().get();
-        const activeHelpersQuery = db.collection('helperProfiles').where('isExpired', '!=', true).count().get();
+        
+        // ================== FIX IMPLEMENTED HERE ==================
+        // Correctly query for active jobs/helpers by checking the expiration date.
+        // This is the source of truth for whether a listing is active.
+        const activeJobsQuery = db.collection('jobs').where('expiresAt', '>', now).count().get();
+        const activeHelpersQuery = db.collection('helperProfiles').where('expiresAt', '>', now).count().get();
+        // ==========================================================
+        
         const pendingReportsQuery = db.collection('vouchReports').where('status', '==', 'pending_review').count().get();
 
         const [newUsersSnap, activeJobsSnap, activeHelpersSnap, pendingReportsSnap] = await Promise.all([
