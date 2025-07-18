@@ -18,7 +18,7 @@ const JOB_COOLDOWN_DAYS = 3;
 const MAX_ACTIVE_JOBS_FREE_TIER = 3;
 const MAX_ACTIVE_JOBS_BADGE = 4;
 
-type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'posterIsAdminVerified' | 'interestedCount'>;
+type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'posterIsAdminVerified' | 'interestedCount' | 'companyLogoUrl'>;
 
 const generateContactString = (user: User): string => {
     let contactParts: string[] = [];
@@ -66,7 +66,7 @@ export const useJobs = () => {
 
     try {
       const contactInfo = generateContactString(currentUser);
-      await addJobService(newJobData, { userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, contact: contactInfo });
+      await addJobService(newJobData, { userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, contact: contactInfo, authorPhotoUrl: currentUser.photo });
       const updatedUser = await getUserDocument(currentUser.id);
       if (updatedUser) setCurrentUser(updatedUser);
     } catch (error: any) {
@@ -85,7 +85,7 @@ export const useJobs = () => {
     }
     try {
         const contactInfo = generateContactString(currentUser);
-        await updateJobService(jobId, updatedJobData, contactInfo);
+        await updateJobService(jobId, updatedJobData, contactInfo, currentUser.photo);
     } catch(error: any) {
         logFirebaseError("useJobs.updateJob", error);
         throw error;

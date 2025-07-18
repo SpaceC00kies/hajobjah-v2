@@ -49,6 +49,7 @@ export interface Job {
   isExpired?: boolean;     // Flag indicating if the job has expired
   posterIsAdminVerified?: boolean; // Flag indicating if the job poster is admin verified
   interestedCount?: number;
+  companyLogoUrl?: string;
 }
 
 export enum GenderOption {

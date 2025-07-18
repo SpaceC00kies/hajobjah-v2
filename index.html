@@ -369,11 +369,38 @@
       
       /* --- Detailed Card Styles --- */
       .job-card-header {
-        background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-blue) 100%);
         padding: 16px;
         text-align: left;
         position: relative;
         display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        border-bottom: 1px solid var(--primary-light);
+      }
+      .job-card-logo-container {
+        flex-shrink: 0;
+        width: 56px;
+        height: 56px;
+      }
+      .job-card-logo-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 12px;
+        border: 1px solid var(--primary-light);
+      }
+      .job-card-logo-fallback {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background-color: var(--primary-light);
+        color: var(--primary-dark);
+        font-size: 24px;
+        font-weight: 600;
+        font-family: 'Prompt', sans-serif;
       }
       
       .helper-card-header {
@@ -408,6 +435,7 @@
         display: flex;
         flex-direction: column;
         align-items: flex-start;
+        min-width: 0;
       }
       .helper-card-header-content {
         flex-grow: 1;
@@ -416,11 +444,15 @@
         align-items: center;
       }
       .helper-card-main-title, .job-card-main-title {
-        font-size: 20px;
-        font-weight: 700;
+        font-size: 18px;
+        font-weight: 600;
         color: var(--primary-dark);
         margin: 0 0 2px 0;
         line-height: 1.3;
+        width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .helper-card-name-container, .job-card-author-name-container {
         display: flex;

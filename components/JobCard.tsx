@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import type { Job, User } from '../types/types.ts';
-import { View, JobCategory, JOB_CATEGORY_EMOJIS_MAP, JobDesiredEducationLevelOption, Province } from '../types/types.ts';
+import { View, JobCategory, JobDesiredEducationLevelOption, Province } from '../types/types.ts';
 import { Button } from './Button.tsx'; // Import Button
 import { Modal } from './Modal.tsx';
 import { isDateInPast } from '../utils/dateUtils.ts';
@@ -45,10 +44,20 @@ const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
   return dateObject.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
+const JobCardFallbackAvatar: React.FC<{ name?: string }> = ({ name }) => {
+  const initial = name ? name.charAt(0).toUpperCase() : '🏢';
+  return (
+    <div className="job-card-logo-fallback">
+      {initial}
+    </div>
+  );
+};
+
 export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, onNavigateToPublicProfile, currentUser, requestLoginForAction, onEditJobFromFindView, getAuthorDisplayName, onToggleInterest, isInterested }) => {
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
   const [showFullDetails, setShowFullDetails] = useState(false);
+  const [logoError, setLogoError] = useState(false);
   
   const authorActualDisplayName = getAuthorDisplayName(job.userId, job.authorDisplayName);
 
@@ -76,8 +85,6 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, onNavigateToP
     }
     onToggleInterest(job.id, 'job', job.userId);
   };
-
-  const categoryEmoji = JOB_CATEGORY_EMOJIS_MAP[job.category] || '💼';
 
   const postedAtDate = job.postedAt ? (job.postedAt instanceof Date ? job.postedAt : new Date(job.postedAt as string)) : null;
   const formattedPostedAt = postedAtDate && !isNaN(postedAtDate.getTime()) ? formatDateDisplay(postedAtDate) : "N/A";
@@ -150,12 +157,23 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, onNavigateToP
         )}
 
         <div className="job-card-header">
-           <div className="job-card-header-content items-start">
+           <div className="job-card-logo-container">
+               {job.companyLogoUrl && !logoError ? (
+                   <img 
+                       src={job.companyLogoUrl} 
+                       alt={`${authorActualDisplayName} logo`}
+                       className="job-card-logo-image"
+                       onError={() => setLogoError(true)}
+                   />
+               ) : (
+                   <JobCardFallbackAvatar name={authorActualDisplayName} />
+               )}
+           </div>
+           <div className="job-card-header-content">
                 <h4
                     className="job-card-main-title text-left"
                     title={job.title}
                 >
-                    <span className="mr-2" role="img" aria-label="category emoji">{categoryEmoji}</span>
                     {job.title}
                 </h4>
                 <div className="flex items-center gap-1.5 mt-1">
@@ -308,9 +326,3 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, onNavigateToP
     </>
   );
 };
-
-declare module '../types/types' {
-    interface Job {
-        userPhoto?: string; // Add this to Job type if it's not already there from some enrichment process
-    }
-}

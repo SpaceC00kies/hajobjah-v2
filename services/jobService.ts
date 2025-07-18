@@ -19,7 +19,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebaseConfig.ts';
 import type { Job, Province, JobSubCategory, PaginatedDocsResponse, Cursor, JobCategory } from '../types/types.ts';
-import { logFirebaseError } from '../firebase/logging';
+import { logFirebaseError } from '../firebase/logging.ts';
 import { convertTimestamps, cleanDataForFirestore } from './serviceUtils';
 import { filterListingsService } from './searchService.ts';
 
@@ -27,9 +27,15 @@ import { filterListingsService } from './searchService.ts';
 const JOBS_COLLECTION = 'jobs';
 const USERS_COLLECTION = 'users';
 
-type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'posterIsAdminVerified' | 'interestedCount'>;
+type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'posterIsAdminVerified' | 'interestedCount' | 'companyLogoUrl'>;
+interface JobAuthorInfo {
+    userId: string;
+    authorDisplayName: string;
+    contact: string;
+    authorPhotoUrl?: string;
+}
 
-export const addJobService = async (jobData: JobFormData, author: { userId: string; authorDisplayName: string; contact: string }): Promise<string> => {
+export const addJobService = async (jobData: JobFormData, author: JobAuthorInfo): Promise<string> => {
   try {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
@@ -39,6 +45,7 @@ export const addJobService = async (jobData: JobFormData, author: { userId: stri
       userId: author.userId,
       authorDisplayName: author.authorDisplayName,
       contact: author.contact,
+      companyLogoUrl: author.authorPhotoUrl,
       ownerId: author.userId,
       isPinned: false,
       isHired: false,
@@ -62,9 +69,9 @@ export const addJobService = async (jobData: JobFormData, author: { userId: stri
   }
 };
 
-export const updateJobService = async (jobId: string, jobData: Partial<JobFormData>, contact: string): Promise<boolean> => {
+export const updateJobService = async (jobId: string, jobData: Partial<JobFormData>, contact: string, authorPhotoUrl?: string): Promise<boolean> => {
   try {
-    const dataToUpdate = { ...jobData, contact, updatedAt: serverTimestamp() as any };
+    const dataToUpdate = { ...jobData, contact, companyLogoUrl: authorPhotoUrl, updatedAt: serverTimestamp() as any };
     await updateDoc(doc(db, JOBS_COLLECTION, jobId), cleanDataForFirestore(dataToUpdate as Record<string, any>));
     return true;
   } catch (error: any) {
