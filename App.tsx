@@ -409,7 +409,7 @@ const App: React.FC = () => {
           </div>
 
           <div>
-            <nav className="hidden lg:flex items-center space-x-3">
+            <nav className="hidden lg:flex items-center space-x-2">
                 {renderNavLinks(false)}
             </nav>
             <div className="lg:hidden">
