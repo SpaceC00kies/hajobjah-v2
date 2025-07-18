@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect } from 'react';
 import type { SearchResultItem, FilterableCategory, JobSubCategory, Province, User, Interest, Job, HelperProfile, EnrichedHelperProfile } from '../types/types.ts';
 import { View, JobCategory, JOB_SUBCATEGORIES_MAP } from '../types/types.ts';
@@ -27,6 +28,7 @@ interface SearchResultsPageProps {
   onBumpProfile: (profileId: string) => void;
   onToggleInterest: (targetId: string, targetType: 'job' | 'helperProfile', targetOwnerId: string) => void;
   onGoBack: () => void;
+  initialProvince?: string;
 }
 
 type ActiveTab = 'all' | 'jobs' | 'helpers';
@@ -50,13 +52,13 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = (props) => {
     searchQuery, searchResults, isLoading, searchError, currentUser, users, userInterests,
     getAuthorDisplayName, navigateTo, onNavigateToPublicProfile, requestLoginForAction,
     onEditJobFromFindView, onEditProfileFromFindView, onLogHelperContact,
-    onBumpProfile, onToggleInterest, onGoBack
+    onBumpProfile, onToggleInterest, onGoBack, initialProvince
   } = props;
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('all');
   const [selectedCategory, setSelectedCategory] = useState<FilterableCategory>('all');
   const [selectedSubCategory, setSelectedSubCategory] = useState<JobSubCategory | 'all'>('all');
-  const [selectedProvince, setSelectedProvince] = useState<Province | 'all'>('all');
+  const [selectedProvince, setSelectedProvince] = useState<Province | 'all'>(initialProvince as Province || 'all');
   const [availableSubCategories, setAvailableSubCategories] = useState<JobSubCategory[]>([]);
 
   useEffect(() => {

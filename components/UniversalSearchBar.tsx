@@ -6,11 +6,12 @@ type SelectedProvince = 'all' | Province.ChiangMai | Province.Bangkok;
 interface UniversalSearchBarProps {
   onSearch: (searchParams: { query: string, province: string }) => void;
   isLoading: boolean;
+  selectedProvince: string;
+  onProvinceChange: (province: string) => void;
 }
 
-export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({ onSearch, isLoading }) => {
+export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({ onSearch, isLoading, selectedProvince, onProvinceChange }) => {
   const [query, setQuery] = useState('');
-  const [selectedProvince, setSelectedProvince] = useState<SelectedProvince>('all');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +57,7 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({ onSearch
         {locationPills.map(pill => (
           <button
             key={pill.id}
-            onClick={() => setSelectedProvince(pill.id)}
+            onClick={() => onProvinceChange(pill.id)}
             className={`location-pill ${selectedProvince === pill.id ? 'active' : ''}`}
           >
             {pill.label}

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -125,6 +126,9 @@ const App: React.FC = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [homeProvince, setHomeProvince] = useState<string>('all'); // State for homepage pills
+  const [searchProvince, setSearchProvince] = useState<string>('all'); // State for search results page
+
 
   const parseUrlAndSetInitialState = useCallback(() => {
     const params = new URLSearchParams(window.location.search);
@@ -249,6 +253,7 @@ const App: React.FC = () => {
     }
     setIsSearching(true);
     setSearchQuery(searchParams.query);
+    setSearchProvince(searchParams.province);
     setSearchError(null);
     navigateTo(View.SearchResults); // Navigate immediately to show loading state
 
@@ -467,7 +472,12 @@ const App: React.FC = () => {
           <h1 className="hero-title">✨ หาจ๊อบจ้า ✨</h1>
           <p className="hero-subtitle">แพลตฟอร์มที่อยู่เคียงข้างคนขยัน</p>
           
-          <UniversalSearchBar onSearch={handleSearch} isLoading={isSearching} />
+          <UniversalSearchBar 
+            onSearch={handleSearch} 
+            isLoading={isSearching} 
+            selectedProvince={homeProvince}
+            onProvinceChange={setHomeProvince}
+          />
 
           <div className="flex items-center space-x-6 mt-6">
             <button onClick={() => navigateTo(View.FindJobs)} className="secondary-browse-link">
@@ -714,7 +724,11 @@ const App: React.FC = () => {
                   onLogHelperContact={userActions.logContact}
                   onBumpProfile={helperActions.onBumpHelperProfile}
                   onToggleInterest={userActions.toggleInterest}
-                  onGoBack={() => navigateTo(View.Home)}
+                  onGoBack={() => {
+                    setHomeProvince(searchProvince);
+                    navigateTo(View.Home)
+                  }}
+                  initialProvince={searchProvince}
                 />;
       default:
         return renderHome();
