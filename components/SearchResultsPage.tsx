@@ -139,9 +139,9 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = (props) => {
                     <p className="text-sm text-red-600 mt-2">{searchError}</p>
                 </div>
             ) : displayedResults.length === 0 ? (
-                <div className="text-center py-10 bg-white rounded-lg shadow h-full flex flex-col items-center justify-center min-h-[300px]">
-                    <p className="text-xl text-neutral-dark mb-2">ไม่พบผลลัพธ์ที่ตรงกับการค้นหา</p>
-                    <p className="text-sm text-neutral-medium">ลองปรับเปลี่ยนคำค้นหาหรือตัวกรองของคุณ</p>
+                <div className="text-center py-10 bg-white rounded-lg shadow flex flex-col items-center justify-center min-h-[300px]">
+                    <p className="text-xl text-neutral-dark mb-2">ไม่พบรายการที่ตรงกับการค้นหาของคุณ</p>
+                    <p className="text-sm text-neutral-medium">ลองปรับเปลี่ยนคำค้นหาหรือตัวกรอง</p>
                 </div>
             ) : (
                 <motion.div

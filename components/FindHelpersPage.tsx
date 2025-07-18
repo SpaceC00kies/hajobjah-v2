@@ -168,9 +168,9 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
           {isLoading && profiles.length === 0 ? (
             <div className="text-center py-10 text-primary-dark font-sans">กำลังโหลด...</div>
           ) : profiles.length === 0 ? (
-            <div className="text-center py-10 bg-white rounded-lg shadow h-full flex flex-col items-center justify-center min-h-[300px]">
-              <p className="text-xl text-neutral-dark mb-2">ไม่พบโปรไฟล์ผู้ช่วยที่ตรงกับเงื่อนไข</p>
-              <p className="text-sm text-neutral-medium">ลองปรับเปลี่ยนตัวกรองของคุณ</p>
+            <div className="text-center py-10 bg-white rounded-lg shadow flex flex-col items-center justify-center min-h-[300px]">
+              <p className="text-xl text-neutral-dark mb-2">ไม่พบโปรไฟล์ผู้ช่วยที่ตรงกับเงื่อนไขของคุณ</p>
+              <p className="text-sm text-neutral-medium">ลองปรับเปลี่ยนตัวกรอง</p>
             </div>
           ) : (
             <motion.div
