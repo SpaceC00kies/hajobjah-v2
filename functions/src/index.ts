@@ -54,7 +54,7 @@ export const orionAnalyze = onCall(commonHttpsOptions, async (request: CallableR
 
 export const getAdminDashboardData = onCall(commonHttpsOptions, async (request: CallableRequest): Promise<AdminDashboardData> => {
     // Adding a log to force redeployment and confirm execution.
-    console.log("Executing getAdminDashboardData v2 with updated CORS config.");
+    console.log("Executing getAdminDashboardData v3 with corrected query logic.");
 
     if (!request.auth?.uid) {
         throw new HttpsError("unauthenticated", "The function must be called while authenticated.");
@@ -72,9 +72,10 @@ export const getAdminDashboardData = onCall(commonHttpsOptions, async (request: 
         
         // ================== FIX IMPLEMENTED HERE ==================
         // Correctly query for active jobs/helpers by checking the expiration date.
-        // This is the source of truth for whether a listing is active.
-        const activeJobsQuery = db.collection('jobs').where('expiresAt', '>', now).count().get();
-        const activeHelpersQuery = db.collection('helperProfiles').where('expiresAt', '>', now).count().get();
+        // The `expiresAt` field is stored as an ISO string, so we must compare against an ISO string.
+        const nowISO = now.toISOString();
+        const activeJobsQuery = db.collection('jobs').where('expiresAt', '>', nowISO).count().get();
+        const activeHelpersQuery = db.collection('helperProfiles').where('expiresAt', '>', nowISO).count().get();
         // ==========================================================
         
         const pendingReportsQuery = db.collection('vouchReports').where('status', '==', 'pending_review').count().get();
