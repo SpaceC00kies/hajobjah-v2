@@ -43,14 +43,14 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({ vouchReports, user
     return (
         <div className="space-y-6">
             <PlatformVitals vitals={dashboardData?.vitals} isLoading={isLoading} />
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div className="dashboard-grid">
                 <div className="lg:col-span-2">
                     <GrowthChart data={dashboardData?.userGrowth || []} isLoading={isLoading} />
                 </div>
                 <div className="lg:col-span-1">
                     <ActionCenter 
                         pendingReports={pendingReports} 
-                        newUsers={newUsers}
                         onSelectReport={onSelectReport}
                         getAuthorDisplayName={getAuthorDisplayName}
                     />

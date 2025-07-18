@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import type { Job, HelperProfile, User, Interaction, WebboardPost, WebboardComment, UserLevel, VouchReport, Vouch, VouchType, BlogPost } from '../types/types.ts';
 import { UserRole, VouchReportStatus, VOUCH_TYPE_LABELS } from '../types/types.ts';
@@ -174,16 +173,49 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   });
   
   const pendingVouchReportsCount = vouchReports.filter(r => r.status === 'pending_review').length;
-  let TABS: { id: AdminTab; label: string, badgeCount?: number }[] = [
-    { id: 'overview', label: '🚀 Mission Control' },
-    { id: 'orion_command_center', label: 'Orion 🤖' }, { id: 'vouch_reports', label: '🛡️ รายงาน Vouch', badgeCount: pendingVouchReportsCount }, { id: 'jobs', label: '📢 งาน' }, { id: 'profiles', label: '🧑‍🔧 โปรไฟล์ผู้ช่วย' }, { id: 'webboard', label: '💬 กระทู้' }, { id: 'articles', label: '📖 บทความ' }, { id: 'users', label: '👥 จัดการผู้ใช้' }, { id: 'site_controls', label: '⚙️ ควบคุมระบบ' },
+  let TABS: { id: AdminTab; label: string; icon: string, badgeCount?: number }[] = [
+    { id: 'overview', label: 'Mission Control', icon: '🎯' },
+    { id: 'orion_command_center', label: 'Orion', icon: '🤖' },
+    { id: 'vouch_reports', label: 'รายงาน Vouch', icon: '🛡️', badgeCount: pendingVouchReportsCount },
+    { id: 'jobs', label: 'งาน', icon: '📢' },
+    { id: 'profiles', label: 'โปรไฟล์ผู้ช่วย', icon: '🧑‍🔧' },
+    { id: 'webboard', label: 'กระทู้', icon: '💬' },
+    { id: 'articles', label: 'บทความ', icon: '📖' },
+    { id: 'users', label: 'จัดการผู้ใช้', icon: '👥' },
+    { id: 'site_controls', label: 'ควบคุมระบบ', icon: '⚙️' },
   ];
-  if (currentUser?.role === UserRole.Writer) { TABS = [{ id: 'articles', label: '📖 บทความ' }]; if (activeTab !== 'articles') setActiveTab('articles'); }
+
+  if (currentUser?.role === UserRole.Writer) {
+    TABS = [{ id: 'articles', label: 'บทความ', icon: '📖' }];
+    if (activeTab !== 'articles') setActiveTab('articles');
+  }
 
   return (
-    <div className="p-4 sm:p-6 bg-white shadow-lg rounded-xl">
-      <h2 className="text-2xl font-sans font-semibold mb-4 text-center text-primary-dark">🔐 Admin Dashboard</h2>
-      <div className="border-b border-neutral-DEFAULT mb-4"><nav className="-mb-px flex flex-wrap gap-x-6" aria-label="Tabs">{TABS.map(tab => (<button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`${activeTab === tab.id ? 'border-secondary text-secondary' : 'border-transparent text-neutral-medium hover:text-neutral-dark hover:border-neutral-DEFAULT'} whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm flex items-center gap-1`} aria-current={activeTab === tab.id ? 'page' : undefined}>{tab.label}{tab.badgeCount && tab.badgeCount > 0 ? (<span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full">{tab.badgeCount}</span>) : null}</button>))}</nav></div>
+    <div className="p-4 sm:p-6 w-full">
+      <div className="dashboard-header">
+        <h1 className="dashboard-title">
+            <span role="img" aria-label="home" className="text-3xl">🏠</span>
+            <span>Admin Dashboard</span>
+        </h1>
+        <nav className="dashboard-nav">
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`dashboard-nav-pill ${activeTab === tab.id ? 'active' : ''}`}
+              aria-current={activeTab === tab.id ? 'page' : undefined}
+            >
+              <span>{tab.icon}</span>
+              <span>{tab.label}</span>
+              {tab.badgeCount && tab.badgeCount > 0 ? (
+                <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full">
+                  {tab.badgeCount}
+                </span>
+              ) : null}
+            </button>
+          ))}
+        </nav>
+      </div>
       
       {activeTab === 'overview' && currentUser?.role === UserRole.Admin && (
           <AdminOverview 
