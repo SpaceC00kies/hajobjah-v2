@@ -31,21 +31,24 @@ interface FilterParams {
     };
 }
 
-// This function now fetches a broad set of recent items and then applies all filters in-memory.
 export const performFilterAndSearch = async (params: FilterParams) => {
     const { resultType, searchTerm, category, subCategory, province, pageSize = 12 } = params;
-    // Note: paginationCursor is ignored in this simplified, more robust implementation for now.
 
     const fetchRecentItems = async (collectionName: 'jobs' | 'helperProfiles'): Promise<SearchResultItem[]> => {
+        // This query is now simplified to prevent crashes from missing indexes.
+        // The isExpired check is moved to in-memory filtering below.
         const q: Query<DocumentData> = db.collection(collectionName)
-            .where("isExpired", "==", false)
             .orderBy("isPinned", "desc")
             .orderBy("updatedAt", "desc")
-            .limit(150); // Fetch a larger pool of recent items for effective in-memory filtering
+            .limit(150);
 
         const snapshot = await q.get();
+
+        // Perform the crucial isExpired check in-memory.
+        const nonExpiredDocs = snapshot.docs.filter(doc => doc.data().isExpired !== true);
+
         const resultTypeKey = collectionName === 'jobs' ? 'job' : 'helper';
-        return snapshot.docs.map(doc => {
+        return nonExpiredDocs.map(doc => {
             const data = doc.data();
             // Ensure date fields are converted to strings for JSON serialization
             if (data.updatedAt) data.updatedAt = safeGetDate(data.updatedAt).toISOString();
@@ -67,7 +70,7 @@ export const performFilterAndSearch = async (params: FilterParams) => {
         allRecentItems.push(...await fetchRecentItems('helperProfiles'));
     }
 
-    // Sort combined results if we fetched both
+    // Sort combined results if we fetched both (important for 'all' search)
     if (resultType === 'all') {
         allRecentItems.sort((a, b) => {
             if (a.isPinned && !b.isPinned) return -1;
@@ -76,7 +79,7 @@ export const performFilterAndSearch = async (params: FilterParams) => {
         });
     }
 
-    // Apply all filters in-memory
+    // Apply all subsequent filters in-memory
     const filteredResults = allRecentItems.filter(item => {
         // Province filter
         if (province && province !== 'all' && item.province !== province) {
@@ -109,8 +112,8 @@ export const performFilterAndSearch = async (params: FilterParams) => {
 
     const paginatedItems = filteredResults.slice(0, pageSize);
     
-    // For now, pagination is simplified and we don't return a next cursor.
-    // This can be enhanced later if deep pagination on filtered results is needed.
+    // Pagination is simplified in this model. For true infinite scroll on filtered results,
+    // a more complex backend cursor strategy would be needed. This serves the immediate need.
     return {
         items: paginatedItems,
         cursor: null 
