@@ -1,7 +1,4 @@
 
-
-
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -386,6 +383,7 @@ const App: React.FC = () => {
       if ((currentView === View.PasswordReset && !currentUser) || isLoadingAuth) {
         return null;
       }
+      const displayBadgeForProfile = getUserDisplayBadge(currentUser, allWebboardPostsForAdmin, webboardComments);
       return (
       <header
         className="main-navbar sticky top-0 z-30 w-full bg-white text-primary-dark p-4 sm:p-5 lg:p-6 shadow-md border-b border-primary-light"
@@ -404,13 +402,14 @@ const App: React.FC = () => {
             {currentUser && (
                 <div className="hidden lg:flex items-center gap-2 font-sans font-medium text-primary-dark whitespace-nowrap">
                     สวัสดี, {currentUser.publicDisplayName}!
+                    <UserLevelBadge level={displayBadgeForProfile} size="sm" />
                     {currentUser.activityBadge?.isActive && <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm" />}
                 </div>
             )}
           </div>
 
           <div>
-            <nav className="hidden lg:flex items-center space-x-2">
+            <nav className="hidden lg:flex items-center space-x-3">
                 {renderNavLinks(false)}
             </nav>
             <div className="lg:hidden">
