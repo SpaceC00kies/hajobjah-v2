@@ -1,19 +1,17 @@
-
 import admin from "firebase-admin";
 
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import type { CallableRequest } from "firebase-functions/v2/https";
 import { type AdminDashboardData, JobCategory, type PlatformVitals, type ChartDataPoint, type CategoryDataPoint } from './types.js';
 import type { Timestamp } from 'firebase-admin/firestore';
+import { performFilterAndSearch } from './listingService.js';
 
-// Re-export the refactored function
-export { universalSearch } from './universalSearch.js';
-
+// Re-export the new master filter function
+export { filterListings } from './listingService.js';
 
 const db = admin.firestore();
 
 // Common HTTPS options for all callable functions to handle CORS
-// This configuration is critical for allowing the web app to call the functions.
 const commonHttpsOptions = {
     cors: ["https://www.hajobja.com", "https://hajobja.com", "http://localhost:5173"],
 };
@@ -24,6 +22,27 @@ const getErrorMessage = (e: unknown): { message: string, code?: string } => {
   if (e instanceof Error) return { message: e.message, code: (e as any).code };
   return { message: String(e) };
 };
+
+// Refactored universalSearch to be a lightweight wrapper
+export const universalSearch = onCall(commonHttpsOptions, async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError("unauthenticated","You must be logged in to search.");
+    }
+    const { query, province } = request.data;
+    if (!query || typeof query !== "string" || !province || typeof province !== "string") {
+      throw new HttpsError("invalid-argument","A search query and province are required.");
+    }
+
+    const results = await performFilterAndSearch({
+        resultType: 'all',
+        searchTerm: query,
+        province: province as any,
+        pageSize: 20, // A reasonable default for universal search
+    });
+    
+    // The wrapper needs to return a compatible format for the SearchResultsPage
+    return { results: results.items };
+});
 
 
 export const orionAnalyze = onCall(commonHttpsOptions, async (request: CallableRequest) => {

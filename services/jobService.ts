@@ -12,21 +12,14 @@ import {
   updateDoc,
   deleteDoc,
   getDoc,
-  getDocs,
-  query,
-  orderBy,
-  limit,
-  where,
-  startAfter,
   serverTimestamp,
-  type DocumentSnapshot,
-  type DocumentData,
-  type QueryConstraint,
 } from 'firebase/firestore';
 import { db } from '../firebaseConfig.ts';
-import type { Job, Province, JobSubCategory, PaginatedDocsResponse } from '../types/types.ts';
+import type { Job, Province, JobSubCategory, PaginatedDocsResponse, Cursor, JobCategory } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps, cleanDataForFirestore } from './serviceUtils';
+import { filterListingsService } from './searchService.ts';
+
 
 const JOBS_COLLECTION = 'jobs';
 const USERS_COLLECTION = 'users';
@@ -89,59 +82,28 @@ export const deleteJobService = async (jobId: string): Promise<boolean> => {
 
 export const getJobsPaginated = async (
   pageSize: number,
-  startAfterDoc: DocumentSnapshot<DocumentData> | null = null,
+  cursor: Cursor | null = null,
   categoryFilter: string | null = null,
   searchTerm: string | null = null,
   subCategoryFilter: JobSubCategory | 'all' = 'all',
   provinceFilter: Province | 'all' = 'all'
 ): Promise<PaginatedDocsResponse<Job>> => {
   try {
-    const constraints: QueryConstraint[] = [
-      orderBy("isPinned", "desc"),
-      orderBy("postedAt", "desc"),
-      limit(pageSize)
-    ];
+    const result = await filterListingsService({
+      resultType: 'job',
+      pageSize,
+      paginationCursor: cursor || undefined,
+      category: categoryFilter as JobCategory | 'all',
+      searchTerm: searchTerm || undefined,
+      subCategory: subCategoryFilter,
+      province: provinceFilter
+    });
+    
+    return {
+      items: result.data.items as Job[],
+      cursor: result.data.cursor
+    };
 
-    // The conditional `where` clause is removed to prevent complex index requirements.
-    // Filtering will be done client-side after the fetch.
-
-    if (startAfterDoc) {
-      constraints.push(startAfter(startAfterDoc));
-    }
-
-    const q = query(collection(db, JOBS_COLLECTION), ...constraints);
-    const querySnapshot = await getDocs(q);
-
-    let jobsData = querySnapshot.docs.map(docSnap => ({
-      id: docSnap.id,
-      ...convertTimestamps(docSnap.data()),
-    } as Job));
-
-    // Apply all filtering on the client side for robustness
-    if (categoryFilter && categoryFilter !== 'all') {
-        jobsData = jobsData.filter(job => job.category === categoryFilter);
-    }
-
-    if (searchTerm && searchTerm.trim() !== '') {
-      const termLower = searchTerm.toLowerCase();
-      jobsData = jobsData.filter(job =>
-        job.title.toLowerCase().includes(termLower) ||
-        job.description.toLowerCase().includes(termLower) ||
-        job.location.toLowerCase().includes(termLower)
-      );
-    }
-
-    if (subCategoryFilter !== 'all') {
-      jobsData = jobsData.filter(job => job.subCategory === subCategoryFilter);
-    }
-
-    if (provinceFilter !== 'all') {
-      jobsData = jobsData.filter(job => job.province === provinceFilter);
-    }
-
-    const lastVisible = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
-
-    return { items: jobsData, lastVisibleDoc: lastVisible };
   } catch (error: any) {
     logFirebaseError("getJobsPaginated", error);
     throw error;

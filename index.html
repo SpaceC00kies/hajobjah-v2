@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="th">
   <head>
@@ -36,7 +35,7 @@
       }
 
       /* --- Base Form Element Styles --- */
-      #root input:not([type="radio"]):not([type="checkbox"]), #root textarea, #root select {
+      #root input[type="search"], #root input:not([type="radio"]):not([type="checkbox"]), #root textarea, #root select {
         padding: 12px 16px;
         border: 1px solid var(--primary-light);
         border-radius: 12px;
@@ -50,7 +49,7 @@
         width: 100%; /* Ensure form elements take full width of their container */
       }
 
-      #root input:not([type="radio"]):not([type="checkbox"]):focus, #root textarea:focus, #root select:focus {
+      #root input[type="search"]:focus, #root input:not([type="radio"]):not([type="checkbox"]):focus, #root textarea:focus, #root select:focus {
         outline: none;
         border-color: var(--primary-blue);
         box-shadow: 0 0 0 3px rgba(135, 206, 235, 0.25);
@@ -108,7 +107,7 @@
           font-family: 'Sarabun', 'ui-serif', 'Georgia', 'Cambria', '"Times New Roman"', 'Times', 'serif';
           font-size: 18px;
           color: #666666;
-          margin-bottom: 40px; /* Tighter on mobile */
+          margin-bottom: 24px; /* Reduced margin to bring search bar closer */
       }
       @media (min-width: 640px) {
         .hero-title {
@@ -116,7 +115,7 @@
           margin-bottom: 12px;
         }
         .hero-subtitle {
-          margin-bottom: 48px;
+          margin-bottom: 32px;
         }
       }
       
@@ -138,8 +137,8 @@
       .universal-search-bar {
         position: relative;
         width: 100%;
-        max-width: 600px;
-        margin-bottom: 24px;
+        max-width: 640px; /* Wider search bar */
+        margin-bottom: 16px; /* Space for pills */
       }
       .universal-search-input {
         width: 100%;
@@ -154,6 +153,9 @@
         -webkit-appearance: none;
         -moz-appearance: none;
         appearance: none;
+      }
+      .universal-search-input::placeholder {
+        color: #b0c4de; /* Softer placeholder color */
       }
       .universal-search-input:focus {
         outline: none;
@@ -195,6 +197,37 @@
       @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
+      }
+
+      /* --- NEW Location Pills --- */
+      .location-pills-container {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 24px;
+        justify-content: center;
+      }
+      .location-pill {
+        padding: 8px 16px;
+        border: 1px solid var(--primary-light);
+        border-radius: 9999px;
+        font-family: 'Prompt', sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        background-color: var(--white);
+        color: var(--neutral-gray);
+      }
+      .location-pill:hover {
+        border-color: var(--primary-blue);
+        background-color: var(--primary-light);
+        color: var(--primary-dark);
+      }
+      .location-pill.active {
+        background-color: var(--primary-dark);
+        color: var(--white);
+        border-color: var(--primary-dark);
+        font-weight: 600;
       }
 
       /* --- Navigation Pills --- */
@@ -544,6 +577,7 @@
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
   <body class="bg-neutral-light font-serif text-neutral-dark">
     <div id="root"></div>

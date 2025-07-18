@@ -12,21 +12,14 @@ import {
   updateDoc,
   deleteDoc,
   getDoc,
-  getDocs,
-  query,
-  orderBy,
-  limit,
-  where,
-  startAfter,
   serverTimestamp,
-  type DocumentSnapshot,
-  type DocumentData,
-  type QueryConstraint,
 } from 'firebase/firestore';
 import { db } from '../firebaseConfig.ts';
-import type { HelperProfile, User, Province, JobSubCategory, PaginatedDocsResponse } from '../types/types.ts';
+import type { HelperProfile, User, Province, JobSubCategory, PaginatedDocsResponse, Cursor, JobCategory } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps, cleanDataForFirestore } from './serviceUtils';
+import { filterListingsService } from './searchService.ts';
+
 
 const HELPER_PROFILES_COLLECTION = 'helperProfiles';
 const USERS_COLLECTION = 'users';
@@ -109,59 +102,28 @@ export const deleteHelperProfileService = async (profileId: string): Promise<boo
 
 export const getHelperProfilesPaginated = async (
   pageSize: number,
-  startAfterDoc: DocumentSnapshot<DocumentData> | null = null,
+  cursor: Cursor | null = null,
   categoryFilter: string | null = null,
   searchTerm: string | null = null,
   subCategoryFilter: JobSubCategory | 'all' = 'all',
   provinceFilter: Province | 'all' = 'all'
 ): Promise<PaginatedDocsResponse<HelperProfile>> => {
   try {
-    const constraints: QueryConstraint[] = [
-      orderBy("isPinned", "desc"),
-      orderBy("updatedAt", "desc"),
-      limit(pageSize)
-    ];
-
-    // The conditional `where` clause is removed to prevent complex index requirements.
-    // Filtering will be done client-side after the fetch.
-
-    if (startAfterDoc) {
-      constraints.push(startAfter(startAfterDoc));
-    }
-
-    const q = query(collection(db, HELPER_PROFILES_COLLECTION), ...constraints);
-    const querySnapshot = await getDocs(q);
-
-    let profilesData = querySnapshot.docs.map(docSnap => ({
-      id: docSnap.id,
-      ...convertTimestamps(docSnap.data()),
-    } as HelperProfile));
-
-    // Apply all filtering on the client side for robustness
-    if (categoryFilter && categoryFilter !== 'all') {
-      profilesData = profilesData.filter(profile => profile.category === categoryFilter);
-    }
+    const result = await filterListingsService({
+      resultType: 'helper',
+      pageSize,
+      paginationCursor: cursor || undefined,
+      category: categoryFilter as JobCategory | 'all',
+      searchTerm: searchTerm || undefined,
+      subCategory: subCategoryFilter,
+      province: provinceFilter
+    });
     
-    if (searchTerm && searchTerm.trim() !== '') {
-      const termLower = searchTerm.toLowerCase();
-      profilesData = profilesData.filter(profile =>
-        profile.profileTitle.toLowerCase().includes(termLower) ||
-        profile.details.toLowerCase().includes(termLower) ||
-        profile.area.toLowerCase().includes(termLower)
-      );
-    }
+    return {
+      items: result.data.items as HelperProfile[],
+      cursor: result.data.cursor
+    };
 
-    if (subCategoryFilter !== 'all') {
-      profilesData = profilesData.filter(profile => profile.subCategory === subCategoryFilter);
-    }
-
-    if (provinceFilter !== 'all') {
-      profilesData = profilesData.filter(profile => profile.province === provinceFilter);
-    }
-
-    const lastVisible = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
-
-    return { items: profilesData, lastVisibleDoc: lastVisible };
   } catch (error: any) {
     logFirebaseError("getHelperProfilesPaginated", error);
     throw error;

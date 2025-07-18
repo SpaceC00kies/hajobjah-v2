@@ -4,16 +4,16 @@
 
 
 
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 // Corrected import path for types
-import type { WebboardPost, WebboardComment, User, EnrichedWebboardPost, EnrichedWebboardComment, UserLevel, UserRole } from '../types/types.ts';
+import type { WebboardPost, WebboardComment, User, EnrichedWebboardPost, EnrichedWebboardComment, UserLevel, UserRole, Cursor } from '../types/types.ts';
 import { View, USER_LEVELS, WebboardCategory } from '../types/types.ts';
 import { Button } from './Button.tsx';
 import { WebboardPostCard } from './WebboardPostCard.tsx';
 import { WebboardPostDetail } from './WebboardPostDetail.tsx';
 import { WebboardPostCreateForm } from './WebboardPostCreateForm.tsx';
 import { getWebboardPostsPaginated as getWebboardPostsPaginatedService } from '../services/webboardService.ts'; // Import paginated fetch
-import type { DocumentSnapshot } from 'firebase/firestore'; // For pagination
 import { logFirebaseError } from '../firebase/logging.ts';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -133,7 +133,7 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
 
   const [webboardPostsList, setWebboardPostsList] = useState<WebboardPost[]>([]);
-  const [lastVisibleWebboardPost, setLastVisibleWebboardPost] = useState<DocumentSnapshot | null>(null);
+  const [lastVisibleWebboardPost, setLastVisibleWebboardPost] = useState<Cursor | null>(null);
   const [isLoadingWebboardPosts, setIsLoadingWebboardPosts] = useState(false);
   const [hasMoreWebboardPosts, setHasMoreWebboardPosts] = useState(true);
   const [initialWebboardPostsLoaded, setInitialWebboardPostsLoaded] = useState(false);
@@ -171,8 +171,8 @@ export const WebboardPage: React.FC<WebboardPageProps> = ({
         searchTerm
       );
       setWebboardPostsList(prevPosts => isInitialLoad ? result.items : [...prevPosts, ...result.items]);
-      setLastVisibleWebboardPost(result.lastVisibleDoc);
-      setHasMoreWebboardPosts(result.items.length === pageSize && result.lastVisibleDoc !== null);
+      setLastVisibleWebboardPost(result.cursor);
+      setHasMoreWebboardPosts(!!result.cursor);
       setInitialWebboardPostsLoaded(true);
     } catch (error) {
       console.error("Error loading webboard posts:", error);

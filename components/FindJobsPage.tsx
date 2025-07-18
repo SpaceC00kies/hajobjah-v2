@@ -1,14 +1,11 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import type { Job, FilterableCategory, JobSubCategory, User, PaginatedDocsResponse } from '../types/types.ts';
+import type { Job, FilterableCategory, JobSubCategory, User, PaginatedDocsResponse, Cursor } from '../types/types.ts';
 import { View, JobCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
 import { JobCard } from './JobCard.tsx';
 import { getJobsPaginated } from '../services/jobService.ts';
 import { useUser } from '../hooks/useUser.ts';
 import { useData } from '../context/DataContext.tsx';
-import type { DocumentSnapshot } from 'firebase/firestore';
 import { motion } from 'framer-motion';
-import { isDateInPast } from '../utils/dateUtils.ts';
 import { FilterSidebar } from './FilterSidebar.tsx';
 
 interface FindJobsPageProps {
@@ -43,7 +40,7 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
 }) => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [lastVisible, setLastVisible] = useState<DocumentSnapshot | null>(null);
+  const [cursor, setCursor] = useState<Cursor | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
@@ -66,32 +63,28 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
 
   const loadJobs = useCallback(async (isInitialLoad = false) => {
     setIsLoading(true);
-    const startAfterDoc = isInitialLoad ? null : lastVisible;
+    const startAfterCursor = isInitialLoad ? null : cursor;
 
     try {
       const result: PaginatedDocsResponse<Job> = await getJobsPaginated(
         12,
-        startAfterDoc,
+        startAfterCursor,
         selectedCategory,
         debouncedSearchTerm,
         selectedSubCategory,
         selectedProvince
       );
       
-      const activeJobs = result.items.filter(job => 
-        !job.isExpired && (!job.expiresAt || !isDateInPast(job.expiresAt as string))
-      );
-      
-      setJobs(prev => isInitialLoad ? activeJobs : [...prev, ...activeJobs]);
-      setLastVisible(result.lastVisibleDoc);
-      setHasMore(result.items.length === 12 && result.lastVisibleDoc !== null);
+      setJobs(prev => isInitialLoad ? result.items : [...prev, ...result.items]);
+      setCursor(result.cursor);
+      setHasMore(!!result.cursor);
     } catch (error) {
       console.error("Failed to load jobs:", error);
       setHasMore(false);
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearchTerm, lastVisible, selectedCategory, selectedProvince, selectedSubCategory]);
+  }, [debouncedSearchTerm, cursor, selectedCategory, selectedProvince, selectedSubCategory]);
 
 
   useEffect(() => {

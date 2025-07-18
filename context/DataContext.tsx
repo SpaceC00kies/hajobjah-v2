@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext, useMemo } from 'react';
-import type { User, Interaction, WebboardPost, WebboardComment, Job, HelperProfile, VouchReport, BlogPost, Interest } from '../types/types.ts';
+import type { User, Interaction, WebboardPost, WebboardComment, Job, HelperProfile, VouchReport, BlogPost, Interest, Cursor } from '../types/types.ts';
 import { useAuth } from './AuthContext.tsx';
 import { subscribeToUsersService, subscribeToUserSavedPostsService } from '../services/userService.ts';
 import { getJobsPaginated } from '../services/jobService.ts';
@@ -8,7 +8,6 @@ import { getWebboardPostsPaginated as getWebboardPostsPaginatedService, subscrib
 import { subscribeToInteractionsService, subscribeToUserInterestsService } from '../services/interactionService.ts';
 import { subscribeToVouchReportsService } from '../services/adminService.ts';
 import { getAllBlogPosts, getBlogPostsForAdmin } from '../services/blogService.ts';
-import type { DocumentSnapshot } from 'firebase/firestore';
 
 interface DataContextType {
   users: User[];
@@ -52,39 +51,39 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const fetchAllPaginatedData = async () => {
       const fetchJobs = async () => {
         let allItems: Job[] = [];
-        let lastDoc: DocumentSnapshot | null = null;
+        let lastDoc: Cursor | null = null;
         let hasMore = true;
         while (hasMore) {
           const batch = await getJobsPaginated(50, lastDoc);
           allItems = [...allItems, ...batch.items];
-          lastDoc = batch.lastVisibleDoc;
-          hasMore = !!batch.lastVisibleDoc;
+          lastDoc = batch.cursor;
+          hasMore = !!batch.cursor;
         }
         setAllJobsForAdmin(allItems);
       };
 
       const fetchHelperProfiles = async () => {
         let allItems: HelperProfile[] = [];
-        let lastDoc: DocumentSnapshot | null = null;
+        let lastDoc: Cursor | null = null;
         let hasMore = true;
         while (hasMore) {
           const batch = await getHelperProfilesPaginated(50, lastDoc);
           allItems = [...allItems, ...batch.items];
-          lastDoc = batch.lastVisibleDoc;
-          hasMore = !!batch.lastVisibleDoc;
+          lastDoc = batch.cursor;
+          hasMore = !!batch.cursor;
         }
         setAllHelperProfilesForAdmin(allItems);
       };
 
       const fetchWebboardPosts = async () => {
         let allItems: WebboardPost[] = [];
-        let lastDoc: DocumentSnapshot | null = null;
+        let lastDoc: Cursor | null = null;
         let hasMore = true;
         while (hasMore) {
           const batch = await getWebboardPostsPaginatedService(50, lastDoc);
           allItems = [...allItems, ...batch.items];
-          lastDoc = batch.lastVisibleDoc;
-          hasMore = !!batch.lastVisibleDoc;
+          lastDoc = batch.cursor;
+          hasMore = !!batch.cursor;
         }
         setAllWebboardPostsForAdmin(allItems);
       };

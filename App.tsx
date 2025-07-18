@@ -242,18 +242,18 @@ const App: React.FC = () => {
   
   const onConfirmDeletion = () => { if (onConfirmAction) onConfirmAction(); closeConfirmModal(); };
 
-  const handleSearch = async (query: string) => {
+  const handleSearch = async (searchParams: { query: string, province: string }) => {
     if (!currentUser) {
-      requestLoginForAction(View.Home, { intent: 'search', query });
+      requestLoginForAction(View.Home, { intent: 'search', ...searchParams });
       return;
     }
     setIsSearching(true);
-    setSearchQuery(query);
+    setSearchQuery(searchParams.query);
     setSearchError(null);
     navigateTo(View.SearchResults); // Navigate immediately to show loading state
 
     try {
-      const result = await universalSearchService({ query });
+      const result = await universalSearchService(searchParams);
       setSearchResults(result.data.results);
     } catch (err: any) {
       console.error("Universal search failed:", err);
@@ -469,7 +469,7 @@ const App: React.FC = () => {
           
           <UniversalSearchBar onSearch={handleSearch} isLoading={isSearching} />
 
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-6 mt-6">
             <button onClick={() => navigateTo(View.FindJobs)} className="secondary-browse-link">
               ดูประกาศงานทั้งหมด
             </button>

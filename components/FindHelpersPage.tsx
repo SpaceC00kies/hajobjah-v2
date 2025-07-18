@@ -1,15 +1,12 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import type { HelperProfile, EnrichedHelperProfile, FilterableCategory, JobSubCategory, User, PaginatedDocsResponse } from '../types/types.ts';
+import type { HelperProfile, EnrichedHelperProfile, FilterableCategory, JobSubCategory, User, PaginatedDocsResponse, Cursor } from '../types/types.ts';
 import { View, JobCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
 import { HelperCard } from './HelperCard.tsx';
 import { getHelperProfilesPaginated } from '../services/helperProfileService.ts';
 import { useUser } from '../hooks/useUser.ts';
 import { useHelpers } from '../hooks/useHelpers.ts';
 import { useData } from '../context/DataContext.tsx';
-import type { DocumentSnapshot } from 'firebase/firestore';
 import { motion } from 'framer-motion';
-import { isDateInPast } from '../utils/dateUtils.ts';
 import { FilterSidebar } from './FilterSidebar.tsx';
 
 interface FindHelpersPageProps {
@@ -44,7 +41,7 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
 }) => {
   const [profiles, setProfiles] = useState<EnrichedHelperProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [lastVisible, setLastVisible] = useState<DocumentSnapshot | null>(null);
+  const [cursor, setCursor] = useState<Cursor | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
@@ -83,30 +80,28 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
 
   const loadProfiles = useCallback(async (isInitialLoad = false) => {
     setIsLoading(true);
-    const startAfterDoc = isInitialLoad ? null : lastVisible;
+    const startAfterCursor = isInitialLoad ? null : cursor;
     try {
       const result: PaginatedDocsResponse<HelperProfile> = await getHelperProfilesPaginated(
         12,
-        startAfterDoc,
+        startAfterCursor,
         selectedCategory,
         debouncedSearchTerm,
         selectedSubCategory,
         selectedProvince
       );
-      const activeProfiles = result.items.filter(profile => 
-        !profile.isExpired && (!profile.expiresAt || !isDateInPast(profile.expiresAt as string))
-      );
-      const enriched = enrichProfiles(activeProfiles);
+      
+      const enriched = enrichProfiles(result.items);
       setProfiles(prev => isInitialLoad ? enriched : [...prev, ...enriched]);
-      setLastVisible(result.lastVisibleDoc);
-      setHasMore(result.items.length === 12 && result.lastVisibleDoc !== null);
+      setCursor(result.cursor);
+      setHasMore(!!result.cursor);
     } catch (error) {
       console.error("Failed to load helper profiles:", error);
       setHasMore(false);
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearchTerm, lastVisible, selectedCategory, selectedSubCategory, selectedProvince, enrichProfiles]);
+  }, [debouncedSearchTerm, cursor, selectedCategory, selectedSubCategory, selectedProvince, enrichProfiles]);
 
   useEffect(() => {
     const handler = setTimeout(() => {

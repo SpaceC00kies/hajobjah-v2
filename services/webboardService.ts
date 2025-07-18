@@ -27,9 +27,10 @@ import {
   type DocumentSnapshot,
   type DocumentData,
   type QueryConstraint,
+  Timestamp,
 } from 'firebase/firestore';
 import { db } from '../firebaseConfig.ts';
-import type { WebboardPost, WebboardComment, WebboardCategory, PaginatedDocsResponse } from '../types/types.ts';
+import type { WebboardPost, WebboardComment, WebboardCategory, PaginatedDocsResponse, Cursor } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps, cleanDataForFirestore } from './serviceUtils';
 import { uploadImageService, deleteImageService } from './storageService';
@@ -140,19 +141,17 @@ export const deleteWebboardPostService = async (postId: string): Promise<void> =
 
 export const getWebboardPostsPaginated = async (
   pageSize: number,
-  startAfterDoc: DocumentSnapshot<DocumentData> | null = null,
+  cursor: Cursor | null = null,
   categoryFilter: WebboardCategory | 'all' | null = null,
   searchTerm: string | null = null
 ): Promise<PaginatedDocsResponse<WebboardPost>> => {
   try {
     let constraints: QueryConstraint[] = [orderBy("isPinned", "desc"), orderBy("createdAt", "desc"), limit(pageSize)];
     
-    // The conditional `where` clause is removed to prevent complex index requirements.
-    // Filtering will be done client-side after the fetch.
-
-    if (startAfterDoc) {
-      constraints.push(startAfter(startAfterDoc));
+    if (cursor) {
+      constraints.push(startAfter(cursor.isPinned, new Date(cursor.updatedAt)));
     }
+
     const q = query(collection(db, WEBBOARD_POSTS_COLLECTION), ...constraints);
     const querySnapshot = await getDocs(q);
 
@@ -174,9 +173,16 @@ export const getWebboardPostsPaginated = async (
         post.authorDisplayName.toLowerCase().includes(termLower)
       );
     }
-    const lastVisible = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
 
-    return { items: postsData, lastVisibleDoc: lastVisible };
+    const lastVisibleDoc = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
+    const lastItemData = lastVisibleDoc?.data();
+
+    const nextCursor: Cursor | null = lastItemData ? {
+        updatedAt: (lastItemData.createdAt as Timestamp).toDate().toISOString(),
+        isPinned: lastItemData.isPinned || false,
+    } : null;
+
+    return { items: postsData, cursor: querySnapshot.docs.length < pageSize ? null : nextCursor };
   } catch (error: any) {
     logFirebaseError("getWebboardPostsPaginated", error);
     throw error;
