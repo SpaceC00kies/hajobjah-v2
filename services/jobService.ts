@@ -13,6 +13,9 @@ import {
   deleteDoc,
   getDoc,
   serverTimestamp,
+  onSnapshot,
+  query,
+  orderBy,
 } from 'firebase/firestore';
 import { db } from '../firebaseConfig.ts';
 import type { Job, Province, JobSubCategory, PaginatedDocsResponse, Cursor, JobCategory } from '../types/types.ts';
@@ -108,6 +111,19 @@ export const getJobsPaginated = async (
     logFirebaseError("getJobsPaginated", error);
     throw error;
   }
+};
+
+export const subscribeToAllJobsService = (callback: (jobs: Job[]) => void): (() => void) => {
+  const q = query(collection(db, JOBS_COLLECTION), orderBy('postedAt', 'desc'));
+  return onSnapshot(q, (querySnapshot) => {
+    const items = querySnapshot.docs.map(docSnap => ({
+      id: docSnap.id,
+      ...convertTimestamps(docSnap.data()),
+    } as Job));
+    callback(items);
+  }, (error) => {
+    logFirebaseError(`subscribeToAllJobsService`, error);
+  });
 };
 
 export const getJobDocument = async (jobId: string): Promise<Job | null> => {

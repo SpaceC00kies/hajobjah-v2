@@ -139,6 +139,19 @@ export const deleteWebboardPostService = async (postId: string): Promise<void> =
   }
 };
 
+export const subscribeToAllWebboardPostsService = (callback: (posts: WebboardPost[]) => void): (() => void) => {
+  const q = query(collection(db, WEBBOARD_POSTS_COLLECTION), orderBy('createdAt', 'desc'));
+  return onSnapshot(q, (querySnapshot) => {
+    const items = querySnapshot.docs.map(docSnap => ({
+      id: docSnap.id,
+      ...convertTimestamps(docSnap.data()),
+    } as WebboardPost));
+    callback(items);
+  }, (error) => {
+    logFirebaseError(`subscribeToAllWebboardPostsService`, error);
+  });
+};
+
 export const getWebboardPostsPaginated = async (
   pageSize: number,
   cursor: Cursor | null = null,

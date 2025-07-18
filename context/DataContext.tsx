@@ -2,9 +2,9 @@ import React, { createContext, useState, useEffect, useContext, useMemo } from '
 import type { User, Interaction, WebboardPost, WebboardComment, Job, HelperProfile, VouchReport, BlogPost, Interest, Cursor } from '../types/types.ts';
 import { useAuth } from './AuthContext.tsx';
 import { subscribeToUsersService, subscribeToUserSavedPostsService } from '../services/userService.ts';
-import { getJobsPaginated } from '../services/jobService.ts';
-import { getHelperProfilesPaginated } from '../services/helperProfileService.ts';
-import { getWebboardPostsPaginated as getWebboardPostsPaginatedService, subscribeToWebboardCommentsService } from '../services/webboardService.ts';
+import { subscribeToAllJobsService } from '../services/jobService.ts';
+import { subscribeToAllHelperProfilesService } from '../services/helperProfileService.ts';
+import { subscribeToWebboardCommentsService, subscribeToAllWebboardPostsService } from '../services/webboardService.ts';
 import { subscribeToInteractionsService, subscribeToUserInterestsService } from '../services/interactionService.ts';
 import { subscribeToVouchReportsService } from '../services/adminService.ts';
 import { getAllBlogPosts, getBlogPostsForAdmin } from '../services/blogService.ts';
@@ -47,61 +47,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Effect for Global (non-user-specific) Data
   useEffect(() => {
-    // These functions fetch all documents without pagination, suitable for admin use.
-    const fetchAllPaginatedData = async () => {
-      const fetchJobs = async () => {
-        let allItems: Job[] = [];
-        let lastDoc: Cursor | null = null;
-        let hasMore = true;
-        while (hasMore) {
-          const batch = await getJobsPaginated(50, lastDoc);
-          allItems = [...allItems, ...batch.items];
-          lastDoc = batch.cursor;
-          hasMore = !!batch.cursor;
-        }
-        setAllJobsForAdmin(allItems);
-      };
+    setIsLoadingData(true);
 
-      const fetchHelperProfiles = async () => {
-        let allItems: HelperProfile[] = [];
-        let lastDoc: Cursor | null = null;
-        let hasMore = true;
-        while (hasMore) {
-          const batch = await getHelperProfilesPaginated(50, lastDoc);
-          allItems = [...allItems, ...batch.items];
-          lastDoc = batch.cursor;
-          hasMore = !!batch.cursor;
-        }
-        setAllHelperProfilesForAdmin(allItems);
-      };
+    const fetchBlogData = async () => {
+      // Blog posts are less dynamic, fetching once is okay.
+      const publicPosts = await getAllBlogPosts();
+      setAllBlogPosts(publicPosts);
+      const adminPosts = await getBlogPostsForAdmin();
+      setAllBlogPostsForAdmin(adminPosts);
+    };
 
-      const fetchWebboardPosts = async () => {
-        let allItems: WebboardPost[] = [];
-        let lastDoc: Cursor | null = null;
-        let hasMore = true;
-        while (hasMore) {
-          const batch = await getWebboardPostsPaginatedService(50, lastDoc);
-          allItems = [...allItems, ...batch.items];
-          lastDoc = batch.cursor;
-          hasMore = !!batch.cursor;
-        }
-        setAllWebboardPostsForAdmin(allItems);
-      };
-
-      const fetchBlogData = async () => {
-        const publicPosts = await getAllBlogPosts();
-        setAllBlogPosts(publicPosts);
-        const adminPosts = await getBlogPostsForAdmin();
-        setAllBlogPostsForAdmin(adminPosts);
-      };
-
-      // Execute all fetches in parallel
-      await Promise.all([
-        fetchJobs(),
-        fetchHelperProfiles(),
-        fetchWebboardPosts(),
-        fetchBlogData(),
-      ]);
+    // Parallelize initial fetches and subscriptions
+    const initialLoad = async () => {
+        await Promise.all([
+            fetchBlogData(),
+        ]);
+        setIsLoadingData(false);
     };
 
     // Real-time subscriptions
@@ -109,9 +70,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribeWebboardComments = subscribeToWebboardCommentsService(setWebboardComments);
     const unsubscribeInteractions = subscribeToInteractionsService(setInteractions);
     const unsubscribeVouchReports = subscribeToVouchReportsService(setVouchReports);
+    const unsubscribeJobs = subscribeToAllJobsService(setAllJobsForAdmin);
+    const unsubscribeHelperProfiles = subscribeToAllHelperProfilesService(setAllHelperProfilesForAdmin);
+    const unsubscribeWebboardPosts = subscribeToAllWebboardPostsService(setAllWebboardPostsForAdmin);
 
-    // Initial load of all paginated data, then set loading to false.
-    fetchAllPaginatedData().finally(() => setIsLoadingData(false));
+    initialLoad();
 
     // Cleanup subscriptions on component unmount
     return () => {
@@ -119,6 +82,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       unsubscribeWebboardComments();
       unsubscribeInteractions();
       unsubscribeVouchReports();
+      unsubscribeJobs();
+      unsubscribeHelperProfiles();
+      unsubscribeWebboardPosts();
     };
   }, []);
 

@@ -675,7 +675,7 @@ const App: React.FC = () => {
       case View.Login: return <LoginForm onLogin={onLogin} onSwitchToRegister={() => navigateTo(View.Register)} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />;
       case View.AdminDashboard: 
         if (!currentUser || !(currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer)) { navigateTo(View.Login); return <div>Permission Denied</div>; }
-        return <AdminDashboard onStartEditItem={handleStartEditItem} jobs={allJobsForAdmin} helperProfiles={allHelperProfilesForAdmin} users={allUsers} interactions={interactions} webboardPosts={allWebboardPostsForAdmin} webboardComments={webboardComments} vouchReports={vouchReports} allBlogPostsForAdmin={allBlogPostsForAdmin} currentUser={currentUser} isSiteLocked={isSiteLocked} getAuthorDisplayName={getAuthorDisplayName} getUserDisplayBadge={(user) => getUserDisplayBadge(user, allWebboardPostsForAdmin, webboardComments)} getUserDocument={getUserDocument}/>;
+        return <AdminDashboard onStartEditItem={handleStartEditItem} onDeleteItem={handleDeleteItem} jobs={allJobsForAdmin} helperProfiles={allHelperProfilesForAdmin} users={allUsers} interactions={interactions} webboardPosts={allWebboardPostsForAdmin} webboardComments={webboardComments} vouchReports={vouchReports} allBlogPostsForAdmin={allBlogPostsForAdmin} currentUser={currentUser} isSiteLocked={isSiteLocked} getAuthorDisplayName={getAuthorDisplayName} getUserDisplayBadge={(user) => getUserDisplayBadge(user, allWebboardPostsForAdmin, webboardComments)} getUserDocument={getUserDocument}/>;
       case View.AboutUs: return <AboutUsPage />;
       case View.Safety: return <SafetyPage />;
       case View.PasswordReset: return <PasswordResetPage navigateTo={navigateTo} />;
