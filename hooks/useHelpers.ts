@@ -122,7 +122,7 @@ export const useHelpers = () => {
     }
   }, [currentUser, allHelperProfilesForAdmin]);
 
-  const onBumpHelperProfile = useCallback(async (profileId: string) => {
+  const onBumpProfile = useCallback(async (profileId: string) => {
     if (!currentUser) throw new Error("User not authenticated");
     const localProfile = allHelperProfilesForAdmin.find(p => p.id === profileId);
     if (!localProfile || localProfile.userId !== currentUser.id) {
@@ -142,7 +142,7 @@ export const useHelpers = () => {
         const updatedUser = await getUserDocument(currentUser.id);
         if (updatedUser) setCurrentUser(updatedUser);
     } catch (error: any) {
-        logFirebaseError("useHelpers.onBumpHelperProfile", error);
+        logFirebaseError("useHelpers.onBumpProfile", error);
         throw error;
     }
   }, [currentUser, allHelperProfilesForAdmin, setCurrentUser]);
@@ -168,7 +168,7 @@ export const useHelpers = () => {
     addHelperProfile,
     updateHelperProfile,
     deleteHelperProfile,
-    onBumpHelperProfile,
+    onBumpProfile,
     onToggleSuspiciousHelperProfile,
     onTogglePinnedHelperProfile,
     onToggleVerifiedExperience,

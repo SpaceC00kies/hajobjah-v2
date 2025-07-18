@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -484,7 +485,7 @@ const App: React.FC = () => {
             onOpenLocationModal={() => setIsLocationModalOpen(true)}
           />
 
-          <div className="flex items-center space-x-6 mt-6">
+          <div className="flex items-center space-x-6 mt-4">
             <button onClick={() => navigateTo(View.FindJobs)} className="secondary-browse-link">
               ดูประกาศงานทั้งหมด
             </button>
@@ -727,7 +728,7 @@ const App: React.FC = () => {
                   onEditJobFromFindView={(jobId) => handleEditItem(jobId, 'job', View.SearchResults)}
                   onEditProfileFromFindView={(profileId) => handleEditItem(profileId, 'profile', View.SearchResults)}
                   onLogHelperContact={userActions.logContact}
-                  onBumpProfile={helperActions.onBumpHelperProfile}
+                  onBumpProfile={helperActions.onBumpProfile}
                   onToggleInterest={userActions.toggleInterest}
                   onGoBack={() => {
                     setHomeProvince(searchProvince);
