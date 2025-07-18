@@ -35,25 +35,23 @@ export const performFilterAndSearch = async (params: FilterParams) => {
     const { resultType, searchTerm, category, subCategory, province, pageSize = 12 } = params;
 
     const fetchRecentItems = async (collectionName: 'jobs' | 'helperProfiles'): Promise<SearchResultItem[]> => {
-        // This query is now simplified to prevent crashes from missing indexes.
-        // The isExpired check is moved to in-memory filtering below.
+        // STEP 1: "Can't-Fail" Database Fetch
+        // A query with a single orderBy on a timestamp does not require a custom index.
+        // This is guaranteed to work for both collections and fixes the empty job page bug.
         const q: Query<DocumentData> = db.collection(collectionName)
-            .orderBy("isPinned", "desc")
             .orderBy("updatedAt", "desc")
-            .limit(150);
+            .limit(150); // Fetch a broad pool of recent items for in-memory filtering.
 
         const snapshot = await q.get();
 
-        // Perform the crucial isExpired check in-memory.
-        const nonExpiredDocs = snapshot.docs.filter(doc => doc.data().isExpired !== true);
-
         const resultTypeKey = collectionName === 'jobs' ? 'job' : 'helper';
-        return nonExpiredDocs.map(doc => {
+        return snapshot.docs.map(doc => {
             const data = doc.data();
-            // Ensure date fields are converted to strings for JSON serialization
+            // Ensure all potential date fields are converted for consistent processing and JSON serialization.
             if (data.updatedAt) data.updatedAt = safeGetDate(data.updatedAt).toISOString();
             if (data.postedAt) data.postedAt = safeGetDate(data.postedAt).toISOString();
             if (data.createdAt) data.createdAt = safeGetDate(data.createdAt).toISOString();
+            if (data.expiresAt) data.expiresAt = safeGetDate(data.expiresAt).toISOString();
             return {
                 ...data,
                 id: doc.id,
@@ -70,18 +68,27 @@ export const performFilterAndSearch = async (params: FilterParams) => {
         allRecentItems.push(...await fetchRecentItems('helperProfiles'));
     }
 
-    // Sort combined results if we fetched both (important for 'all' search)
-    if (resultType === 'all') {
-        allRecentItems.sort((a, b) => {
-            if (a.isPinned && !b.isPinned) return -1;
-            if (!a.isPinned && b.isPinned) return 1;
-            return safeGetDate(b.updatedAt).getTime() - safeGetDate(a.updatedAt).getTime();
-        });
-    }
+    // STEP 2: Robust In-Memory Processing
+    const now = new Date();
 
-    // Apply all subsequent filters in-memory
-    const filteredResults = allRecentItems.filter(item => {
-        // Province filter
+    // a) Filter Expired Items: This is the first and most crucial filter.
+    const activeItems = allRecentItems.filter(item => {
+        const isExpiredFlag = item.isExpired === true;
+        const hasExpiredDate = item.expiresAt ? new Date(item.expiresAt as string) < now : false;
+        return !isExpiredFlag && !hasExpiredDate;
+    });
+
+    // b) Sort by Pinned Status, then fall back to the recent date.
+    const sortedItems = activeItems.sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        // The original fetch was already sorted by updatedAt, this preserves that order for non-pinned items.
+        return safeGetDate(b.updatedAt).getTime() - safeGetDate(a.updatedAt).getTime();
+    });
+
+    // c) Apply All Other User-Selected Filters
+    const filteredResults = sortedItems.filter(item => {
+        // Province filter (fixes homepage pill bug)
         if (province && province !== 'all' && item.province !== province) {
             return false;
         }
@@ -112,8 +119,8 @@ export const performFilterAndSearch = async (params: FilterParams) => {
 
     const paginatedItems = filteredResults.slice(0, pageSize);
     
-    // Pagination is simplified in this model. For true infinite scroll on filtered results,
-    // a more complex backend cursor strategy would be needed. This serves the immediate need.
+    // Pagination is simplified in this model. For true infinite scroll on heavily filtered results,
+    // a more complex backend cursor strategy would be needed. This serves the immediate need to fix bugs.
     return {
         items: paginatedItems,
         cursor: null 
