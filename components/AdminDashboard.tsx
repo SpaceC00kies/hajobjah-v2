@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { Job, HelperProfile, User, Interaction, WebboardPost, WebboardComment, UserLevel, VouchReport, Vouch, VouchType, BlogPost } from '../types/types.ts';
 import { UserRole, VouchReportStatus, VOUCH_TYPE_LABELS } from '../types/types.ts';
 import { Button } from './Button.tsx';
@@ -78,6 +78,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [selectedVouch, setSelectedVouch] = useState<Vouch | null>(null);
   const [isHudLoading, setIsHudLoading] = useState(false);
   const [hudAnalysis, setHudAnalysis] = useState<{ ipMatch: boolean | null; voucherIsNew: boolean | null; error?: string | null }>({ ipMatch: null, voucherIsNew: null, error: null });
+  const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
+  const actionMenuRef = useRef<HTMLDivElement>(null);
   
   const [actionHubSearchType, setActionHubSearchType] = useState<ActionHubSearchType>('job');
 
@@ -92,6 +94,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         setActionHubSearchType('job');
     }
   }, [activeTab]);
+
+    useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (actionMenuRef.current && !actionMenuRef.current.contains(event.target as Node)) {
+        setOpenActionMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
 
   const handleSelectReport = (report: VouchReport) => {
@@ -205,6 +219,134 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     { id: 'webboardPost', label: 'กระทู้', icon: '💬' },
     { id: 'user', label: 'ผู้ใช้', icon: '👥' },
   ];
+  
+  const renderStatusBadge = (text: string, color: 'blue' | 'yellow' | 'red' | 'green' | 'gray') => {
+    const colors = {
+      blue: 'bg-blue-100 text-blue-800',
+      yellow: 'bg-yellow-100 text-yellow-800',
+      red: 'bg-red-100 text-red-800',
+      green: 'bg-green-100 text-green-800',
+      gray: 'bg-gray-100 text-gray-800'
+    };
+    return <span className={`text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full ${colors[color]}`}>{text}</span>;
+  };
+
+  const renderActionHubResults = () => {
+    const accentColors: Record<ActionHubSearchType, string> = {
+      job: 'border-primary',
+      profile: 'border-secondary',
+      webboardPost: 'border-brandGreen',
+      user: 'border-neutral-dark'
+    };
+
+    return actionHubResults.map(item => {
+      let title: string, subtitle: string, badges: React.ReactNode[] = [], primaryAction: React.ReactNode, secondaryActions: React.ReactNode[];
+      const itemType = actionHubSearchType;
+
+      if (itemType === 'user') {
+        const user = item as User;
+        title = `${user.publicDisplayName} (@${user.username})`;
+        subtitle = `${user.email} | ${user.role}`;
+        primaryAction = null; // No primary edit for user
+        secondaryActions = [
+            <select
+                key="role"
+                value={user.role}
+                onChange={e => admin.setUserRole(user.id, e.target.value as UserRole)}
+                disabled={user.id === currentUser?.id}
+                className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50"
+            >
+                {Object.values(UserRole).map(role => <option key={role} value={role}>{role}</option>)}
+            </select>
+        ];
+      } else {
+        const contentItem = item as Job | HelperProfile | WebboardPost;
+        title = 'title' in contentItem ? contentItem.title : contentItem.profileTitle;
+        subtitle = `by ${getAuthorDisplayName(contentItem.userId, contentItem.authorDisplayName)}`;
+        
+        if (contentItem.isPinned) badges.push(renderStatusBadge('Pinned', 'yellow'));
+        if ('isSuspicious' in contentItem && contentItem.isSuspicious) badges.push(renderStatusBadge('Suspicious', 'red'));
+        if (('isHired' in contentItem && contentItem.isHired) || ('isUnavailable' in contentItem && contentItem.isUnavailable)) badges.push(renderStatusBadge('Hired/Unavailable', 'gray'));
+
+        primaryAction = <Button onClick={() => onStartEditItem({id: item.id, itemType, originalItem: item, title})} size="sm">Edit</Button>;
+        secondaryActions = [
+            <button key="delete" onClick={() => onDeleteItem(item.id, itemType as 'job' | 'profile' | 'webboardPost')} className="w-full text-left text-sm p-2 rounded hover:bg-red-100 text-red-700">Delete</button>
+        ];
+        
+        if(itemType === 'job') {
+            const jobItem = item as Job;
+            secondaryActions.push(<button key="suspicious" onClick={() => admin.toggleSuspiciousJob(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{jobItem.isSuspicious ? 'Unsuspicious' : 'Suspicious'}</button>);
+            secondaryActions.push(<button key="pin" onClick={() => admin.togglePinnedJob(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{jobItem.isPinned ? 'Unpin' : 'Pin'}</button>);
+            secondaryActions.push(<button key="hired" onClick={() => toggleHiredJob(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{jobItem.isHired ? 'Set Available' : 'Set Hired'}</button>);
+        } else if (itemType === 'profile') {
+            const profileItem = item as HelperProfile;
+            secondaryActions.push(<button key="suspicious" onClick={() => admin.toggleSuspiciousHelperProfile(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{profileItem.isSuspicious ? 'Unsuspicious' : 'Suspicious'}</button>);
+            secondaryActions.push(<button key="pin" onClick={() => admin.togglePinnedHelperProfile(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{profileItem.isPinned ? 'Unpin' : 'Pin'}</button>);
+            secondaryActions.push(<button key="unavailable" onClick={() => onToggleUnavailableHelperProfileForUserOrAdmin(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{profileItem.isUnavailable ? 'Set Available' : 'Set Unavailable'}</button>);
+            secondaryActions.push(<button key="verify" onClick={() => admin.toggleVerifiedExperience(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{profileItem.adminVerifiedExperience ? 'Unverify' : 'Verify Exp.'}</button>);
+        } else if (itemType === 'webboardPost') {
+             secondaryActions.push(<button key="pin" onClick={() => admin.pinWebboardPost(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{contentItem.isPinned ? 'Unpin' : 'Pin'}</button>);
+        }
+      }
+
+      return (
+        <div key={item.id} className={`bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow duration-200 flex items-center justify-between p-4 border-l-4 ${accentColors[itemType]}`}>
+            <div className="flex-grow min-w-0">
+                <h4 className="text-md font-semibold text-primary-dark truncate" title={title}>{title}</h4>
+                <p className="text-sm text-neutral-medium truncate">{subtitle}</p>
+                <div className="mt-2">{badges}</div>
+            </div>
+            <div className="flex-shrink-0 flex items-center gap-2 ml-4">
+                {primaryAction}
+                <div className="relative" ref={actionMenuRef}>
+                    <button onClick={() => setOpenActionMenuId(openActionMenuId === item.id ? null : item.id)} className="p-2 rounded-full hover:bg-neutral-light/50">
+                        <svg className="w-5 h-5 text-neutral-dark" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg>
+                    </button>
+                    {openActionMenuId === item.id && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-primary-light">
+                            <div className="py-1">
+                                {secondaryActions.map((action, index) => <div key={index}>{action}</div>)}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+      );
+    });
+  };
+  
+  const renderArticleResults = () => {
+     return filteredBlogItems.map(item => {
+        const canEdit = currentUser?.role === UserRole.Admin || (currentUser?.role === UserRole.Writer && item.authorId === currentUser.id);
+        const badges = [renderStatusBadge(item.status, item.status === 'published' ? 'green' : (item.status === 'draft' ? 'yellow' : 'gray'))];
+        
+        return (
+            <div key={item.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow duration-200 flex items-center justify-between p-4 border-l-4 border-rose-400">
+                <div className="flex-grow min-w-0">
+                    <h4 className="text-md font-semibold text-primary-dark truncate" title={item.title}>{item.title}</h4>
+                    <p className="text-sm text-neutral-medium truncate">by {getAuthorDisplayName(item.authorId, item.authorDisplayName)} | Published: {item.publishedAt ? formatDateDisplay(item.publishedAt) : '—'}</p>
+                    <div className="mt-2">{badges}</div>
+                </div>
+                <div className="flex-shrink-0 flex items-center gap-2 ml-4">
+                    {canEdit && <Button onClick={() => onStartEditItem({id: item.id, itemType: 'blogPost', originalItem: item, title: item.title})} size="sm">Edit</Button>}
+                    <div className="relative" ref={actionMenuRef}>
+                        <button onClick={() => setOpenActionMenuId(openActionMenuId === item.id ? null : item.id)} className="p-2 rounded-full hover:bg-neutral-light/50">
+                            <svg className="w-5 h-5 text-neutral-dark" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg>
+                        </button>
+                         {openActionMenuId === item.id && (
+                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-primary-light">
+                                <div className="py-1">
+                                    {canEdit && <button onClick={() => admin.deleteBlogPost(item.id, (item as BlogPost).coverImageURL)} className="w-full text-left text-sm p-2 rounded hover:bg-red-100 text-red-700">Delete</button>}
+                                </div>
+                            </div>
+                         )}
+                    </div>
+                </div>
+            </div>
+        );
+     });
+  };
 
 
   return (
@@ -259,52 +401,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <input type="search" placeholder={`Search for a ${actionHubSearchType}...`} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full mb-4" />
             
             {searchTerm.trim() && (
-                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-neutral-DEFAULT">
-                        <thead className="bg-neutral-light/50">
-                            <tr>
-                                <th scope="col">{actionHubSearchType === 'user' ? 'User' : 'Title'}</th>
-                                <th scope="col">{actionHubSearchType === 'user' ? 'Email / Role' : 'Author'}</th>
-                                <th scope="col">Status</th>
-                                <th scope="col">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-neutral-DEFAULT">
-                            {actionHubResults.map(item => {
-                                let title: string, author: string, status: React.ReactNode, actions: React.ReactNode;
-                                const itemType = actionHubSearchType;
-
-                                if (itemType === 'user') {
-                                    const user = item as User;
-                                    title = `${user.publicDisplayName} (@${user.username})`;
-                                    author = `${user.email} | ${user.role}`;
-                                    status = <span>-</span>;
-                                    actions = (<select value={user.role} onChange={e => admin.setUserRole(user.id, e.target.value as UserRole)} disabled={user.id === currentUser?.id}>{Object.values(UserRole).map(role => <option key={role} value={role}>{role}</option>)}</select>);
-                                } else {
-                                    const contentItem = item as Job | HelperProfile | WebboardPost;
-                                    title = 'title' in contentItem ? contentItem.title : contentItem.profileTitle;
-                                    author = getAuthorDisplayName(contentItem.userId, contentItem.authorDisplayName);
-                                    status = <>{contentItem.isPinned && <span>Pinned </span>}{'isSuspicious' in contentItem && contentItem.isSuspicious && <span>Suspicious </span>}{('isHired' in contentItem && contentItem.isHired) || ('isUnavailable' in contentItem && contentItem.isUnavailable) && <span>Hired/Unavailable</span>}</>
-                                    actions = (
-                                        <div className="flex flex-wrap gap-2 justify-end">
-                                            <Button onClick={() => onStartEditItem({id: item.id, itemType: itemType, originalItem: item, title: title})} size="sm">Edit</Button>
-                                            <Button onClick={() => onDeleteItem(item.id, itemType as 'job' | 'profile' | 'webboardPost')} size="sm" colorScheme="accent">Delete</Button>
-                                            {itemType === 'job' && (<><Button onClick={() => admin.toggleSuspiciousJob(item.id)} size="sm" variant="outline" colorScheme="accent">{'isSuspicious' in contentItem && contentItem.isSuspicious ? 'Unsuspicious' : 'Suspicious'}</Button><Button onClick={() => admin.togglePinnedJob(item.id)} size="sm" variant="outline">{contentItem.isPinned ? 'Unpin' : 'Pin'}</Button><Button onClick={() => toggleHiredJob(item.id)} size="sm" variant="outline">{('isHired' in contentItem && contentItem.isHired) ? 'Set Available' : 'Set Hired'}</Button></>)}
-                                            {itemType === 'profile' && (<><Button onClick={() => admin.toggleSuspiciousHelperProfile(item.id)} size="sm" variant="outline" colorScheme="accent">{'isSuspicious' in contentItem && contentItem.isSuspicious ? 'Unsuspicious' : 'Suspicious'}</Button><Button onClick={() => admin.togglePinnedHelperProfile(item.id)} size="sm" variant="outline">{contentItem.isPinned ? 'Unpin' : 'Pin'}</Button><Button onClick={() => onToggleUnavailableHelperProfileForUserOrAdmin(item.id)} size="sm" variant="outline">{('isUnavailable' in contentItem && contentItem.isUnavailable) ? 'Set Available' : 'Set Unavailable'}</Button><Button onClick={() => admin.toggleVerifiedExperience(item.id)} size="sm" variant="outline">{('adminVerifiedExperience' in contentItem && contentItem.adminVerifiedExperience) ? 'Unverify' : 'Verify Exp.'}</Button></>)}
-                                            {itemType === 'webboardPost' && (<Button onClick={() => admin.pinWebboardPost(item.id)} size="sm" variant="outline">{contentItem.isPinned ? 'Unpin' : 'Pin'}</Button>)}
-                                        </div>
-                                    )
-                                }
-                                return (<tr key={item.id}><td>{title}</td><td>{author}</td><td>{status}</td><td>{actions}</td></tr>)
-                            })}
-                        </tbody>
-                    </table>
-                 </div>
+                <div className="space-y-3">
+                    {renderActionHubResults()}
+                </div>
             )}
         </div>
       )}
 
-      {activeTab === 'articles' && (<div><div className="mb-4 flex flex-col sm:flex-row gap-4"><input type="search" placeholder={`ค้นหาใน ${activeTab}...`} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full sm:flex-grow" /><div className="flex-shrink-0 w-full sm:w-48"><label htmlFor="blogStatusFilter" className="sr-only">Filter by status</label><select id="blogStatusFilter" value={blogStatusFilter} onChange={e => setBlogStatusFilter(e.target.value as any)} className="w-full"><option value="all">All Statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="archived">Archived</option></select></div></div><Button onClick={() => onStartEditItem({itemType: 'blogPost', originalItem: {} as BlogPost} as AdminItem)} variant="primary" size="sm" className="mb-4">+ Create New Post</Button><div className="overflow-x-auto"><table className="min-w-full divide-y divide-neutral-DEFAULT"><thead className="bg-neutral-light/50"><tr><th scope="col">Title</th><th scope="col">Author</th><th scope="col">Status</th><th scope="col">Published Date</th><th scope="col">Actions</th></tr></thead><tbody className="bg-white divide-y divide-neutral-DEFAULT">{filteredBlogItems.map(item => { const canEdit = currentUser?.role === UserRole.Admin || (currentUser?.role === UserRole.Writer && item.authorId === currentUser.id); return(<tr key={item.id}><td>{item.title}</td><td>{getAuthorDisplayName(item.authorId, item.authorDisplayName)}</td><td><span>{item.status}</span></td><td>{item.publishedAt ? formatDateDisplay(item.publishedAt) : '—'}</td><td><div>{canEdit && <Button onClick={() => onStartEditItem({id: item.id, itemType: 'blogPost', originalItem: item, title: item.title})} size="sm">Edit</Button>}{canEdit && <Button onClick={() => admin.deleteBlogPost(item.id, (item as BlogPost).coverImageURL)} size="sm" colorScheme="accent">Delete</Button>}</div></td></tr>)})}</tbody></table></div></div>)}
+      {activeTab === 'articles' && (<div><div className="mb-4 flex flex-col sm:flex-row gap-4"><input type="search" placeholder={`ค้นหาใน ${activeTab}...`} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full sm:flex-grow" /><div className="flex-shrink-0 w-full sm:w-48"><label htmlFor="blogStatusFilter" className="sr-only">Filter by status</label><select id="blogStatusFilter" value={blogStatusFilter} onChange={e => setBlogStatusFilter(e.target.value as any)} className="w-full"><option value="all">All Statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="archived">Archived</option></select></div></div><Button onClick={() => onStartEditItem({itemType: 'blogPost', originalItem: {} as BlogPost} as AdminItem)} variant="primary" size="sm" className="mb-4">+ Create New Post</Button>
+      <div className="space-y-3">
+          {renderArticleResults()}
+      </div>
+      </div>)}
       
       {activeTab === 'site_controls' && currentUser?.role === UserRole.Admin && (<div className="p-4 bg-neutral-light/50 rounded-lg"><h3 className="text-lg font-semibold text-neutral-700 mb-3">Site Controls</h3><div className="flex items-center justify-between p-4 bg-white rounded shadow"><p className="font-medium">Site Lock: {isSiteLocked ? "ON" : "OFF"}</p><Button onClick={() => admin.toggleSiteLock(isSiteLocked)} colorScheme={isSiteLocked ? "accent" : "primary"}>{isSiteLocked ? "Unlock Site" : "Lock Site"}</Button></div></div>)}
       
