@@ -184,10 +184,10 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, onNavigateToP
                         {authorActualDisplayName}
                         <span className="name-arrow">→</span>
                     </span>
-                    {job.posterIsAdminVerified && (
-                        <span className="bg-secondary text-primary-dark text-xs px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1">
-                            <span>⭐</span>
-                            <span>Verified</span>
+                    {job.adminVerified && (
+                        <span className="bg-green-100 text-green-800 text-xs px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1">
+                            <span>✅</span>
+                            <span>ยืนยันตัวตน</span>
                         </span>
                     )}
                 </div>

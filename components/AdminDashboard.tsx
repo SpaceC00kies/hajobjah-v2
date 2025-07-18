@@ -9,6 +9,7 @@ import { useAdmin } from '../hooks/useAdmin.ts';
 import { useWebboard } from '../hooks/useWebboard.ts';
 import { useBlog } from '../hooks/useBlog.ts';
 import { formatDateDisplay } from '../utils/dateUtils.ts';
+import { isDateInPast } from '../utils/dateUtils.ts';
 import { checkProfileCompleteness } from '../utils/userUtils.ts';
 import { AdminOverview } from './admin/AdminOverview.tsx';
 
@@ -83,8 +84,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   
   const [actionHubSearchType, setActionHubSearchType] = useState<ActionHubSearchType>('job');
 
-  const { toggleHiredJob } = useJobs();
-  const { onToggleUnavailableHelperProfileForUserOrAdmin } = useHelpers();
   const admin = useAdmin();
 
   useEffect(() => {
@@ -185,9 +184,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     switch (actionHubSearchType) {
         case 'job':
-            return jobs.filter(item => item.title.toLowerCase().includes(term) || getAuthorDisplayName(item.userId, item.authorDisplayName).toLowerCase().includes(term) || item.id.toLowerCase().includes(term));
+            return jobs.filter(item => {
+                const isExpired = item.isExpired || (item.expiresAt ? isDateInPast(item.expiresAt) : false);
+                if (isExpired) return false;
+                return item.title.toLowerCase().includes(term) || getAuthorDisplayName(item.userId, item.authorDisplayName).toLowerCase().includes(term) || item.id.toLowerCase().includes(term);
+            });
         case 'profile':
-            return helperProfiles.filter(item => item.profileTitle.toLowerCase().includes(term) || getAuthorDisplayName(item.userId, item.authorDisplayName).toLowerCase().includes(term) || item.id.toLowerCase().includes(term));
+            return helperProfiles.filter(item => {
+                const isExpired = item.isExpired || (item.expiresAt ? isDateInPast(item.expiresAt) : false);
+                if (isExpired) return false;
+                return item.profileTitle.toLowerCase().includes(term) || getAuthorDisplayName(item.userId, item.authorDisplayName).toLowerCase().includes(term) || item.id.toLowerCase().includes(term);
+            });
         case 'webboardPost':
             return webboardPosts.filter(item => item.title.toLowerCase().includes(term) || getAuthorDisplayName(item.userId, item.authorDisplayName).toLowerCase().includes(term) || item.id.toLowerCase().includes(term));
         case 'user':
@@ -266,6 +273,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         
         if (contentItem.isPinned) badges.push(renderStatusBadge('Pinned', 'yellow'));
         if ('isSuspicious' in contentItem && contentItem.isSuspicious) badges.push(renderStatusBadge('Suspicious', 'red'));
+        if ('adminVerified' in contentItem && contentItem.adminVerified) badges.push(renderStatusBadge('Verified', 'green'));
+        if ('adminVerifiedExperience' in contentItem && contentItem.adminVerifiedExperience) badges.push(renderStatusBadge('Verified', 'green'));
         if (('isHired' in contentItem && contentItem.isHired) || ('isUnavailable' in contentItem && contentItem.isUnavailable)) badges.push(renderStatusBadge('Hired/Unavailable', 'gray'));
 
         primaryAction = <Button onClick={() => onStartEditItem({id: item.id, itemType, originalItem: item, title})} size="sm">Edit</Button>;
@@ -277,13 +286,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             const jobItem = item as Job;
             secondaryActions.push(<button key="suspicious" onClick={() => admin.toggleSuspiciousJob(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{jobItem.isSuspicious ? 'Unsuspicious' : 'Suspicious'}</button>);
             secondaryActions.push(<button key="pin" onClick={() => admin.togglePinnedJob(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{jobItem.isPinned ? 'Unpin' : 'Pin'}</button>);
-            secondaryActions.push(<button key="hired" onClick={() => toggleHiredJob(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{jobItem.isHired ? 'Set Available' : 'Set Hired'}</button>);
+            secondaryActions.push(<button key="verify" onClick={() => admin.toggleVerifiedJob(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{jobItem.adminVerified ? 'Unverify' : 'Verify'}</button>);
         } else if (itemType === 'profile') {
             const profileItem = item as HelperProfile;
             secondaryActions.push(<button key="suspicious" onClick={() => admin.toggleSuspiciousHelperProfile(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{profileItem.isSuspicious ? 'Unsuspicious' : 'Suspicious'}</button>);
             secondaryActions.push(<button key="pin" onClick={() => admin.togglePinnedHelperProfile(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{profileItem.isPinned ? 'Unpin' : 'Pin'}</button>);
-            secondaryActions.push(<button key="unavailable" onClick={() => onToggleUnavailableHelperProfileForUserOrAdmin(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{profileItem.isUnavailable ? 'Set Available' : 'Set Unavailable'}</button>);
-            secondaryActions.push(<button key="verify" onClick={() => admin.toggleVerifiedExperience(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{profileItem.adminVerifiedExperience ? 'Unverify' : 'Verify Exp.'}</button>);
+            secondaryActions.push(<button key="verify" onClick={() => admin.toggleVerifiedExperience(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{profileItem.adminVerifiedExperience ? 'Unverify' : 'Verify'}</button>);
         } else if (itemType === 'webboardPost') {
              secondaryActions.push(<button key="pin" onClick={() => admin.pinWebboardPost(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{contentItem.isPinned ? 'Unpin' : 'Pin'}</button>);
         }
@@ -418,7 +426,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       
       {activeTab === 'orion_command_center' && currentUser?.role === UserRole.Admin && (<div className="orion-cockpit"><OrionCommandCenter /></div>)}
 
-      {activeTab === 'vouch_reports' && currentUser?.role === UserRole.Admin && (<div className="grid grid-cols-1 md:grid-cols-3 gap-6"><div className="md:col-span-1"><h3 className="text-lg font-semibold text-neutral-700 mb-3">Pending Reports ({pendingVouchReportsCount})</h3><div className="space-y-2 max-h-96 overflow-y-auto">{vouchReports.map(report => (<button key={report.id} onClick={() => setSelectedReport(report)} className={`block w-full text-left p-3 rounded-md ${selectedReport?.id === report.id ? 'bg-blue-100' : 'bg-neutral-light/50 hover:bg-neutral-light'}`}><p className="text-sm font-semibold truncate">Report on Vouch <code className="text-xs">{report.vouchId.substring(0, 6)}...</code></p><p className="text-xs text-neutral-medium">By: {getAuthorDisplayName(report.reporterId).substring(0, 15)}...</p></button>))}</div></div><div className="md:col-span-2 p-4 bg-neutral-light/50 rounded-lg"><h3 className="text-lg font-semibold text-neutral-700 mb-3">Report Details & HUD</h3>{selectedReport ? (<div><p><strong>Reporter Comment:</strong> {selectedReport.reporterComment}</p><hr className="my-2" /><p className="font-semibold">Vouch Info:</p>{isHudLoading ? <p>Loading Vouch Details...</p> : selectedVouch ? (<div><p>From: {selectedVouch.voucherDisplayName} ({selectedVouch.voucherId.substring(0,10)}...)</p><p>To: {getAuthorDisplayName(selectedVouch.voucheeId)} ({selectedVouch.voucheeId.substring(0,10)}...)</p><p>Type: {VOUCH_TYPE_LABELS[selectedVouch.vouchType]}</p><p>Vouch Comment: "{selectedVouch.comment}"</p></div>) : <p className="text-red-500">Vouch data not found.</p>}<hr className="my-2" /><p className="font-semibold">Risk Signals:</p>{isHudLoading ? <p>Analyzing...</p> : hudAnalysis.error ? (<p className="font-bold text-red-500">⚠️ Analysis Error: {hudAnalysis.error}</p>) : (<div>{hudAnalysis.ipMatch === null ? <p>IP check pending...</p> : hudAnalysis.ipMatch ? <p className="font-bold text-red-500">⚠️ IP ADDRESS MATCH</p> : <p className="text-green-600">✅ IP addresses do not match.</p>}{hudAnalysis.voucherIsNew === null ? <p>Account age check pending...</p> : hudAnalysis.voucherIsNew ? <p className="font-bold text-orange-500">⚠️ VOUCHER IS NEW ACCOUNT (&lt;7 days)</p> : <p className="text-green-600">✅ Voucher account is not new.</p>}</div>)}<div className="mt-4 flex gap-4"><Button onClick={() => admin.resolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedKept, selectedReport.vouchId, selectedReport.voucheeId, selectedVouch!.vouchType)} colorScheme="primary" disabled={isHudLoading || !selectedVouch}>Keep Vouch</Button><Button onClick={() => admin.resolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedDeleted, selectedReport.vouchId, selectedReport.voucheeId, selectedVouch!.vouchType)} colorScheme="accent" disabled={isHudLoading || !selectedVouch}>Delete Vouch</Button></div></div>) : <p>Select a report to view details.</p>}</div></div>)}
+      {activeTab === 'vouch_reports' && currentUser?.role === UserRole.Admin && (<div className="grid grid-cols-1 md:grid-cols-3 gap-6"><div className="md:col-span-1"><h3 className="text-lg font-semibold text-neutral-700 mb-3">Pending Reports ({pendingVouchReportsCount})</h3><div className="space-y-2 max-h-96 overflow-y-auto">{vouchReports.map(report => (<button key={report.id} onClick={() => setSelectedReport(report)} className={`block w-full text-left p-3 rounded-md ${selectedReport?.id === report.id ? 'bg-blue-100' : 'bg-neutral-light/50 hover:bg-neutral-light'}`}><p className="text-sm font-semibold truncate">Report on Vouch <code className="text-xs">{report.vouchId.substring(0, 6)}...</code></p><p className="text-xs text-neutral-medium">By: {getAuthorDisplayName(report.reporterId).substring(0, 15)}...</p></button>))}</div></div><div className="md:col-span-2 p-4 bg-neutral-light/50 rounded-lg"><h3 className="text-lg font-semibold text-neutral-700 mb-3">Report Details & HUD</h3>{selectedReport ? (<div><p><strong>Reporter Comment:</strong> {selectedReport.reporterComment}</p><hr className="my-2" /><p className="font-semibold">Vouch Info:</p>{isHudLoading ? <p>Loading Vouch Details...</p> : selectedVouch ? (<div><p>From: {selectedVouch.voucherDisplayName} ({selectedVouch.voucherId.substring(0,10)}...)</p><p>To: {getAuthorDisplayName(selectedVouch.voucheeId)} ({selectedVouch.voucheeId.substring(0,10)}...)</p><p>Type: {VOUCH_TYPE_LABELS[selectedVouch.vouchType]}</p><p>Vouch Comment: "{selectedVouch.comment}"</p></div>) : <p className="text-red-500">Vouch data not found.</p>}<hr className="my-2" /><p className="font-semibold">Risk Signals:</p>{isHudLoading ? <p>Analyzing...</p> : hudAnalysis.error ? (<p className="font-bold text-red-500">⚠️ Analysis Error: {hudAnalysis.error}</p>) : (<div>{hudAnalysis.ipMatch === null ? <p>IP check pending...</p> : hudAnalysis.ipMatch ? <p className="font-bold text-red-500">⚠️ IP ADDRESS MATCH</p> : <p className="text-green-600">✅ IP addresses do not match.</p>}{hudAnalysis.voucherIsNew === null ? <p>Account age check pending...</p> : hudAnalysis.voucherIsNew ? <p className="font-bold text-orange-500">⚠️ VOUCHER IS NEW ACCOUNT (&lt;7 days)</p> : <p className="text-green-600">✅ Voucher account is not new.</p>}</div>)}<div className="mt-4 flex flex-wrap gap-4"><Button onClick={() => admin.resolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedKept, selectedReport.vouchId, selectedReport.voucheeId, selectedVouch!.vouchType)} colorScheme="primary" disabled={isHudLoading || !selectedVouch}>Keep Vouch</Button><Button onClick={() => admin.resolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedDeleted, selectedReport.vouchId, selectedReport.voucheeId, selectedVouch!.vouchType)} colorScheme="accent" disabled={isHudLoading || !selectedVouch}>Delete Vouch</Button><Button onClick={() => {if (window.confirm('This will PERMANENTLY delete the vouch, bypassing the report status. Are you sure?')) {admin.forceDeleteVouch(selectedVouch!.id, selectedVouch!.voucheeId, selectedVouch!.vouchType)}}} variant="outline" className="!border-red-500 !text-red-600 hover:!bg-red-500 hover:!text-white" disabled={isHudLoading || !selectedVouch}>💥 Force Delete</Button></div></div>) : <p>Select a report to view details.</p>}</div></div>)}
     </div>
   );
 };

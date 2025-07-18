@@ -67,14 +67,16 @@ export const performFilterAndSearch = async (params: FilterParams) => {
     // STEP 2: Robust In-Memory Processing
     const now = new Date();
 
-    // ================== FIX IMPLEMENTED HERE ==================
-    // a) Filter Expired Items AND Province FIRST for strict filtering.
-    // This ensures only active items from the correct province are processed further.
     const activeItems = allRecentItems.filter(item => {
         // Exclude expired items
         const isExpiredFlag = item.isExpired === true;
         const hasExpiredDate = item.expiresAt ? new Date(item.expiresAt as string) < now : false;
         if (isExpiredFlag || hasExpiredDate) {
+            return false;
+        }
+
+        // Exclude suspicious items from public view
+        if (item.isSuspicious === true) {
             return false;
         }
 
@@ -85,7 +87,6 @@ export const performFilterAndSearch = async (params: FilterParams) => {
 
         return true;
     });
-    // ==========================================================
 
     // b) Sort the pre-filtered items by Pinned Status, then fall back to the recent date.
     const sortedItems = activeItems.sort((a, b) => {

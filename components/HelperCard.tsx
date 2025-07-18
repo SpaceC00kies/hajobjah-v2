@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import type { EnrichedHelperProfile, User } from '../types/types.ts';
 import { View, Province, ACTIVITY_BADGE_DETAILS } from '../types/types.ts';
@@ -63,7 +62,7 @@ const TrustBadgesCompact: React.FC<{ profile: EnrichedHelperProfile, user: User 
   const badges = [];
   if (profile.adminVerifiedExperience) {
     badges.push(
-      <span key="verified" className="helper-card-trust-badge">ยืนยันตัวตน</span>
+      <span key="verified" className="helper-card-trust-badge" style={{backgroundColor: 'var(--success-green)', color: 'color-mix(in srgb, var(--success-green) 40%, black)'}}>✅ ยืนยันตัวตน</span>
     );
   }
   if (user?.profileComplete) {

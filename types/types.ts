@@ -47,6 +47,7 @@ export interface Job {
   // New fields for expiration
   expiresAt?: string | Date; // Date when the job expires
   isExpired?: boolean;     // Flag indicating if the job has expired
+  adminVerified?: boolean; // New flag for job-specific verification
   posterIsAdminVerified?: boolean; // Flag indicating if the job poster is admin verified
   interestedCount?: number;
   companyLogoUrl?: string;

@@ -126,5 +126,31 @@ export const resolveVouchReportService = async (reportId: string, resolution: Vo
     });
 };
 
+export const forceDeleteVouchService = async (vouchId: string, voucheeId: string, vouchType: VouchType): Promise<void> => {
+    const VOUCHES_COLLECTION = 'vouches';
+    const USERS_COLLECTION = 'users';
+
+    await runTransaction(db, async (transaction) => {
+        const vouchRef = doc(db, VOUCHES_COLLECTION, vouchId);
+        const voucheeRef = doc(db, USERS_COLLECTION, voucheeId);
+
+        const vouchDoc = await transaction.get(vouchRef);
+        if (vouchDoc.exists()) {
+            transaction.delete(vouchRef);
+            transaction.update(voucheeRef, {
+                [`vouchInfo.total`]: increment(-1),
+                [`vouchInfo.${vouchType}`]: increment(-1),
+            });
+        } else {
+            console.warn(`Force delete requested for non-existent vouch ${vouchId}. Decrementing user stats anyway.`);
+            transaction.update(voucheeRef, {
+                [`vouchInfo.total`]: increment(-1),
+                [`vouchInfo.${vouchType}`]: increment(-1),
+            });
+        }
+    });
+};
+
+
 // Orion AI Service
 export const orionAnalyzeService = httpsCallable<{command: string}, {reply: string}>(functions, 'orionAnalyze');
