@@ -127,42 +127,34 @@ export const resolveVouchReportService = async (reportId: string, resolution: Vo
     });
 };
 
-export const forceDeleteVouchService = async (vouchId: string, voucheeId: string, vouchType?: VouchType): Promise<void> => {
+export const forceResolveVouchReportService = async (reportId: string, adminId: string, vouchId: string, voucheeId: string, vouchType: VouchType): Promise<void> => {
+    const VOUCH_REPORTS_COLLECTION = 'vouchReports';
     const VOUCHES_COLLECTION = 'vouches';
     const USERS_COLLECTION = 'users';
 
     await runTransaction(db, async (transaction) => {
+        const reportRef = doc(db, VOUCH_REPORTS_COLLECTION, reportId);
         const vouchRef = doc(db, VOUCHES_COLLECTION, vouchId);
         const voucheeRef = doc(db, USERS_COLLECTION, voucheeId);
 
-        const vouchDoc = await transaction.get(vouchRef);
-        if (vouchDoc.exists()) {
-            // If the document exists, we trust its data over any passed parameters.
-            const actualVouchType = vouchDoc.data()?.vouchType as VouchType;
-            transaction.delete(vouchRef);
-            if (actualVouchType) {
-                transaction.update(voucheeRef, {
-                    [`vouchInfo.total`]: increment(-1),
-                    [`vouchInfo.${actualVouchType}`]: increment(-1),
-                });
-            } else {
-                 transaction.update(voucheeRef, { [`vouchInfo.total`]: increment(-1) });
-            }
-        } else {
-            // This handles the "ghost" scenario where the vouch was already deleted.
-            console.warn(`Force delete requested for non-existent vouch ${vouchId}. Decrementing user stats based on report.`);
-            const updates: { [key: string]: any } = {
-                [`vouchInfo.total`]: increment(-1),
-            };
-            // Only decrement the specific type if it was provided (from the report).
-            if (vouchType) {
-                updates[`vouchInfo.${vouchType}`] = increment(-1);
-            }
-            transaction.update(voucheeRef, updates);
-        }
+        // 1. Mark the report as resolved.
+        transaction.update(reportRef, {
+            status: VouchReportStatus.ResolvedDeleted,
+            resolvedAt: new Date(),
+            resolvedBy: adminId,
+        });
+
+        // 2. Attempt to delete the vouch document (this is safe even if it doesn't exist).
+        transaction.delete(vouchRef);
+
+        // 3. Decrement the user's stats based on the vouchType from the report.
+        transaction.update(voucheeRef, {
+            [`vouchInfo.total`]: increment(-1),
+            [`vouchInfo.${vouchType}`]: increment(-1),
+        });
     });
 };
 
 
 // Orion AI Service
-export const orionAnalyzeService = httpsCallable<{command: string}, {reply: string}>(functions, 'orionAnalyze');
+export const orionAnalyzeService = httpsCallable<{command: string; history: any[]}, {reply: any}>(functions, 'orionAnalyze');

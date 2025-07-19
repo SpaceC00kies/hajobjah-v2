@@ -8,7 +8,7 @@ import {
   toggleItemFlagService,
   getVouchDocument,
   orionAnalyzeService,
-  forceDeleteVouchService,
+  forceResolveVouchReportService,
 } from '../services/adminService';
 import { deleteBlogPostService } from '../services/blogService';
 import type { UserRole, VouchReportStatus, VouchType, Job, HelperProfile, WebboardPost } from '../types/types.ts';
@@ -57,16 +57,16 @@ export const useAdmin = () => {
     }
   }, [currentUser, checkAdmin]);
 
-  const forceDeleteVouch = useCallback(async (vouchId: string, voucheeId: string, vouchType?: VouchType) => {
+  const forceResolveVouchReport = useCallback(async (reportId: string, vouchId: string, voucheeId: string, vouchType: VouchType) => {
     checkAdmin();
     try {
-      await forceDeleteVouchService(vouchId, voucheeId, vouchType);
-      alert('Vouch has been forcefully deleted.');
+      await forceResolveVouchReportService(reportId, currentUser!.id, vouchId, voucheeId, vouchType);
+      alert('The report has been resolved and the ghost vouch has been cleared.');
     } catch (error: any) {
-      logFirebaseError("useAdmin.forceDeleteVouch", error);
+      logFirebaseError("useAdmin.forceResolveVouchReport", error);
       throw error;
     }
-  }, [checkAdmin]);
+  }, [currentUser, checkAdmin]);
 
   const toggleItemFlag = useCallback(async (collectionName: 'jobs' | 'helperProfiles' | 'webboardPosts', itemId: string, flagName: keyof Job | keyof HelperProfile | keyof WebboardPost) => {
     checkAdmin();
@@ -99,7 +99,7 @@ export const useAdmin = () => {
     resolveVouchReport,
     getVouchDocument, // Passthrough from service
     orionAnalyzeService, // Passthrough from service
-    forceDeleteVouch,
+    forceResolveVouchReport,
     toggleSuspiciousJob,
     togglePinnedJob,
     toggleVerifiedJob,

@@ -4,7 +4,7 @@ import type { SearchResultItem, Province, Cursor, JobCategory, JobSubCategory } 
 
 type SearchParams = {
   query: string;
-  province: 'all' | Province.ChiangMai | Province.Bangkok;
+  province: string;
 };
 
 type FilterParams = {
