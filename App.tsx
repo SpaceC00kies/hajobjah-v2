@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -390,7 +391,7 @@ const App: React.FC = () => {
         className="main-navbar sticky top-0 z-30 w-full bg-white text-primary-dark p-4 sm:p-5 lg:p-6 shadow-md border-b border-primary-light"
       >
         <div className="container mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-x-4 lg:gap-x-6">
+          <div className="flex items-center gap-x-4 lg:gap-x-6 min-w-0">
             <div className="flex-shrink-0">
                 <span
                 onClick={() => { navigateTo(View.Home); setIsMobileMenuOpen(false); }}
@@ -401,10 +402,19 @@ const App: React.FC = () => {
                 </span>
             </div>
             {currentUser && (
-                <div className="hidden lg:flex items-center gap-2 font-sans font-medium text-primary-dark whitespace-nowrap">
-                    สวัสดี, {currentUser.publicDisplayName}!
-                    <UserLevelBadge level={displayBadgeForProfile} size="sm" />
-                    {currentUser.activityBadge?.isActive && <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm" />}
+                <div
+                  className="hidden lg:flex items-center gap-2 font-sans font-medium text-primary-dark whitespace-nowrap overflow-hidden"
+                  title={`สวัสดี, ${currentUser.publicDisplayName}!`}
+                >
+                    <span className="truncate">สวัสดี, {currentUser.publicDisplayName}!</span>
+                    <div className="flex-shrink-0">
+                        <UserLevelBadge level={displayBadgeForProfile} size="sm" />
+                    </div>
+                    {currentUser.activityBadge?.isActive && (
+                      <div className="flex-shrink-0">
+                        <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm" />
+                      </div>
+                    )}
                 </div>
             )}
           </div>
