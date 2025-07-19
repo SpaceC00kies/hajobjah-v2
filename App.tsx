@@ -408,11 +408,11 @@ const App: React.FC = () => {
             )}
           </div>
 
-          <div>
-            <nav className="hidden lg:flex items-center space-x-2">
+          <div className="flex-grow">
+            <nav className="hidden lg:flex items-center flex-wrap justify-end gap-2">
                 {renderNavLinks(false)}
             </nav>
-            <div className="lg:hidden">
+            <div className="lg:hidden flex justify-end">
                 <MenuToggle toggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
             </div>
           </div>
