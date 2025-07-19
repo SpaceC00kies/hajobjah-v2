@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -409,7 +410,7 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex-grow">
-            <nav className="hidden lg:flex items-center flex-wrap justify-end gap-2">
+            <nav className="hidden lg:flex items-center flex-nowrap justify-end gap-2">
                 {renderNavLinks(false)}
             </nav>
             <div className="lg:hidden flex justify-end">
