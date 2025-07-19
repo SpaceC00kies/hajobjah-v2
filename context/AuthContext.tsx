@@ -1,6 +1,5 @@
-
 import React, { createContext, useState, useEffect, useContext, useMemo } from 'react';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot } from '@firebase/firestore';
 import { db } from '../firebaseConfig.ts';
 import type { User } from '../types/types.ts';
 import { onAuthChangeService } from '../services/authService.ts';

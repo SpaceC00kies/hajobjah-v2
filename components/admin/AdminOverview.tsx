@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { httpsCallable } from 'firebase/functions';
+import { httpsCallable } from '@firebase/functions';
 import { functions } from '../../firebaseConfig';
 import type { AdminDashboardData, VouchReport, User } from '../../types/types';
 import { PlatformVitals } from './widgets/PlatformVitals';

@@ -6,8 +6,8 @@
  * privileged operations are isolated and consistently managed.
  */
 
-import { doc, onSnapshot, setDoc, updateDoc, collection, addDoc, orderBy, query, runTransaction, deleteDoc, getDoc, increment } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
+import { doc, onSnapshot, setDoc, updateDoc, collection, addDoc, orderBy, query, runTransaction, deleteDoc, getDoc, increment } from '@firebase/firestore';
+import { httpsCallable } from '@firebase/functions';
 import { db, functions } from '../firebaseConfig.ts';
 import { type SiteConfig, type UserRole, type Vouch, type VouchReport, VouchReportStatus, type VouchType, type Job, type HelperProfile, type WebboardPost } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
@@ -82,6 +82,7 @@ export const reportVouchService = async (vouch: Vouch, reporterId: string, repor
         reporterComment: reporterComment,
         voucheeId: vouch.voucheeId,
         voucherId: vouch.voucherId,
+        vouchType: vouch.vouchType, // Store the vouch type for resilience
         status: VouchReportStatus.Pending,
         createdAt: new Date(),
     };
@@ -126,7 +127,7 @@ export const resolveVouchReportService = async (reportId: string, resolution: Vo
     });
 };
 
-export const forceDeleteVouchService = async (vouchId: string, voucheeId: string, vouchType: VouchType): Promise<void> => {
+export const forceDeleteVouchService = async (vouchId: string, voucheeId: string, vouchType?: VouchType): Promise<void> => {
     const VOUCHES_COLLECTION = 'vouches';
     const USERS_COLLECTION = 'users';
 
@@ -136,17 +137,28 @@ export const forceDeleteVouchService = async (vouchId: string, voucheeId: string
 
         const vouchDoc = await transaction.get(vouchRef);
         if (vouchDoc.exists()) {
+            // If the document exists, we trust its data over any passed parameters.
+            const actualVouchType = vouchDoc.data()?.vouchType as VouchType;
             transaction.delete(vouchRef);
-            transaction.update(voucheeRef, {
-                [`vouchInfo.total`]: increment(-1),
-                [`vouchInfo.${vouchType}`]: increment(-1),
-            });
+            if (actualVouchType) {
+                transaction.update(voucheeRef, {
+                    [`vouchInfo.total`]: increment(-1),
+                    [`vouchInfo.${actualVouchType}`]: increment(-1),
+                });
+            } else {
+                 transaction.update(voucheeRef, { [`vouchInfo.total`]: increment(-1) });
+            }
         } else {
-            console.warn(`Force delete requested for non-existent vouch ${vouchId}. Decrementing user stats anyway.`);
-            transaction.update(voucheeRef, {
+            // This handles the "ghost" scenario where the vouch was already deleted.
+            console.warn(`Force delete requested for non-existent vouch ${vouchId}. Decrementing user stats based on report.`);
+            const updates: { [key: string]: any } = {
                 [`vouchInfo.total`]: increment(-1),
-                [`vouchInfo.${vouchType}`]: increment(-1),
-            });
+            };
+            // Only decrement the specific type if it was provided (from the report).
+            if (vouchType) {
+                updates[`vouchInfo.${vouchType}`] = increment(-1);
+            }
+            transaction.update(voucheeRef, updates);
         }
     });
 };

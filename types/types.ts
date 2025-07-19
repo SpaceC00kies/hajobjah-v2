@@ -1,4 +1,4 @@
-import type { DocumentSnapshot, DocumentData } from 'firebase/firestore';
+import type { DocumentSnapshot, DocumentData } from '@firebase/firestore';
 
 export interface PaginatedDocsResponse<T> {
   items: T[];
@@ -300,6 +300,7 @@ export interface VouchReport {
   reporterComment: string;
   voucheeId: string; // Denormalized for easier querying
   voucherId: string; // Denormalized for easier querying
+  vouchType?: VouchType; // Denormalized to assist in ghost deletions
   status: VouchReportStatus;
   createdAt: string | Date;
   resolvedAt?: string | Date;

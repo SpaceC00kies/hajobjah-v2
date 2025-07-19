@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview
  * This service module handles all user authentication logic. It provides a
@@ -25,8 +24,8 @@ import {
   where,
   limit,
   serverTimestamp,
-} from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
+} from '@firebase/firestore';
+import { httpsCallable } from '@firebase/functions';
 import { auth, db, functions } from '../firebaseConfig.ts';
 import type { User, UserRole, UserTier, VouchInfo, GenderOption, HelperEducationLevelOption } from '../types/types.ts';
 import { USER_LEVELS } from '../types/types.ts';

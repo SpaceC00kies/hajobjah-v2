@@ -21,7 +21,7 @@ import {
   increment,
   arrayRemove,
   arrayUnion,
-} from 'firebase/firestore';
+} from '@firebase/firestore';
 import { db } from '../firebaseConfig.ts';
 import type { BlogPost, BlogComment } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';

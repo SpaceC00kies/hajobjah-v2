@@ -16,10 +16,10 @@ import {
   onSnapshot,
   query,
   orderBy,
-} from 'firebase/firestore';
+} from '@firebase/firestore';
 import { db } from '../firebaseConfig.ts';
 import type { Job, Province, JobSubCategory, PaginatedDocsResponse, Cursor, JobCategory } from '../types/types.ts';
-import { logFirebaseError } from '../firebase/logging.ts';
+import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps, cleanDataForFirestore } from './serviceUtils';
 import { filterListingsService } from './searchService.ts';
 

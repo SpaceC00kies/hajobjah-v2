@@ -11,7 +11,7 @@ import {
   getDownloadURL,
   deleteObject,
   uploadString,
-} from 'firebase/storage';
+} from '@firebase/storage';
 import { storage } from '../firebaseConfig.ts';
 import { logFirebaseError } from '../firebase/logging';
 

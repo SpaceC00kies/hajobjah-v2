@@ -16,7 +16,7 @@ import {
   onSnapshot,
   query,
   orderBy,
-} from 'firebase/firestore';
+} from '@firebase/firestore';
 import { db } from '../firebaseConfig.ts';
 import type { HelperProfile, User, Province, JobSubCategory, PaginatedDocsResponse, Cursor, JobCategory } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';

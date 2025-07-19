@@ -57,7 +57,7 @@ export const useAdmin = () => {
     }
   }, [currentUser, checkAdmin]);
 
-  const forceDeleteVouch = useCallback(async (vouchId: string, voucheeId: string, vouchType: VouchType) => {
+  const forceDeleteVouch = useCallback(async (vouchId: string, voucheeId: string, vouchType?: VouchType) => {
     checkAdmin();
     try {
       await forceDeleteVouchService(vouchId, voucheeId, vouchType);

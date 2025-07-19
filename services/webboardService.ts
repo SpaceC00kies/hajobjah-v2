@@ -28,7 +28,7 @@ import {
   type DocumentData,
   type QueryConstraint,
   Timestamp,
-} from 'firebase/firestore';
+} from '@firebase/firestore';
 import { db } from '../firebaseConfig.ts';
 import type { WebboardPost, WebboardComment, WebboardCategory, PaginatedDocsResponse, Cursor } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';

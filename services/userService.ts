@@ -22,7 +22,7 @@ import {
   where,
   getDocs,
   orderBy,
-} from 'firebase/firestore';
+} from '@firebase/firestore';
 import { db } from '../firebaseConfig.ts';
 import type { User, Vouch, VouchType } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
