@@ -57,11 +57,11 @@ export const useAdmin = () => {
     }
   }, [currentUser, checkAdmin]);
 
-  const forceResolveVouchReport = useCallback(async (reportId: string, vouchId: string, voucheeId: string, vouchType: VouchType) => {
+  const forceResolveVouchReport = useCallback(async (reportId: string, vouchId: string, voucheeId: string, vouchType: VouchType | null) => {
     checkAdmin();
     try {
       await forceResolveVouchReportService(reportId, currentUser!.id, vouchId, voucheeId, vouchType);
-      alert('The report has been resolved and the ghost vouch has been cleared.');
+      alert('The report has been resolved and cleanup has been performed.');
     } catch (error: any) {
       logFirebaseError("useAdmin.forceResolveVouchReport", error);
       throw error;

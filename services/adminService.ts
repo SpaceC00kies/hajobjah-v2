@@ -13,6 +13,8 @@ import { type SiteConfig, type UserRole, type Vouch, type VouchReport, VouchRepo
 import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps } from './serviceUtils';
 
+const USERS_COLLECTION = 'users';
+
 // Site Config
 export const subscribeToSiteConfigService = (callback: (config: SiteConfig) => void): (() => void) => {
   const SITE_CONFIG_COLLECTION = 'siteConfig';
@@ -106,7 +108,7 @@ export const subscribeToVouchReportsService = (callback: (reports: VouchReport[]
 export const resolveVouchReportService = async (reportId: string, resolution: VouchReportStatus.ResolvedDeleted | VouchReportStatus.ResolvedKept, adminId: string, vouchId: string, voucheeId: string, vouchType?: VouchType): Promise<void> => {
     const VOUCH_REPORTS_COLLECTION = 'vouchReports';
     const VOUCHES_COLLECTION = 'vouches';
-    const USERS_COLLECTION = 'users';
+    
     await runTransaction(db, async (transaction) => {
         const reportRef = doc(db, VOUCH_REPORTS_COLLECTION, reportId);
         transaction.update(reportRef, {
@@ -127,15 +129,15 @@ export const resolveVouchReportService = async (reportId: string, resolution: Vo
     });
 };
 
-export const forceResolveVouchReportService = async (reportId: string, adminId: string, vouchId: string, voucheeId: string, vouchType: VouchType): Promise<void> => {
+export const forceResolveVouchReportService = async (reportId: string, adminId: string, vouchId: string, voucheeId: string, vouchType: VouchType | null): Promise<void> => {
     const VOUCH_REPORTS_COLLECTION = 'vouchReports';
     const VOUCHES_COLLECTION = 'vouches';
-    const USERS_COLLECTION = 'users';
 
     await runTransaction(db, async (transaction) => {
         const reportRef = doc(db, VOUCH_REPORTS_COLLECTION, reportId);
         const vouchRef = doc(db, VOUCHES_COLLECTION, vouchId);
         const voucheeRef = doc(db, USERS_COLLECTION, voucheeId);
+        const voucheeSnap = await transaction.get(voucheeRef);
 
         // 1. Mark the report as resolved.
         transaction.update(reportRef, {
@@ -144,14 +146,21 @@ export const forceResolveVouchReportService = async (reportId: string, adminId: 
             resolvedBy: adminId,
         });
 
-        // 2. Attempt to delete the vouch document (this is safe even if it doesn't exist).
+        // 2. Attempt to delete the vouch document (safe even if it doesn't exist).
         transaction.delete(vouchRef);
 
-        // 3. Decrement the user's stats based on the vouchType from the report.
-        transaction.update(voucheeRef, {
-            [`vouchInfo.total`]: increment(-1),
-            [`vouchInfo.${vouchType}`]: increment(-1),
-        });
+        // 3. Decrement user's stats, handling unknown vouchType and non-existent user.
+        if (voucheeSnap.exists()) {
+            const updates: { [key: string]: any } = {
+                'vouchInfo.total': increment(-1),
+            };
+
+            // Only decrement the specific type if it's known
+            if (vouchType) {
+                updates[`vouchInfo.${vouchType}`] = increment(-1);
+            }
+            transaction.update(voucheeRef, updates);
+        }
     });
 };
 

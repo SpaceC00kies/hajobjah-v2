@@ -428,27 +428,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {activeTab === 'vouch_reports' && currentUser?.role === UserRole.Admin && (<div className="grid grid-cols-1 md:grid-cols-3 gap-6"><div className="md:col-span-1"><h3 className="text-lg font-semibold text-neutral-700 mb-3">Pending Reports ({pendingVouchReportsCount})</h3><div className="space-y-2 max-h-96 overflow-y-auto">{vouchReports.map(report => (<button key={report.id} onClick={() => setSelectedReport(report)} className={`block w-full text-left p-3 rounded-md ${selectedReport?.id === report.id ? 'bg-blue-100' : 'bg-neutral-light/50 hover:bg-neutral-light'}`}><p className="text-sm font-semibold truncate">Report on Vouch <code className="text-xs">{report.vouchId.substring(0, 6)}...</code></p><p className="text-xs text-neutral-medium">By: {getAuthorDisplayName(report.reporterId).substring(0, 15)}...</p></button>))}</div></div><div className="md:col-span-2 p-4 bg-neutral-light/50 rounded-lg"><h3 className="text-lg font-semibold text-neutral-700 mb-3">Report Details & HUD</h3>{selectedReport ? (<div><p><strong>Reporter Comment:</strong> {selectedReport.reporterComment}</p><hr className="my-2" /><p className="font-semibold">Vouch Info:</p>{isHudLoading ? <p>Loading Vouch Details...</p> : selectedVouch ? (<div><p>From: {selectedVouch.voucherDisplayName} ({selectedVouch.voucherId.substring(0,10)}...)</p><p>To: {getAuthorDisplayName(selectedVouch.voucheeId)} ({selectedVouch.voucheeId.substring(0,10)}...)</p><p>Type: {VOUCH_TYPE_LABELS[selectedVouch.vouchType]}</p><p>Vouch Comment: "{selectedVouch.comment}"</p></div>) : <p className="text-red-500">Vouch data not found.</p>}<hr className="my-2" /><p className="font-semibold">Risk Signals:</p>{isHudLoading ? <p>Analyzing...</p> : hudAnalysis.error ? (<p className="font-bold text-red-500">⚠️ Analysis Error: {hudAnalysis.error}</p>) : (<div>{hudAnalysis.ipMatch === null ? <p>IP check pending...</p> : hudAnalysis.ipMatch ? <p className="font-bold text-red-500">⚠️ IP ADDRESS MATCH</p> : <p className="text-green-600">✅ IP addresses do not match.</p>}{hudAnalysis.voucherIsNew === null ? <p>Account age check pending...</p> : hudAnalysis.voucherIsNew ? <p className="font-bold text-orange-500">⚠️ VOUCHER IS NEW ACCOUNT (&lt;7 days)</p> : <p className="text-green-600">✅ Voucher account is not new.</p>}</div>)}<div className="mt-4 flex flex-wrap gap-4"><Button onClick={() => admin.resolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedKept, selectedReport.vouchId, selectedReport.voucheeId, selectedVouch!.vouchType)} colorScheme="primary" disabled={isHudLoading || !selectedVouch}>Keep Vouch</Button><Button onClick={() => admin.resolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedDeleted, selectedReport.vouchId, selectedReport.voucheeId, selectedVouch!.vouchType)} colorScheme="accent" disabled={isHudLoading || !selectedVouch}>Delete Vouch</Button><Button 
     onClick={() => {
-        if (selectedReport && window.confirm('This action will permanently resolve this report and correct user statistics, even if the original vouch is missing. This is intended for cleaning up glitched or "ghost" entries. Are you sure?')) {
-            const vouchTypeForDeletion = selectedVouch?.vouchType || selectedReport.vouchType;
-            if (vouchTypeForDeletion) {
-                 admin.forceResolveVouchReport(selectedReport.id, selectedReport.vouchId, selectedReport.voucheeId, vouchTypeForDeletion)
-                    .then(() => {
-                        setSelectedReport(null); // Clear the view after success
-                    })
-                    .catch(err => {
-                        console.error("Force resolve failed:", err);
-                        alert(`An error occurred during force resolve: ${err.message}`);
-                    });
-            } else {
-                alert("Cannot proceed: The vouch type is missing from the report, which is required for cleanup.");
-            }
+        if (selectedReport && window.confirm('This action will permanently resolve this report from your queue. It will attempt to correct user statistics, but may only be able to correct the total vouch count if the vouch type is unknown (common for older reports). This is the final cleanup tool for glitched or "ghost" entries. Are you sure?')) {
+            // Best effort to get the vouch type, but default to null if not found.
+            const vouchTypeForDeletion = selectedVouch?.vouchType || selectedReport.vouchType || null;
+            
+            admin.forceResolveVouchReport(selectedReport.id, selectedReport.vouchId, selectedReport.voucheeId, vouchTypeForDeletion)
+                .then(() => {
+                    setSelectedReport(null); // Clear the view after success
+                })
+                .catch(err => {
+                    console.error("Force resolve failed:", err);
+                    alert(`An error occurred during force resolve: ${err.message}`);
+                });
         }
     }} 
     colorScheme="accent"
     className="bg-red-500 hover:bg-red-600 text-white"
     disabled={isHudLoading || !selectedReport}
 >
-    ✨ Force Delete
+    💥 Force Resolve
 </Button></div></div>) : <p>Select a report to view details.</p>}</div></div>)}
     </div>
   );
