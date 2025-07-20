@@ -6,9 +6,12 @@
  * privileged operations are isolated and consistently managed.
  */
 
-import { doc, onSnapshot, setDoc, updateDoc, collection, addDoc, orderBy, query, runTransaction, deleteDoc, getDoc, increment } from '@firebase/firestore';
-import { httpsCallable } from '@firebase/functions';
-import { db, functions } from '../firebaseConfig.ts';
+import { 
+  db, 
+  functions
+} from '@/lib/firebase/clientApp';
+import { doc, onSnapshot, setDoc, updateDoc, collection, addDoc, orderBy, query, runTransaction, deleteDoc, getDoc, increment } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import { type SiteConfig, type UserRole, type Vouch, type VouchReport, VouchReportStatus, type VouchType, type Job, type HelperProfile, type WebboardPost } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps } from './serviceUtils';

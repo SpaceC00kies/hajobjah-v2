@@ -1,7 +1,8 @@
+"use client";
 import React, { useState, useEffect } from 'react';
 import { Button } from './Button.tsx';
 import { Modal } from './Modal.tsx';
-import type { Vouch } from '../types/types';
+import type { Vouch } from '../types/types.ts';
 import { useUser } from '../hooks/useUser.ts';
 
 interface ReportVouchModalProps {

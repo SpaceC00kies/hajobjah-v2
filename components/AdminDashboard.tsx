@@ -1,17 +1,18 @@
+"use client";
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Job, HelperProfile, User, Interaction, WebboardPost, WebboardComment, UserLevel, VouchReport, Vouch, VouchType, BlogPost } from '../types/types.ts';
 import { UserRole, VouchReportStatus, VOUCH_TYPE_LABELS } from '../types/types.ts';
 import { Button } from './Button.tsx';
 import { OrionCommandCenter } from './OrionCommandCenter.tsx';
-import { useJobs } from '../hooks/useJobs.ts';
-import { useHelpers } from '../hooks/useHelpers.ts';
 import { useAdmin } from '../hooks/useAdmin.ts';
-import { useWebboard } from '../hooks/useWebboard.ts';
-import { useBlog } from '../hooks/useBlog.ts';
 import { formatDateDisplay } from '../utils/dateUtils.ts';
 import { isDateInPast } from '../utils/dateUtils.ts';
-import { checkProfileCompleteness } from '../utils/userUtils.ts';
 import { AdminOverview } from './admin/AdminOverview.tsx';
+import { useAuth } from '@/context/AuthContext.tsx';
+import { useData } from '@/context/DataContext.tsx';
+import { getUserDisplayBadge as getUserDisplayBadgeUtil, getAuthorDisplayName as getAuthorDisplayNameUtil } from '@/utils/userUtils.ts';
 
 export interface AdminItem {
   id: string;
@@ -36,42 +37,21 @@ export interface AdminItem {
 type AdminTab = 'overview' | 'action_hub' | 'vouch_reports' | 'orion_command_center' | 'articles' | 'site_controls';
 type ActionHubSearchType = 'job' | 'profile' | 'webboardPost' | 'user';
 
+export const AdminDashboard: React.FC = () => {
+  const { currentUser } = useAuth();
+  const { 
+    allJobsForAdmin: jobs, 
+    allHelperProfilesForAdmin: helperProfiles, 
+    users, 
+    allWebboardPostsForAdmin: webboardPosts, 
+    webboardComments, 
+    vouchReports, 
+    allBlogPostsForAdmin
+  } = useData();
 
-interface AdminDashboardProps {
-  jobs: Job[];
-  helperProfiles: HelperProfile[];
-  users: User[];
-  interactions: Interaction[];
-  webboardPosts: WebboardPost[];
-  webboardComments: WebboardComment[];
-  vouchReports: VouchReport[];
-  allBlogPostsForAdmin: BlogPost[];
-  onStartEditItem: (item: AdminItem) => void;
-  onDeleteItem: (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => void;
-  currentUser: User | null;
-  isSiteLocked: boolean;
-  getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
-  getUserDisplayBadge: (user: User) => UserLevel;
-  getUserDocument: (userId: string) => Promise<User | null>; 
-}
+  const router = useRouter();
+  const admin = useAdmin();
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({
-  jobs,
-  helperProfiles,
-  users,
-  interactions,
-  webboardPosts,
-  webboardComments,
-  vouchReports,
-  allBlogPostsForAdmin,
-  onStartEditItem,
-  onDeleteItem,
-  currentUser,
-  isSiteLocked,
-  getAuthorDisplayName,
-  getUserDisplayBadge,
-  getUserDocument,
-}) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [blogStatusFilter, setBlogStatusFilter] = useState<'all' | 'draft' | 'published' | 'archived'>('all');
@@ -83,18 +63,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const actionMenuRef = useRef<HTMLDivElement>(null);
   
   const [actionHubSearchType, setActionHubSearchType] = useState<ActionHubSearchType>('job');
-
-  const admin = useAdmin();
+  
+  const getAuthorDisplayName = (userId: string, fallbackName?: string) => getAuthorDisplayNameUtil(userId, fallbackName, users);
+  const getUserDisplayBadge = (user: User) => getUserDisplayBadgeUtil(user, webboardPosts, webboardComments);
+  const getUserDocument = (userId: string) => Promise.resolve(users.find(u => u.id === userId) || null);
 
   useEffect(() => {
     setSearchTerm('');
     if (activeTab !== 'action_hub') {
-        // Reset search type if navigating away from the hub
         setActionHubSearchType('job');
     }
   }, [activeTab]);
 
-    useEffect(() => {
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (actionMenuRef.current && !actionMenuRef.current.contains(event.target as Node)) {
         setOpenActionMenuId(null);
@@ -105,7 +86,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
 
   const handleSelectReport = (report: VouchReport) => {
       setSelectedReport(report);
@@ -132,12 +112,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           return;
         }
 
-        if (!getUserDocument) {
-           setHudAnalysis({ ipMatch: null, voucherIsNew: null, error: "User service is unavailable for analysis." });
-           setIsHudLoading(false);
-           return;
-        }
-
         const voucherUser = await getUserDocument(vouch.voucherId);
         const voucheeUser = await getUserDocument(vouch.voucheeId);
         if (!voucherUser || !voucheeUser) {
@@ -159,14 +133,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       } finally {
         setIsHudLoading(false);
       }
-    };
+    }
     analyzeReport();
-  }, [selectedReport, admin.getVouchDocument, getUserDocument]);
+  }, [selectedReport, admin.getVouchDocument]);
 
-  if (currentUser?.role !== UserRole.Admin && currentUser?.role !== UserRole.Writer) return <div className="p-8 text-center text-red-500 font-sans">คุณไม่มีสิทธิ์เข้าถึงหน้านี้</div>;
+  const onStartEditItem = (item: AdminItem) => {
+    if (item.itemType === 'blogPost') {
+        router.push(`/admin/editor?edit=${item.id}`);
+    } else {
+        // Handle other item types navigation if needed
+        alert(`Editing for ${item.itemType} is not implemented yet.`);
+    }
+  };
 
-  const ensureStringDate = (dateInput: string | Date | undefined): string | undefined => dateInput ? (dateInput instanceof Date ? dateInput.toISOString() : dateInput) : undefined;
-  
+  const onDeleteItem = (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => {
+    // This should be replaced with a proper confirmation modal
+    if (window.confirm(`Are you sure you want to delete this ${itemType}?`)) {
+        if (itemType === 'job') {
+            // jobActions.deleteJob(itemId)
+        } // ... handle other types
+    }
+  };
+
   const filteredBlogItems = allBlogPostsForAdmin.filter(post => {
     if (blogStatusFilter !== 'all' && post.status !== blogStatusFilter) return false;
     if (searchTerm.trim() && activeTab === 'articles') {
@@ -277,23 +265,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         if ('adminVerifiedExperience' in contentItem && contentItem.adminVerifiedExperience) badges.push(renderStatusBadge('Verified', 'green'));
         if (('isHired' in contentItem && contentItem.isHired) || ('isUnavailable' in contentItem && contentItem.isUnavailable)) badges.push(renderStatusBadge('Hired/Unavailable', 'gray'));
 
-        primaryAction = <Button onClick={() => onStartEditItem({id: item.id, itemType, originalItem: item, title})} size="sm">Edit</Button>;
+        primaryAction = <Button onClick={() => onStartEditItem({id: contentItem.id, itemType: itemType as any, originalItem: contentItem, title})} size="sm">Edit</Button>;
         secondaryActions = [
-            <button key="delete" onClick={() => onDeleteItem(item.id, itemType as 'job' | 'profile' | 'webboardPost')} className="w-full text-left text-sm p-2 rounded hover:bg-red-100 text-red-700">Delete</button>
+            <button key="delete" onClick={() => onDeleteItem(contentItem.id, itemType as 'job' | 'profile' | 'webboardPost')} className="w-full text-left text-sm p-2 rounded hover:bg-red-100 text-red-700">Delete</button>
         ];
         
         if(itemType === 'job') {
             const jobItem = item as Job;
-            secondaryActions.push(<button key="suspicious" onClick={() => admin.toggleSuspiciousJob(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{jobItem.isSuspicious ? 'Unsuspicious' : 'Suspicious'}</button>);
-            secondaryActions.push(<button key="pin" onClick={() => admin.togglePinnedJob(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{jobItem.isPinned ? 'Unpin' : 'Pin'}</button>);
-            secondaryActions.push(<button key="verify" onClick={() => admin.toggleVerifiedJob(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{jobItem.adminVerified ? 'Unverify' : 'Verify'}</button>);
+            secondaryActions.push(<button key="suspicious" onClick={() => admin.toggleSuspiciousJob(jobItem.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{jobItem.isSuspicious ? 'Unsuspicious' : 'Suspicious'}</button>);
+            secondaryActions.push(<button key="pin" onClick={() => admin.togglePinnedJob(jobItem.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{jobItem.isPinned ? 'Unpin' : 'Pin'}</button>);
+            secondaryActions.push(<button key="verify" onClick={() => admin.toggleVerifiedJob(jobItem.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{jobItem.adminVerified ? 'Unverify' : 'Verify'}</button>);
         } else if (itemType === 'profile') {
             const profileItem = item as HelperProfile;
-            secondaryActions.push(<button key="suspicious" onClick={() => admin.toggleSuspiciousHelperProfile(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{profileItem.isSuspicious ? 'Unsuspicious' : 'Suspicious'}</button>);
-            secondaryActions.push(<button key="pin" onClick={() => admin.togglePinnedHelperProfile(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{profileItem.isPinned ? 'Unpin' : 'Pin'}</button>);
-            secondaryActions.push(<button key="verify" onClick={() => admin.toggleVerifiedExperience(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{profileItem.adminVerifiedExperience ? 'Unverify' : 'Verify'}</button>);
+            secondaryActions.push(<button key="suspicious" onClick={() => admin.toggleSuspiciousHelperProfile(profileItem.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{profileItem.isSuspicious ? 'Unsuspicious' : 'Suspicious'}</button>);
+            secondaryActions.push(<button key="pin" onClick={() => admin.togglePinnedHelperProfile(profileItem.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{profileItem.isPinned ? 'Unpin' : 'Pin'}</button>);
+            secondaryActions.push(<button key="verify" onClick={() => admin.toggleVerifiedExperience(profileItem.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{profileItem.adminVerifiedExperience ? 'Unverify' : 'Verify'}</button>);
         } else if (itemType === 'webboardPost') {
-             secondaryActions.push(<button key="pin" onClick={() => admin.pinWebboardPost(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{contentItem.isPinned ? 'Unpin' : 'Pin'}</button>);
+             secondaryActions.push(<button key="pin" onClick={() => admin.pinWebboardPost(contentItem.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{contentItem.isPinned ? 'Unpin' : 'Pin'}</button>);
         }
       }
 
@@ -416,13 +404,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {activeTab === 'articles' && (<div><div className="mb-4 flex flex-col sm:flex-row gap-4"><input type="search" placeholder={`ค้นหาใน ${activeTab}...`} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full sm:flex-grow" /><div className="flex-shrink-0 w-full sm:w-48"><label htmlFor="blogStatusFilter" className="sr-only">Filter by status</label><select id="blogStatusFilter" value={blogStatusFilter} onChange={e => setBlogStatusFilter(e.target.value as any)} className="w-full"><option value="all">All Statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="archived">Archived</option></select></div></div><Button onClick={() => onStartEditItem({itemType: 'blogPost', originalItem: {} as BlogPost} as AdminItem)} variant="primary" size="sm" className="mb-4">+ Create New Post</Button>
+      {activeTab === 'articles' && (<div><div className="mb-4 flex flex-col sm:flex-row gap-4"><input type="search" placeholder={`ค้นหาใน ${activeTab}...`} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full sm:flex-grow" /><div className="flex-shrink-0 w-full sm:w-48"><label htmlFor="blogStatusFilter" className="sr-only">Filter by status</label><select id="blogStatusFilter" value={blogStatusFilter} onChange={e => setBlogStatusFilter(e.target.value as any)} className="w-full"><option value="all">All Statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="archived">Archived</option></select></div></div><Button onClick={() => router.push('/admin/editor')} variant="primary" size="sm" className="mb-4">+ Create New Post</Button>
       <div className="space-y-3">
           {renderArticleResults()}
       </div>
       </div>)}
       
-      {activeTab === 'site_controls' && currentUser?.role === UserRole.Admin && (<div className="p-4 bg-neutral-light/50 rounded-lg"><h3 className="text-lg font-semibold text-neutral-700 mb-3">Site Controls</h3><div className="flex items-center justify-between p-4 bg-white rounded shadow"><p className="font-medium">Site Lock: {isSiteLocked ? "ON" : "OFF"}</p><Button onClick={() => admin.toggleSiteLock(isSiteLocked)} colorScheme={isSiteLocked ? "accent" : "primary"}>{isSiteLocked ? "Unlock Site" : "Lock Site"}</Button></div></div>)}
+      {activeTab === 'site_controls' && currentUser?.role === UserRole.Admin && (<div className="p-4 bg-neutral-light/50 rounded-lg"><h3 className="text-lg font-semibold text-neutral-700 mb-3">Site Controls</h3><div className="flex items-center justify-between p-4 bg-white rounded shadow"><p className="font-medium">Site Lock: {/*isSiteLocked ? "ON" : "OFF"*/}</p><Button onClick={() => admin.toggleSiteLock(false)} colorScheme={false ? "accent" : "primary"}>{false ? "Unlock Site" : "Lock Site"}</Button></div></div>)}
       
       {activeTab === 'orion_command_center' && currentUser?.role === UserRole.Admin && (<div className="orion-cockpit"><OrionCommandCenter /></div>)}
 

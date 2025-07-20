@@ -1,20 +1,19 @@
+"use client";
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Job, FilterableCategory, JobSubCategory, User, PaginatedDocsResponse, Cursor } from '../types/types.ts';
 import { View, JobCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
 import { JobCard } from './JobCard.tsx';
 import { getJobsPaginated } from '../services/jobService.ts';
 import { useUser } from '../hooks/useUser.ts';
+import { useAuth } from '../context/AuthContext.tsx';
 import { useData } from '../context/DataContext.tsx';
 import { motion } from 'framer-motion';
 import { FilterSidebar } from './FilterSidebar.tsx';
+import { CardSkeleton } from './CardSkeleton.tsx';
 
 interface FindJobsPageProps {
-  navigateTo: (view: View, payload?: any) => void;
-  onNavigateToPublicProfile: (profileInfo: { userId: string }) => void;
-  onEditJobFromFindView: (jobId: string) => void;
-  currentUser: User | null;
-  requestLoginForAction: (view: View, payload?: any) => void;
-  getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
+  allUsers: User[];
 }
 
 const containerVariants = {
@@ -31,13 +30,13 @@ const itemVariants = {
 };
 
 export const FindJobsPage: React.FC<FindJobsPageProps> = ({
-  navigateTo,
-  onNavigateToPublicProfile,
-  onEditJobFromFindView,
-  currentUser,
-  requestLoginForAction,
-  getAuthorDisplayName,
+  allUsers,
 }) => {
+  const router = useRouter();
+  const { currentUser } = useAuth();
+  const { userInterests } = useData();
+  const userActions = useUser();
+
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [cursor, setCursor] = useState<Cursor | null>(null);
@@ -48,19 +47,29 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
   const [selectedSubCategory, setSelectedSubCategory] = useState<JobSubCategory | 'all'>('all');
   const [selectedProvince, setSelectedProvince] = useState<Province | 'all'>('all');
   const [availableSubCategories, setAvailableSubCategories] = useState<JobSubCategory[]>([]);
-  const { userInterests } = useData();
-  const userActions = useUser();
   
   const loaderRef = useRef<HTMLDivElement>(null);
-  const isLoadingRef = useRef(isLoading);
-  const hasMoreRef = useRef(hasMore);
+  const isInitialLoadDone = useRef(false);
 
-  useEffect(() => {
-    isLoadingRef.current = isLoading;
-    hasMoreRef.current = hasMore;
-  }, [isLoading, hasMore]);
+  // --- Navigation and Action Handlers ---
+  const getAuthorDisplayName = useCallback((userId: string, fallbackName?: string): string => {
+    const user = allUsers.find(u => u.id === userId);
+    return user?.publicDisplayName || fallbackName || userId;
+  }, [allUsers]);
 
+  const onNavigateToPublicProfile = (profileInfo: { userId: string }) => {
+    router.push(`/profile/${profileInfo.userId}`);
+  };
 
+  const onEditJobFromFindView = (jobId: string) => {
+    router.push(`/post-job?edit=${jobId}`);
+  };
+
+  const requestLoginForAction = (view: View, payload?: any) => {
+    router.push('/login');
+  };
+
+  // --- Data Loading ---
   const loadJobs = useCallback(async (isInitialLoad = false) => {
     setIsLoading(true);
     const startAfterCursor = isInitialLoad ? null : cursor;
@@ -86,7 +95,7 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
     }
   }, [debouncedSearchTerm, cursor, selectedCategory, selectedProvince, selectedSubCategory]);
 
-
+  // Debounce search term
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
@@ -94,10 +103,21 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
+  // Reload jobs when filters change
   useEffect(() => {
-    loadJobs(true);
+    if (isInitialLoadDone.current) {
+      loadJobs(true);
+    }
   }, [debouncedSearchTerm, selectedCategory, selectedSubCategory, selectedProvince]);
+  
+  // Initial data load
+  useEffect(() => {
+    loadJobs(true).then(() => {
+      isInitialLoadDone.current = true;
+    });
+  }, []);
 
+  // Update available sub-categories when main category changes
   useEffect(() => {
     if (selectedCategory !== 'all' && JOB_SUBCATEGORIES_MAP[selectedCategory]) {
       setAvailableSubCategories(JOB_SUBCATEGORIES_MAP[selectedCategory]);
@@ -109,10 +129,11 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
     }
   }, [selectedCategory]);
 
+  // Infinite scroll observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMoreRef.current && !isLoadingRef.current) {
+        if (entries[0].isIntersecting && hasMore && !isLoading) {
           loadJobs();
         }
       },
@@ -121,8 +142,7 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
     const currentLoader = loaderRef.current;
     if (currentLoader) observer.observe(currentLoader);
     return () => { if (currentLoader) observer.unobserve(currentLoader); };
-  }, [loadJobs]);
-  
+  }, [loadJobs, hasMore, isLoading]);
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -145,13 +165,15 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
             onSearchTermChange={setSearchTerm}
             searchPlaceholder="ค้นหางาน, รายละเอียด..."
             actionButtonText="ลงประกาศงาน"
-            onActionButtonClick={() => currentUser ? navigateTo(View.PostJob) : requestLoginForAction(View.PostJob)}
+            onActionButtonClick={() => currentUser ? router.push('/post-job') : requestLoginForAction(View.PostJob)}
           />
         </aside>
 
         <section className="lg:col-span-9">
           {isLoading && jobs.length === 0 ? (
-            <div className="text-center py-10 text-primary-dark font-sans">กำลังโหลด...</div>
+             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => <CardSkeleton key={i} />)}
+            </div>
           ) : jobs.length === 0 ? (
             <div className="text-center py-10 bg-white rounded-lg shadow flex flex-col items-center justify-center min-h-[300px]">
               <p className="text-xl text-neutral-dark mb-2">ไม่พบประกาศงานที่ตรงกับเงื่อนไขของคุณ</p>
@@ -168,7 +190,6 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
                 <motion.div key={job.id} variants={itemVariants}>
                   <JobCard
                     job={job}
-                    navigateTo={navigateTo}
                     onNavigateToPublicProfile={onNavigateToPublicProfile}
                     currentUser={currentUser}
                     requestLoginForAction={requestLoginForAction}

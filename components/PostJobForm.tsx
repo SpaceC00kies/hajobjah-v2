@@ -1,23 +1,20 @@
-
+"use client";
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Job, User } from '../types/types.ts';
 import { View, JobDesiredEducationLevelOption, JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
 import { Button } from './Button.tsx';
 import { containsBlacklistedWords } from '../utils/validation.ts';
 import { getJobTemplateForCategory } from '../utils/templates.ts';
 import { useJobs } from '../hooks/useJobs.ts';
+import { useAuth } from '../context/AuthContext.tsx';
 
 type FormDataType = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'posterIsAdminVerified' | 'interestedCount'>;
 
 interface PostJobFormProps {
-  onCancel: () => void;
   initialData?: Job;
-  isEditing?: boolean;
-  currentUser: User;
-  allJobsForAdmin: Job[];
-  navigateTo: (view: View, payload?: any) => void;
-  sourceViewForForm: View | null;
+  isEditing: boolean;
 }
 
 const initialFormStateForCreate: FormDataType = {
@@ -41,7 +38,7 @@ const initialFormStateForCreate: FormDataType = {
 
 type FormErrorsType = Partial<Record<keyof FormDataType, string>>;
 
-export const PostJobForm: React.FC<PostJobFormProps> = ({ onCancel, initialData, isEditing, currentUser, allJobsForAdmin, navigateTo, sourceViewForForm }) => {
+export const PostJobForm: React.FC<PostJobFormProps> = ({ initialData, isEditing }) => {
   const [formData, setFormData] = useState<FormDataType>(initialFormStateForCreate);
   const [formErrors, setFormErrors] = useState<FormErrorsType>({});
   const [availableSubCategories, setAvailableSubCategories] = useState<JobSubCategory[]>([]);
@@ -50,6 +47,8 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onCancel, initialData,
   const [showTemplateButton, setShowTemplateButton] = useState(false);
 
   const { addJob, updateJob, checkJobPostingLimits } = useJobs();
+  const { currentUser } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     if (!currentUser) {
@@ -66,7 +65,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onCancel, initialData,
         setLimitMessage(message || null);
       });
     }
-  }, [currentUser, allJobsForAdmin, isEditing, checkJobPostingLimits]);
+  }, [currentUser, isEditing, checkJobPostingLimits]);
 
   useEffect(() => {
     if (isEditing && initialData) {
@@ -121,7 +120,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onCancel, initialData,
         setFormErrors(prev => ({ ...prev, subCategory: undefined }));
       }
     } else if (currentKey === 'subCategory') {
-        newFormData = { ...newFormData, subCategory: value as JobSubCategory || undefined };
+        newFormData = { ...newFormData, subCategory: value as any || undefined };
     } else if (currentKey === 'province') {
         newFormData = { ...newFormData, province: value as Province };
     } else if (currentKey === 'desiredAgeStart' || currentKey === 'desiredAgeEnd') {
@@ -209,11 +208,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onCancel, initialData,
             await addJob(formData);
             alert('ประกาศงานของคุณถูกเพิ่มแล้ว!');
         }
-        navigateTo(sourceViewForForm || View.FindJobs);
-        if (!isEditing) {
-            setFormData(initialFormStateForCreate);
-            setAvailableSubCategories([]);
-        }
+        router.push('/find-jobs');
     } catch (error: any) {
         alert(`เกิดข้อผิดพลาด: ${error.message}`);
     }
@@ -425,7 +420,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onCancel, initialData,
           <Button type="submit" variant="primary" size="lg" className="w-full sm:w-auto flex-grow" disabled={!canSubmit && !isEditing}>
             {isEditing ? '💾 บันทึกการแก้ไข' : (canSubmit ? '🚀 ลงประกาศงาน' : 'ไม่สามารถลงประกาศ')}
           </Button>
-          <Button type="button" onClick={onCancel} variant="outline" colorScheme="primary" size="lg" className="w-full sm:w-auto flex-grow">
+          <Button type="button" onClick={() => router.back()} variant="outline" colorScheme="primary" size="lg" className="w-full sm:w-auto flex-grow">
             ยกเลิก
           </Button>
         </div>

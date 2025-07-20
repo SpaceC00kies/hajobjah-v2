@@ -23,9 +23,8 @@ export const useBlog = () => {
     try {
       const { newCoverImageBase64, ...dataToSave } = blogPostData;
       const newPostId = await addOrUpdateBlogPostService(
-        { ...dataToSave, id: existingPostId },
-        { id: currentUser.id, publicDisplayName: currentUser.publicDisplayName, photo: currentUser.photo },
-        newCoverImageBase64
+        { ...blogPostData, id: existingPostId },
+        { id: currentUser.id, publicDisplayName: currentUser.publicDisplayName, photo: currentUser.photo }
       );
       alert(`บทความ "${dataToSave.title}" ถูก${existingPostId ? 'อัปเดต' : 'สร้าง'}เรียบร้อยแล้ว`);
       return newPostId;

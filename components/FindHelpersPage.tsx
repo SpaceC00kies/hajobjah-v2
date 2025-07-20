@@ -1,21 +1,20 @@
+"use client";
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import type { HelperProfile, EnrichedHelperProfile, FilterableCategory, JobSubCategory, User, PaginatedDocsResponse, Cursor } from '../types/types.ts';
 import { View, JobCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
 import { HelperCard } from './HelperCard.tsx';
 import { getHelperProfilesPaginated } from '../services/helperProfileService.ts';
 import { useUser } from '../hooks/useUser.ts';
 import { useHelpers } from '../hooks/useHelpers.ts';
+import { useAuth } from '../context/AuthContext.tsx';
 import { useData } from '../context/DataContext.tsx';
 import { motion } from 'framer-motion';
 import { FilterSidebar } from './FilterSidebar.tsx';
+import { CardSkeleton } from './CardSkeleton.tsx';
 
 interface FindHelpersPageProps {
-  navigateTo: (view: View, payload?: any) => void;
-  onNavigateToPublicProfile: (profileInfo: { userId: string; helperProfileId?: string }) => void;
-  currentUser: User | null;
-  requestLoginForAction: (view: View, payload?: any) => void;
-  onEditProfileFromFindView: (profileId: string) => void;
-  getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
+  allUsers: User[];
 }
 
 const containerVariants = {
@@ -32,13 +31,14 @@ const itemVariants = {
 };
 
 export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
-  navigateTo,
-  onNavigateToPublicProfile,
-  currentUser,
-  requestLoginForAction,
-  onEditProfileFromFindView,
-  getAuthorDisplayName,
+  allUsers,
 }) => {
+  const router = useRouter();
+  const { currentUser } = useAuth();
+  const { userInterests } = useData();
+  const userActions = useUser();
+  const helperActions = useHelpers();
+
   const [profiles, setProfiles] = useState<EnrichedHelperProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [cursor, setCursor] = useState<Cursor | null>(null);
@@ -49,23 +49,24 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
   const [selectedSubCategory, setSelectedSubCategory] = useState<JobSubCategory | 'all'>('all');
   const [selectedProvince, setSelectedProvince] = useState<Province | 'all'>('all');
   const [availableSubCategories, setAvailableSubCategories] = useState<JobSubCategory[]>([]);
-  const { users, userInterests } = useData();
-  const userActions = useUser();
-  const helperActions = useHelpers();
   
   const loaderRef = useRef<HTMLDivElement>(null);
-  const isLoadingRef = useRef(isLoading);
-  const hasMoreRef = useRef(hasMore);
+  const isInitialLoadDone = useRef(false);
+  
+  // --- Navigation and Action Handlers ---
+  const onNavigateToPublicProfile = (profileInfo: { userId: string; helperProfileId?: string }) => router.push(`/profile/${profileInfo.userId}`);
+  const onEditProfileFromFindView = (profileId: string) => router.push(`/offer-help?edit=${profileId}`);
+  const requestLoginForAction = () => router.push('/login');
 
-  useEffect(() => {
-    isLoadingRef.current = isLoading;
-    hasMoreRef.current = hasMore;
-  }, [isLoading, hasMore]);
+  const getAuthorDisplayName = useCallback((userId: string, fallbackName?: string): string => {
+    const user = allUsers.find(u => u.id === userId);
+    return user?.publicDisplayName || fallbackName || userId;
+  }, [allUsers]);
 
-
+  // --- Data Loading ---
   const enrichProfiles = useCallback((profilesToEnrich: HelperProfile[]): EnrichedHelperProfile[] => {
     return profilesToEnrich.map(profile => {
-      const user = users.find(u => u.id === profile.userId);
+      const user = allUsers.find(u => u.id === profile.userId);
       return {
         ...profile,
         userPhoto: user?.photo,
@@ -76,7 +77,7 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
         interestedCount: profile.interestedCount || 0,
       };
     });
-  }, [users]);
+  }, [allUsers]);
 
   const loadProfiles = useCallback(async (isInitialLoad = false) => {
     setIsLoading(true);
@@ -111,8 +112,16 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
   }, [searchTerm]);
 
   useEffect(() => {
-    loadProfiles(true);
+    if (isInitialLoadDone.current) {
+      loadProfiles(true);
+    }
   }, [debouncedSearchTerm, selectedCategory, selectedSubCategory, selectedProvince, loadProfiles]);
+
+  useEffect(() => {
+    loadProfiles(true).then(() => {
+        isInitialLoadDone.current = true;
+    });
+  }, []);
 
   useEffect(() => {
     if (selectedCategory !== 'all' && JOB_SUBCATEGORIES_MAP[selectedCategory]) {
@@ -128,7 +137,7 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMoreRef.current && !isLoadingRef.current) {
+        if (entries[0].isIntersecting && hasMore && !isLoading) {
           loadProfiles();
         }
       },
@@ -137,7 +146,7 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
     const currentLoader = loaderRef.current;
     if (currentLoader) observer.observe(currentLoader);
     return () => { if (currentLoader) observer.unobserve(currentLoader); };
-  }, [loadProfiles]);
+  }, [loadProfiles, hasMore, isLoading]);
   
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -160,13 +169,15 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
             onSearchTermChange={setSearchTerm}
             searchPlaceholder="ค้นหาทักษะ, พื้นที่..."
             actionButtonText="สร้างโปรไฟล์"
-            onActionButtonClick={() => currentUser ? navigateTo(View.OfferHelp) : requestLoginForAction(View.OfferHelp)}
+            onActionButtonClick={() => currentUser ? router.push('/offer-help') : requestLoginForAction()}
           />
         </aside>
 
         <section className="lg:col-span-9">
           {isLoading && profiles.length === 0 ? (
-            <div className="text-center py-10 text-primary-dark font-sans">กำลังโหลด...</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => <CardSkeleton key={i} />)}
+            </div>
           ) : profiles.length === 0 ? (
             <div className="text-center py-10 bg-white rounded-lg shadow flex flex-col items-center justify-center min-h-[300px]">
               <p className="text-xl text-neutral-dark mb-2">ไม่พบโปรไฟล์ผู้ช่วยที่ตรงกับเงื่อนไขของคุณ</p>
@@ -184,7 +195,6 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
                   <HelperCard
                     profile={profile}
                     onNavigateToPublicProfile={onNavigateToPublicProfile}
-                    navigateTo={navigateTo}
                     onLogHelperContact={userActions.logContact}
                     currentUser={currentUser}
                     requestLoginForAction={requestLoginForAction}

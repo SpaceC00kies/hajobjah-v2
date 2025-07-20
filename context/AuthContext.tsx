@@ -1,6 +1,8 @@
+"use client";
+
 import React, { createContext, useState, useEffect, useContext, useMemo } from 'react';
-import { doc, onSnapshot } from '@firebase/firestore';
-import { db } from '../firebaseConfig.ts';
+import { db } from '@/lib/firebase/clientApp';
+import { doc, onSnapshot } from 'firebase/firestore';
 import type { User } from '../types/types.ts';
 import { onAuthChangeService } from '../services/authService.ts';
 import { convertTimestamps } from '../services/serviceUtils';

@@ -6,6 +6,9 @@
  */
 
 import {
+  db,
+} from '@/lib/firebase/clientApp';
+import {
   collection,
   doc,
   addDoc,
@@ -16,8 +19,7 @@ import {
   onSnapshot,
   query,
   orderBy,
-} from '@firebase/firestore';
-import { db } from '../firebaseConfig.ts';
+} from 'firebase/firestore';
 import type { Job, Province, JobSubCategory, PaginatedDocsResponse, Cursor, JobCategory } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps, cleanDataForFirestore } from './serviceUtils';

@@ -1,7 +1,7 @@
-
+"use client";
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import type { ChartDataPoint } from '../../../types/types';
+import type { ChartDataPoint } from '@/types/types.ts';
 
 interface GrowthChartProps {
   data: ChartDataPoint[];
@@ -51,7 +51,6 @@ export const GrowthChart: React.FC<GrowthChartProps> = ({ data, isLoading }) => 
                 strokeWidth={2} 
                 dot={{ r: 4, fill: 'var(--primary-blue)', stroke: 'var(--white)', strokeWidth: 2 }} 
                 activeDot={{ r: 6, fill: 'var(--primary-dark)', stroke: 'var(--white)', strokeWidth: 2 }}
-                tension={0.4} 
             />
           </LineChart>
         </ResponsiveContainer>

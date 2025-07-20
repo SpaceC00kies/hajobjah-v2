@@ -56,7 +56,7 @@ export const useWebboard = () => {
       if (postIdToUpdate) {
         const postToEdit = allWebboardPostsForAdmin.find(p => p.id === postIdToUpdate);
         if (!postToEdit || !canEditOrDelete(postToEdit.userId, postToEdit.ownerId)) throw new Error('ไม่พบโพสต์ หรือไม่มีสิทธิ์แก้ไข');
-        await updateWebboardPostService(postIdToUpdate, postData, currentUser.photo);
+        await updateWebboardPostService(postIdToUpdate, postData);
       } else {
         finalPostId = await addWebboardPostService(postData, { userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, photo: currentUser.photo });
         const updatedUser = await getUserDocument(currentUser.id);

@@ -1,7 +1,9 @@
-
+// components/SearchResultsPage.tsx
+"use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
-import type { SearchResultItem, FilterableCategory, JobSubCategory, Province, User, Interest, Job, HelperProfile, EnrichedHelperProfile } from '../types/types.ts';
+import { useRouter, useSearchParams } from 'next/navigation';
+import type { SearchResultItem, FilterableCategory, JobSubCategory, Province, User, Job, HelperProfile, EnrichedHelperProfile } from '../types/types.ts';
 import { View, JobCategory, JOB_SUBCATEGORIES_MAP } from '../types/types.ts';
 import { FilterSidebar } from './FilterSidebar.tsx';
 import { JobCard } from './JobCard.tsx';
@@ -9,27 +11,12 @@ import { HelperCard } from './HelperCard.tsx';
 import { CardSkeleton } from './CardSkeleton.tsx';
 import { Button } from './Button.tsx';
 import { motion } from 'framer-motion';
-
-interface SearchResultsPageProps {
-  searchQuery: string;
-  searchResults: SearchResultItem[];
-  isLoading: boolean;
-  searchError: string | null;
-  currentUser: User | null;
-  users: User[];
-  userInterests: Interest[];
-  getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
-  navigateTo: (view: View, payload?: any) => void;
-  onNavigateToPublicProfile: (profileInfo: { userId: string; helperProfileId?: string }) => void;
-  requestLoginForAction: (view: View, payload?: any) => void;
-  onEditJobFromFindView: (jobId: string) => void;
-  onEditProfileFromFindView: (profileId: string) => void;
-  onLogHelperContact: (helperProfileId: string) => void;
-  onBumpProfile: (profileId: string) => void;
-  onToggleInterest: (targetId: string, targetType: 'job' | 'helperProfile', targetOwnerId: string) => void;
-  onGoBack: () => void;
-  initialProvince?: string;
-}
+import { universalSearchService } from '@/services/searchService.ts';
+import { useAuth } from '@/context/AuthContext.tsx';
+import { useData } from '@/context/DataContext.tsx';
+import { useUser } from '@/hooks/useUser.ts';
+import { useHelpers } from '@/hooks/useHelpers.ts';
+import Link from 'next/link';
 
 type ActiveTab = 'all' | 'jobs' | 'helpers';
 
@@ -47,18 +34,47 @@ const itemVariants = {
 };
 
 
-export const SearchResultsPage: React.FC<SearchResultsPageProps> = (props) => {
-  const {
-    searchQuery, searchResults, isLoading, searchError, currentUser, users, userInterests,
-    getAuthorDisplayName, navigateTo, onNavigateToPublicProfile, requestLoginForAction,
-    onEditJobFromFindView, onEditProfileFromFindView, onLogHelperContact,
-    onBumpProfile, onToggleInterest, onGoBack, initialProvince
-  } = props;
+export const SearchResultsPage: React.FC = () => {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const { currentUser } = useAuth();
+    const { users, userInterests } = useData();
+    const userActions = useUser();
+    const helperActions = useHelpers();
+
+    const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [searchError, setSearchError] = useState<string | null>(null);
+
+    const searchQuery = searchParams.get('query') || '';
+    const initialProvince = searchParams.get('province') || 'all';
+
+    useEffect(() => {
+        const performSearch = async () => {
+            if (!searchQuery) {
+                setIsLoading(false);
+                setSearchResults([]);
+                return;
+            }
+            setIsLoading(true);
+            setSearchError(null);
+            try {
+                const result = await universalSearchService({ query: searchQuery, province: initialProvince });
+                setSearchResults(result.data.results);
+            } catch (error: any) {
+                setSearchError(error.message || 'An unexpected error occurred.');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        performSearch();
+    }, [searchQuery, initialProvince]);
+
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('all');
   const [selectedCategory, setSelectedCategory] = useState<FilterableCategory>('all');
   const [selectedSubCategory, setSelectedSubCategory] = useState<JobSubCategory | 'all'>('all');
-  const [selectedProvince, setSelectedProvince] = useState<Province | 'all'>(initialProvince as Province || 'all');
+  const [selectedProvince, setSelectedProvince] = useState<Province | 'all'>(initialProvince as Province | 'all');
   const [availableSubCategories, setAvailableSubCategories] = useState<JobSubCategory[]>([]);
 
   useEffect(() => {
@@ -69,6 +85,11 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = (props) => {
     }
     setSelectedSubCategory('all');
   }, [selectedCategory]);
+
+  const getAuthorDisplayName = (userId: string, fallbackName?: string): string => {
+      const user = users.find(u => u.id === userId);
+      return user?.publicDisplayName || fallbackName || '...';
+  }
 
   const displayedResults = useMemo(() => {
     return searchResults.filter(item => {
@@ -92,7 +113,7 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = (props) => {
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
       <div className="mb-4">
-        <Button onClick={onGoBack} variant="outline" size="sm">&larr; กลับไปหน้าค้นหา</Button>
+        <Button onClick={() => router.back()} variant="outline" size="sm">&larr; กลับ</Button>
       </div>
       <div className="text-center mb-8">
         <h2 className="text-3xl font-sans font-bold text-primary-dark mb-2">ผลการค้นหา</h2>
@@ -156,13 +177,12 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = (props) => {
                             <motion.div key={item.id} variants={itemVariants}>
                                 <JobCard
                                     job={item as Job}
-                                    navigateTo={navigateTo}
-                                    onNavigateToPublicProfile={onNavigateToPublicProfile}
+                                    onNavigateToPublicProfile={(info) => router.push(`/profile/${info.userId}`)}
                                     currentUser={currentUser}
-                                    requestLoginForAction={requestLoginForAction}
-                                    onEditJobFromFindView={onEditJobFromFindView}
+                                    requestLoginForAction={() => router.push('/login')}
+                                    onEditJobFromFindView={(id) => router.push(`/post-job?edit=${id}`)}
                                     getAuthorDisplayName={getAuthorDisplayName}
-                                    onToggleInterest={onToggleInterest}
+                                    onToggleInterest={userActions.toggleInterest}
                                     isInterested={userInterests.some(i => i.targetId === item.id)}
                                 />
                             </motion.div>
@@ -184,15 +204,14 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = (props) => {
                              <motion.div key={item.id} variants={itemVariants}>
                                 <HelperCard
                                     profile={enrichedProfile}
-                                    onNavigateToPublicProfile={onNavigateToPublicProfile}
-                                    navigateTo={navigateTo}
-                                    onLogHelperContact={onLogHelperContact}
+                                    onNavigateToPublicProfile={(info) => router.push(`/profile/${info.userId}`)}
+                                    onLogHelperContact={userActions.logContact}
                                     currentUser={currentUser}
-                                    requestLoginForAction={requestLoginForAction}
-                                    onBumpProfile={onBumpProfile}
-                                    onEditProfileFromFindView={onEditProfileFromFindView}
+                                    requestLoginForAction={() => router.push('/login')}
+                                    onBumpProfile={helperActions.onBumpProfile}
+                                    onEditProfileFromFindView={(id) => router.push(`/offer-help?edit=${id}`)}
                                     getAuthorDisplayName={getAuthorDisplayName}
-                                    onToggleInterest={onToggleInterest}
+                                    onToggleInterest={userActions.toggleInterest}
                                     isInterested={userInterests.some(i => i.targetId === item.id)}
                                 />
                              </motion.div>

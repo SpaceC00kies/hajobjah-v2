@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useEffect, useRef } from 'react';
 import type { BlogPost, User } from '../types/types.ts';
 import { BlogCategory } from '../types/types.ts';

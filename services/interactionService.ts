@@ -6,6 +6,9 @@
  */
 
 import {
+  db,
+} from '@/lib/firebase/clientApp';
+import {
   collection,
   doc,
   addDoc,
@@ -17,8 +20,7 @@ import {
   runTransaction,
   increment,
   getDocs,
-} from '@firebase/firestore';
-import { db } from '../firebaseConfig.ts';
+} from 'firebase/firestore';
 import type { Interaction, Interest } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps } from './serviceUtils';

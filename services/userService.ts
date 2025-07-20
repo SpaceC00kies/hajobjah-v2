@@ -6,9 +6,13 @@
  */
 
 import {
+  db,
+} from '@/lib/firebase/clientApp';
+import {
   collection,
   doc,
   getDoc,
+  getDocs,
   updateDoc,
   onSnapshot,
   deleteField,
@@ -20,10 +24,8 @@ import {
   addDoc,
   query,
   where,
-  getDocs,
   orderBy,
-} from '@firebase/firestore';
-import { db } from '../firebaseConfig.ts';
+} from 'firebase/firestore';
 import type { User, Vouch, VouchType } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps, cleanDataForFirestore } from './serviceUtils';
@@ -104,6 +106,17 @@ export const subscribeToUsersService = (callback: (users: User[]) => void): (() 
   }, (error) => {
     logFirebaseError(`subscribeToUsersService`, error);
   });
+};
+
+export const getUsersService = async (): Promise<User[]> => {
+  try {
+    const usersRef = collection(db, USERS_COLLECTION);
+    const snapshot = await getDocs(usersRef);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as User));
+  } catch (error) {
+    logFirebaseError("getUsersService", error);
+    return [];
+  }
 };
 
 export const getUserDocument = async (userId: string): Promise<User | null> => {

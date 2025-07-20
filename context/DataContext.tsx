@@ -1,5 +1,7 @@
+"use client";
+
 import React, { createContext, useState, useEffect, useContext, useMemo } from 'react';
-import type { User, Interaction, WebboardPost, WebboardComment, Job, HelperProfile, VouchReport, BlogPost, Interest, Cursor } from '../types/types.ts';
+import type { User, Interaction, WebboardPost, WebboardComment, Job, HelperProfile, VouchReport, BlogPost, Interest, Cursor, Vouch, PlatformVitals, ChartDataPoint, AdminDashboardData } from '../types/types.ts';
 import { useAuth } from './AuthContext.tsx';
 import { subscribeToUsersService, subscribeToUserSavedPostsService } from '../services/userService.ts';
 import { subscribeToAllJobsService } from '../services/jobService.ts';
@@ -22,12 +24,34 @@ interface DataContextType {
   userSavedPosts: string[];
   userInterests: Interest[];
   isLoadingData: boolean;
+
+  // Modal State
+  isConfirmModalOpen: boolean;
+  confirmModalMessage: string;
+  confirmModalTitle: string;
+  onConfirmAction: (() => void) | null;
+  isFeedbackModalOpen: boolean;
+  isForgotPasswordModalOpen: boolean;
+  isLocationModalOpen: boolean;
+  vouchModalData: { userToVouch: User } | null;
+  vouchListModalData: { userToList: User } | null;
+  reportVouchModalData: { vouchToReport: Vouch } | null;
+
+  // Modal Actions
+  openConfirmModal: (title: string, message: string, onConfirm: () => void) => void;
+  closeConfirmModal: () => void;
+  setIsFeedbackModalOpen: (isOpen: boolean) => void;
+  setIsForgotPasswordModalOpen: (isOpen: boolean) => void;
+  setIsLocationModalOpen: (isOpen: boolean) => void;
+  setVouchModalData: (data: { userToVouch: User } | null) => void;
+  setVouchListModalData: (data: { userToList: User } | null) => void;
+  setReportVouchModalData: (data: { vouchToReport: Vouch } | null) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser } = useAuth(); // Get currentUser to fetch user-specific data
+  const { currentUser } = useAuth();
 
   // Global Data States
   const [users, setUsers] = useState<User[]>([]);
@@ -44,28 +68,48 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // User-Specific Data States
   const [userSavedPosts, setUserSavedPosts] = useState<string[]>([]);
   const [userInterests, setUserInterests] = useState<Interest[]>([]);
+  
+  // Modal states migrated from App.tsx
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [confirmModalMessage, setConfirmModalMessage] = useState('');
+  const [confirmModalTitle, setConfirmModalTitle] = useState('');
+  const [onConfirmAction, setOnConfirmAction] = useState<(() => void) | null>(null);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false);
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [vouchModalData, setVouchModalData] = useState<{ userToVouch: User } | null>(null);
+  const [vouchListModalData, setVouchListModalData] = useState<{ userToList: User } | null>(null);
+  const [reportVouchModalData, setReportVouchModalData] = useState<{ vouchToReport: Vouch } | null>(null);
 
-  // Effect for Global (non-user-specific) Data
+  // Modal action functions
+  const openConfirmModal = (title: string, message: string, onConfirm: () => void) => {
+    setConfirmModalTitle(title); 
+    setConfirmModalMessage(message); 
+    setOnConfirmAction(() => onConfirm); 
+    setIsConfirmModalOpen(true);
+  };
+  const closeConfirmModal = () => { 
+    setIsConfirmModalOpen(false); 
+    setConfirmModalMessage(''); 
+    setConfirmModalTitle(''); 
+    setOnConfirmAction(null); 
+  };
+
+
   useEffect(() => {
     setIsLoadingData(true);
-
     const fetchBlogData = async () => {
-      // Blog posts are less dynamic, fetching once is okay.
       const publicPosts = await getAllBlogPosts();
       setAllBlogPosts(publicPosts);
       const adminPosts = await getBlogPostsForAdmin();
       setAllBlogPostsForAdmin(adminPosts);
     };
 
-    // Parallelize initial fetches and subscriptions
     const initialLoad = async () => {
-        await Promise.all([
-            fetchBlogData(),
-        ]);
+        await fetchBlogData();
         setIsLoadingData(false);
     };
 
-    // Real-time subscriptions
     const unsubscribeUsers = subscribeToUsersService(setUsers);
     const unsubscribeWebboardComments = subscribeToWebboardCommentsService(setWebboardComments);
     const unsubscribeInteractions = subscribeToInteractionsService(setInteractions);
@@ -76,7 +120,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initialLoad();
 
-    // Cleanup subscriptions on component unmount
     return () => {
       unsubscribeUsers();
       unsubscribeWebboardComments();
@@ -88,7 +131,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // Effect for User-Specific Data Subscriptions
   useEffect(() => {
     let unsubSavedPosts: (() => void) | undefined;
     let unsubInterests: (() => void) | undefined;
@@ -97,17 +139,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       unsubSavedPosts = subscribeToUserSavedPostsService(currentUser.id, setUserSavedPosts);
       unsubInterests = subscribeToUserInterestsService(currentUser.id, setUserInterests);
     } else {
-      // Clear user-specific data on logout
       setUserSavedPosts([]);
       setUserInterests([]);
     }
 
-    // Cleanup user-specific subscriptions
     return () => {
       if (unsubSavedPosts) unsubSavedPosts();
       if (unsubInterests) unsubInterests();
     };
-  }, [currentUser?.id]); // Re-run only when the user ID changes (login/logout)
+  }, [currentUser?.id]);
 
 
   const value = useMemo(() => ({
@@ -123,19 +163,31 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     userSavedPosts,
     userInterests,
     isLoadingData,
+    // Modals
+    isConfirmModalOpen,
+    confirmModalMessage,
+    confirmModalTitle,
+    onConfirmAction,
+    isFeedbackModalOpen,
+    isForgotPasswordModalOpen,
+    isLocationModalOpen,
+    vouchModalData,
+    vouchListModalData,
+    reportVouchModalData,
+    openConfirmModal,
+    closeConfirmModal,
+    setIsFeedbackModalOpen,
+    setIsForgotPasswordModalOpen,
+    setIsLocationModalOpen,
+    setVouchModalData,
+    setVouchListModalData,
+    setReportVouchModalData,
   }), [
-    users,
-    interactions,
-    allBlogPosts,
-    allBlogPostsForAdmin,
-    allWebboardPostsForAdmin,
-    webboardComments,
-    allJobsForAdmin,
-    allHelperProfilesForAdmin,
-vouchReports,
-    userSavedPosts,
-    userInterests,
-    isLoadingData,
+    users, interactions, allBlogPosts, allBlogPostsForAdmin, allWebboardPostsForAdmin,
+    webboardComments, allJobsForAdmin, allHelperProfilesForAdmin, vouchReports, userSavedPosts,
+    userInterests, isLoadingData, isConfirmModalOpen, confirmModalMessage, confirmModalTitle,
+    onConfirmAction, isFeedbackModalOpen, isForgotPasswordModalOpen, isLocationModalOpen,
+    vouchModalData, vouchListModalData, reportVouchModalData
   ]);
 
   return (

@@ -1,8 +1,9 @@
+"use client";
 import React, { useState, useEffect } from 'react';
 import { Button } from './Button.tsx';
 import { Modal } from './Modal.tsx';
-import type { User, Vouch } from '../types/types';
-import { VOUCH_TYPE_LABELS } from '../types/types';
+import type { User, Vouch } from '../types/types.ts';
+import { VOUCH_TYPE_LABELS } from '../types/types.ts';
 import { getVouchesForUserService } from '../services/userService.ts';
 import { logFirebaseError } from '../firebase/logging.ts';
 import { useUser } from '../hooks/useUser.ts';

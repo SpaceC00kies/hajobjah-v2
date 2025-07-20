@@ -1,7 +1,7 @@
-
+"use client";
 import React from 'react';
 import { motion } from 'framer-motion';
-import type { VouchReport, User } from '../../../types/types';
+import type { VouchReport, User } from '../../../types/types.ts';
 import { Button } from '../../Button.tsx';
 
 interface ActionCenterProps {

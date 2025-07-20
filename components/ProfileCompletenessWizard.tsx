@@ -1,5 +1,6 @@
+"use client";
 import React from 'react';
-import type { User } from '../types/types';
+import type { User } from '../types/types.ts';
 import { calculateProfileCompleteness } from '../utils/profileUtils.ts';
 import { motion } from 'framer-motion';
 

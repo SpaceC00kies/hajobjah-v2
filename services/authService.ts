@@ -7,13 +7,18 @@
  */
 
 import {
+  auth,
+  db,
+  functions,
+} from '@/lib/firebase/clientApp';
+import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
   type User as FirebaseUser,
-} from '@firebase/auth';
+} from 'firebase/auth';
 import {
   collection,
   doc,
@@ -24,9 +29,8 @@ import {
   where,
   limit,
   serverTimestamp,
-} from '@firebase/firestore';
-import { httpsCallable } from '@firebase/functions';
-import { auth, db, functions } from '../firebaseConfig.ts';
+} from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import type { User, UserRole, UserTier, VouchInfo, GenderOption, HelperEducationLevelOption } from '../types/types.ts';
 import { USER_LEVELS } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';

@@ -1,4 +1,4 @@
-
+"use client";
 
 import React from 'react';
 import type { JobCategory, FilterableCategory } from '../types/types.ts';

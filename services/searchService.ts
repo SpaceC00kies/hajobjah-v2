@@ -1,5 +1,5 @@
 import { httpsCallable } from '@firebase/functions';
-import { functions } from '../firebaseConfig.ts';
+import { functions } from '@/lib/firebase/clientApp';
 import type { SearchResultItem, Province, Cursor, JobCategory, JobSubCategory } from '../types/types.ts';
 
 type SearchParams = {

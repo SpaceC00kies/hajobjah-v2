@@ -1,4 +1,4 @@
-
+"use client";
 import React from 'react';
 import type { UserLevel } from '../types/types.ts'; // UserLevel is now generic for all badge types
 
