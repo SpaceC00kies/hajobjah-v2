@@ -1,6 +1,6 @@
 // app/find-jobs/page.tsx
 import React from 'react';
-import { FindJobsClient } from '@/components/FindJobsClient';
+import { FindJobsClient } from '@/components/FindJobsPage';
 import { getJobsPaginated } from '@/services/jobService';
 import { getUsersService } from '@/services/userService';
 

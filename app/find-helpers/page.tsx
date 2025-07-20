@@ -1,6 +1,6 @@
 // app/find-helpers/page.tsx
 import React from 'react';
-import { FindHelpersClient } from '@/components/FindHelpersClient';
+import { FindHelpersClient } from '@/components/FindHelpersPage';
 import { getHelperProfilesPaginated } from '@/services/helperProfileService';
 import { getUsersService } from '@/services/userService';
 
