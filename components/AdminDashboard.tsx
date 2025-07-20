@@ -1,3 +1,4 @@
+// components/AdminDashboard.tsx
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
@@ -11,7 +12,7 @@ import { formatDateDisplay } from '../utils/dateUtils';
 import { isDateInPast } from '../utils/dateUtils';
 import { AdminOverview } from './admin/AdminOverview';
 import { useAuth } from '@/context/AuthContext';
-import { useData } from '@/context/DataContext';
+import { useData } from '@/context/DataContext'; 
 import { getUserDisplayBadge as getUserDisplayBadgeUtil, getAuthorDisplayName as getAuthorDisplayNameUtil } from '@/utils/userUtils';
 
 export interface AdminItem {
@@ -39,6 +40,7 @@ type ActionHubSearchType = 'job' | 'profile' | 'webboardPost' | 'user';
 
 export const AdminDashboard: React.FC = () => {
   const { currentUser } = useAuth();
+  // Use the main data hook
   const { 
     allJobsForAdmin: jobs, 
     allHelperProfilesForAdmin: helperProfiles, 
@@ -46,7 +48,8 @@ export const AdminDashboard: React.FC = () => {
     allWebboardPostsForAdmin: webboardPosts, 
     webboardComments, 
     vouchReports, 
-    allBlogPostsForAdmin
+    allBlogPostsForAdmin,
+    isLoadingData: isAdminDataLoading 
   } = useData();
 
   const router = useRouter();
@@ -344,6 +347,9 @@ export const AdminDashboard: React.FC = () => {
      });
   };
 
+  if (isAdminDataLoading) {
+    return <div className="text-center p-10">Loading Admin Data...</div>;
+  }
 
   return (
     <div className="p-4 sm:p-6 w-full">

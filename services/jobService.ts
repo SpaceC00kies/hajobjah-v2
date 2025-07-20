@@ -1,3 +1,4 @@
+// services/jobService.ts
 /**
  * @fileoverview
  * This service module manages all CRUD (Create, Read, Update, Delete) operations
@@ -18,6 +19,7 @@ import {
   serverTimestamp,
   onSnapshot,
   query,
+  where,
   orderBy,
   QuerySnapshot,
 } from 'firebase/firestore';
@@ -135,6 +137,17 @@ export const subscribeToAllJobsService = (callback: (jobs: Job[]) => void): (() 
     logFirebaseError(`subscribeToAllJobsService`, error);
   });
 };
+
+export const subscribeToJobsByUserId = (userId: string, callback: (jobs: Job[]) => void): (() => void) => {
+  const q = query(collection(db, JOBS_COLLECTION), where('userId', '==', userId), orderBy('postedAt', 'desc'));
+  return onSnapshot(q, (querySnapshot) => {
+    const jobs = querySnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as Job));
+    callback(jobs);
+  }, (error) => {
+    logFirebaseError(`subscribeToJobsByUserId for user ${userId}`, error);
+  });
+};
+
 
 export const getJobDocument = async (jobId: string): Promise<Job | null> => {
   try {

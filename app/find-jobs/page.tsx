@@ -1,25 +1,20 @@
 // app/find-jobs/page.tsx
-"use client";
 import React from 'react';
-import { FindJobsPage } from '@/components/FindJobsPage';
-import { useData } from '@/context/DataContext';
+import { FindJobsClient } from '@/components/FindJobsClient';
+import { getJobsPaginated } from '@/services/jobService';
+import { getUsersService } from '@/services/userService';
 
-// This is now a client component wrapper that provides user data from context.
-export default function FindJobs() {
-  const { users, isLoadingData } = useData();
+// This is now a Server Component that pre-fetches data.
+export default async function FindJobs() {
+  // Fetch initial data on the server.
+  const initialJobsData = await getJobsPaginated(12, null, 'all', null, 'all', 'all');
+  const allUsers = await getUsersService();
 
-  if (isLoadingData) {
-    return (
-      <div className="flex justify-center items-center h-screen w-full">
-        <p>Loading...</p>
-      </div>
-    );
-  }
-
-  // The FindJobsPage component now handles its own initial data fetching.
   return (
-    <FindJobsPage
-      allUsers={users}
+    <FindJobsClient
+      initialJobs={initialJobsData.items}
+      initialCursor={initialJobsData.cursor}
+      allUsers={allUsers}
     />
   );
 }

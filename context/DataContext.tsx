@@ -1,29 +1,32 @@
+// context/DataContext.tsx
 "use client";
 
 import React, { createContext, useState, useEffect, useContext, useMemo } from 'react';
-import type { User, Interaction, WebboardPost, WebboardComment, Job, HelperProfile, VouchReport, BlogPost, Interest, Cursor, Vouch, PlatformVitals, ChartDataPoint, AdminDashboardData } from '../types/types';
+import type { User, Interaction, WebboardComment, VouchReport, BlogPost, Interest, Vouch, Job, HelperProfile, WebboardPost } from '../types/types';
 import { useAuth } from './AuthContext';
 import { subscribeToUsersService, subscribeToUserSavedPostsService } from '../services/userService';
-import { subscribeToAllJobsService } from '../services/jobService';
-import { subscribeToAllHelperProfilesService } from '../services/helperProfileService';
-import { subscribeToWebboardCommentsService, subscribeToAllWebboardPostsService } from '../services/webboardService';
+import { subscribeToAllWebboardPostsService, subscribeToWebboardCommentsService } from '../services/webboardService';
 import { subscribeToInteractionsService, subscribeToUserInterestsService } from '../services/interactionService';
 import { subscribeToVouchReportsService } from '../services/adminService';
 import { getAllBlogPosts, getBlogPostsForAdmin } from '../services/blogService';
+import { subscribeToAllJobsService } from '../services/jobService';
+import { subscribeToAllHelperProfilesService } from '../services/helperProfileService';
 
 interface DataContextType {
   users: User[];
   interactions: Interaction[];
   allBlogPosts: BlogPost[];
-  allBlogPostsForAdmin: BlogPost[];
-  allWebboardPostsForAdmin: WebboardPost[];
   webboardComments: WebboardComment[];
-  allJobsForAdmin: Job[];
-  allHelperProfilesForAdmin: HelperProfile[];
   vouchReports: VouchReport[];
   userSavedPosts: string[];
   userInterests: Interest[];
   isLoadingData: boolean;
+
+  // Admin-level data
+  allJobsForAdmin: Job[];
+  allHelperProfilesForAdmin: HelperProfile[];
+  allWebboardPostsForAdmin: WebboardPost[];
+  allBlogPostsForAdmin: BlogPost[];
 
   // Modal State
   isConfirmModalOpen: boolean;
@@ -53,23 +56,25 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser } = useAuth();
 
-  // Global Data States
+  // Lightweight Global Data States
   const [users, setUsers] = useState<User[]>([]);
   const [interactions, setInteractions] = useState<Interaction[]>([]);
   const [allBlogPosts, setAllBlogPosts] = useState<BlogPost[]>([]);
-  const [allBlogPostsForAdmin, setAllBlogPostsForAdmin] = useState<BlogPost[]>([]);
-  const [allWebboardPostsForAdmin, setAllWebboardPostsForAdmin] = useState<WebboardPost[]>([]);
   const [webboardComments, setWebboardComments] = useState<WebboardComment[]>([]);
-  const [allJobsForAdmin, setAllJobsForAdmin] = useState<Job[]>([]);
-  const [allHelperProfilesForAdmin, setAllHelperProfilesForAdmin] = useState<HelperProfile[]>([]);
   const [vouchReports, setVouchReports] = useState<VouchReport[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  
+  // Admin-level data
+  const [allJobsForAdmin, setAllJobsForAdmin] = useState<Job[]>([]);
+  const [allHelperProfilesForAdmin, setAllHelperProfilesForAdmin] = useState<HelperProfile[]>([]);
+  const [allWebboardPostsForAdmin, setAllWebboardPostsForAdmin] = useState<WebboardPost[]>([]);
+  const [allBlogPostsForAdmin, setAllBlogPostsForAdmin] = useState<BlogPost[]>([]);
 
   // User-Specific Data States
   const [userSavedPosts, setUserSavedPosts] = useState<string[]>([]);
   const [userInterests, setUserInterests] = useState<Interest[]>([]);
   
-  // Modal states migrated from App.tsx
+  // Modal states
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [confirmModalMessage, setConfirmModalMessage] = useState('');
   const [confirmModalTitle, setConfirmModalTitle] = useState('');
@@ -81,7 +86,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [vouchListModalData, setVouchListModalData] = useState<{ userToList: User } | null>(null);
   const [reportVouchModalData, setReportVouchModalData] = useState<{ vouchToReport: Vouch } | null>(null);
 
-  // Modal action functions
   const openConfirmModal = (title: string, message: string, onConfirm: () => void) => {
     setConfirmModalTitle(title); 
     setConfirmModalMessage(message); 
@@ -94,7 +98,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setConfirmModalTitle(''); 
     setOnConfirmAction(null); 
   };
-
 
   useEffect(() => {
     setIsLoadingData(true);
@@ -149,21 +152,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [currentUser?.id]);
 
-
   const value = useMemo(() => ({
     users,
     interactions,
     allBlogPosts,
-    allBlogPostsForAdmin,
-    allWebboardPostsForAdmin,
     webboardComments,
-    allJobsForAdmin,
-    allHelperProfilesForAdmin,
     vouchReports,
     userSavedPosts,
     userInterests,
     isLoadingData,
-    // Modals
+    allJobsForAdmin,
+    allHelperProfilesForAdmin,
+    allWebboardPostsForAdmin,
+    allBlogPostsForAdmin,
     isConfirmModalOpen,
     confirmModalMessage,
     confirmModalTitle,
@@ -183,11 +184,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setVouchListModalData,
     setReportVouchModalData,
   }), [
-    users, interactions, allBlogPosts, allBlogPostsForAdmin, allWebboardPostsForAdmin,
-    webboardComments, allJobsForAdmin, allHelperProfilesForAdmin, vouchReports, userSavedPosts,
-    userInterests, isLoadingData, isConfirmModalOpen, confirmModalMessage, confirmModalTitle,
-    onConfirmAction, isFeedbackModalOpen, isForgotPasswordModalOpen, isLocationModalOpen,
-    vouchModalData, vouchListModalData, reportVouchModalData
+    users, interactions, allBlogPosts, webboardComments, vouchReports, userSavedPosts,
+    userInterests, isLoadingData, allJobsForAdmin, allHelperProfilesForAdmin,
+    allWebboardPostsForAdmin, allBlogPostsForAdmin, isConfirmModalOpen, confirmModalMessage,
+    confirmModalTitle, onConfirmAction, isFeedbackModalOpen, isForgotPasswordModalOpen,
+    isLocationModalOpen, vouchModalData, vouchListModalData, reportVouchModalData
   ]);
 
   return (

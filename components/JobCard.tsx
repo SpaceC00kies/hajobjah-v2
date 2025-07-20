@@ -190,7 +190,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, onNavigateToPublicProfile
 
         <div className="job-card-footer">
           <div className="flex items-center gap-1 text-sm">
-            {currentUser?.id !== job.userId && <Button onClick={handleInterestClick} variant="icon" size="sm" title={isInterested ? "เลิกสนใจ" : "สนใจ"} disabled={job.isHired || jobIsTrulyExpired} className={`${isInterested ? 'text-amber-400 hover:text-amber-500' : 'text-neutral-medium hover:text-amber-400'}`}><StarIcon filled={isInterested} /></Button>}
+            {currentUser?.id !== job.userId && <Button onClick={handleInterestClick} variant="icon" size="sm" title={isInterested ? "เลิกสนใจ" : "สนใจ"} disabled={job.isHired || jobIsTrulyExpired} className={`${isInterested ? 'text-amber-400 hover:text-amber-500' : 'text-neutral-medium hover:text-amber-400'}`} aria-label={isInterested ? "Remove from interested" : "Add to interested"}><StarIcon filled={isInterested} /></Button>}
             <div className="job-card-posted-time"><span title="จำนวนผู้สนใจ">{job.interestedCount || 0}</span><span className="text-neutral-medium mx-1.5">|</span><span>{formattedPostedAt}</span></div>
           </div>
           <div className="job-card-action-buttons">

@@ -144,7 +144,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({ profile, onNavigateToPub
 
         <div className="helper-card-footer">
           <div className="flex items-center gap-2">
-            {currentUser?.id !== profile.userId && <Button onClick={handleInterestClick} variant="icon" size="sm" title={isInterested ? "เลิกสนใจ" : "สนใจ"} disabled={profile.isUnavailable || profileIsTrulyExpired} className={`${isInterested ? 'text-amber-400 hover:text-amber-500' : 'text-neutral-medium hover:text-amber-400'}`}><StarIcon filled={isInterested} /></Button>}
+            {currentUser?.id !== profile.userId && <Button onClick={handleInterestClick} variant="icon" size="sm" title={isInterested ? "เลิกสนใจ" : "สนใจ"} disabled={profile.isUnavailable || profileIsTrulyExpired} className={`${isInterested ? 'text-amber-400 hover:text-amber-500' : 'text-neutral-medium hover:text-amber-400'}`} aria-label={isInterested ? "Remove from interested" : "Add to interested"}><StarIcon filled={isInterested} /></Button>}
             <div className="helper-card-posted-time">{formattedPostedAt}</div>
           </div>
           <div className="helper-card-action-buttons">

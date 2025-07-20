@@ -78,6 +78,16 @@ export const subscribeToAllHelperProfilesService = (callback: (profiles: HelperP
   return onSnapshot(q, (snapshot: QuerySnapshot) => callback(snapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as HelperProfile))), (error) => logFirebaseError(`subscribeToAllHelperProfilesService`, error));
 };
 
+export const subscribeToHelperProfilesByUserId = (userId: string, callback: (profiles: HelperProfile[]) => void): (() => void) => {
+  const q = query(collection(db, HELPER_PROFILES_COLLECTION), where('userId', '==', userId), orderBy('postedAt', 'desc'));
+  return onSnapshot(q, (querySnapshot) => {
+    const profiles = querySnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as HelperProfile));
+    callback(profiles);
+  }, (error) => {
+    logFirebaseError(`subscribeToHelperProfilesByUserId for user ${userId}`, error);
+  });
+};
+
 export const getHelperProfileDocument = async (profileId: string): Promise<HelperProfile | null> => {
   try {
     const docSnap = await getDoc(doc(db, HELPER_PROFILES_COLLECTION, profileId));

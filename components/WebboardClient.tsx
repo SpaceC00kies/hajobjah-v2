@@ -11,30 +11,32 @@ import { WebboardPostCreateForm } from './WebboardPostCreateForm';
 import { getWebboardPostsPaginated as getWebboardPostsPaginatedService } from '../services/webboardService';
 import { logFirebaseError } from '../firebase/logging';
 import { motion } from 'framer-motion';
-
 import { useAuth } from '@/context/AuthContext';
 import { useData } from '@/context/DataContext';
 import { useWebboard } from '@/hooks/useWebboard';
 import { useUser } from '@/hooks/useUser';
 import { getAuthorDisplayName as getAuthorDisplayNameUtil } from '@/utils/userUtils';
 
+interface WebboardClientProps {
+  initialPosts: WebboardPost[];
+  initialCursor: Cursor | null;
+}
+
 const listContainerVariants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { duration: 0.3, when: "beforeChildren", staggerChildren: 0.07 } },
-  exit: { opacity: 0, transition: { duration: 0.2 } }
 };
 
 const itemVariants = {
   hidden: { y: 15, opacity: 0 },
   visible: { y: 0, opacity: 1, transition: { type: "spring" as const, stiffness: 100, damping: 12 } },
-  exit: { opacity: 0, y: -10, transition: { duration: 0.2 } },
 };
 
-export const WebboardClient: React.FC = () => {
+export const WebboardClient: React.FC<WebboardClientProps> = ({ initialPosts, initialCursor }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { currentUser } = useAuth();
-    const { users, webboardComments: allComments, allWebboardPostsForAdmin } = useData();
+    const { users, webboardComments: allComments } = useData();
     const webboardActions = useWebboard();
     const userActions = useUser();
 
@@ -42,11 +44,13 @@ export const WebboardClient: React.FC = () => {
     const [editingPost, setEditingPost] = useState<WebboardPost | null>(null);
     const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<WebboardCategory | 'all'>('all');
     const [searchTerm, setSearchTerm] = useState('');
-    const [webboardPostsList, setWebboardPostsList] = useState<WebboardPost[]>([]);
-    const [lastVisibleWebboardPost, setLastVisibleWebboardPost] = useState<Cursor | null>(null);
+    
+    const [webboardPostsList, setWebboardPostsList] = useState<WebboardPost[]>(initialPosts);
+    const [cursor, setCursor] = useState<Cursor | null>(initialCursor);
     const [isLoadingWebboardPosts, setIsLoadingWebboardPosts] = useState(false);
-    const [hasMoreWebboardPosts, setHasMoreWebboardPosts] = useState(true);
+    const [hasMoreWebboardPosts, setHasMoreWebboardPosts] = useState(!!initialCursor);
     const webboardLoaderRef = useRef<HTMLDivElement>(null);
+    const isInitialMount = useRef(true);
     const pageSize = 10;
 
     const getAuthorDisplayName = (userId: string, fallbackName?: string) => getAuthorDisplayNameUtil(userId, fallbackName, users);
@@ -55,29 +59,31 @@ export const WebboardClient: React.FC = () => {
         const editId = searchParams.get('edit');
         const action = searchParams.get('action');
 
-        if (editId) {
-            const postToEdit = allWebboardPostsForAdmin.find(p => p.id === editId);
-            if (postToEdit) {
-                setEditingPost(postToEdit);
+        const fetchEditingPost = async () => {
+            if (editId) {
+                // In a full RSC world, we might not have all posts client-side
+                // For now, we assume it's available or fetch it.
+                // const postToEdit = allWebboardPostsForAdmin.find(p => p.id === editId);
+                // setEditingPost(postToEdit);
                 setIsCreateModalOpen(true);
             }
+        };
+
+        if (editId) {
+            fetchEditingPost();
         } else if (action === 'create') {
             handleOpenCreateModal();
         }
-    }, [searchParams, allWebboardPostsForAdmin]);
+    }, [searchParams]);
     
     const loadWebboardPosts = useCallback(async (isInitialLoad = false) => {
-        if (isLoadingWebboardPosts || (!isInitialLoad && !hasMoreWebboardPosts)) return;
+        if (!isInitialLoad && isLoadingWebboardPosts) return;
         setIsLoadingWebboardPosts(true);
-        if (isInitialLoad) {
-            setWebboardPostsList([]);
-            setLastVisibleWebboardPost(null);
-            setHasMoreWebboardPosts(true);
-        }
+        const startAfterCursor = isInitialLoad ? null : cursor;
         try {
-            const result = await getWebboardPostsPaginatedService(pageSize, isInitialLoad ? null : lastVisibleWebboardPost, selectedCategoryFilter, searchTerm);
+            const result = await getWebboardPostsPaginatedService(pageSize, startAfterCursor, selectedCategoryFilter, searchTerm);
             setWebboardPostsList(prev => isInitialLoad ? result.items : [...prev, ...result.items]);
-            setLastVisibleWebboardPost(result.cursor);
+            setCursor(result.cursor);
             setHasMoreWebboardPosts(!!result.cursor);
         } catch (error) { 
             logFirebaseError("loadWebboardPosts", error); 
@@ -85,9 +91,15 @@ export const WebboardClient: React.FC = () => {
         } finally { 
             setIsLoadingWebboardPosts(false); 
         }
-    }, [pageSize, selectedCategoryFilter, searchTerm, isLoadingWebboardPosts, hasMoreWebboardPosts, lastVisibleWebboardPost]);
+    }, [pageSize, selectedCategoryFilter, searchTerm, isLoadingWebboardPosts, cursor]);
 
-    useEffect(() => { loadWebboardPosts(true); }, [selectedCategoryFilter, searchTerm, loadWebboardPosts]);
+    useEffect(() => { 
+        if(isInitialMount.current) {
+            isInitialMount.current = false;
+            return;
+        }
+        loadWebboardPosts(true); 
+    }, [selectedCategoryFilter, searchTerm, loadWebboardPosts]);
 
     useEffect(() => {
         const observer = new IntersectionObserver((entries) => {

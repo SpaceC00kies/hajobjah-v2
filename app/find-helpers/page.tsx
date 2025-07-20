@@ -1,25 +1,20 @@
 // app/find-helpers/page.tsx
-"use client";
 import React from 'react';
-import { FindHelpersPage } from '@/components/FindHelpersPage';
-import { useData } from '@/context/DataContext';
+import { FindHelpersClient } from '@/components/FindHelpersClient';
+import { getHelperProfilesPaginated } from '@/services/helperProfileService';
+import { getUsersService } from '@/services/userService';
 
-// This is now a client component wrapper that provides user data from context.
-export default function FindHelpers() {
-  const { users, isLoadingData } = useData();
-  
-  if (isLoadingData) {
-    return (
-      <div className="flex justify-center items-center h-screen w-full">
-        <p>Loading...</p>
-      </div>
-    );
-  }
+// This is now a Server Component that pre-fetches data.
+export default async function FindHelpers() {
+  // Fetch initial data on the server.
+  const initialProfilesData = await getHelperProfilesPaginated(12, null, 'all', null, 'all', 'all');
+  const allUsers = await getUsersService();
 
-  // The FindHelpersPage component now handles its own initial data fetching.
   return (
-    <FindHelpersPage
-      allUsers={users}
+    <FindHelpersClient
+      initialProfiles={initialProfilesData.items}
+      initialCursor={initialProfilesData.cursor}
+      allUsers={allUsers}
     />
   );
 }

@@ -161,3 +161,13 @@ export const subscribeToAllWebboardPostsService = (callback: (posts: WebboardPos
         logFirebaseError("subscribeToAllWebboardPostsService", error);
     });
 };
+
+export const subscribeToWebboardPostsByUserId = (userId: string, callback: (posts: WebboardPost[]) => void): (() => void) => {
+  const q = query(collection(db, WEBBOARD_POSTS_COLLECTION), where('userId', '==', userId), orderBy('createdAt', 'desc'));
+  return onSnapshot(q, (querySnapshot) => {
+    const posts = querySnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as WebboardPost));
+    callback(posts);
+  }, (error) => {
+    logFirebaseError(`subscribeToWebboardPostsByUserId for user ${userId}`, error);
+  });
+};
