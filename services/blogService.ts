@@ -25,9 +25,10 @@ import {
   increment,
   arrayRemove,
   arrayUnion,
-  limit
+  limit,
+  QuerySnapshot
 } from 'firebase/firestore';
-import type { BlogPost, BlogComment } from '../types/types.ts';
+import type { BlogPost, BlogComment } from '../types/types';
 import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps } from './serviceUtils';
 import { uploadImageService, deleteImageService } from './storageService';
@@ -69,7 +70,7 @@ export const getBlogPostBySlugService = async (slug: string): Promise<BlogPost |
 
 export const subscribeToAllBlogPosts = (callback: (posts: BlogPost[]) => void): (() => void) => {
     const q = query(collection(db, BLOG_POSTS_COLLECTION), orderBy("createdAt", "desc"));
-    return onSnapshot(q, (querySnapshot) => {
+    return onSnapshot(q, (querySnapshot: QuerySnapshot) => {
         const posts = querySnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as BlogPost));
         callback(posts);
     }, (error) => {
@@ -91,11 +92,11 @@ export const addOrUpdateBlogPostService = async (
     let coverImageURL = dataToSave.coverImageURL;
 
     if (newCoverImageBase64) {
-        const oldImageUrl = postId ? (await getDoc(doc(db, BLOG_POSTS_COLLECTION, postId))).data()?.coverImageURL : undefined;
+        const oldImageUrl = postId ? ((await getDoc(doc(db, BLOG_POSTS_COLLECTION, postId))).data() as Partial<BlogPost>)?.coverImageURL : undefined;
         if (oldImageUrl) await deleteImageService(oldImageUrl);
         coverImageURL = await uploadImageService(`blogCovers/${author.id}/${Date.now()}`, newCoverImageBase64);
     } else if (newCoverImageBase64 === null) {
-        const oldImageUrl = postId ? (await getDoc(doc(db, BLOG_POSTS_COLLECTION, postId))).data()?.coverImageURL : undefined;
+        const oldImageUrl = postId ? ((await getDoc(doc(db, BLOG_POSTS_COLLECTION, postId))).data() as Partial<BlogPost>)?.coverImageURL : undefined;
         if (oldImageUrl) await deleteImageService(oldImageUrl);
         coverImageURL = undefined;
     }
@@ -135,7 +136,7 @@ export const deleteBlogPostService = async (postId: string, coverImageUrl?: stri
 
 export const subscribeToBlogCommentsService = (postId: string, callback: (comments: BlogComment[]) => void): (() => void) => {
     const q = query(collection(db, BLOG_COMMENTS_COLLECTION), where("postId", "==", postId), orderBy("createdAt", "asc"));
-    return onSnapshot(q, (querySnapshot) => {
+    return onSnapshot(q, (querySnapshot: QuerySnapshot) => {
         const items = querySnapshot.docs.map(docSnap => ({ id: docSnap.id, ...convertTimestamps(docSnap.data()), } as BlogComment));
         callback(items);
     }, (error) => logFirebaseError(`subscribeToBlogCommentsService (${postId})`, error));

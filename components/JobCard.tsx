@@ -3,11 +3,11 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import type { Job, User } from '../types/types.ts';
-import { View, JobCategory, JobDesiredEducationLevelOption, Province, JobSubCategory } from '../types/types.ts';
-import { Button } from './Button.tsx';
-import { Modal } from './Modal.tsx';
-import { isDateInPast } from '../utils/dateUtils.ts';
+import type { Job, User } from '../types/types';
+import { View, JobCategory, JobDesiredEducationLevelOption, Province, JobSubCategory } from '../types/types';
+import { Button } from './Button';
+import { Modal } from './Modal';
+import { isDateInPast } from '../utils/dateUtils';
 
 interface JobCardProps {
   job: Job;

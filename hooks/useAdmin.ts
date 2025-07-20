@@ -11,7 +11,7 @@ import {
   forceResolveVouchReportService,
 } from '../services/adminService';
 import { deleteBlogPostService } from '../services/blogService';
-import type { UserRole, VouchReportStatus, VouchType, Job, HelperProfile, WebboardPost } from '../types/types.ts';
+import type { UserRole, VouchReportStatus, VouchType, Job, HelperProfile, WebboardPost } from '../types/types';
 import { logFirebaseError } from '../firebase/logging';
 
 export const useAdmin = () => {

@@ -13,7 +13,7 @@ import {
 import { getUserDocument } from '../services/userService';
 import { containsBlacklistedWords } from '../utils/validation';
 import { logFirebaseError } from '../firebase/logging';
-import type { User, WebboardCategory, WebboardPost } from '../types/types.ts';
+import type { User, WebboardCategory, WebboardPost } from '../types/types';
 
 export const useWebboard = () => {
   const { currentUser, setCurrentUser } = useAuth();
@@ -60,82 +60,81 @@ export const useWebboard = () => {
       } else {
         finalPostId = await addWebboardPostService(postData, { userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, photo: currentUser.photo });
         const updatedUser = await getUserDocument(currentUser.id);
-        if (updatedUser) setCurrentUser(updatedUser);
+        if (updatedUser) {
+          setCurrentUser(updatedUser);
+        }
       }
       return finalPostId;
-    } catch (error: any) {
-      logFirebaseError("useWebboard.addOrUpdatePost", error);
+    } catch (error) {
+      logFirebaseError("useWebboard.addOrUpdateWebboardPost", error);
       throw error;
     }
-  }, [currentUser, allWebboardPostsForAdmin, canEditOrDelete, checkWebboardPostLimits, setCurrentUser]);
-  
-  const addWebboardComment = useCallback(async (postId: string, text: string) => {
-    if (!currentUser) throw new Error("User not authenticated.");
-    if (containsBlacklistedWords(text)) throw new Error('เนื้อหาคอมเมนต์มีคำที่ไม่เหมาะสม');
-    try {
-      await addWebboardCommentService(postId, text, { userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, photo: currentUser.photo });
-      const updatedUser = await getUserDocument(currentUser.id);
-      if (updatedUser) setCurrentUser(updatedUser);
-    } catch (error: any) {
-      logFirebaseError("useWebboard.addComment", error);
-      throw error;
-    }
-  }, [currentUser, setCurrentUser]);
-
-  const updateWebboardComment = useCallback(async (commentId: string, newText: string) => {
-    if (!currentUser) throw new Error("User not authenticated.");
-    if (containsBlacklistedWords(newText)) throw new Error('เนื้อหาคอมเมนต์มีคำที่ไม่เหมาะสม');
-    const comment = webboardComments.find(c => c.id === commentId);
-    if (!comment || !canEditOrDelete(comment.userId, comment.ownerId)) throw new Error("คุณไม่มีสิทธิ์แก้ไขคอมเมนต์นี้");
-    try {
-      await updateWebboardCommentService(commentId, newText);
-    } catch (error: any) {
-      logFirebaseError("useWebboard.updateComment", error);
-      throw error;
-    }
-  }, [currentUser, webboardComments, canEditOrDelete]);
+  }, [currentUser, setCurrentUser, allWebboardPostsForAdmin, canEditOrDelete, checkWebboardPostLimits]);
   
   const deleteWebboardPost = useCallback(async (postId: string) => {
-    const post = allWebboardPostsForAdmin.find(p => p.id === postId);
-    if (!post || !canEditOrDelete(post.userId, post.ownerId)) throw new Error("คุณไม่มีสิทธิ์ลบโพสต์นี้");
+    const postToDelete = allWebboardPostsForAdmin.find(p => p.id === postId);
+    if (!postToDelete || !canEditOrDelete(postToDelete.userId, postToDelete.ownerId)) throw new Error('ไม่พบโพสต์ หรือไม่มีสิทธิ์ลบ');
     try {
       await deleteWebboardPostService(postId);
-    } catch (error: any) {
-      logFirebaseError("useWebboard.deletePost", error);
+    } catch (error) {
+      logFirebaseError("useWebboard.deleteWebboardPost", error);
       throw error;
     }
-  }, [canEditOrDelete, allWebboardPostsForAdmin]);
-  
-  const deleteWebboardComment = useCallback(async (commentId: string) => {
-    const comment = webboardComments.find(c => c.id === commentId);
-    if (!comment || !canEditOrDelete(comment.userId, comment.ownerId)) throw new Error("คุณไม่มีสิทธิ์ลบคอมเมนต์นี้");
-    try {
-      await deleteWebboardCommentService(commentId);
-    } catch (error: any) {
-      logFirebaseError("useWebboard.deleteComment", error);
-      throw error;
-    }
-  }, [canEditOrDelete, webboardComments]);
+  }, [allWebboardPostsForAdmin, canEditOrDelete]);
 
   const toggleWebboardPostLike = useCallback(async (postId: string) => {
     if (!currentUser) throw new Error("User not authenticated.");
     try {
       await toggleWebboardPostLikeService(postId, currentUser.id);
-    } catch (error: any) {
-      logFirebaseError("useWebboard.toggleLike", error);
+    } catch (error) {
+      logFirebaseError("useWebboard.toggleWebboardPostLike", error);
       throw error;
     }
   }, [currentUser]);
+  
+  const addWebboardComment = useCallback(async (postId: string, text: string) => {
+    if (!currentUser) throw new Error("User not authenticated.");
+    const limitCheck = checkWebboardCommentLimits(currentUser);
+    if (!limitCheck.canPost) throw new Error(limitCheck.message || "Cannot comment");
+    try {
+      await addWebboardCommentService(postId, text, { userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, photo: currentUser.photo });
+    } catch (error) {
+      logFirebaseError("useWebboard.addWebboardComment", error);
+      throw error;
+    }
+  }, [currentUser, checkWebboardCommentLimits]);
+
+  const updateWebboardComment = useCallback(async (commentId: string, newText: string) => {
+    const commentToUpdate = webboardComments.find(c => c.id === commentId);
+    if (!commentToUpdate || !canEditOrDelete(commentToUpdate.userId, commentToUpdate.ownerId)) throw new Error('ไม่พบคอมเมนต์ หรือไม่มีสิทธิ์แก้ไข');
+    try {
+      await updateWebboardCommentService(commentId, newText);
+    } catch (error) {
+      logFirebaseError("useWebboard.updateWebboardComment", error);
+      throw error;
+    }
+  }, [webboardComments, canEditOrDelete]);
+
+  const deleteWebboardComment = useCallback(async (commentId: string) => {
+    const commentToDelete = webboardComments.find(c => c.id === commentId);
+    if (!commentToDelete || !canEditOrDelete(commentToDelete.userId, commentToDelete.ownerId)) throw new Error('ไม่พบคอมเมนต์ หรือไม่มีสิทธิ์ลบ');
+    try {
+      await deleteWebboardCommentService(commentId);
+    } catch (error) {
+      logFirebaseError("useWebboard.deleteWebboardComment", error);
+      throw error;
+    }
+  }, [webboardComments, canEditOrDelete]);
 
   return {
-    addOrUpdateWebboardPost,
-    addWebboardComment,
-    updateWebboardComment,
-    deleteWebboardPost,
-    deleteWebboardComment,
-    toggleWebboardPostLike,
+    canEditOrDelete,
     checkWebboardPostLimits,
     checkWebboardCommentLimits,
-    canEditOrDelete
+    addOrUpdateWebboardPost,
+    deleteWebboardPost,
+    toggleWebboardPostLike,
+    addWebboardComment,
+    updateWebboardComment,
+    deleteWebboardComment,
   };
 };

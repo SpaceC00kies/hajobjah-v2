@@ -2,17 +2,17 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Job, HelperProfile, User, Interaction, WebboardPost, WebboardComment, UserLevel, VouchReport, Vouch, VouchType, BlogPost } from '../types/types.ts';
-import { UserRole, VouchReportStatus, VOUCH_TYPE_LABELS } from '../types/types.ts';
-import { Button } from './Button.tsx';
-import { OrionCommandCenter } from './OrionCommandCenter.tsx';
-import { useAdmin } from '../hooks/useAdmin.ts';
-import { formatDateDisplay } from '../utils/dateUtils.ts';
-import { isDateInPast } from '../utils/dateUtils.ts';
-import { AdminOverview } from './admin/AdminOverview.tsx';
-import { useAuth } from '@/context/AuthContext.tsx';
-import { useData } from '@/context/DataContext.tsx';
-import { getUserDisplayBadge as getUserDisplayBadgeUtil, getAuthorDisplayName as getAuthorDisplayNameUtil } from '@/utils/userUtils.ts';
+import type { Job, HelperProfile, User, Interaction, WebboardPost, WebboardComment, UserLevel, VouchReport, Vouch, VouchType, BlogPost } from '../types/types';
+import { UserRole, VouchReportStatus, VOUCH_TYPE_LABELS } from '../types/types';
+import { Button } from './Button';
+import { OrionCommandCenter } from './OrionCommandCenter';
+import { useAdmin } from '../hooks/useAdmin';
+import { formatDateDisplay } from '../utils/dateUtils';
+import { isDateInPast } from '../utils/dateUtils';
+import { AdminOverview } from './admin/AdminOverview';
+import { useAuth } from '@/context/AuthContext';
+import { useData } from '@/context/DataContext';
+import { getUserDisplayBadge as getUserDisplayBadgeUtil, getAuthorDisplayName as getAuthorDisplayNameUtil } from '@/utils/userUtils';
 
 export interface AdminItem {
   id: string;

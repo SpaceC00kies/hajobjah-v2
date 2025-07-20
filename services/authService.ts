@@ -31,8 +31,8 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import type { User, UserRole, UserTier, VouchInfo, GenderOption, HelperEducationLevelOption } from '../types/types.ts';
-import { USER_LEVELS } from '../types/types.ts';
+import type { User, UserRole, UserTier, VouchInfo, GenderOption, HelperEducationLevelOption } from '../types/types';
+import { USER_LEVELS } from '../types/types';
 import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps, cleanDataForFirestore } from './serviceUtils';
 
@@ -122,7 +122,7 @@ export const signInWithEmailPasswordService = async (loginIdentifier: string, pa
       const querySnapshot = await getDocs(q);
 
       if (!querySnapshot.empty) {
-        const userData = querySnapshot.docs[0].data();
+        const userData: any = querySnapshot.docs[0].data();
         if (userData && userData.email) {
           emailToSignIn = userData.email;
         } else {
@@ -138,7 +138,7 @@ export const signInWithEmailPasswordService = async (loginIdentifier: string, pa
 
     const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
     if (userDoc.exists()) {
-      const userData = userDoc.data();
+      const userData: any = userDoc.data();
       const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
       const postingLimits = userData.postingLimits || {
         lastJobPostDate: threeDaysAgo.toISOString(),

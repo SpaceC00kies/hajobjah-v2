@@ -2,12 +2,14 @@
 
 
 
+
+
 import React, { useState } from 'react';
 import type { EnrichedWebboardComment, User, View } from '../types/types'; // Added View
 import { UserRole } from '../types/types';
 // UserLevelBadge is removed as it's no longer displayed here
-import { Button } from './Button.tsx';
-import { containsBlacklistedWords } from '../utils/validation.ts';
+import { Button } from './Button';
+import { containsBlacklistedWords } from '../utils/validation';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface WebboardCommentItemProps {
@@ -133,67 +135,3 @@ export const WebboardCommentItem: React.FC<WebboardCommentItemProps> = ({ commen
                 <span 
                     className="text-sm font-semibold text-neutral-dark cursor-pointer hover:underline"
                     onClick={() => onNavigateToPublicProfile(comment.userId)}
-                    role="link"
-                    tabIndex={0}
-                    onKeyPress={(e) => e.key === 'Enter' && onNavigateToPublicProfile(comment.userId)}
-                >
-                    @{comment.authorDisplayName}
-                </span>
-                <span className="ml-2 text-xs text-gray-500">
-                    · {timeSince(comment.createdAt)}
-                    {wasEdited && !isEditing && (
-                        <span className="italic"> (แก้ไข {timeSince(comment.updatedAt as Date)})</span>
-                    )}
-                </span>
-            </div>
-            <div className="flex items-center space-x-1">
-                {showEditButton && !isEditing && (
-                    <button
-                        onClick={handleEdit}
-                        className="text-xs text-blue-500 hover:text-blue-700 p-0.5 rounded hover:bg-blue-100"
-                        aria-label="แก้ไขคอมเมนต์"
-                    >
-                        ✏️
-                    </button>
-                )}
-                {showDeleteButton && !isEditing && (
-                    <button
-                        onClick={handleDelete}
-                        className="text-xs text-red-500 hover:text-red-700 p-0.5 rounded hover:bg-red-100"
-                        aria-label="ลบคอมเมนต์"
-                    >
-                        🗑️
-                    </button>
-                )}
-            </div>
-        </div>
-        {isEditing ? (
-          <div className="mt-2">
-            <textarea
-              value={editedText}
-              onChange={(e) => {
-                setEditedText(e.target.value);
-                if(editError) setEditError(null);
-              }}
-              rows={3}
-              className={`w-full p-2.5 border rounded-md text-sm font-sans bg-white text-neutral-dark focus:outline-none focus:ring-1
-                          ${editError ? 'border-red-500 focus:border-red-500/50' : 'border-neutral-DEFAULT focus:border-neutral-DEFAULT/70 focus:ring-neutral-DEFAULT/50'}`}
-              autoFocus
-            />
-            {editError && <p className="text-red-500 text-xs mt-1">{editError}</p>}
-            <div className="flex justify-end gap-2 mt-2">
-              <Button onClick={handleCancelEdit} variant="outline" size="sm" colorScheme="neutral">
-                ยกเลิก
-              </Button>
-              <Button onClick={handleSaveEdit} size="sm" colorScheme="primary">
-                บันทึก
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <p className="font-serif font-normal text-sm sm:text-base text-neutral-800 whitespace-pre-wrap mt-1">{comment.text}</p>
-        )}
-      </div>
-    </motion.div>
-  );
-};

@@ -4,10 +4,10 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import type { User } from '../types/types.ts';
-import { Button } from './Button.tsx';
-import { isValidThaiMobileNumber } from '../utils/validation.ts';
-import { useAuthActions } from '../hooks/useAuthActions.ts';
+import type { User } from '../types/types';
+import { Button } from './Button';
+import { isValidThaiMobileNumber } from '../utils/validation';
+import { useAuthActions } from '../hooks/useAuthActions';
 
 type RegistrationFormErrorKeys =
   'publicDisplayName' | 'username' | 'email' | 'password' | 'confirmPassword' |

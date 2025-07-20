@@ -4,19 +4,19 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import type { User, Job, HelperProfile, WebboardPost, EnrichedWebboardPost, EnrichedHelperProfile } from '../types/types.ts';
-import { Button } from './Button.tsx';
-import { UserProfilePage } from './UserProfilePage.tsx';
-import { WebboardPostCard } from './WebboardPostCard.tsx';
-import { JobCard } from './JobCard.tsx';
-import { HelperCard } from './HelperCard.tsx';
-import { useUser } from '../hooks/useUser.ts';
-import { useWebboard } from '../hooks/useWebboard.ts';
-import { useHelpers } from '../hooks/useHelpers.ts';
-import { useJobs } from '../hooks/useJobs.ts';
-import { useData } from '../context/DataContext.tsx';
-import { getAuthorDisplayName as getAuthorDisplayNameUtil } from '@/utils/userUtils.ts';
-import { isDateInPast, calculateDaysRemaining } from '../utils/dateUtils.ts';
+import type { User, Job, HelperProfile, WebboardPost, EnrichedWebboardPost, EnrichedHelperProfile } from '../types/types';
+import { Button } from './Button';
+import { UserProfilePage } from './UserProfilePage';
+import { WebboardPostCard } from './WebboardPostCard';
+import { JobCard } from './JobCard';
+import { HelperCard } from './HelperCard';
+import { useUser } from '../hooks/useUser';
+import { useWebboard } from '../hooks/useWebboard';
+import { useHelpers } from '../hooks/useHelpers';
+import { useJobs } from '../hooks/useJobs';
+import { useData } from '../context/DataContext';
+import { getAuthorDisplayName as getAuthorDisplayNameUtil } from '@/utils/userUtils';
+import { isDateInPast, calculateDaysRemaining } from '../utils/dateUtils';
 
 const ProfileIcon = () => <span role="img" aria-label="Profile">👤</span>;
 const JobsIcon = () => <span role="img" aria-label="Jobs">💼</span>;
@@ -90,7 +90,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({ currentUser }) => {
   const interestedJobs = useMemo(() => allJobsForAdmin.filter(j => userInterests.some(i => i.targetType === 'job' && i.targetId === j.id)), [userInterests, allJobsForAdmin]);
   const interestedHelpers = useMemo(() => allHelperProfilesForAdmin.filter(p => userInterests.some(i => i.targetType === 'helperProfile' && i.targetId === p.id)).map(hp => ({ ...hp, userPhoto: users.find(u => u.id === hp.userId)?.photo, userAddress: users.find(u => u.id === hp.userId)?.address, verifiedExperienceBadge: hp.adminVerifiedExperience || false, profileCompleteBadge: !!users.find(u => u.id === hp.userId)?.profileComplete, warningBadge: hp.isSuspicious || false, interestedCount: hp.interestedCount || 0 } as EnrichedHelperProfile)), [userInterests, allHelperProfilesForAdmin, users]);
 
-  const tabs: { id: ActiveTab; label: string; icon: JSX.Element; }[] = [{ id: 'profile', label: 'โปรไฟล์', icon: <ProfileIcon /> }, { id: 'myJobs', label: 'ประกาศงาน', icon: <JobsIcon /> }, { id: 'myHelperServices', label: 'งานที่เสนอ', icon: <ServicesIcon /> }, { id: 'interests', label: 'สิ่งที่สนใจ', icon: <InterestedIcon /> }, { id: 'myWebboardPosts', label: 'กระทู้ของฉัน', icon: <WebboardIcon /> }];
+  const tabs: { id: ActiveTab; label: string; icon: React.ReactNode; }[] = [{ id: 'profile', label: 'โปรไฟล์', icon: <ProfileIcon /> }, { id: 'myJobs', label: 'ประกาศงาน', icon: <JobsIcon /> }, { id: 'myHelperServices', label: 'งานที่เสนอ', icon: <ServicesIcon /> }, { id: 'interests', label: 'สิ่งที่สนใจ', icon: <InterestedIcon /> }, { id: 'myWebboardPosts', label: 'กระทู้ของฉัน', icon: <WebboardIcon /> }];
 
   const renderItemStatus = (item: Job | HelperProfile) => {
     const isJob = 'payment' in item;

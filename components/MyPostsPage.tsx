@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import type { Job, HelperProfile, User, WebboardPost, WebboardComment, UserLevel } from '../types/types.ts';
-import { Button } from './Button.tsx';
-import { isDateInPast, calculateHoursRemaining } from '../utils/dateUtils.ts';
+import type { Job, HelperProfile, User, WebboardPost, WebboardComment, UserLevel } from '../types/types';
+import { Button } from './Button';
+import { isDateInPast, calculateHoursRemaining } from '../utils/dateUtils';
 
 interface MyPostsPageProps {
   currentUser: User;

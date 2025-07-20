@@ -3,8 +3,8 @@
 import React, { createContext, useState, useEffect, useContext, useMemo } from 'react';
 import { db } from '@/lib/firebase/clientApp';
 import { doc, onSnapshot } from 'firebase/firestore';
-import type { User } from '../types/types.ts';
-import { onAuthChangeService } from '../services/authService.ts';
+import type { User } from '../types/types';
+import { onAuthChangeService } from '../services/authService';
 import { convertTimestamps } from '../services/serviceUtils';
 
 interface AuthContextType {

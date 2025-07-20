@@ -1,8 +1,8 @@
 "use client";
 import React, { useState, useMemo } from 'react';
-import type { EnrichedBlogPost, FilterableBlogCategory } from '../types/types.ts';
-import { BlogCategory } from '../types/types.ts';
-import { BlogCard } from './BlogCard.tsx';
+import type { EnrichedBlogPost, FilterableBlogCategory } from '../types/types';
+import { BlogCategory } from '../types/types';
+import { BlogCard } from './BlogCard';
 import { motion } from 'framer-motion';
 
 interface BlogPageProps {

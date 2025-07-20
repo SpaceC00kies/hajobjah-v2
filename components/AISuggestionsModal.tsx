@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
-import { Modal } from './Modal.tsx';
-import { Button } from './Button.tsx';
+import { Modal } from './Modal';
+import { Button } from './Button';
 
 interface AISuggestionsModalProps {
   isOpen: boolean;

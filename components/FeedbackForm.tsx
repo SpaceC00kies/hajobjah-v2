@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Button } from './Button.tsx';
-import { Modal } from './Modal.tsx';
+import { Button } from './Button';
+import { Modal } from './Modal';
 
 interface FeedbackFormProps {
   isOpen: boolean;

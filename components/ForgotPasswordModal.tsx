@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Button } from './Button.tsx';
-import { Modal } from './Modal.tsx';
-import type { View } from '../types/types.ts';
+import { Button } from './Button';
+import { Modal } from './Modal';
+import type { View } from '../types/types';
 
 interface ForgotPasswordModalProps {
   isOpen: boolean;

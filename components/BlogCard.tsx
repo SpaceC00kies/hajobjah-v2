@@ -2,7 +2,7 @@
 "use client";
 import React from 'react';
 import Link from 'next/link';
-import type { EnrichedBlogPost } from '../types/types.ts';
+import type { EnrichedBlogPost } from '../types/types';
 import { motion } from 'framer-motion';
 
 interface BlogCardProps {

@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase/clientApp';
 import { verifyPasswordResetCode, confirmPasswordReset, type AuthError } from 'firebase/auth';
-import { Button } from './Button.tsx';
+import { Button } from './Button';
 
 export const PasswordResetPage: React.FC = () => {
   const router = useRouter();

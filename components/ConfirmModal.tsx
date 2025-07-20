@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from 'react';
-import { Button } from './Button.tsx';
+import { Button } from './Button';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ConfirmModalProps {

@@ -1,15 +1,15 @@
 "use client";
 
 import React, { createContext, useState, useEffect, useContext, useMemo } from 'react';
-import type { User, Interaction, WebboardPost, WebboardComment, Job, HelperProfile, VouchReport, BlogPost, Interest, Cursor, Vouch, PlatformVitals, ChartDataPoint, AdminDashboardData } from '../types/types.ts';
-import { useAuth } from './AuthContext.tsx';
-import { subscribeToUsersService, subscribeToUserSavedPostsService } from '../services/userService.ts';
-import { subscribeToAllJobsService } from '../services/jobService.ts';
-import { subscribeToAllHelperProfilesService } from '../services/helperProfileService.ts';
-import { subscribeToWebboardCommentsService, subscribeToAllWebboardPostsService } from '../services/webboardService.ts';
-import { subscribeToInteractionsService, subscribeToUserInterestsService } from '../services/interactionService.ts';
-import { subscribeToVouchReportsService } from '../services/adminService.ts';
-import { getAllBlogPosts, getBlogPostsForAdmin } from '../services/blogService.ts';
+import type { User, Interaction, WebboardPost, WebboardComment, Job, HelperProfile, VouchReport, BlogPost, Interest, Cursor, Vouch, PlatformVitals, ChartDataPoint, AdminDashboardData } from '../types/types';
+import { useAuth } from './AuthContext';
+import { subscribeToUsersService, subscribeToUserSavedPostsService } from '../services/userService';
+import { subscribeToAllJobsService } from '../services/jobService';
+import { subscribeToAllHelperProfilesService } from '../services/helperProfileService';
+import { subscribeToWebboardCommentsService, subscribeToAllWebboardPostsService } from '../services/webboardService';
+import { subscribeToInteractionsService, subscribeToUserInterestsService } from '../services/interactionService';
+import { subscribeToVouchReportsService } from '../services/adminService';
+import { getAllBlogPosts, getBlogPostsForAdmin } from '../services/blogService';
 
 interface DataContextType {
   users: User[];

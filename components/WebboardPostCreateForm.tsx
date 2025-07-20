@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import type { WebboardPost, User } from '../types/types'; 
 import { WebboardCategory } from '../types/types'; 
-import { Button } from './Button.tsx'; 
-import { Modal } from './Modal.tsx'; 
-import { containsBlacklistedWords } from '../utils/validation.ts';
-import { getJobTemplateForCategory } from '../utils/templates.ts'; 
+import { Button } from './Button'; 
+import { Modal } from './Modal'; 
+import { containsBlacklistedWords } from '../utils/validation';
+import { getJobTemplateForCategory } from '../utils/templates'; 
 
 interface WebboardPostCreateFormProps {
   isOpen: boolean;

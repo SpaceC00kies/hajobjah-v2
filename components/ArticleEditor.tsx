@@ -1,9 +1,9 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
-import type { BlogPost, User } from '../types/types.ts';
-import { BlogCategory } from '../types/types.ts';
-import { Button } from './Button.tsx';
-import { useBlog } from '../hooks/useBlog.ts';
+import type { BlogPost, User } from '../types/types';
+import { BlogCategory } from '../types/types';
+import { Button } from './Button';
+import { useBlog } from '../hooks/useBlog';
 
 type BlogPostFormData = Partial<Omit<BlogPost, 'id' | 'authorId' | 'authorDisplayName' | 'authorPhotoURL' | 'createdAt' | 'updatedAt' | 'publishedAt' | 'slug' | 'tags'>> & {
   newCoverImageBase64?: string | null;

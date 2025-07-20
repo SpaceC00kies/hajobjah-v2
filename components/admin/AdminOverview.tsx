@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { functions } from '../../lib/firebase/clientApp';
 import { httpsCallable } from 'firebase/functions';
-import type { AdminDashboardData, VouchReport, User } from '@/types/types.ts';
+import type { AdminDashboardData, VouchReport, User } from '@/types/types';
 import { PlatformVitals } from './widgets/PlatformVitals';
 import { ActionCenter } from './widgets/ActionCenter';
 import { GrowthChart } from './widgets/GrowthChart';

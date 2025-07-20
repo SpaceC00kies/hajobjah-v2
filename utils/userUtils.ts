@@ -1,7 +1,8 @@
 
 
-import type { User, WebboardPost, WebboardComment, UserLevel } from '../types/types.ts';
-import { USER_LEVELS, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS } from '../types/types.ts';
+
+import type { User, WebboardPost, WebboardComment, UserLevel } from '../types/types';
+import { USER_LEVELS, ADMIN_BADGE_DETAILS, MODERATOR_BADGE_DETAILS } from '../types/types';
 
 export const getAuthorDisplayName = (userId: string, fallbackName: string | undefined, users: User[]): string => {
   const user = users.find(u => u.id === userId);

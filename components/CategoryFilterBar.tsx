@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import type { JobCategory, FilterableCategory } from '../types/types.ts';
+import type { JobCategory, FilterableCategory } from '../types/types';
 // JOB_CATEGORY_EMOJIS_MAP is not used as emojis are disabled.
 
 interface CategoryFilterBarProps {

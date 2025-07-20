@@ -25,8 +25,9 @@ import {
   query,
   where,
   orderBy,
+  QuerySnapshot,
 } from 'firebase/firestore';
-import type { User, Vouch, VouchType } from '../types/types.ts';
+import type { User, Vouch, VouchType } from '../types/types';
 import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps, cleanDataForFirestore } from './serviceUtils';
 import { uploadImageService, deleteImageService } from './storageService';
@@ -97,7 +98,7 @@ export const updateUserProfileService = async (
 
 export const subscribeToUsersService = (callback: (users: User[]) => void): (() => void) => {
   const q = collection(db, USERS_COLLECTION);
-  return onSnapshot(q, (querySnapshot) => {
+  return onSnapshot(q, (querySnapshot: QuerySnapshot) => {
     const items = querySnapshot.docs.map(docSnap => ({
       id: docSnap.id,
       ...convertTimestamps(docSnap.data()),
@@ -161,7 +162,7 @@ export const subscribeToUserSavedPostsService = (userId: string, callback: (save
   const userDocRef = doc(db, USERS_COLLECTION, userId);
   return onSnapshot(userDocRef, (docSnap) => {
     if (docSnap.exists()) {
-      const userData = docSnap.data();
+      const userData = docSnap.data() as Partial<User>;
       callback(userData.savedWebboardPosts || []);
     } else {
       callback([]);

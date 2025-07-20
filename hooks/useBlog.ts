@@ -8,7 +8,7 @@ import {
   updateBlogCommentService,
   deleteBlogCommentService,
 } from '../services/blogService';
-import type { BlogPost, BlogComment } from '../types/types.ts';
+import type { BlogPost, BlogComment } from '../types/types';
 import { logFirebaseError } from '../firebase/logging';
 
 type BlogPostFormData = Partial<Omit<BlogPost, 'id' | 'authorDisplayName' | 'authorPhotoURL' | 'createdAt' | 'updatedAt' | 'publishedAt'>> & { newCoverImageBase64?: string | null };

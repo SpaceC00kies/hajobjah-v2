@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from './Button.tsx';
-import { useAuthActions } from '../hooks/useAuthActions.ts';
-import { useData } from '../context/DataContext.tsx';
+import { Button } from './Button';
+import { useAuthActions } from '../hooks/useAuthActions';
+import { useData } from '../context/DataContext';
 
 
 export const LoginForm: React.FC = () => {

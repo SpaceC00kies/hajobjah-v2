@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import type { ChartDataPoint } from '@/types/types.ts';
+import type { ChartDataPoint } from '@/types/types';
 
 interface GrowthChartProps {
   data: ChartDataPoint[];

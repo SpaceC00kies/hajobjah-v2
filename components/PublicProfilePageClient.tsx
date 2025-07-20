@@ -3,12 +3,12 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import type { User, HelperProfile } from '../types/types.ts'; 
-import { VOUCH_TYPE_LABELS, VouchType, ACTIVITY_BADGE_DETAILS } from '../types/types.ts'; 
-import { Button } from './Button.tsx';
-import { UserLevelBadge } from './UserLevelBadge.tsx';
-import { useAuth } from '@/context/AuthContext.tsx';
-import { useData } from '@/context/DataContext.tsx';
+import type { User, HelperProfile } from '../types/types'; 
+import { VOUCH_TYPE_LABELS, VouchType, ACTIVITY_BADGE_DETAILS } from '../types/types'; 
+import { Button } from './Button';
+import { UserLevelBadge } from './UserLevelBadge';
+import { useAuth } from '@/context/AuthContext';
+import { useData } from '@/context/DataContext';
 
 interface PublicProfilePageClientProps {
   user: User; 

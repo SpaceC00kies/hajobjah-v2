@@ -10,9 +10,9 @@ import {
   db, 
   functions
 } from '@/lib/firebase/clientApp';
-import { doc, onSnapshot, setDoc, updateDoc, collection, addDoc, orderBy, query, runTransaction, deleteDoc, getDoc, increment } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, updateDoc, collection, addDoc, orderBy, query, runTransaction, deleteDoc, getDoc, increment, QuerySnapshot } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { type SiteConfig, type UserRole, type Vouch, type VouchReport, VouchReportStatus, type VouchType, type Job, type HelperProfile, type WebboardPost } from '../types/types.ts';
+import { type SiteConfig, type UserRole, type Vouch, type VouchReport, VouchReportStatus, type VouchType, type Job, type HelperProfile, type WebboardPost } from '../types/types';
 import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps } from './serviceUtils';
 
@@ -97,7 +97,7 @@ export const reportVouchService = async (vouch: Vouch, reporterId: string, repor
 export const subscribeToVouchReportsService = (callback: (reports: VouchReport[]) => void): (() => void) => {
     const VOUCH_REPORTS_COLLECTION = 'vouchReports';
     const q = query(collection(db, VOUCH_REPORTS_COLLECTION), orderBy("createdAt", "desc"));
-    return onSnapshot(q, (querySnapshot) => {
+    return onSnapshot(q, (querySnapshot: QuerySnapshot) => {
         const items = querySnapshot.docs.map(docSnap => ({
             id: docSnap.id,
             ...convertTimestamps(docSnap.data()),

@@ -22,8 +22,10 @@ import {
   arrayRemove,
   onSnapshot,
   Timestamp,
+  QuerySnapshot,
+  DocumentData,
 } from 'firebase/firestore';
-import type { WebboardPost, WebboardComment, WebboardCategory, PaginatedDocsResponse, Cursor } from '../types/types.ts';
+import type { WebboardPost, WebboardComment, WebboardCategory, PaginatedDocsResponse, Cursor } from '../types/types';
 import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps, cleanDataForFirestore } from './serviceUtils';
 import { uploadImageService, deleteImageService } from './storageService';
@@ -77,7 +79,7 @@ export const updateWebboardPostService = async (postId: string, postData: Partia
     let dataToUpdate: Partial<WebboardPost> = { ...postData, updatedAt: serverTimestamp() as any };
     if (postData.image && postData.image.startsWith('data:image')) {
       const existingPost = await getDoc(doc(db, WEBBOARD_POSTS_COLLECTION, postId));
-      if (existingPost.data()?.image) await deleteImageService(existingPost.data()?.image);
+      if ((existingPost.data() as Partial<WebboardPost>)?.image) await deleteImageService((existingPost.data() as Partial<WebboardPost>)?.image);
       dataToUpdate.image = await uploadImageService(`webboardImages/${postId}/${Date.now()}`, postData.image);
     } else if (postData.image === undefined) {
       dataToUpdate.image = deleteField() as any;
@@ -89,7 +91,7 @@ export const updateWebboardPostService = async (postId: string, postData: Partia
 export const deleteWebboardPostService = async (postId: string): Promise<void> => {
   try {
     const postSnap = await getDoc(doc(db, WEBBOARD_POSTS_COLLECTION, postId));
-    if (postSnap.data()?.image) await deleteImageService(postSnap.data()?.image);
+    if ((postSnap.data() as Partial<WebboardPost>)?.image) await deleteImageService((postSnap.data() as Partial<WebboardPost>)?.image);
     await deleteDoc(doc(db, WEBBOARD_POSTS_COLLECTION, postId));
   } catch (error: any) { logFirebaseError("deleteWebboardPostService", error); throw error; }
 };
@@ -107,7 +109,8 @@ export const getWebboardPostsPaginated = async (pageSize: number, cursor: Cursor
             posts = posts.filter(p => p.title.toLowerCase().includes(term) || p.body.toLowerCase().includes(term) || p.authorDisplayName.toLowerCase().includes(term));
         }
         const lastDoc = snapshot.docs[snapshot.docs.length - 1];
-        const nextCursor: Cursor | null = lastDoc ? { isPinned: lastDoc.data().isPinned, updatedAt: (lastDoc.data().createdAt as Timestamp).toDate().toISOString() } : null;
+        const lastDocData = lastDoc?.data() as DocumentData | undefined;
+        const nextCursor: Cursor | null = lastDocData ? { isPinned: lastDocData.isPinned, updatedAt: (lastDocData.createdAt as Timestamp).toDate().toISOString() } : null;
         return { items: posts, cursor: nextCursor };
     } catch (error: any) { logFirebaseError("getWebboardPostsPaginated", error); throw error; }
 };
@@ -144,14 +147,14 @@ export const deleteWebboardCommentService = async (commentId: string): Promise<v
 
 export const subscribeToWebboardCommentsService = (callback: (comments: WebboardComment[]) => void): (() => void) => {
   const q = query(collection(db, WEBBOARD_COMMENTS_COLLECTION), orderBy('createdAt', 'desc'));
-  return onSnapshot(q, (querySnapshot) => {
+  return onSnapshot(q, (querySnapshot: QuerySnapshot) => {
     callback(querySnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as WebboardComment)));
   }, (error) => logFirebaseError("subscribeToWebboardCommentsService", error));
 };
 
 export const subscribeToAllWebboardPostsService = (callback: (posts: WebboardPost[]) => void): (() => void) => {
     const q = query(collection(db, WEBBOARD_POSTS_COLLECTION), orderBy("createdAt", "desc"));
-    return onSnapshot(q, (querySnapshot) => {
+    return onSnapshot(q, (querySnapshot: QuerySnapshot) => {
         const posts = querySnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as WebboardPost));
         callback(posts);
     }, (error) => {

@@ -2,13 +2,13 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Job, User } from '../types/types.ts';
-import { View, JobDesiredEducationLevelOption, JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
-import { Button } from './Button.tsx';
-import { containsBlacklistedWords } from '../utils/validation.ts';
-import { getJobTemplateForCategory } from '../utils/templates.ts';
-import { useJobs } from '../hooks/useJobs.ts';
-import { useAuth } from '../context/AuthContext.tsx';
+import type { Job, User } from '../types/types';
+import { View, JobDesiredEducationLevelOption, JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types';
+import { Button } from './Button';
+import { containsBlacklistedWords } from '../utils/validation';
+import { getJobTemplateForCategory } from '../utils/templates';
+import { useJobs } from '../hooks/useJobs';
+import { useAuth } from '../context/AuthContext';
 
 type FormDataType = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'posterIsAdminVerified' | 'interestedCount'>;
 

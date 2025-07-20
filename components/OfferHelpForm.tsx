@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import type { HelperProfile, User } from '../types/types.ts';
-import { JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
-import { Button } from './Button.tsx';
-import { useHelpers } from '../hooks/useHelpers.ts';
-import { useAuth } from '../context/AuthContext.tsx';
-import { logFirebaseError } from '../firebase/logging.ts';
-import { containsBlacklistedWords } from '../utils/validation.ts';
+import type { HelperProfile, User } from '../types/types';
+import { JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types';
+import { Button } from './Button';
+import { useHelpers } from '../hooks/useHelpers';
+import { useAuth } from '../context/AuthContext';
+import { logFirebaseError } from '../firebase/logging';
+import { containsBlacklistedWords } from '../utils/validation';
 
 type FormDataType = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt'>;
 

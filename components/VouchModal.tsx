@@ -1,10 +1,10 @@
 "use client";
 import React, { useState } from 'react';
-import { Button } from './Button.tsx';
-import { Modal } from './Modal.tsx';
-import type { User, VouchType } from '../types/types.ts';
-import { VOUCH_TYPE_LABELS } from '../types/types.ts';
-import { useUser } from '../hooks/useUser.ts';
+import { Button } from './Button';
+import { Modal } from './Modal';
+import type { User, VouchType } from '../types/types';
+import { VOUCH_TYPE_LABELS } from '../types/types';
+import { useUser } from '../hooks/useUser';
 
 interface VouchModalProps {
   isOpen: boolean;

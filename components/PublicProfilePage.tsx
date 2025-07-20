@@ -1,10 +1,10 @@
 "use client";
 
 import React from 'react';
-import type { User, HelperProfile, VouchInfo } from '../types/types.ts'; 
-import { HelperEducationLevelOption, GenderOption, ACTIVITY_BADGE_DETAILS, VOUCH_TYPE_LABELS, VouchType } from '../types/types.ts'; 
-import { Button } from './Button.tsx';
-import { UserLevelBadge } from './UserLevelBadge.tsx'; 
+import type { User, HelperProfile, VouchInfo } from '../types/types'; 
+import { HelperEducationLevelOption, GenderOption, ACTIVITY_BADGE_DETAILS, VOUCH_TYPE_LABELS, VouchType } from '../types/types'; 
+import { Button } from './Button';
+import { UserLevelBadge } from './UserLevelBadge'; 
 
 interface PublicProfilePageProps {
   user: User; 

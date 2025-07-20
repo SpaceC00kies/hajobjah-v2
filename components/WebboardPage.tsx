@@ -3,12 +3,12 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import type { WebboardPost, WebboardComment, User, EnrichedWebboardPost, UserLevel, UserRole, Cursor } from '../types/types.ts';
-import { View, WebboardCategory } from '../types/types.ts';
-import { Button } from './Button.tsx';
-import { WebboardPostCard } from './WebboardPostCard.tsx';
-import { WebboardPostCreateForm } from './WebboardPostCreateForm.tsx';
-import { getWebboardPostsPaginated as getWebboardPostsPaginatedService } from '../services/webboardService.ts';
+import type { WebboardPost, WebboardComment, User, EnrichedWebboardPost, UserLevel, UserRole, Cursor } from '../types/types';
+import { View, WebboardCategory } from '../types/types';
+import { Button } from './Button';
+import { WebboardPostCard } from './WebboardPostCard';
+import { WebboardPostCreateForm } from './WebboardPostCreateForm';
+import { getWebboardPostsPaginated as getWebboardPostsPaginatedService } from '../services/webboardService';
 import { logFirebaseError } from '../firebase/logging';
 import { motion } from 'framer-motion';
 

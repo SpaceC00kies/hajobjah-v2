@@ -1,16 +1,16 @@
 "use client";
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Job, FilterableCategory, JobSubCategory, User, PaginatedDocsResponse, Cursor } from '../types/types.ts';
-import { View, JobCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
-import { JobCard } from './JobCard.tsx';
-import { getJobsPaginated } from '../services/jobService.ts';
-import { useUser } from '../hooks/useUser.ts';
-import { useAuth } from '../context/AuthContext.tsx';
-import { useData } from '../context/DataContext.tsx';
+import type { Job, FilterableCategory, JobSubCategory, User, PaginatedDocsResponse, Cursor } from '../types/types';
+import { View, JobCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types';
+import { JobCard } from './JobCard';
+import { getJobsPaginated } from '../services/jobService';
+import { useUser } from '../hooks/useUser';
+import { useAuth } from '../context/AuthContext';
+import { useData } from '../context/DataContext';
 import { motion } from 'framer-motion';
-import { FilterSidebar } from './FilterSidebar.tsx';
-import { CardSkeleton } from './CardSkeleton.tsx';
+import { FilterSidebar } from './FilterSidebar';
+import { CardSkeleton } from './CardSkeleton';
 
 interface FindJobsPageProps {
   allUsers: User[];

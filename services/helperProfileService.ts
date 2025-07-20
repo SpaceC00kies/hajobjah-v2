@@ -15,11 +15,12 @@ import {
   query,
   where,
   orderBy,
+  QuerySnapshot,
 } from 'firebase/firestore';
-import type { HelperProfile, User, Province, JobSubCategory, PaginatedDocsResponse, Cursor, JobCategory } from '../types/types.ts';
+import type { HelperProfile, User, Province, JobSubCategory, PaginatedDocsResponse, Cursor, JobCategory } from '../types/types';
 import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps, cleanDataForFirestore } from './serviceUtils';
-import { filterListingsService } from './searchService.ts';
+import { filterListingsService } from './searchService';
 
 
 const HELPER_PROFILES_COLLECTION = 'helperProfiles';
@@ -74,7 +75,7 @@ export const getHelperProfilesPaginated = async (pageSize: number, cursor: Curso
 
 export const subscribeToAllHelperProfilesService = (callback: (profiles: HelperProfile[]) => void): (() => void) => {
   const q = query(collection(db, HELPER_PROFILES_COLLECTION), orderBy('postedAt', 'desc'));
-  return onSnapshot(q, (snapshot) => callback(snapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as HelperProfile))), (error) => logFirebaseError(`subscribeToAllHelperProfilesService`, error));
+  return onSnapshot(q, (snapshot: QuerySnapshot) => callback(snapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as HelperProfile))), (error) => logFirebaseError(`subscribeToAllHelperProfilesService`, error));
 };
 
 export const getHelperProfileDocument = async (profileId: string): Promise<HelperProfile | null> => {

@@ -3,12 +3,12 @@
 
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import type { EnrichedBlogPost, BlogComment, User } from '../types/types.ts';
-import { Button } from './Button.tsx';
+import type { EnrichedBlogPost, BlogComment, User } from '../types/types';
+import { Button } from './Button';
 import { motion } from 'framer-motion';
-import { BlogCommentItem } from './BlogCommentItem.tsx';
-import { BlogCommentForm } from './BlogCommentForm.tsx';
-import { useBlog } from '../hooks/useBlog.ts';
+import { BlogCommentItem } from './BlogCommentItem';
+import { BlogCommentForm } from './BlogCommentForm';
+import { useBlog } from '../hooks/useBlog';
 import { useAuth } from '@/context/AuthContext';
 
 interface BlogArticlePageProps {

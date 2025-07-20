@@ -1,17 +1,17 @@
 "use client";
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import type { HelperProfile, EnrichedHelperProfile, FilterableCategory, JobSubCategory, User, PaginatedDocsResponse, Cursor } from '../types/types.ts';
-import { View, JobCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
-import { HelperCard } from './HelperCard.tsx';
-import { getHelperProfilesPaginated } from '../services/helperProfileService.ts';
-import { useUser } from '../hooks/useUser.ts';
-import { useHelpers } from '../hooks/useHelpers.ts';
-import { useAuth } from '../context/AuthContext.tsx';
-import { useData } from '../context/DataContext.tsx';
+import type { HelperProfile, EnrichedHelperProfile, FilterableCategory, JobSubCategory, User, PaginatedDocsResponse, Cursor } from '../types/types';
+import { View, JobCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types';
+import { HelperCard } from './HelperCard';
+import { getHelperProfilesPaginated } from '../services/helperProfileService';
+import { useUser } from '../hooks/useUser';
+import { useHelpers } from '../hooks/useHelpers';
+import { useAuth } from '../context/AuthContext';
+import { useData } from '../context/DataContext';
 import { motion } from 'framer-motion';
-import { FilterSidebar } from './FilterSidebar.tsx';
-import { CardSkeleton } from './CardSkeleton.tsx';
+import { FilterSidebar } from './FilterSidebar';
+import { CardSkeleton } from './CardSkeleton';
 
 interface FindHelpersPageProps {
   allUsers: User[];

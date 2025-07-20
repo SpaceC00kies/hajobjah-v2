@@ -3,11 +3,11 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import type { EnrichedHelperProfile, User } from '../types/types.ts';
-import { View, Province, JobSubCategory } from '../types/types.ts';
-import { Modal } from './Modal.tsx';
-import { Button } from './Button.tsx';
-import { isDateInPast, calculateDaysRemaining } from '../utils/dateUtils.ts';
+import type { EnrichedHelperProfile, User } from '../types/types';
+import { View, Province, JobSubCategory } from '../types/types';
+import { Modal } from './Modal';
+import { Button } from './Button';
+import { isDateInPast, calculateDaysRemaining } from '../utils/dateUtils';
 
 interface HelperCardProps {
   profile: EnrichedHelperProfile;

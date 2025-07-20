@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useMemo } from 'react';
-import { Modal } from './Modal.tsx';
-import { PROVINCES_BY_REGION } from '../utils/provinceData.ts';
+import { Modal } from './Modal';
+import { PROVINCES_BY_REGION } from '../utils/provinceData';
 
 interface LocationModalProps {
   isOpen: boolean;

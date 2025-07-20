@@ -3,19 +3,19 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import type { SearchResultItem, FilterableCategory, JobSubCategory, Province, User, Job, HelperProfile, EnrichedHelperProfile } from '../types/types.ts';
-import { View, JobCategory, JOB_SUBCATEGORIES_MAP } from '../types/types.ts';
-import { FilterSidebar } from './FilterSidebar.tsx';
-import { JobCard } from './JobCard.tsx';
-import { HelperCard } from './HelperCard.tsx';
-import { CardSkeleton } from './CardSkeleton.tsx';
-import { Button } from './Button.tsx';
+import type { SearchResultItem, FilterableCategory, JobSubCategory, Province, User, Job, HelperProfile, EnrichedHelperProfile } from '../types/types';
+import { View, JobCategory, JOB_SUBCATEGORIES_MAP } from '../types/types';
+import { FilterSidebar } from './FilterSidebar';
+import { JobCard } from './JobCard';
+import { HelperCard } from './HelperCard';
+import { CardSkeleton } from './CardSkeleton';
+import { Button } from './Button';
 import { motion } from 'framer-motion';
-import { universalSearchService } from '@/services/searchService.ts';
-import { useAuth } from '@/context/AuthContext.tsx';
-import { useData } from '@/context/DataContext.tsx';
-import { useUser } from '@/hooks/useUser.ts';
-import { useHelpers } from '@/hooks/useHelpers.ts';
+import { universalSearchService } from '@/services/searchService';
+import { useAuth } from '@/context/AuthContext';
+import { useData } from '@/context/DataContext';
+import { useUser } from '@/hooks/useUser';
+import { useHelpers } from '@/hooks/useHelpers';
 import Link from 'next/link';
 
 type ActiveTab = 'all' | 'jobs' | 'helpers';
