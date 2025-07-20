@@ -1,13 +1,7 @@
 
-
-
-
-
-
 import React, { useState } from 'react';
-import type { EnrichedWebboardComment, User, View } from '../types/types'; // Added View
+import type { EnrichedWebboardComment, User, View } from '../types/types';
 import { UserRole } from '../types/types';
-// UserLevelBadge is removed as it's no longer displayed here
 import { Button } from './Button';
 import { containsBlacklistedWords } from '../utils/validation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -123,15 +117,76 @@ export const WebboardCommentItem: React.FC<WebboardCommentItemProps> = ({ commen
     <motion.div 
       className="flex items-start space-x-3 py-3 border-b border-neutral-DEFAULT/50 last:border-b-0"
       variants={commentItemVariants}
-      initial="hidden" // Animate in when first appearing
+      initial="hidden"
       animate="visible"
-      exit="exit" // Animate out when removed by AnimatePresence
-      layout // Smoothly animate layout changes (e.g., when edit form appears/disappears)
+      exit="exit"
+      layout
     >
       <FallbackAvatarComment name={comment.authorDisplayName} photo={comment.authorPhoto} className="mt-1" />
       <div className="flex-1">
         <div className="flex items-center justify-between">
-            <div className="flex items-baseline"> 
-                <span 
-                    className="text-sm font-semibold text-neutral-dark cursor-pointer hover:underline"
-                    onClick={() => onNavigateToPublicProfile(comment.userId)}
+          <div className="flex items-baseline"> 
+            <span 
+              className="text-sm font-semibold text-neutral-dark cursor-pointer hover:underline"
+              onClick={() => onNavigateToPublicProfile(comment.userId)}
+            >
+              {comment.authorDisplayName}
+            </span>
+            <span className="text-xs text-neutral-medium ml-2">
+              {timeSince(comment.createdAt)}
+              {wasEdited && <span className="italic"> (edited)</span>}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {showEditButton && !isEditing && (
+              <button onClick={handleEdit} className="text-xs text-blue-600 hover:underline">Edit</button>
+            )}
+            {showDeleteButton && !isEditing && (
+              <button onClick={handleDelete} className="text-xs text-red-600 hover:underline">Delete</button>
+            )}
+          </div>
+        </div>
+
+        <AnimatePresence initial={false}>
+          {isEditing ? (
+            <motion.div
+              key="edit-form"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="overflow-hidden"
+            >
+              <div className="mt-2">
+                <textarea
+                  value={editedText}
+                  onChange={(e) => {
+                    setEditedText(e.target.value);
+                    if (editError) setEditError(null);
+                  }}
+                  rows={3}
+                  className={`w-full p-2.5 border rounded-md text-sm font-sans font-normal transition-colors duration-150 ease-in-out bg-white text-neutral-dark focus:outline-none focus:ring-1 focus:bg-gray-50 ${editError ? 'border-red-500' : 'border-neutral-DEFAULT'}`}
+                />
+                {editError && <p className="text-red-500 text-xs mt-1">{editError}</p>}
+                <div className="flex gap-2 mt-2">
+                  <Button onClick={handleSaveEdit} size="sm">Save</Button>
+                  <Button onClick={handleCancelEdit} size="sm" variant="outline" colorScheme="neutral">Cancel</Button>
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.p
+              key="comment-text"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-sm text-neutral-dark mt-1 whitespace-pre-wrap"
+            >
+              {comment.text}
+            </motion.p>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.div>
+  );
+};
