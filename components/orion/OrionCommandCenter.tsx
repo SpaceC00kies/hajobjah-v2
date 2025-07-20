@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { orionAnalyzeService } from '../services/adminService';
-import type { OrionMessage, OrionInsightData } from '../types/types';
-import { Button } from './Button';
+import { orionAnalyzeService } from '../../services/adminService';
+import type { OrionMessage, OrionInsightData } from '../../types/types';
+import { Button } from '../Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { OrionInsightCard } from './orion/OrionInsightCard';
+import { OrionInsightCard } from './OrionInsightCard';
 
 const TypingIndicator = () => (
     <motion.div className="flex items-center space-x-1.5">

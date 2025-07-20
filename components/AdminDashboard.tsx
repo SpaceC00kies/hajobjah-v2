@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { Job, HelperProfile, User, Interaction, WebboardPost, WebboardComment, UserLevel, VouchReport, Vouch, VouchType, BlogPost } from '../types/types';
 import { UserRole, VouchReportStatus, VOUCH_TYPE_LABELS } from '../types/types';
 import { Button } from './Button';
-import { OrionCommandCenter } from './OrionCommandCenter';
+import { OrionCommandCenter } from './orion/OrionCommandCenter';
 import { useAdmin } from '../hooks/useAdmin';
 import { formatDateDisplay } from '../utils/dateUtils';
 import { isDateInPast } from '../utils/dateUtils';
