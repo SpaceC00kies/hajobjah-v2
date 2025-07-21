@@ -259,7 +259,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <select
                 key="role"
                 value={user.role}
-                onChange={e => admin.setUserRole(user.id, e.target.value as UserRole)}
+                onChange={e => { admin.setUserRole(user.id, e.target.value as UserRole); setOpenActionMenuId(null); }}
                 disabled={user.id === currentUser?.id}
                 className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50"
             >
@@ -277,23 +277,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         if ('adminVerifiedExperience' in contentItem && contentItem.adminVerifiedExperience) badges.push(renderStatusBadge('Verified', 'green'));
         if (('isHired' in contentItem && contentItem.isHired) || ('isUnavailable' in contentItem && contentItem.isUnavailable)) badges.push(renderStatusBadge('Hired/Unavailable', 'gray'));
 
-        primaryAction = <Button onClick={() => onStartEditItem({id: item.id, itemType, originalItem: item, title})} size="sm">Edit</Button>;
+        primaryAction = <Button onClick={() => { onStartEditItem({id: item.id, itemType, originalItem: item, title} as AdminItem); setOpenActionMenuId(null); }} size="sm">Edit</Button>;
         secondaryActions = [
-            <button key="delete" onClick={() => onDeleteItem(item.id, itemType as 'job' | 'profile' | 'webboardPost')} className="w-full text-left text-sm p-2 rounded hover:bg-red-100 text-red-700">Delete</button>
+            <button key="delete" onClick={() => { onDeleteItem(item.id, itemType as 'job' | 'profile' | 'webboardPost'); setOpenActionMenuId(null); }} className="w-full text-left text-sm p-2 rounded hover:bg-red-100 text-red-700">Delete</button>
         ];
         
         if(itemType === 'job') {
             const jobItem = item as Job;
-            secondaryActions.push(<button key="suspicious" onClick={() => admin.toggleSuspiciousJob(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{jobItem.isSuspicious ? 'Unsuspicious' : 'Suspicious'}</button>);
-            secondaryActions.push(<button key="pin" onClick={() => admin.togglePinnedJob(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{jobItem.isPinned ? 'Unpin' : 'Pin'}</button>);
-            secondaryActions.push(<button key="verify" onClick={() => admin.toggleVerifiedJob(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{jobItem.adminVerified ? 'Unverify' : 'Verify'}</button>);
+            secondaryActions.push(<button key="suspicious" onClick={() => { admin.toggleSuspiciousJob(item.id); setOpenActionMenuId(null); }} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{jobItem.isSuspicious ? 'Unsuspicious' : 'Suspicious'}</button>);
+            secondaryActions.push(<button key="pin" onClick={() => { admin.togglePinnedJob(item.id); setOpenActionMenuId(null); }} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{jobItem.isPinned ? 'Unpin' : 'Pin'}</button>);
+            secondaryActions.push(<button key="verify" onClick={() => { admin.toggleVerifiedJob(item.id); setOpenActionMenuId(null); }} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{jobItem.adminVerified ? 'Unverify' : 'Verify'}</button>);
         } else if (itemType === 'profile') {
             const profileItem = item as HelperProfile;
-            secondaryActions.push(<button key="suspicious" onClick={() => admin.toggleSuspiciousHelperProfile(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{profileItem.isSuspicious ? 'Unsuspicious' : 'Suspicious'}</button>);
-            secondaryActions.push(<button key="pin" onClick={() => admin.togglePinnedHelperProfile(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{profileItem.isPinned ? 'Unpin' : 'Pin'}</button>);
-            secondaryActions.push(<button key="verify" onClick={() => admin.toggleVerifiedExperience(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{profileItem.adminVerifiedExperience ? 'Unverify' : 'Verify'}</button>);
+            secondaryActions.push(<button key="suspicious" onClick={() => { admin.toggleSuspiciousHelperProfile(item.id); setOpenActionMenuId(null); }} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{profileItem.isSuspicious ? 'Unsuspicious' : 'Suspicious'}</button>);
+            secondaryActions.push(<button key="pin" onClick={() => { admin.togglePinnedHelperProfile(item.id); setOpenActionMenuId(null); }} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{profileItem.isPinned ? 'Unpin' : 'Pin'}</button>);
+            secondaryActions.push(<button key="verify" onClick={() => { admin.toggleVerifiedExperience(item.id); setOpenActionMenuId(null); }} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{profileItem.adminVerifiedExperience ? 'Unverify' : 'Verify'}</button>);
         } else if (itemType === 'webboardPost') {
-             secondaryActions.push(<button key="pin" onClick={() => admin.pinWebboardPost(item.id)} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{contentItem.isPinned ? 'Unpin' : 'Pin'}</button>);
+             secondaryActions.push(<button key="pin" onClick={() => { admin.pinWebboardPost(item.id); setOpenActionMenuId(null); }} className="w-full text-left text-sm p-2 rounded hover:bg-neutral-light/50">{contentItem.isPinned ? 'Unpin' : 'Pin'}</button>);
         }
       }
 
@@ -345,7 +345,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                          {openActionMenuId === item.id && (
                             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-primary-light">
                                 <div className="py-1">
-                                    {canEdit && <button onClick={() => admin.deleteBlogPost(item.id, (item as BlogPost).coverImageURL)} className="w-full text-left text-sm p-2 rounded hover:bg-red-100 text-red-700">Delete</button>}
+                                    {canEdit && <button onClick={() => { admin.deleteBlogPost(item.id, (item as BlogPost).coverImageURL); setOpenActionMenuId(null); }} className="w-full text-left text-sm p-2 rounded hover:bg-red-100 text-red-700">Delete</button>}
                                 </div>
                             </div>
                          )}

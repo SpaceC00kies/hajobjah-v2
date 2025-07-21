@@ -293,13 +293,38 @@ const App: React.FC = () => {
     navigateTo(targetView);
   };
   
-  const openConfirmModal = (title: string, message: string, onConfirm: () => void) => {
-    setConfirmModalTitle(title); setConfirmModalMessage(message); setOnConfirmAction(() => onConfirm); setIsConfirmModalOpen(true);
-  };
+  const openConfirmModal = useCallback((title: string, message: string, onConfirm: () => void) => {
+    setConfirmModalTitle(title);
+    setConfirmModalMessage(message);
+    setOnConfirmAction(() => onConfirm);
+    setIsConfirmModalOpen(true);
+  }, []);
   
   const closeConfirmModal = () => { setIsConfirmModalOpen(false); setConfirmModalMessage(''); setConfirmModalTitle(''); setOnConfirmAction(null); };
   
   const onConfirmDeletion = () => { if (onConfirmAction) onConfirmAction(); closeConfirmModal(); };
+
+  const handleDeleteItem = useCallback((itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => {
+    let action;
+    let message;
+    switch (itemType) {
+      case 'job':
+        action = () => jobActions.deleteJob(itemId);
+        message = 'คุณแน่ใจหรือไม่ว่าต้องการลบประกาศงานนี้? การกระทำนี้ไม่สามารถย้อนกลับได้';
+        break;
+      case 'profile':
+        action = () => helperActions.deleteHelperProfile(itemId);
+        message = 'คุณแน่ใจหรือไม่ว่าต้องการลบโปรไฟล์ผู้ช่วยนี้? การกระทำนี้ไม่สามารถย้อนกลับได้';
+        break;
+      case 'webboardPost':
+        action = () => webboardActions.deleteWebboardPost(itemId);
+        message = 'คุณแน่ใจหรือไม่ว่าต้องการลบกระทู้นี้? การกระทำนี้ไม่สามารถย้อนกลับได้';
+        break;
+      default:
+        return;
+    }
+    openConfirmModal('ยืนยันการลบ', message, action);
+  }, [jobActions, helperActions, webboardActions, openConfirmModal]);
 
   const handleSearch = async (searchParams: { query: string, province: string }) => {
     if (!currentUser) {
@@ -636,28 +661,6 @@ const App: React.FC = () => {
       setSourceViewForForm(fromView || currentView);
       navigateTo(targetView);
     }
-  };
-
-  const handleDeleteItem = (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => {
-    let action;
-    let message;
-    switch (itemType) {
-      case 'job':
-        action = () => jobActions.deleteJob(itemId);
-        message = 'คุณแน่ใจหรือไม่ว่าต้องการลบประกาศงานนี้? การกระทำนี้ไม่สามารถย้อนกลับได้';
-        break;
-      case 'profile':
-        action = () => helperActions.deleteHelperProfile(itemId);
-        message = 'คุณแน่ใจหรือไม่ว่าต้องการลบโปรไฟล์ผู้ช่วยนี้? การกระทำนี้ไม่สามารถย้อนกลับได้';
-        break;
-      case 'webboardPost':
-        action = () => webboardActions.deleteWebboardPost(itemId);
-        message = 'คุณแน่ใจหรือไม่ว่าต้องการลบกระทู้นี้? การกระทำนี้ไม่สามารถย้อนกลับได้';
-        break;
-      default:
-        return;
-    }
-    openConfirmModal('ยืนยันการลบ', message, action);
   };
 
   const handleToggleHiredStatus = (itemId: string, itemType: 'job' | 'profile') => {

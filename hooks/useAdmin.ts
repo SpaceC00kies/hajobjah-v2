@@ -80,25 +80,21 @@ export const useAdmin = () => {
     await toggleItemFlagService(collectionName, itemId, flagName, (item as any)[flagName]);
   }, [checkAdmin, allJobsForAdmin, allHelperProfilesForAdmin, allWebboardPostsForAdmin]);
   
-  // Job specific admin actions
-  const toggleSuspiciousJob = (jobId: string) => toggleItemFlag('jobs', jobId, 'isSuspicious');
-  const togglePinnedJob = (jobId: string) => toggleItemFlag('jobs', jobId, 'isPinned');
-  const toggleVerifiedJob = (jobId: string) => toggleItemFlag('jobs', jobId, 'adminVerified');
-
-  // Helper specific admin actions
-  const toggleSuspiciousHelperProfile = (profileId: string) => toggleItemFlag('helperProfiles', profileId, 'isSuspicious');
-  const togglePinnedHelperProfile = (profileId: string) => toggleItemFlag('helperProfiles', profileId, 'isPinned');
-  const toggleVerifiedExperience = (profileId: string) => toggleItemFlag('helperProfiles', profileId, 'adminVerifiedExperience');
-
-  // Webboard specific admin actions
-  const pinWebboardPost = (postId: string) => toggleItemFlag('webboardPosts', postId, 'isPinned');
+  const toggleSuspiciousJob = useCallback((jobId: string) => toggleItemFlag('jobs', jobId, 'isSuspicious'), [toggleItemFlag]);
+  const togglePinnedJob = useCallback((jobId: string) => toggleItemFlag('jobs', jobId, 'isPinned'), [toggleItemFlag]);
+  const toggleVerifiedJob = useCallback((jobId: string) => toggleItemFlag('jobs', jobId, 'adminVerified'), [toggleItemFlag]);
+  const toggleSuspiciousHelperProfile = useCallback((profileId: string) => toggleItemFlag('helperProfiles', profileId, 'isSuspicious'), [toggleItemFlag]);
+  const togglePinnedHelperProfile = useCallback((profileId: string) => toggleItemFlag('helperProfiles', profileId, 'isPinned'), [toggleItemFlag]);
+  const toggleVerifiedExperience = useCallback((profileId: string) => toggleItemFlag('helperProfiles', profileId, 'adminVerifiedExperience'), [toggleItemFlag]);
+  const pinWebboardPost = useCallback((postId: string) => toggleItemFlag('webboardPosts', postId, 'isPinned'), [toggleItemFlag]);
+  const deleteBlogPost = useCallback(deleteBlogPostService, []);
   
   return {
     setUserRole,
     toggleSiteLock,
     resolveVouchReport,
-    getVouchDocument, // Passthrough from service
-    orionAnalyzeService, // Passthrough from service
+    getVouchDocument, 
+    orionAnalyzeService,
     forceResolveVouchReport,
     toggleSuspiciousJob,
     togglePinnedJob,
@@ -107,6 +103,6 @@ export const useAdmin = () => {
     togglePinnedHelperProfile,
     toggleVerifiedExperience,
     pinWebboardPost,
-    deleteBlogPost: deleteBlogPostService, // Passthrough
+    deleteBlogPost,
   };
 };
