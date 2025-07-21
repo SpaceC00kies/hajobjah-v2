@@ -6,7 +6,7 @@ export default defineConfig(() => {
       plugins: [react()],
       build: {
         rollupOptions: {
-          external: ['recharts', 'react', 'react-dom']
+          external: ['recharts', 'react', 'react-dom', '@google/genai']
         }
       }
     };

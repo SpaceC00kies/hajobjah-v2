@@ -133,6 +133,15 @@ const App: React.FC = () => {
   const [homeProvince, setHomeProvince] = useState<string>('all'); // State for homepage pills
   const [searchProvince, setSearchProvince] = useState<string>('all'); // State for search results page
 
+  const navigateTo = useCallback((view: View, payload?: any) => {
+    setCurrentView(view);
+    const params = new URLSearchParams(window.location.search);
+    params.set('view', view);
+    window.history.pushState({ view, payload }, '', `?${params.toString()}`);
+    window.scrollTo(0, 0);
+    setIsMobileMenuOpen(false);
+  }, []);
+
   const handleGenerateSuggestions = useCallback(async (task: 'title' | 'excerpt', content: string): Promise<{ suggestions: string[] }> => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
@@ -224,15 +233,6 @@ const App: React.FC = () => {
     window.addEventListener('popstate', parseUrlAndSetInitialState);
     return () => window.removeEventListener('popstate', parseUrlAndSetInitialState);
   }, [parseUrlAndSetInitialState]);
-
-  const navigateTo = (view: View, payload?: any) => {
-    setCurrentView(view);
-    const params = new URLSearchParams(window.location.search);
-    params.set('view', view);
-    window.history.pushState({ view, payload }, '', `?${params.toString()}`);
-    window.scrollTo(0, 0);
-    setIsMobileMenuOpen(false);
-  };
   
   const requestLoginForAction = (originalView: View, originalPayload?: any) => {
     if (!currentUser) {
