@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuthActions } from './hooks/useAuthActions.ts';
 import { useJobs } from './hooks/useJobs.ts';
@@ -47,6 +45,8 @@ import { UniversalSearchBar } from './components/UniversalSearchBar.tsx';
 import { SearchResultsPage } from './components/SearchResultsPage.tsx';
 import { universalSearchService } from './services/searchService.ts';
 import { LocationModal } from './components/LocationModal.tsx';
+import { GoogleGenAI, Type } from '@google/genai';
+import { logFirebaseError } from './firebase/logging.ts';
 
 
 // Animation Variants for the Mobile Menu
@@ -133,6 +133,57 @@ const App: React.FC = () => {
   const [homeProvince, setHomeProvince] = useState<string>('all'); // State for homepage pills
   const [searchProvince, setSearchProvince] = useState<string>('all'); // State for search results page
 
+  const handleGenerateSuggestions = useCallback(async (task: 'title' | 'excerpt', content: string): Promise<{ suggestions: string[] }> => {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
+    const prompt = task === 'title' 
+      ? `Based on the following article content in Thai, generate 3 creative and engaging blog post titles in Thai. The content may be HTML. Content: ${content.substring(0, 2000)}`
+      : `Based on the following article content in Thai, generate a concise and compelling excerpt of about 1-2 sentences in Thai. The content may be HTML. Content: ${content.substring(0, 2000)}`;
+
+    const responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        suggestions: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.STRING
+          }
+        }
+      }
+    };
+    
+    try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: responseSchema,
+        },
+      });
+
+      const jsonText = response.text;
+      const parsed = JSON.parse(jsonText);
+      if (!parsed.suggestions || !Array.isArray(parsed.suggestions)) {
+          throw new Error("AI response did not contain a 'suggestions' array.");
+      }
+      return parsed;
+
+    } catch (error) {
+      logFirebaseError('handleGenerateSuggestions', error);
+      throw new Error('Failed to generate suggestions.');
+    }
+  }, []);
+
+  const handleBlogPostSubmit = useCallback(async (data: any, existingPostId?: string) => {
+    try {
+      await blogActions.addOrUpdateBlogPost(data, existingPostId);
+      navigateTo(View.AdminDashboard);
+    } catch (error: any) {
+      logFirebaseError("handleBlogPostSubmit", error);
+      alert(`Error submitting post: ${error.message}`);
+    }
+  }, [blogActions, navigateTo]);
 
   const parseUrlAndSetInitialState = useCallback(() => {
     const params = new URLSearchParams(window.location.search);
@@ -715,7 +766,14 @@ const App: React.FC = () => {
         return <BlogPage posts={allBlogPosts.map(p => ({...p, author: allUsers.find(u => u.id === p.authorId)}))} onSelectPost={(slug) => { setSelectedBlogPostSlug(slug); navigateTo(View.Blog, { article: slug }); }} />;
       case View.ArticleEditor:
         if (!currentUser || !(currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer)) { navigateTo(View.Login); return null; }
-        return <ArticleEditor onCancel={() => navigateTo(View.AdminDashboard)} initialData={editingItemType === 'blogPost' ? itemToEdit as BlogPost : undefined} isEditing={!!(editingItemType === 'blogPost')} currentUser={currentUser!} />;
+        return <ArticleEditor 
+                  onSubmit={handleBlogPostSubmit}
+                  onCancel={() => navigateTo(View.AdminDashboard)} 
+                  initialData={editingItemType === 'blogPost' ? itemToEdit as BlogPost : undefined} 
+                  isEditing={!!(editingItemType === 'blogPost')} 
+                  currentUser={currentUser!} 
+                  onGenerateSuggestions={handleGenerateSuggestions}
+                />;
       case View.FindJobs:
         if (!currentUser) { navigateTo(View.Login); return null; }
         return <FindJobsPage navigateTo={navigateTo} onNavigateToPublicProfile={handleNavigateToPublicProfile} onEditJobFromFindView={(jobId) => handleEditItem(jobId, 'job', View.FindJobs)} currentUser={currentUser} requestLoginForAction={requestLoginForAction} getAuthorDisplayName={getAuthorDisplayName} />;

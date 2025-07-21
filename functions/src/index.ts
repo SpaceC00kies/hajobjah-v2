@@ -2,7 +2,7 @@ import admin from "firebase-admin";
 import { GoogleGenAI, Type } from "@google/genai";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import type { CallableRequest } from "firebase-functions/v2/https";
-import { type AdminDashboardData, JobCategory, type PlatformVitals, type ChartDataPoint, type CategoryDataPoint, type OrionInsightData } from './types.js';
+import { type AdminDashboardData, JobCategory, type PlatformVitals, type ChartDataPoint, type CategoryDataPoint } from './types.js';
 import type { Timestamp } from 'firebase-admin/firestore';
 import { performFilterAndSearch } from './listingService.js';
 
@@ -152,11 +152,15 @@ export const orionAnalyze = onCall(commonHttpsOptions, async (request: CallableR
 
     let replyData;
     try {
-        const jsonString = response.text.trim();
-        replyData = JSON.parse(jsonString);
+        const jsonString = (response.text || "").trim();
+        if (jsonString) {
+            replyData = JSON.parse(jsonString);
+        } else {
+            replyData = "Orion returned an empty response. Please try rephrasing your command.";
+        }
     } catch (e) {
         // If parsing fails, return the raw text. The frontend can handle it.
-        replyData = response.text;
+        replyData = response.text || "";
     }
     
     return { reply: replyData };
