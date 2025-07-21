@@ -1,9 +1,14 @@
 // functions/src/listingService.ts
 
+import admin from "firebase-admin";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { serverDb as db } from './lib/firebase/serverApp.js';
 import type { JobCategory, JobSubCategory, Province, SearchResultItem } from "./types.js";
 import type { Timestamp, Query, DocumentData } from "firebase-admin/firestore";
+
+if (admin.apps.length === 0) {
+    admin.initializeApp();
+}
+const db = admin.firestore();
 
 const safeGetDate = (d: string | Date | Timestamp | undefined): Date => {
   if (!d) return new Date(0);
@@ -63,16 +68,19 @@ export const performFilterAndSearch = async (params: FilterParams) => {
     const now = new Date();
 
     const activeItems = allRecentItems.filter(item => {
+        // Exclude expired items
         const isExpiredFlag = item.isExpired === true;
         const hasExpiredDate = item.expiresAt ? new Date(item.expiresAt as string) < now : false;
         if (isExpiredFlag || hasExpiredDate) {
             return false;
         }
 
+        // Exclude suspicious items from public view
         if (item.isSuspicious === true) {
             return false;
         }
 
+        // Strictly filter by province if provided
         if (province && province !== 'all') {
             return item.province === province;
         }
@@ -80,19 +88,26 @@ export const performFilterAndSearch = async (params: FilterParams) => {
         return true;
     });
 
+    // b) Sort the pre-filtered items by Pinned Status, then fall back to the recent date.
     const sortedItems = activeItems.sort((a, b) => {
         if (a.isPinned && !b.isPinned) return -1;
         if (!a.isPinned && b.isPinned) return 1;
         return safeGetDate(b.updatedAt).getTime() - safeGetDate(a.updatedAt).getTime();
     });
 
+    // c) Apply All Other User-Selected Filters to the already-filtered and sorted list.
     const filteredResults = sortedItems.filter(item => {
+        // Province filter is already applied, so no need to check again.
+        
+        // Category filter
         if (category && category !== 'all' && item.category !== category) {
             return false;
         }
+        // Sub-category filter
         if (subCategory && subCategory !== 'all' && item.subCategory !== subCategory) {
             return false;
         }
+        // Search term filter
         if (searchTerm && searchTerm.trim()) {
             const keywords = searchTerm.toLowerCase().split(/\s+/).filter(Boolean);
             const filterFields = ["title", "description", "details", "category", "subCategory", "location", "province", "profileTitle", "area"];
@@ -105,6 +120,7 @@ export const performFilterAndSearch = async (params: FilterParams) => {
                 return false;
             }
         }
+        // If all checks pass, keep the item
         return true;
     });
 
@@ -119,6 +135,9 @@ export const performFilterAndSearch = async (params: FilterParams) => {
 export const filterListings = onCall({
     cors: ["https://www.hajobja.com","https://hajobja.com","http://localhost:5173"]
 }, async (request) => {
+    if (!request.auth?.uid) {
+        throw new HttpsError("unauthenticated", "You must be logged in to perform this action.");
+    }
     const data = request.data as FilterParams;
     if (!data.resultType || !data.pageSize) {
         throw new HttpsError("invalid-argument", "Missing required parameters.");
