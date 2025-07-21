@@ -1,12 +1,9 @@
 // functions/src/universalSearch.ts
 
-import admin from "firebase-admin";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { performFilterAndSearch } from './listingService.js';
 
-if (admin.apps.length === 0) {
-    admin.initializeApp();
-}
+// Note: Firebase Admin is initialized in modules called by this function.
 
 interface SearchParams {
     query: string;

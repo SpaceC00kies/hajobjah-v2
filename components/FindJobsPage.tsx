@@ -52,7 +52,7 @@ export const FindJobsClient: React.FC<FindJobsClientProps> = ({ initialJobs, ini
   const requestLoginForAction = (view: View, payload?: any) => router.push('/login');
 
   const loadJobs = useCallback(async (isInitialLoad = false) => {
-    if (!isInitialLoad && isLoading) return;
+    if (!isInitialLoad && (isLoading || !hasMore)) return;
     setIsLoading(true);
     const startAfterCursor = isInitialLoad ? null : cursor;
     try {
@@ -66,7 +66,7 @@ export const FindJobsClient: React.FC<FindJobsClientProps> = ({ initialJobs, ini
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearchTerm, cursor, selectedCategory, selectedProvince, selectedSubCategory, isLoading]);
+  }, [debouncedSearchTerm, cursor, selectedCategory, selectedProvince, selectedSubCategory, isLoading, hasMore]);
 
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedSearchTerm(searchTerm), 500);

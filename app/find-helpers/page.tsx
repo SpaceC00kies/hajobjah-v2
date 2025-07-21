@@ -1,14 +1,13 @@
 // app/find-helpers/page.tsx
 import React from 'react';
 import { FindHelpersClient } from '@/components/FindHelpersPage';
-import { getHelperProfilesPaginated } from '@/services/helperProfileService';
-import { getUsersService } from '@/services/userService';
+import { getHelperProfilesPaginatedServer, getUsersServer } from '@/services/serverService';
 
-// This is now a Server Component that pre-fetches data.
+// This is a Server Component that pre-fetches data.
 export default async function FindHelpers() {
-  // Fetch initial data on the server.
-  const initialProfilesData = await getHelperProfilesPaginated(12, null, 'all', null, 'all', 'all');
-  const allUsers = await getUsersService();
+  // Fetch initial data on the server using the Admin SDK.
+  const initialProfilesData = await getHelperProfilesPaginatedServer(12);
+  const allUsers = await getUsersServer();
 
   return (
     <FindHelpersClient

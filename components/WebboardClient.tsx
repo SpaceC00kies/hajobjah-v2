@@ -36,7 +36,7 @@ export const WebboardClient: React.FC<WebboardClientProps> = ({ initialPosts, in
     const router = useRouter();
     const searchParams = useSearchParams();
     const { currentUser } = useAuth();
-    const { users, webboardComments: allComments } = useData();
+    const { users, webboardComments: allComments, allWebboardPostsForAdmin } = useData();
     const webboardActions = useWebboard();
     const userActions = useUser();
 
@@ -59,22 +59,14 @@ export const WebboardClient: React.FC<WebboardClientProps> = ({ initialPosts, in
         const editId = searchParams.get('edit');
         const action = searchParams.get('action');
 
-        const fetchEditingPost = async () => {
-            if (editId) {
-                // In a full RSC world, we might not have all posts client-side
-                // For now, we assume it's available or fetch it.
-                // const postToEdit = allWebboardPostsForAdmin.find(p => p.id === editId);
-                // setEditingPost(postToEdit);
-                setIsCreateModalOpen(true);
-            }
-        };
-
         if (editId) {
-            fetchEditingPost();
+            const postToEdit = allWebboardPostsForAdmin.find(p => p.id === editId);
+            setEditingPost(postToEdit || null);
+            setIsCreateModalOpen(true);
         } else if (action === 'create') {
             handleOpenCreateModal();
         }
-    }, [searchParams]);
+    }, [searchParams, allWebboardPostsForAdmin]);
     
     const loadWebboardPosts = useCallback(async (isInitialLoad = false) => {
         if (!isInitialLoad && isLoadingWebboardPosts) return;

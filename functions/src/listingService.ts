@@ -1,14 +1,9 @@
 // functions/src/listingService.ts
 
-import admin from "firebase-admin";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { serverDb as db } from './lib/firebase/serverApp.js';
 import type { JobCategory, JobSubCategory, Province, SearchResultItem } from "./types.js";
 import type { Timestamp, Query, DocumentData } from "firebase-admin/firestore";
-
-if (admin.apps.length === 0) {
-    admin.initializeApp();
-}
-const db = admin.firestore();
 
 const safeGetDate = (d: string | Date | Timestamp | undefined): Date => {
   if (!d) return new Date(0);

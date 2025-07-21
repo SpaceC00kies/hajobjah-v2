@@ -1,14 +1,13 @@
 // app/find-jobs/page.tsx
 import React from 'react';
 import { FindJobsClient } from '@/components/FindJobsPage';
-import { getJobsPaginated } from '@/services/jobService';
-import { getUsersService } from '@/services/userService';
+import { getJobsPaginatedServer, getUsersServer } from '@/services/serverService';
 
-// This is now a Server Component that pre-fetches data.
+// This is a Server Component that pre-fetches data.
 export default async function FindJobs() {
-  // Fetch initial data on the server.
-  const initialJobsData = await getJobsPaginated(12, null, 'all', null, 'all', 'all');
-  const allUsers = await getUsersService();
+  // Fetch initial data on the server using the Admin SDK.
+  const initialJobsData = await getJobsPaginatedServer(12);
+  const allUsers = await getUsersServer();
 
   return (
     <FindJobsClient

@@ -65,7 +65,7 @@ export const FindHelpersClient: React.FC<FindHelpersClientProps> = ({ initialPro
   }, [initialProfiles, enrichProfiles]);
 
   const loadProfiles = useCallback(async (isInitialLoad = false) => {
-    if (!isInitialLoad && isLoading) return;
+    if (!isInitialLoad && (isLoading || !hasMore)) return;
     setIsLoading(true);
     const startAfterCursor = isInitialLoad ? null : cursor;
     try {
@@ -80,7 +80,7 @@ export const FindHelpersClient: React.FC<FindHelpersClientProps> = ({ initialPro
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearchTerm, cursor, selectedCategory, selectedSubCategory, selectedProvince, enrichProfiles, isLoading]);
+  }, [debouncedSearchTerm, cursor, selectedCategory, selectedSubCategory, selectedProvince, enrichProfiles, isLoading, hasMore]);
 
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedSearchTerm(searchTerm), 500);
@@ -113,7 +113,6 @@ export const FindHelpersClient: React.FC<FindHelpersClientProps> = ({ initialPro
     return () => { if (currentLoader) observer.unobserve(currentLoader); };
   }, [loadProfiles, hasMore, isLoading]);
   
-  // Differentiate initial loading from infinite scroll loading
   const showSkeletons = isLoading && profiles.length === 0;
 
   return (
