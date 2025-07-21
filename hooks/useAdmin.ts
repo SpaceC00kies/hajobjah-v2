@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -26,7 +27,7 @@ export const useAdmin = () => {
 
   const setUserRole = useCallback(async (userIdToUpdate: string, newRole: UserRole) => {
     checkAdmin();
-    if (userIdToUpdate === currentUser!.id) throw new Error("Administrators cannot change their own role.");
+    if (currentUser && userIdToUpdate === currentUser.id) throw new Error("Administrators cannot change their own role.");
     try {
       await setUserRoleService(userIdToUpdate, newRole);
       alert(`User role updated successfully.`);
@@ -87,7 +88,19 @@ export const useAdmin = () => {
   const togglePinnedHelperProfile = useCallback((profileId: string) => toggleItemFlag('helperProfiles', profileId, 'isPinned'), [toggleItemFlag]);
   const toggleVerifiedExperience = useCallback((profileId: string) => toggleItemFlag('helperProfiles', profileId, 'adminVerifiedExperience'), [toggleItemFlag]);
   const pinWebboardPost = useCallback((postId: string) => toggleItemFlag('webboardPosts', postId, 'isPinned'), [toggleItemFlag]);
-  const deleteBlogPost = useCallback(deleteBlogPostService, []);
+  
+  const deleteBlogPost = useCallback(async (postId: string, coverImageURL?: string) => {
+      if (!currentUser || !(currentUser.role === 'Admin' || currentUser.role === 'Writer')) {
+          throw new Error("Permission denied to delete blog post.");
+      }
+      try {
+          await deleteBlogPostService(postId, coverImageURL);
+          alert("ลบบทความเรียบร้อยแล้ว");
+      } catch (error: any) {
+          logFirebaseError("useAdmin.deleteBlogPost", error);
+          throw error;
+      }
+  }, [currentUser]);
   
   return {
     setUserRole,
