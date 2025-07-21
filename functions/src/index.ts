@@ -1,21 +1,26 @@
 import admin from "firebase-admin";
-
+import { GoogleGenAI, Type } from "@google/genai";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import type { CallableRequest } from "firebase-functions/v2/https";
-import { type AdminDashboardData, JobCategory, type PlatformVitals, type ChartDataPoint, type CategoryDataPoint } from './types.js';
+import { type AdminDashboardData, JobCategory, type PlatformVitals, type ChartDataPoint, type CategoryDataPoint, type OrionInsightData } from './types.js';
 import type { Timestamp } from 'firebase-admin/firestore';
 import { performFilterAndSearch } from './listingService.js';
 
 // Re-export the new master filter function
 export { filterListings } from './listingService.js';
 
+if (admin.apps.length === 0) {
+  admin.initializeApp();
+}
 const db = admin.firestore();
 
 // Common HTTPS options for all callable functions to handle CORS
 const commonHttpsOptions = {
-    cors: ["https://www.hajobja.com", "https://hajobja.com", "http://localhost:5173"],
+    cors: ["https://www.hajobja.com","https://hajobja.com","http://localhost:5173"],
 };
 
+// This assumes API_KEY is set in the function's environment variables.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 // Helper function to get error message and code safely
 const getErrorMessage = (e: unknown): { message: string, code?: string } => {
@@ -46,10 +51,121 @@ export const universalSearch = onCall(commonHttpsOptions, async (request) => {
 
 
 export const orionAnalyze = onCall(commonHttpsOptions, async (request: CallableRequest) => {
-  // This function is not being changed.
-  // It is kept here for context but its logic remains the same.
-  // ... (existing orionAnalyze implementation)
-  throw new HttpsError("unimplemented", "orionAnalyze logic is not shown for brevity.");
+  if (!request.auth?.uid) {
+    throw new HttpsError("unauthenticated", "You must be logged in to use Orion.");
+  }
+  const requestingUserDoc = await db.collection("users").doc(request.auth.uid).get();
+  if (!requestingUserDoc.exists || requestingUserDoc.data()?.role !== "Admin") {
+    throw new HttpsError("permission-denied", "Only administrators can use Orion.");
+  }
+
+  const { command } = request.data;
+  if (!command || typeof command !== "string") {
+    throw new HttpsError("invalid-argument", "A command string is required.");
+  }
+
+  const usernameMatch = command.match(/@(\w+)/);
+  if (!usernameMatch) {
+    return { reply: "Invalid command. Please specify a user to analyze, e.g., 'analyze user @username'." };
+  }
+
+  try {
+    const username = usernameMatch[1];
+    const usersRef = db.collection('users');
+    const userQuery = usersRef.where('username', '==', username).limit(1);
+    const userSnapshot = await userQuery.get();
+
+    if (userSnapshot.empty) {
+        return { reply: `User @${username} not found.` };
+    }
+
+    const userDoc = userSnapshot.docs[0];
+    const userData = userDoc.data();
+
+    const jobsCount = (await db.collection('jobs').where('userId', '==', userDoc.id).count().get()).data().count;
+    const profilesCount = (await db.collection('helperProfiles').where('userId', '==', userDoc.id).count().get()).data().count;
+    const postsCount = (await db.collection('webboardPosts').where('userId', '==', userDoc.id).count().get()).data().count;
+
+    const userDataForPrompt = {
+        username: userData.username,
+        publicDisplayName: userData.publicDisplayName,
+        role: userData.role,
+        createdAt: userData.createdAt.toDate().toISOString(),
+        profileComplete: userData.profileComplete,
+        isSuspicious: userData.isSuspicious,
+        vouchInfo: userData.vouchInfo,
+        postCounts: {
+            jobs: jobsCount,
+            helperProfiles: profilesCount,
+            webboardPosts: postsCount,
+        }
+    };
+    
+    const systemInstruction = `You are Orion, an AI assistant for the admin of HAJOBJA.COM, a job posting platform in Thailand. Your task is to analyze user data and provide a threat assessment report in JSON format. Based on the provided user data, you must determine a trust score (0-100), a threat level, provide an executive summary, key intelligence points, and a recommended action.
+
+    Consider these factors for your analysis:
+    - Profile completeness (photo, personal info, etc.). A complete profile is a positive signal.
+    - Posting history (number of jobs, helper profiles). High activity can be good, but check for spam.
+    - User vouches (vouchInfo). Many vouches from different users is a strong positive signal.
+    - Account age (createdAt). Very new accounts might be riskier.
+    - Admin flags (isSuspicious). This is a strong negative signal.
+    - A user being a 'Writer' or 'Moderator' is a strong positive signal. 'Admin' is the highest trust.
+
+    Threat Levels:
+    - LOW: Normal user, no suspicious activity.
+    - GUARDED: Minor concerns, like an incomplete profile or very new account.
+    - ELEVATED: Some concerning patterns, like many posts in a short time or a report against them.
+    - SEVERE: Strong indicators of malicious intent, like being flagged as suspicious.
+    - CRITICAL: Confirmed malicious user.
+
+    Provide a concise, data-driven analysis. The output MUST be a JSON object matching the provided schema.`;
+
+    const userPrompt = `Analyze the following user data:
+    ${JSON.stringify(userDataForPrompt, null, 2)}
+    `;
+
+    const responseSchema = {
+        type: Type.OBJECT,
+        properties: {
+            threat_level: { type: Type.STRING, description: "Threat level from LOW, GUARDED, ELEVATED, SEVERE, CRITICAL" },
+            trust_score: { type: Type.INTEGER, description: "A score from 0-100 representing trustworthiness." },
+            emoji: { type: Type.STRING, description: "A single emoji that represents the user's profile." },
+            executive_summary: { type: Type.STRING, description: "A brief one-sentence summary of the user's activity and potential risk." },
+            key_intel: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+                description: "A list of key insights or facts about the user's behavior. Maximum 5 items."
+            },
+            recommended_action: { type: Type.STRING, description: "A concise recommended action for the administrator." },
+        },
+    };
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: { role: 'user', parts: [{ text: userPrompt }] },
+      config: {
+        systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema,
+      },
+    });
+
+    let replyData;
+    try {
+        const jsonString = response.text.trim();
+        replyData = JSON.parse(jsonString);
+    } catch (e) {
+        // If parsing fails, return the raw text. The frontend can handle it.
+        replyData = response.text;
+    }
+    
+    return { reply: replyData };
+
+  } catch (error: unknown) {
+      console.error("Error in orionAnalyze:", error);
+      const err = getErrorMessage(error);
+      throw new HttpsError("internal", `Failed to analyze user. Error: ${err.message}`);
+  }
 });
 
 export const getAdminDashboardData = onCall(commonHttpsOptions, async (request: CallableRequest): Promise<AdminDashboardData> => {

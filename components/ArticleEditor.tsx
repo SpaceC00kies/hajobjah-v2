@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { BlogPost, User } from '../types/types.ts';
-import { BlogCategory } from '../types/types.ts';
+import { BlogCategory } from '../types/types.ts'; // Import the enum
 import { Button } from './Button.tsx';
-import { useBlog } from '../hooks/useBlog.ts';
+import { AISuggestionsModal } from './AISuggestionsModal.tsx';
 
 type BlogPostFormData = Partial<Omit<BlogPost, 'id' | 'authorId' | 'authorDisplayName' | 'authorPhotoURL' | 'createdAt' | 'updatedAt' | 'publishedAt' | 'slug' | 'tags'>> & {
   newCoverImageBase64?: string | null;
@@ -11,10 +11,12 @@ type BlogPostFormData = Partial<Omit<BlogPost, 'id' | 'authorId' | 'authorDispla
 };
 
 interface ArticleEditorProps {
+  onSubmit: (data: BlogPostFormData, existingPostId?: string) => void;
   onCancel: () => void;
   initialData?: BlogPost;
   isEditing: boolean;
   currentUser: User;
+  onGenerateSuggestions: (task: 'title' | 'excerpt', content: string) => Promise<{ suggestions: string[] }>;
 }
 
 const initialFormState: BlogPostFormData = {
@@ -29,10 +31,13 @@ const initialFormState: BlogPostFormData = {
   newCoverImagePreview: undefined,
 };
 
-export const ArticleEditor: React.FC<ArticleEditorProps> = ({ onCancel, initialData, isEditing, currentUser }) => {
+export const ArticleEditor: React.FC<ArticleEditorProps> = ({ onSubmit, onCancel, initialData, isEditing, currentUser, onGenerateSuggestions }) => {
   const [formData, setFormData] = useState<BlogPostFormData>(initialFormState);
   const contentTextAreaRef = useRef<HTMLTextAreaElement>(null);
-  const { addOrUpdateBlogPost } = useBlog();
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [aiTask, setAiTask] = useState<'title' | 'excerpt' | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
   useEffect(() => {
     if (isEditing && initialData) {
@@ -41,6 +46,7 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ onCancel, initialD
         content: initialData.content || '',
         excerpt: initialData.excerpt || '',
         category: initialData.category || '',
+        // FIX: Use optional chaining to prevent crash if initialData or initialData.tags is undefined.
         tagsInput: (initialData?.tags || []).join(', '), 
         status: initialData.status || 'draft',
         coverImageURL: initialData.coverImageURL,
@@ -80,14 +86,40 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ onCancel, initialD
       }))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleGenerateSuggestions = async (task: 'title' | 'excerpt') => {
+    if (!formData.content) {
+      alert("Please write some content first to generate suggestions.");
+      return;
+    }
+    setIsAiLoading(true);
+    setAiTask(task);
+    try {
+      const result = await onGenerateSuggestions(task, formData.content);
+      setAiSuggestions(result.suggestions);
+      setIsAiModalOpen(true);
+    } catch (error) {
+      console.error("AI suggestion error:", error);
+      alert("Failed to get AI suggestions.");
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
+  const handleSelectSuggestion = (suggestion: string) => {
+    if (aiTask) {
+      setFormData(prev => ({ ...prev, [aiTask]: suggestion }));
+    }
+    setIsAiModalOpen(false);
+  };
+
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const finalData = {
         ...formData,
         tags: formData.tagsInput.split(',').map(tag => tag.trim()).filter(Boolean),
     };
-    await addOrUpdateBlogPost(finalData, initialData?.id);
-    onCancel();
+    onSubmit(finalData, initialData?.id);
   };
 
   const insertTag = (tag: 'h1' | 'h2' | 'b' | 'i' | 'ul') => {
@@ -125,7 +157,8 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ onCancel, initialD
         <div>
           <label htmlFor="title" className="block text-sm font-sans font-medium text-neutral-dark mb-1">Title</label>
            <div className="relative">
-              <input type="text" name="title" id="title" value={formData.title} onChange={handleChange} required className={`${inputBaseStyle} ${inputFocusStyle} font-sans text-lg`} />
+              <input type="text" name="title" id="title" value={formData.title} onChange={handleChange} required className={`${inputBaseStyle} ${inputFocusStyle} font-sans text-lg pr-12`} />
+              <Button type="button" onClick={() => handleGenerateSuggestions('title')} size="sm" variant='outline' className="absolute right-2 top-1/2 -translate-y-1/2" disabled={isAiLoading}>✨</Button>
            </div>
         </div>
 
@@ -145,7 +178,8 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ onCancel, initialD
         <div>
           <label htmlFor="excerpt" className="block text-sm font-sans font-medium text-neutral-dark mb-1">Excerpt</label>
            <div className="relative">
-              <textarea name="excerpt" id="excerpt" value={formData.excerpt} onChange={handleChange} rows={3} required className={`${inputBaseStyle} ${inputFocusStyle}`}></textarea>
+              <textarea name="excerpt" id="excerpt" value={formData.excerpt} onChange={handleChange} rows={3} required className={`${inputBaseStyle} ${inputFocusStyle} pr-12`}></textarea>
+              <Button type="button" onClick={() => handleGenerateSuggestions('excerpt')} size="sm" variant='outline' className="absolute right-2 top-2" disabled={isAiLoading}>✨</Button>
            </div>
         </div>
 
@@ -191,6 +225,13 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ onCancel, initialD
         </div>
       </form>
     </div>
+    <AISuggestionsModal
+        isOpen={isAiModalOpen}
+        onClose={() => setIsAiModalOpen(false)}
+        suggestions={aiSuggestions}
+        onSelect={handleSelectSuggestion}
+        title={aiTask === 'title' ? 'Title Suggestions' : 'Excerpt Suggestion'}
+    />
     </>
   );
 };

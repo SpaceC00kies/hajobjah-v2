@@ -142,3 +142,13 @@ export type Cursor = {
   updatedAt: string;
   isPinned: boolean;
 };
+
+// For Orion Command Center
+export interface OrionInsightData {
+  threat_level: 'LOW' | 'GUARDED' | 'ELEVATED' | 'SEVERE' | 'CRITICAL';
+  trust_score: number;
+  emoji: string;
+  executive_summary: string;
+  key_intel: string[];
+  recommended_action: string;
+}
