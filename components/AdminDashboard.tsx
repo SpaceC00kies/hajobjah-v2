@@ -94,17 +94,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   }, [activeTab]);
 
-    useEffect(() => {
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (actionMenuRef.current && !actionMenuRef.current.contains(event.target as Node)) {
         setOpenActionMenuId(null);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
+    if (openActionMenuId) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
+  }, [openActionMenuId]);
 
 
   const handleSelectReport = (report: VouchReport) => {
@@ -306,7 +308,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
             <div className="flex-shrink-0 flex items-center gap-2 ml-4">
                 {primaryAction}
-                <div className="relative" ref={actionMenuRef}>
+                <div className="relative" ref={openActionMenuId === item.id ? actionMenuRef : null}>
                     <button onClick={() => setOpenActionMenuId(openActionMenuId === item.id ? null : item.id)} className="p-2 rounded-full hover:bg-neutral-light/50">
                         <svg className="w-5 h-5 text-neutral-dark" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg>
                     </button>
@@ -338,7 +340,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </div>
                 <div className="flex-shrink-0 flex items-center gap-2 ml-4">
                     {canEdit && <Button onClick={() => onStartEditItem({id: item.id, itemType: 'blogPost', originalItem: item, title: item.title})} size="sm">Edit</Button>}
-                    <div className="relative" ref={actionMenuRef}>
+                    <div className="relative" ref={openActionMenuId === item.id ? actionMenuRef : null}>
                         <button onClick={() => setOpenActionMenuId(openActionMenuId === item.id ? null : item.id)} className="p-2 rounded-full hover:bg-neutral-light/50">
                             <svg className="w-5 h-5 text-neutral-dark" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg>
                         </button>
