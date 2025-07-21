@@ -1,4 +1,5 @@
-// app/webboard/page.tsx
+// THIS TURNS OFF STATIC-EXPORT AND USES SSR INSTEAD
+export const dynamic = 'force-dynamic';
 import React, { Suspense } from 'react';
 import { WebboardClient } from '@/components/WebboardClient';
 import { getWebboardPostsPaginatedServer } from '@/services/serverService';

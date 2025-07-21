@@ -1,4 +1,5 @@
-// app/find-helpers/page.tsx
+// THIS TURNS OFF STATIC-EXPORT AND USES SSR INSTEAD
+export const dynamic = 'force-dynamic';
 import React from 'react';
 import { FindHelpersClient } from '@/components/FindHelpersPage';
 import { getHelperProfilesPaginatedServer, getUsersServer } from '@/services/serverService';

@@ -1,4 +1,5 @@
-// app/find-jobs/page.tsx
+// THIS TURNS OFF STATIC-EXPORT AND USES SSR INSTEAD
+export const dynamic = 'force-dynamic';
 import React from 'react';
 import { FindJobsClient } from '@/components/FindJobsPage';
 import { getJobsPaginatedServer, getUsersServer } from '@/services/serverService';
