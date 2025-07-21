@@ -5,47 +5,46 @@ import {
   signOutUserService,
   sendPasswordResetEmailService,
 } from '../services/authService';
-import type { RegistrationDataType } from '../types/types';
+import type { RegistrationDataType, User } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
 
 export const useAuthActions = () => {
-  const register = useCallback(async (formData: RegistrationDataType) => {
+  const register = useCallback(async (userData: RegistrationDataType): Promise<boolean> => {
     try {
-      await signUpWithEmailPasswordService(formData);
-      return true;
-    } catch (error: any) {
+      const user = await signUpWithEmailPasswordService(userData);
+      return !!user;
+    } catch (error) {
       logFirebaseError('useAuthActions.register', error);
       return false;
     }
   }, []);
 
-  const login = useCallback(async (loginIdentifier: string, passwordAttempt: string): Promise<{ success: boolean; error?: string }> => {
+  const login = useCallback(async (loginIdentifier: string, passwordAttempt: string): Promise<{ success: boolean, user: User | null, error?: string }> => {
     try {
-      await signInWithEmailPasswordService(loginIdentifier, passwordAttempt);
-      return { success: true };
+      const user = await signInWithEmailPasswordService(loginIdentifier, passwordAttempt);
+      return { success: true, user };
     } catch (error: any) {
       logFirebaseError('useAuthActions.login', error);
-      return { success: false, error: error.message };
+      return { success: false, user: null, error: error.message };
     }
   }, []);
 
-  const logout = useCallback(async () => {
+  const logout = useCallback(async (): Promise<boolean> => {
     try {
       await signOutUserService();
-    } catch (error: any) {
+      return true;
+    } catch (error) {
       logFirebaseError('useAuthActions.logout', error);
+      return false;
     }
   }, []);
 
-  const sendPasswordResetEmail = useCallback(async (email: string): Promise<string | void> => {
+  const sendPasswordResetEmail = useCallback(async (email: string): Promise<void> => {
     try {
       await sendPasswordResetEmailService(email);
     } catch (error: any) {
       logFirebaseError('useAuthActions.sendPasswordResetEmail', error);
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('An unknown error occurred.');
+      throw error;
     }
   }, []);
 

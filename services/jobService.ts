@@ -1,4 +1,3 @@
-// services/jobService.ts
 /**
  * @fileoverview
  * This service module manages all CRUD (Create, Read, Update, Delete) operations
@@ -6,9 +5,6 @@
  * as well as adding, updating, and deleting individual job documents in Firestore.
  */
 
-import {
-  db,
-} from '@/lib/firebase/clientApp';
 import {
   collection,
   doc,
@@ -19,14 +15,13 @@ import {
   serverTimestamp,
   onSnapshot,
   query,
-  where,
   orderBy,
-  QuerySnapshot,
-} from 'firebase/firestore';
-import type { Job, Province, JobSubCategory, PaginatedDocsResponse, Cursor, JobCategory } from '../types/types';
+} from '@firebase/firestore';
+import { db } from '../firebaseConfig.ts';
+import type { Job, Province, JobSubCategory, PaginatedDocsResponse, Cursor, JobCategory } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps, cleanDataForFirestore } from './serviceUtils';
-import { filterListingsService } from './searchService';
+import { filterListingsService } from './searchService.ts';
 
 
 const JOBS_COLLECTION = 'jobs';
@@ -127,7 +122,7 @@ export const getJobsPaginated = async (
 
 export const subscribeToAllJobsService = (callback: (jobs: Job[]) => void): (() => void) => {
   const q = query(collection(db, JOBS_COLLECTION), orderBy('postedAt', 'desc'));
-  return onSnapshot(q, (querySnapshot: QuerySnapshot) => {
+  return onSnapshot(q, (querySnapshot) => {
     const items = querySnapshot.docs.map(docSnap => ({
       id: docSnap.id,
       ...convertTimestamps(docSnap.data()),
@@ -137,17 +132,6 @@ export const subscribeToAllJobsService = (callback: (jobs: Job[]) => void): (() 
     logFirebaseError(`subscribeToAllJobsService`, error);
   });
 };
-
-export const subscribeToJobsByUserId = (userId: string, callback: (jobs: Job[]) => void): (() => void) => {
-  const q = query(collection(db, JOBS_COLLECTION), where('userId', '==', userId), orderBy('postedAt', 'desc'));
-  return onSnapshot(q, (querySnapshot) => {
-    const jobs = querySnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as Job));
-    callback(jobs);
-  }, (error) => {
-    logFirebaseError(`subscribeToJobsByUserId for user ${userId}`, error);
-  });
-};
-
 
 export const getJobDocument = async (jobId: string): Promise<Job | null> => {
   try {

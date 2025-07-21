@@ -8,7 +8,7 @@ import {
   updateBlogCommentService,
   deleteBlogCommentService,
 } from '../services/blogService';
-import type { BlogPost, BlogComment } from '../types/types';
+import type { BlogPost, BlogComment } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
 
 type BlogPostFormData = Partial<Omit<BlogPost, 'id' | 'authorDisplayName' | 'authorPhotoURL' | 'createdAt' | 'updatedAt' | 'publishedAt'>> & { newCoverImageBase64?: string | null };
@@ -23,8 +23,9 @@ export const useBlog = () => {
     try {
       const { newCoverImageBase64, ...dataToSave } = blogPostData;
       const newPostId = await addOrUpdateBlogPostService(
-        { ...blogPostData, id: existingPostId },
-        { id: currentUser.id, publicDisplayName: currentUser.publicDisplayName, photo: currentUser.photo }
+        { ...dataToSave, id: existingPostId },
+        { id: currentUser.id, publicDisplayName: currentUser.publicDisplayName, photo: currentUser.photo },
+        newCoverImageBase64
       );
       alert(`บทความ "${dataToSave.title}" ถูก${existingPostId ? 'อัปเดต' : 'สร้าง'}เรียบร้อยแล้ว`);
       return newPostId;

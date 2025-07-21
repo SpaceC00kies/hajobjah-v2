@@ -6,9 +6,6 @@
  */
 
 import {
-  db,
-} from '@/lib/firebase/clientApp';
-import {
   collection,
   doc,
   addDoc,
@@ -20,9 +17,9 @@ import {
   runTransaction,
   increment,
   getDocs,
-  QuerySnapshot,
-} from 'firebase/firestore';
-import type { Interaction, Interest } from '../types/types';
+} from '@firebase/firestore';
+import { db } from '../firebaseConfig.ts';
+import type { Interaction, Interest } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
 import { convertTimestamps } from './serviceUtils';
 
@@ -33,7 +30,7 @@ const HELPER_PROFILES_COLLECTION = 'helperProfiles';
 
 export const subscribeToInteractionsService = (callback: (interactions: Interaction[]) => void): (() => void) => {
   const q = query(collection(db, INTERACTIONS_COLLECTION), orderBy('timestamp', 'desc'));
-  return onSnapshot(q, (querySnapshot: QuerySnapshot) => {
+  return onSnapshot(q, (querySnapshot) => {
     const items = querySnapshot.docs.map(docSnap => ({
       id: docSnap.id,
       ...convertTimestamps(docSnap.data()),
@@ -62,7 +59,7 @@ export const logHelperContactInteractionService = async (helperProfileId: string
 
 export const subscribeToUserInterestsService = (userId: string, callback: (interests: Interest[]) => void): (() => void) => {
     const q = query(collection(db, INTERESTS_COLLECTION), where("userId", "==", userId));
-    return onSnapshot(q, (querySnapshot: QuerySnapshot) => {
+    return onSnapshot(q, (querySnapshot) => {
         const items = querySnapshot.docs.map(docSnap => ({
             id: docSnap.id,
             ...convertTimestamps(docSnap.data()),

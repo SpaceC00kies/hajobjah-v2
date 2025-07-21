@@ -1,7 +1,6 @@
-"use client";
 import React, { useState, useMemo } from 'react';
-import { Modal } from './Modal';
-import { PROVINCES_BY_REGION } from '../utils/provinceData';
+import { Modal } from './Modal.tsx';
+import { PROVINCES_BY_REGION } from '../utils/provinceData.ts';
 
 interface LocationModalProps {
   isOpen: boolean;
@@ -61,7 +60,7 @@ export const LocationModal: React.FC<LocationModalProps> = ({
             Object.entries(filteredProvinces).map(([region, provinces]) => (
               <div key={region}>
                 <h3 className="location-modal-region-title">{region}</h3>
-                {(provinces as string[]).map((province) => (
+                {provinces.map((province) => (
                   <div
                     key={province}
                     onClick={() => handleSelect(province)}

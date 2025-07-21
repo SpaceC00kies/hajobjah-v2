@@ -1,4 +1,4 @@
-"use client";
+
 import React from 'react';
 import type { OrionInsightData } from '../../types/types';
 import { TrustScoreGauge } from './TrustScoreGauge';

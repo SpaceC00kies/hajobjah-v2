@@ -1,8 +1,8 @@
-"use client";
+
 import React, { useState, useMemo } from 'react';
-import type { EnrichedBlogPost, FilterableBlogCategory } from '../types/types';
-import { BlogCategory } from '../types/types';
-import { BlogCard } from './BlogCard';
+import type { EnrichedBlogPost, FilterableBlogCategory } from '../types/types.ts';
+import { BlogCategory } from '../types/types.ts';
+import { BlogCard } from './BlogCard.tsx';
 import { motion } from 'framer-motion';
 
 interface BlogPageProps {
@@ -30,8 +30,8 @@ export const BlogPage: React.FC<BlogPageProps> = ({ posts, onSelectPost }) => {
       const searchTermLower = searchTerm.toLowerCase();
       const searchMatch = searchTerm.trim() === '' ||
         post.title.toLowerCase().includes(searchTermLower) ||
-        (post.excerpt && post.excerpt.toLowerCase().includes(searchTermLower)) ||
-        (post.author?.publicDisplayName || post.authorDisplayName || '').toLowerCase().includes(searchTermLower);
+        post.excerpt.toLowerCase().includes(searchTermLower) ||
+        (post.author?.publicDisplayName || '').toLowerCase().includes(searchTermLower);
       
       return categoryMatch && searchMatch;
     });

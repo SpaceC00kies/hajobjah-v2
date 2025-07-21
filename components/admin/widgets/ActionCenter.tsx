@@ -1,8 +1,8 @@
-"use client";
+
 import React from 'react';
 import { motion } from 'framer-motion';
 import type { VouchReport, User } from '../../../types/types';
-import { Button } from '../../Button';
+import { Button } from '../../Button.tsx';
 
 interface ActionCenterProps {
   pendingReports: VouchReport[];

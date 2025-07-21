@@ -1,12 +1,11 @@
 
 
-
 import React, { useState, useEffect, useRef } from 'react';
-import type { User } from '../types/types';
-import { GenderOption, HelperEducationLevelOption } from '../types/types';
-import { Button } from './Button';
-import { isValidThaiMobileNumber } from '../utils/validation';
-import { ProfileCompletenessWizard } from './ProfileCompletenessWizard'; // Import the new wizard
+import type { User } from '../types/types.ts';
+import { GenderOption, HelperEducationLevelOption } from '../types/types.ts';
+import { Button } from './Button.tsx';
+import { isValidThaiMobileNumber } from '../utils/validation.ts';
+import { ProfileCompletenessWizard } from './ProfileCompletenessWizard.tsx'; // Import the new wizard
 
 interface UserProfilePageProps {
   currentUser: User;
@@ -357,31 +356,271 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
         </div>
 
         <div>
-          <label htmlFor="profilePublicDisplayName" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อที่แสดงบนเว็บไซต์ <span className="text-red-500">*</span></label>
-          <div className="relative">
-            <input
-              type="text"
-              id="profilePublicDisplayName"
-              name="publicDisplayName"
-              value={publicDisplayName}
-              onChange={(e) => { setPublicDisplayName(e.target.value); if(errors.publicDisplayName) setErrors(prev => ({ ...prev, publicDisplayName: undefined })); }}
-              className={`${inputBaseStyle} ${!displayNameCooldownInfo.canChange ? readOnlyStyle : ''} ${errors.publicDisplayName ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
-              disabled={!displayNameCooldownInfo.canChange}
-            />
-          </div>
-          <p className="text-xs font-sans text-neutral-medium mt-1">{displayNameCooldownInfo.canChange ? "สามารถเปลี่ยนได้ทุก 14 วัน" : displayNameCooldownInfo.message}</p>
-          {errors.publicDisplayName && <p className="text-red-500 font-sans text-xs mt-1 font-normal">{errors.publicDisplayName}</p>}
+          <label htmlFor="profilePublicDisplayName" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อบนเว็บไซต์ (สาธารณะ) <span className="text-red-500">*</span></label>
+          <input
+            type="text"
+            id="profilePublicDisplayName"
+            value={publicDisplayName}
+            onChange={(e) => setPublicDisplayName(e.target.value)}
+            className={`${inputBaseStyle} ${errors.publicDisplayName ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
+            placeholder="เช่น Puuna V."
+            disabled={!displayNameCooldownInfo.canChange}
+            aria-describedby={!displayNameCooldownInfo.canChange ? "displayNameCooldownMessage" : (errors.publicDisplayName ? "publicDisplayNameError" : undefined)}
+          />
+           <p className="text-xs font-sans text-neutral-medium mt-1">
+              ชื่อแสดงสาธารณะ (2-30 ตัวอักษร): ไทย/อังกฤษ, ตัวเลข, เว้นวรรค, จุด (.) เท่านั้น เช่น Sunny J. 123
+            </p>
+          {errors.publicDisplayName && <p id="publicDisplayNameError" className="text-red-500 font-sans text-xs mt-1">{errors.publicDisplayName}</p>}
+          {!displayNameCooldownInfo.canChange && displayNameCooldownInfo.message && (
+            <p id="displayNameCooldownMessage" className="text-amber-600 font-sans text-xs mt-1">{displayNameCooldownInfo.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="profileUsername" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อผู้ใช้ (สำหรับเข้าระบบ)</label>
+          <input
+            type="text"
+            id="profileUsername"
+            value={currentUser.username}
+            readOnly
+            className={`${inputBaseStyle} ${readOnlyStyle} ${inputFocusStyle} focus:bg-gray-50`}
+            aria-readonly="true"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="profileEmail" className="block text-sm font-sans font-medium text-neutral-dark mb-1">อีเมล</label>
+          <input
+            type="email"
+            id="profileEmail"
+            value={currentUser.email}
+            readOnly
+            className={`${inputBaseStyle} ${readOnlyStyle} ${inputFocusStyle} focus:bg-gray-50`}
+            aria-readonly="true"
+          />
         </div>
         
-        {/* ... Rest of the form groups ... */}
-        
-        <div className="flex justify-end gap-3 pt-4">
-          <Button type="button" onClick={onCancel} variant="outline" colorScheme="neutral" size="md">
-            ยกเลิก
-          </Button>
-          <Button type="submit" variant="primary" size="md">
-            💾 บันทึกการเปลี่ยนแปลง
-          </Button>
+        <div id="intro-section" className="pt-4 border-t border-neutral-DEFAULT/50">
+            <label htmlFor="profile-introSentence" className="block text-sm font-sans font-medium text-neutral-dark mb-1">
+                💬 เกี่ยวกับฉัน
+            </label>
+            <textarea
+                id="profile-introSentence"
+                value={introSentence}
+                onChange={(e) => setIntroSentence(e.target.value)}
+                rows={3}
+                className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
+                placeholder="เช่น เป็นคนง่ายๆ สบายๆ ชอบเรียนรู้สิ่งใหม่"
+            />
+        </div>
+
+
+        <details id="personal-info-section" className="group pt-4 border-t border-neutral-DEFAULT/50" open>
+          <summary className="flex items-center justify-between cursor-pointer list-none p-2 -ml-2 rounded-md hover:bg-neutral-light/50 transition-colors">
+            <h3 className="text-lg font-sans font-medium text-neutral-dark">
+              ข้อมูลส่วนตัว
+            </h3>
+            <span className="text-secondary transform transition-transform duration-200 group-open:rotate-90">
+              ▶
+            </span>
+          </summary>
+          <div className="mt-3 space-y-4">
+            {/* Removed hint text: "ข้อมูลส่วนนี้ จำเป็นต้องกรอก..." */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4">
+                <div>
+                    <label className="block text-sm font-sans font-medium text-neutral-dark mb-1">เพศ <span className="text-red-500">*</span></label>
+                    <div className="space-y-1">
+                        {Object.values(GenderOption).map(optionValue => (
+                        <label key={optionValue} className="flex items-center space-x-2 cursor-pointer">
+                            <input type="radio" name="profileGender" value={optionValue} checked={gender === optionValue}
+                                    onChange={() => setGender(optionValue)}
+                                    className="form-radio h-4 w-4 text-secondary border-[#CCCCCC] focus:!ring-2 focus:!ring-offset-1 focus:!ring-offset-white focus:!ring-secondary focus:!ring-opacity-70"/> {/* Added ! for focus styles */}
+                            <span className="text-neutral-dark font-sans font-normal text-sm">{optionValue}</span>
+                        </label>
+                        ))}
+                    </div>
+                    {errors.gender && <p className="text-red-500 font-sans text-xs mt-1">{errors.gender}</p>}
+                </div>
+                <div>
+                    <label htmlFor="profileBirthdate" className="block text-sm font-sans font-medium text-neutral-dark mb-1">วันเกิด <span className="text-red-500">*</span></label>
+                    <input type="date" id="profileBirthdate" value={birthdate} onChange={handleBirthdateChange}
+                            max={new Date().toISOString().split("T")[0]}
+                            className={`${inputBaseStyle} ${errors.birthdate ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`} />
+                    {currentAge !== null && <p className="text-xs font-sans text-neutral-dark mt-1">อายุ: {currentAge} ปี</p>}
+                    {errors.birthdate && <p className="text-red-500 font-sans text-xs mt-1">{errors.birthdate}</p>}
+                </div>
+            </div>
+            <div>
+                <label htmlFor="profileEducationLevel" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ระดับการศึกษา <span className="text-red-500">*</span></label>
+                <select id="profileEducationLevel" value={educationLevel}
+                        onChange={(e) => setEducationLevel(e.target.value as HelperEducationLevelOption)}
+                        className={`${selectBaseStyle} ${errors.educationLevel ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}>
+                    {Object.values(HelperEducationLevelOption).map(level => (
+                        <option key={level} value={level}>{level}</option>
+                    ))}
+                </select>
+                 {errors.educationLevel && <p className="text-red-500 font-sans text-xs mt-1">{errors.educationLevel}</p>}
+            </div>
+            <div className="mt-4">
+                <label htmlFor="profileNickname" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อเล่น</label>
+                <input type="text" id="profileNickname" value={nickname} onChange={(e) => setNickname(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น ซันนี่, จอห์น"/>
+            </div>
+            <div className="mt-4">
+                <label htmlFor="profileFirstName" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อจริง</label>
+                <input type="text" id="profileFirstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น ยาทิดา, สมชาย"/>
+            </div>
+            <div className="mt-4">
+                <label htmlFor="profileLastName" className="block text-sm font-sans font-medium text-neutral-dark mb-1">นามสกุล</label>
+                <input type="text" id="profileLastName" value={lastName} onChange={(e) => setLastName(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น แสงอรุณ, ใจดี"/>
+            </div>
+            <div id="address-section">
+              <label htmlFor="profileAddress" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ที่อยู่ (จะแสดงในโปรไฟล์สาธารณะของคุณ)</label>
+              <textarea
+                id="profileAddress"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                rows={3}
+                className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
+                placeholder="เช่น บ้านเลขที่, ถนน, ตำบล, อำเภอ, จังหวัด, รหัสไปรษณีย์"
+              />
+            </div>
+          </div>
+        </details>
+
+        <details id="personality-section" className="group pt-4 border-t border-neutral-DEFAULT/50">
+          <summary className="flex items-center justify-between cursor-pointer list-none p-2 -ml-2 rounded-md hover:bg-neutral-light/50 transition-colors">
+            <h3 className="text-lg font-sans font-medium text-neutral-dark">
+              👤 เพิ่มเติมเกี่ยวกับฉัน
+            </h3>
+            <span className="text-secondary transform transition-transform duration-200 group-open:rotate-90">
+              ▶
+            </span>
+          </summary>
+          <div className="mt-3 space-y-4">
+            <p className="text-xs font-sans text-neutral-medium mb-3">
+              ข้อมูลส่วนนี้จะช่วยให้โปรไฟล์สาธารณะของคุณน่าสนใจยิ่งขึ้น
+            </p>
+            {personalityFields.map(field => (
+              <div key={field.name} className="mb-4">
+                <label htmlFor={`profile-${field.name}`} className="block text-sm font-sans font-medium text-neutral-dark mb-1">
+                  {field.label}
+                </label>
+                {field.type === 'textarea' ? (
+                  <textarea
+                    id={`profile-${field.name}`}
+                    value={field.value}
+                    onChange={(e) => field.setter(e.target.value)}
+                    rows={field.name === 'introSentence' ? 3 : 2}
+                    className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
+                    placeholder={field.placeholder}
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    id={`profile-${field.name}`}
+                    value={field.value}
+                    onChange={(e) => field.setter(e.target.value)}
+                    className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
+                    placeholder={field.placeholder}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </details>
+
+        <details id="business-info-section" className="group pt-4 border-t border-neutral-DEFAULT/50">
+          <summary className="flex items-center justify-between cursor-pointer list-none p-2 -ml-2 rounded-md hover:bg-neutral-light/50 transition-colors">
+            <h3 className="text-lg font-sans font-medium text-neutral-dark">
+              🏢 ข้อมูลธุรกิจ
+            </h3>
+            <span className="text-secondary transform transition-transform duration-200 group-open:rotate-90">
+              ▶
+            </span>
+          </summary>
+          <div className="mt-3 space-y-4">
+             <p className="text-xs font-sans text-neutral-medium mb-3">
+              หากคุณเป็นธุรกิจหรือร้านค้า การให้ข้อมูลส่วนนี้จะช่วยเพิ่มความน่าเชื่อถือ
+            </p>
+            {businessInfoFields.map(field => (
+              <div key={field.name} className="mb-4">
+                <label htmlFor={`profile-${field.name}`} className="block text-sm font-sans font-medium text-neutral-dark mb-1">
+                  {field.label}
+                </label>
+                {field.type === 'textarea' ? (
+                  <textarea
+                    id={`profile-${field.name}`}
+                    value={field.value}
+                    onChange={(e) => field.setter(e.target.value)}
+                    rows={3}
+                    className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
+                    placeholder={field.placeholder}
+                  />
+                ) : (
+                  <input
+                    type={field.type as string}
+                    id={`profile-${field.name}`}
+                    value={field.value}
+                    onChange={(e) => field.setter(e.target.value)}
+                    className={`${inputBaseStyle} ${errors[field.errorKey as keyof typeof errors] ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
+                    placeholder={field.placeholder}
+                  />
+                )}
+                {field.errorKey && errors[field.errorKey as keyof typeof errors] && <p className="text-red-500 font-sans text-xs mt-1">{errors[field.errorKey as keyof typeof errors]}</p>}
+              </div>
+            ))}
+          </div>
+        </details>
+
+
+        <div id="contact-info-section" className="pt-4 border-t border-neutral-DEFAULT/50">
+             <h3 className="text-lg font-sans font-medium text-neutral-dark mb-3">ข้อมูลติดต่อ (แสดงใน 'ติดต่อ')</h3>
+            <div>
+            <label htmlFor="profileMobile" className="block text-sm font-sans font-medium text-neutral-dark mb-1">เบอร์โทรศัพท์ <span className="text-red-500">*</span></label>
+            <input
+                type="tel"
+                id="profileMobile"
+                value={mobile}
+                onChange={(e) => setMobile(e.target.value)}
+                className={`${inputBaseStyle} ${errors.mobile ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
+                placeholder="เช่น 0812345678"
+                aria-describedby={errors.mobile ? "mobile-error" : undefined}
+                aria-invalid={!!errors.mobile}
+            />
+            {errors.mobile && <p id="mobile-error" className="text-red-500 font-sans text-xs mt-1">{errors.mobile}</p>}
+            </div>
+
+            <div className="mt-4">
+            <label htmlFor="profileLineId" className="block text-sm font-sans font-medium text-neutral-dark mb-1">LINE ID</label>
+            <input
+                type="text"
+                id="profileLineId"
+                value={lineId}
+                onChange={(e) => setLineId(e.target.value)}
+                className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
+                placeholder="เช่น mylineid"
+            />
+            </div>
+
+            <div className="mt-4">
+            <label htmlFor="profileFacebook" className="block text-sm font-sans font-medium text-neutral-dark mb-1">Facebook</label>
+            <input
+                type="text"
+                id="profileFacebook"
+                value={facebook}
+                onChange={(e) => setFacebook(e.target.value)}
+                className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
+                placeholder="ลิงก์โปรไฟล์ หรือชื่อผู้ใช้ Facebook"
+            />
+            </div>
+        </div>
+
+        {errors.general && <p className="text-red-500 font-sans text-sm text-center">{errors.general}</p>}
+        <div className="flex flex-col sm:flex-row gap-4 pt-4">
+            <Button type="submit" variant="secondary" size="lg" className="w-full sm:w-auto flex-grow">💾 บันทึกการเปลี่ยนแปลง</Button>
+            <Button type="button" onClick={onCancel} variant="outline" colorScheme="secondary" size="lg" className="w-full sm:w-auto flex-grow">
+                ยกเลิก
+            </Button>
         </div>
       </form>
     </div>

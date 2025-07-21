@@ -6,15 +6,13 @@
  */
 
 import {
-  storage,
-} from '@/lib/firebase/clientApp';
-import {
   ref,
   uploadBytes,
   getDownloadURL,
   deleteObject,
   uploadString,
-} from 'firebase/storage';
+} from '@firebase/storage';
+import { storage } from '../firebaseConfig.ts';
 import { logFirebaseError } from '../firebase/logging';
 
 export const uploadImageService = async (path: string, fileOrBase64: File | string): Promise<string> => {

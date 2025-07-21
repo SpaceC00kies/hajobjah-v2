@@ -1,6 +1,5 @@
-"use client";
 import React, { useState } from 'react';
-import { Province } from '../types/types';
+import { Province } from '../types/types.ts';
 
 type SelectedProvince = 'all' | Province.ChiangMai | Province.Bangkok;
 

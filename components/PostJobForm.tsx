@@ -1,20 +1,23 @@
-"use client";
+
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import type { Job, User } from '../types/types';
-import { View, JobDesiredEducationLevelOption, JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types';
-import { Button } from './Button';
-import { containsBlacklistedWords } from '../utils/validation';
-import { getJobTemplateForCategory } from '../utils/templates';
-import { useJobs } from '../hooks/useJobs';
-import { useAuth } from '../context/AuthContext';
+import type { Job, User } from '../types/types.ts';
+import { View, JobDesiredEducationLevelOption, JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
+import { Button } from './Button.tsx';
+import { containsBlacklistedWords } from '../utils/validation.ts';
+import { getJobTemplateForCategory } from '../utils/templates.ts';
+import { useJobs } from '../hooks/useJobs.ts';
 
 type FormDataType = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'posterIsAdminVerified' | 'interestedCount'>;
 
 interface PostJobFormProps {
+  onCancel: () => void;
   initialData?: Job;
-  isEditing: boolean;
+  isEditing?: boolean;
+  currentUser: User;
+  allJobsForAdmin: Job[];
+  navigateTo: (view: View, payload?: any) => void;
+  sourceViewForForm: View | null;
 }
 
 const initialFormStateForCreate: FormDataType = {
@@ -38,7 +41,7 @@ const initialFormStateForCreate: FormDataType = {
 
 type FormErrorsType = Partial<Record<keyof FormDataType, string>>;
 
-export const PostJobForm: React.FC<PostJobFormProps> = ({ initialData, isEditing }) => {
+export const PostJobForm: React.FC<PostJobFormProps> = ({ onCancel, initialData, isEditing, currentUser, allJobsForAdmin, navigateTo, sourceViewForForm }) => {
   const [formData, setFormData] = useState<FormDataType>(initialFormStateForCreate);
   const [formErrors, setFormErrors] = useState<FormErrorsType>({});
   const [availableSubCategories, setAvailableSubCategories] = useState<JobSubCategory[]>([]);
@@ -47,8 +50,6 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ initialData, isEditing
   const [showTemplateButton, setShowTemplateButton] = useState(false);
 
   const { addJob, updateJob, checkJobPostingLimits } = useJobs();
-  const { currentUser } = useAuth();
-  const router = useRouter();
 
   useEffect(() => {
     if (!currentUser) {
@@ -65,7 +66,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ initialData, isEditing
         setLimitMessage(message || null);
       });
     }
-  }, [currentUser, isEditing, checkJobPostingLimits]);
+  }, [currentUser, allJobsForAdmin, isEditing, checkJobPostingLimits]);
 
   useEffect(() => {
     if (isEditing && initialData) {
@@ -120,7 +121,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ initialData, isEditing
         setFormErrors(prev => ({ ...prev, subCategory: undefined }));
       }
     } else if (currentKey === 'subCategory') {
-        newFormData = { ...newFormData, subCategory: value as any || undefined };
+        newFormData = { ...newFormData, subCategory: value as JobSubCategory || undefined };
     } else if (currentKey === 'province') {
         newFormData = { ...newFormData, province: value as Province };
     } else if (currentKey === 'desiredAgeStart' || currentKey === 'desiredAgeEnd') {
@@ -208,7 +209,11 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ initialData, isEditing
             await addJob(formData);
             alert('ประกาศงานของคุณถูกเพิ่มแล้ว!');
         }
-        router.push('/find-jobs');
+        navigateTo(sourceViewForForm || View.FindJobs);
+        if (!isEditing) {
+            setFormData(initialFormStateForCreate);
+            setAvailableSubCategories([]);
+        }
     } catch (error: any) {
         alert(`เกิดข้อผิดพลาด: ${error.message}`);
     }
@@ -420,7 +425,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ initialData, isEditing
           <Button type="submit" variant="primary" size="lg" className="w-full sm:w-auto flex-grow" disabled={!canSubmit && !isEditing}>
             {isEditing ? '💾 บันทึกการแก้ไข' : (canSubmit ? '🚀 ลงประกาศงาน' : 'ไม่สามารถลงประกาศ')}
           </Button>
-          <Button type="button" onClick={() => router.back()} variant="outline" colorScheme="primary" size="lg" className="w-full sm:w-auto flex-grow">
+          <Button type="button" onClick={onCancel} variant="outline" colorScheme="primary" size="lg" className="w-full sm:w-auto flex-grow">
             ยกเลิก
           </Button>
         </div>

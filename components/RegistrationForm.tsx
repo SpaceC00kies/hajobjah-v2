@@ -1,13 +1,15 @@
-"use client";
 
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import type { User } from '../types/types';
-import { Button } from './Button';
-import { isValidThaiMobileNumber } from '../utils/validation';
-import { useAuthActions } from '../hooks/useAuthActions';
+import type { User } from '../types/types.ts';
+import { GenderOption, HelperEducationLevelOption } from '../types/types.ts'; // Keep for default values, not for form inputs
+import { Button } from './Button.tsx';
+import { isValidThaiMobileNumber } from '../utils/validation.ts';
+
+interface RegistrationFormProps {
+  onRegister: (userData: Omit<User, 'id' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook'> & { password: string }) => Promise<boolean>;
+  onSwitchToLogin: () => void;
+}
 
 type RegistrationFormErrorKeys =
   'publicDisplayName' | 'username' | 'email' | 'password' | 'confirmPassword' |
@@ -24,7 +26,7 @@ interface PasswordCriteria {
   symbol: boolean;
 }
 
-export const RegistrationForm: React.FC = () => {
+export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, onSwitchToLogin }) => {
   const [publicDisplayName, setPublicDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -41,9 +43,6 @@ export const RegistrationForm: React.FC = () => {
     number: false,
     symbol: false,
   });
-
-  const router = useRouter();
-  const { register } = useAuthActions();
 
   useEffect(() => {
     const newCriteria: PasswordCriteria = {
@@ -108,11 +107,16 @@ export const RegistrationForm: React.FC = () => {
         mobile,
     };
 
-    const success = await register(formDataToSubmit as any);
+    const success = await onRegister(formDataToSubmit as any);
     setIsLoading(false);
     if (success) {
-      alert('ลงทะเบียนสำเร็จ! กรุณาเข้าสู่ระบบ');
-      router.push('/login');
+      setPublicDisplayName('');
+      setUsername('');
+      setEmail('');
+      setPassword('');
+      setConfirmPassword('');
+      setMobile('');
+      setPasswordCriteria({ length: false, uppercase: false, lowercase: false, number: false, symbol: false });
     } else {
         setErrors({ general: 'การลงทะเบียนล้มเหลว โปรดลองอีกครั้ง หรืออาจเป็นเพราะชื่อผู้ใช้หรืออีเมลนี้มีอยู่แล้ว' });
     }
@@ -198,9 +202,9 @@ export const RegistrationForm: React.FC = () => {
         </Button>
         <p className="text-center text-sm font-serif text-neutral-dark font-normal">
           มีบัญชีอยู่แล้ว?{' '}
-          <Link href="/login" className="font-sans font-medium text-primary hover:underline">
+          <button type="button" onClick={onSwitchToLogin} className="font-sans font-medium text-primary hover:underline" disabled={isLoading}>
             เข้าสู่ระบบที่นี่
-          </Link>
+          </button>
         </p>
       </form>
     </div>

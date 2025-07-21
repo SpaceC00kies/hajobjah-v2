@@ -1,10 +1,9 @@
-"use client";
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
-import type { Job, HelperProfile, User, WebboardPost, WebboardComment, UserLevel } from '../types/types';
-import { Button } from './Button';
-import { isDateInPast, calculateHoursRemaining } from '../utils/dateUtils';
+import type { Job, HelperProfile, User, WebboardPost, WebboardComment, UserLevel } from '../types/types.ts';
+import { View } from '../types/types.ts';
+import { Button } from './Button.tsx';
+import { isDateInPast, calculateHoursRemaining } from '../utils/dateUtils.ts';
 
 interface MyPostsPageProps {
   currentUser: User;
@@ -15,6 +14,7 @@ interface MyPostsPageProps {
   onEditItem: (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => void;
   onDeleteItem: (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => void;
   onToggleHiredStatus: (itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => void;
+  navigateTo: (view: View, payload?: any) => void;
   getUserDisplayBadge: (user: User | null | undefined, posts: WebboardPost[], comments: WebboardComment[]) => UserLevel;
 }
 
@@ -76,8 +76,8 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
   onEditItem,
   onDeleteItem,
   onToggleHiredStatus,
+  navigateTo,
 }) => {
-  const router = useRouter();
   const userJobs = jobs.filter(job => job.userId === currentUser.id);
   const userHelperProfiles = helperProfiles.filter(profile => profile.userId === currentUser.id);
   const userWebboardPosts = webboardPosts.filter(post => post.userId === currentUser.id);
@@ -300,13 +300,13 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
           </svg>
           <p className="text-xl text-neutral-dark mb-6 font-normal">คุณยังไม่มีประกาศหรือโพสต์ใดๆ เลยนะ</p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Button onClick={() => router.push('/post-job')} variant="primary" size="md">
+            <Button onClick={() => navigateTo(View.PostJob)} variant="primary" size="md">
               + สร้างประกาศงาน
             </Button>
-            <Button onClick={() => router.push('/offer-help')} variant="secondary" size="md">
+            <Button onClick={() => navigateTo(View.OfferHelp)} variant="secondary" size="md">
               + สร้างโปรไฟล์ผู้ช่วย
             </Button>
-            <Button onClick={() => router.push('/webboard?action=create')} variant="accent" size="md">
+            <Button onClick={() => navigateTo(View.Webboard, 'create')} variant="accent" size="md">
               + สร้างกระทู้ใหม่
             </Button>
           </div>
@@ -369,7 +369,7 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
                     </Button>
                   )}
                   {item.type === 'webboardPost' && (
-                     <Button onClick={() => router.push(`/webboard/${item.id}`)} variant="outline" colorScheme="neutral" size="sm">
+                     <Button onClick={() => navigateTo(View.Webboard, item.id)} variant="outline" colorScheme="neutral" size="sm">
                         👁️ ดูกระทู้
                      </Button>
                   )}

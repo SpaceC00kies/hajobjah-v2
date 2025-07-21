@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import type { EnrichedWebboardPost, EnrichedWebboardComment, User } from '../types/types';
 import { USER_LEVELS, UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES }
 from '../types/types';
-import { Button } from './Button';
-import { WebboardCommentItem } from './WebboardCommentItem';
-import { WebboardCommentForm } from './WebboardCommentForm';
+import { Button } from './Button.tsx';
+import { WebboardCommentItem } from './WebboardCommentItem.tsx';
+import { WebboardCommentForm } from './WebboardCommentForm.tsx';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 
 

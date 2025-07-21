@@ -1,21 +1,21 @@
-"use client";
+
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import type { HelperProfile, User } from '../types/types';
-import { JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types';
-import { Button } from './Button';
-import { useHelpers } from '../hooks/useHelpers';
-import { useAuth } from '../context/AuthContext';
-import { logFirebaseError } from '../firebase/logging';
-import { containsBlacklistedWords } from '../utils/validation';
+import type { HelperProfile, User } from '../types/types.ts'; // Added User
+import { JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts'; // Added Province
+import { Button } from './Button.tsx';
+import { useHelpers } from '../hooks/useHelpers.ts';
+import { logFirebaseError } from '../firebase/logging.ts';
+import { containsBlacklistedWords } from '../utils/validation.ts';
 
 type FormDataType = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt'>;
 
 
 interface OfferHelpFormProps {
+  onCancel: () => void;
   initialData?: HelperProfile;
-  isEditing: boolean;
+  isEditing?: boolean;
+  currentUser: User | null; // Added currentUser
 }
 
 const initialFormStateForCreate: FormDataType = {
@@ -34,7 +34,7 @@ const initialFormStateForCreate: FormDataType = {
 type FormErrorsType = Partial<Record<Exclude<keyof HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt'>, string>>;
 
 
-export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ initialData, isEditing }) => {
+export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onCancel, initialData, isEditing, currentUser }) => {
   const [formData, setFormData] = useState<FormDataType>(initialFormStateForCreate);
   const [formErrors, setFormErrors] = useState<FormErrorsType>({});
   const [availableSubCategories, setAvailableSubCategories] = useState<JobSubCategory[]>([]);
@@ -42,8 +42,6 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ initialData, isEdi
   const [canSubmit, setCanSubmit] = useState(true);
 
   const { addHelperProfile, updateHelperProfile, checkHelperProfilePostingLimits } = useHelpers();
-  const { currentUser } = useAuth();
-  const router = useRouter();
 
   useEffect(() => {
     if (!currentUser) {
@@ -116,7 +114,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ initialData, isEdi
             setFormErrors(prev => ({ ...prev, subCategory: undefined }));
         }
     } else if (key === 'subCategory') {
-        newFormData = { ...newFormData, subCategory: value as any || undefined };
+        newFormData = { ...newFormData, subCategory: value as JobSubCategory || undefined };
     } else if (key === 'province') {
         newFormData = { ...newFormData, province: value as Province };
     } else {
@@ -162,7 +160,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ initialData, isEdi
             await addHelperProfile(formData);
             alert('สร้างโปรไฟล์เรียบร้อยแล้ว');
         }
-        router.push('/find-helpers');
+        onCancel(); // Use the passed onCancel to navigate back
     } catch (error: any) {
         logFirebaseError("OfferHelpForm.handleSubmit", error);
         alert(`เกิดข้อผิดพลาด: ${error.message}`);
@@ -302,7 +300,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ initialData, isEdi
           <Button type="submit" variant="secondary" size="lg" className="w-full sm:w-auto flex-grow" disabled={!canSubmit && !isEditing}>
             {isEditing ? '💾 บันทึกการแก้ไข' : (canSubmit ? 'ส่งโปรไฟล์' : 'ไม่สามารถส่งโปรไฟล์')}
           </Button>
-          <Button type="button" onClick={() => router.back()} variant="outline" colorScheme="secondary" size="lg" className="w-full sm:w-auto flex-grow">
+          <Button type="button" onClick={onCancel} variant="outline" colorScheme="secondary" size="lg" className="w-full sm:w-auto flex-grow">
             ยกเลิก
           </Button>
         </div>

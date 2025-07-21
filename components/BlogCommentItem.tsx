@@ -1,7 +1,6 @@
-"use client";
 import React, { useState } from 'react';
 import type { BlogComment, User } from '../types/types';
-import { Button } from './Button';
+import { Button } from './Button.tsx';
 
 interface BlogCommentItemProps {
   comment: BlogComment;

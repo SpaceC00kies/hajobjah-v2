@@ -1,7 +1,6 @@
-"use client";
 import React from 'react';
 import type { User } from '../types/types';
-import { calculateProfileCompleteness } from '../utils/profileUtils';
+import { calculateProfileCompleteness } from '../utils/profileUtils.ts';
 import { motion } from 'framer-motion';
 
 interface ProfileCompletenessWizardProps {

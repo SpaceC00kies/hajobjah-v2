@@ -12,7 +12,7 @@ import { getUserDocument } from '../services/userService';
 import { containsBlacklistedWords } from '../utils/validation';
 import { isDateInPast } from '../utils/dateUtils';
 import { logFirebaseError } from '../firebase/logging';
-import type { HelperProfile, User, GenderOption, HelperEducationLevelOption } from '../types/types';
+import type { HelperProfile, User, GenderOption, HelperEducationLevelOption } from '../types/types.ts';
 
 const HELPER_PROFILE_COOLDOWN_DAYS = 3;
 const MAX_ACTIVE_HELPER_PROFILES_FREE_TIER = 1;

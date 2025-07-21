@@ -13,7 +13,7 @@ import {
 import { getUserDocument } from '../services/userService';
 import { containsBlacklistedWords } from '../utils/validation';
 import { logFirebaseError } from '../firebase/logging';
-import type { User, WebboardCategory, WebboardPost } from '../types/types';
+import type { User, WebboardCategory, WebboardPost } from '../types/types.ts';
 
 export const useWebboard = () => {
   const { currentUser, setCurrentUser } = useAuth();
@@ -56,85 +56,86 @@ export const useWebboard = () => {
       if (postIdToUpdate) {
         const postToEdit = allWebboardPostsForAdmin.find(p => p.id === postIdToUpdate);
         if (!postToEdit || !canEditOrDelete(postToEdit.userId, postToEdit.ownerId)) throw new Error('ไม่พบโพสต์ หรือไม่มีสิทธิ์แก้ไข');
-        await updateWebboardPostService(postIdToUpdate, postData);
+        await updateWebboardPostService(postIdToUpdate, postData, currentUser.photo);
       } else {
         finalPostId = await addWebboardPostService(postData, { userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, photo: currentUser.photo });
         const updatedUser = await getUserDocument(currentUser.id);
-        if (updatedUser) {
-          setCurrentUser(updatedUser);
-        }
+        if (updatedUser) setCurrentUser(updatedUser);
       }
       return finalPostId;
-    } catch (error) {
-      logFirebaseError("useWebboard.addOrUpdateWebboardPost", error);
+    } catch (error: any) {
+      logFirebaseError("useWebboard.addOrUpdatePost", error);
       throw error;
     }
-  }, [currentUser, setCurrentUser, allWebboardPostsForAdmin, canEditOrDelete, checkWebboardPostLimits]);
+  }, [currentUser, allWebboardPostsForAdmin, canEditOrDelete, checkWebboardPostLimits, setCurrentUser]);
+  
+  const addWebboardComment = useCallback(async (postId: string, text: string) => {
+    if (!currentUser) throw new Error("User not authenticated.");
+    if (containsBlacklistedWords(text)) throw new Error('เนื้อหาคอมเมนต์มีคำที่ไม่เหมาะสม');
+    try {
+      await addWebboardCommentService(postId, text, { userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, photo: currentUser.photo });
+      const updatedUser = await getUserDocument(currentUser.id);
+      if (updatedUser) setCurrentUser(updatedUser);
+    } catch (error: any) {
+      logFirebaseError("useWebboard.addComment", error);
+      throw error;
+    }
+  }, [currentUser, setCurrentUser]);
+
+  const updateWebboardComment = useCallback(async (commentId: string, newText: string) => {
+    if (!currentUser) throw new Error("User not authenticated.");
+    if (containsBlacklistedWords(newText)) throw new Error('เนื้อหาคอมเมนต์มีคำที่ไม่เหมาะสม');
+    const comment = webboardComments.find(c => c.id === commentId);
+    if (!comment || !canEditOrDelete(comment.userId, comment.ownerId)) throw new Error("คุณไม่มีสิทธิ์แก้ไขคอมเมนต์นี้");
+    try {
+      await updateWebboardCommentService(commentId, newText);
+    } catch (error: any) {
+      logFirebaseError("useWebboard.updateComment", error);
+      throw error;
+    }
+  }, [currentUser, webboardComments, canEditOrDelete]);
   
   const deleteWebboardPost = useCallback(async (postId: string) => {
-    const postToDelete = allWebboardPostsForAdmin.find(p => p.id === postId);
-    if (!postToDelete || !canEditOrDelete(postToDelete.userId, postToDelete.ownerId)) throw new Error('ไม่พบโพสต์ หรือไม่มีสิทธิ์ลบ');
+    const post = allWebboardPostsForAdmin.find(p => p.id === postId);
+    if (!post || !canEditOrDelete(post.userId, post.ownerId)) throw new Error("คุณไม่มีสิทธิ์ลบโพสต์นี้");
     try {
       await deleteWebboardPostService(postId);
-    } catch (error) {
-      logFirebaseError("useWebboard.deleteWebboardPost", error);
+    } catch (error: any) {
+      logFirebaseError("useWebboard.deletePost", error);
       throw error;
     }
-  }, [allWebboardPostsForAdmin, canEditOrDelete]);
+  }, [canEditOrDelete, allWebboardPostsForAdmin]);
+  
+  const deleteWebboardComment = useCallback(async (commentId: string) => {
+    const comment = webboardComments.find(c => c.id === commentId);
+    if (!comment || !canEditOrDelete(comment.userId, comment.ownerId)) throw new Error("คุณไม่มีสิทธิ์ลบคอมเมนต์นี้");
+    try {
+      await deleteWebboardCommentService(commentId);
+    } catch (error: any) {
+      logFirebaseError("useWebboard.deleteComment", error);
+      throw error;
+    }
+  }, [canEditOrDelete, webboardComments]);
 
   const toggleWebboardPostLike = useCallback(async (postId: string) => {
     if (!currentUser) throw new Error("User not authenticated.");
     try {
       await toggleWebboardPostLikeService(postId, currentUser.id);
-    } catch (error) {
-      logFirebaseError("useWebboard.toggleWebboardPostLike", error);
+    } catch (error: any) {
+      logFirebaseError("useWebboard.toggleLike", error);
       throw error;
     }
   }, [currentUser]);
-  
-  const addWebboardComment = useCallback(async (postId: string, text: string) => {
-    if (!currentUser) throw new Error("User not authenticated.");
-    const limitCheck = checkWebboardCommentLimits(currentUser);
-    if (!limitCheck.canPost) throw new Error(limitCheck.message || "Cannot comment");
-    try {
-      await addWebboardCommentService(postId, text, { userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, photo: currentUser.photo });
-    } catch (error) {
-      logFirebaseError("useWebboard.addWebboardComment", error);
-      throw error;
-    }
-  }, [currentUser, checkWebboardCommentLimits]);
-
-  const updateWebboardComment = useCallback(async (commentId: string, newText: string) => {
-    const commentToUpdate = webboardComments.find(c => c.id === commentId);
-    if (!commentToUpdate || !canEditOrDelete(commentToUpdate.userId, commentToUpdate.ownerId)) throw new Error('ไม่พบคอมเมนต์ หรือไม่มีสิทธิ์แก้ไข');
-    try {
-      await updateWebboardCommentService(commentId, newText);
-    } catch (error) {
-      logFirebaseError("useWebboard.updateWebboardComment", error);
-      throw error;
-    }
-  }, [webboardComments, canEditOrDelete]);
-
-  const deleteWebboardComment = useCallback(async (commentId: string) => {
-    const commentToDelete = webboardComments.find(c => c.id === commentId);
-    if (!commentToDelete || !canEditOrDelete(commentToDelete.userId, commentToDelete.ownerId)) throw new Error('ไม่พบคอมเมนต์ หรือไม่มีสิทธิ์ลบ');
-    try {
-      await deleteWebboardCommentService(commentId);
-    } catch (error) {
-      logFirebaseError("useWebboard.deleteWebboardComment", error);
-      throw error;
-    }
-  }, [webboardComments, canEditOrDelete]);
 
   return {
-    canEditOrDelete,
-    checkWebboardPostLimits,
-    checkWebboardCommentLimits,
     addOrUpdateWebboardPost,
-    deleteWebboardPost,
-    toggleWebboardPostLike,
     addWebboardComment,
     updateWebboardComment,
+    deleteWebboardPost,
     deleteWebboardComment,
+    toggleWebboardPostLike,
+    checkWebboardPostLimits,
+    checkWebboardCommentLimits,
+    canEditOrDelete
   };
 };

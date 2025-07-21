@@ -1,21 +1,18 @@
-"use client";
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from './Button';
-import { useAuthActions } from '../hooks/useAuthActions';
-import { useData } from '../context/DataContext';
+import { Button } from './Button.tsx';
 
+interface LoginFormProps {
+  onLogin: (loginIdentifier: string, passwordAttempt: string) => Promise<boolean>; // Returns true on success
+  onSwitchToRegister: () => void;
+  onForgotPassword: () => void; 
+}
 
-export const LoginForm: React.FC = () => {
+export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegister, onForgotPassword }) => {
   const [loginIdentifier, setLoginIdentifier] = useState(''); 
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const router = useRouter();
-  const { login } = useAuthActions();
-  const { setIsForgotPasswordModalOpen } = useData();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,13 +22,14 @@ export const LoginForm: React.FC = () => {
       return;
     }
     setIsLoading(true);
-    const result = await login(loginIdentifier, password);
+    const success = await onLogin(loginIdentifier, password);
     setIsLoading(false);
 
-    if (result.success) {
-      router.push('/');
+    if (!success) {
+      setError('ชื่อผู้ใช้/อีเมล หรือรหัสผ่านไม่ถูกต้อง');
     } else {
-      setError(result.error || 'ชื่อผู้ใช้/อีเมล หรือรหัสผ่านไม่ถูกต้อง');
+      setLoginIdentifier('');
+      setPassword('');
     }
   };
 
@@ -60,7 +58,7 @@ export const LoginForm: React.FC = () => {
             </label>
             <button 
               type="button" 
-              onClick={() => setIsForgotPasswordModalOpen(true)}
+              onClick={onForgotPassword} 
               className="text-xs font-sans text-neutral-medium hover:text-primary hover:underline focus:outline-none"
               disabled={isLoading}
             >
@@ -83,7 +81,7 @@ export const LoginForm: React.FC = () => {
         </Button>
         <p className="text-center text-sm font-serif text-neutral-dark font-normal">
           ยังไม่มีบัญชี?{' '}
-          <button type="button" onClick={() => router.push('/register')} className="font-sans font-medium text-primary hover:underline" disabled={isLoading}>
+          <button type="button" onClick={onSwitchToRegister} className="font-sans font-medium text-primary hover:underline" disabled={isLoading}>
             ลงทะเบียนที่นี่
           </button>
         </p>

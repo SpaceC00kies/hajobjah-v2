@@ -10,7 +10,7 @@ import {
 import { toggleInterestService, logHelperContactInteractionService } from '../services/interactionService';
 import { getHelperProfileDocument } from '../services/helperProfileService';
 import { reportVouchService } from '../services/adminService';
-import type { User, Vouch, VouchType } from '../types/types';
+import type { User, Vouch, VouchType } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging';
 
 export const useUser = () => {

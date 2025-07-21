@@ -1,8 +1,8 @@
-"use client";
+
 import React from 'react';
-import type { FilterableCategory, JobSubCategory } from '../types/types';
-import { JobCategory, Province } from '../types/types';
-import { Button } from './Button';
+import type { FilterableCategory, JobSubCategory } from '../types/types.ts';
+import { JobCategory, Province } from '../types/types.ts';
+import { Button } from './Button.tsx';
 
 interface FilterSidebarProps {
   selectedCategory: FilterableCategory;
