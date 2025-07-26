@@ -24,7 +24,7 @@ import {
 } from '@firebase/firestore';
 import { db } from '../firebaseConfig.ts';
 import type { BlogPost, BlogComment } from '../types/types.ts';
-import { logFirebaseError } from '../firebase/logging';
+import { logFirebaseError } from '../firebase/logging.ts';
 import { convertTimestamps } from './serviceUtils';
 import { uploadImageService, deleteImageService } from './storageService';
 
@@ -107,6 +107,19 @@ export const subscribeToBlogCommentsService = (postId: string, callback: (commen
         callback(items);
     }, (error) => {
         logFirebaseError(`subscribeToBlogCommentsService (${postId})`, error);
+    });
+};
+
+export const subscribeToAllBlogCommentsService = (callback: (comments: BlogComment[]) => void): (() => void) => {
+    const q = query(collection(db, BLOG_COMMENTS_COLLECTION), orderBy("createdAt", "asc"));
+    return onSnapshot(q, (querySnapshot) => {
+        const items = querySnapshot.docs.map(docSnap => ({
+            id: docSnap.id,
+            ...convertTimestamps(docSnap.data()),
+        } as BlogComment));
+        callback(items);
+    }, (error) => {
+        logFirebaseError(`subscribeToAllBlogCommentsService`, error);
     });
 };
 

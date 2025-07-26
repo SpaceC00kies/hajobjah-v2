@@ -1,28 +1,25 @@
-
-
 import React, { useState, useEffect } from 'react';
-import type { HelperProfile, User } from '../types/types.ts'; // Added User
-import { JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts'; // Added Province
+import type { HelperProfile } from '../types/types.ts';
+import { JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
 import { Button } from './Button.tsx';
+import { useAuth } from '../context/AuthContext.tsx';
 import { useHelpers } from '../hooks/useHelpers.ts';
 import { logFirebaseError } from '../firebase/logging.ts';
 import { containsBlacklistedWords } from '../utils/validation.ts';
 
 type FormDataType = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt'>;
 
-
 interface OfferHelpFormProps {
   onCancel: () => void;
   initialData?: HelperProfile;
   isEditing?: boolean;
-  currentUser: User | null; // Added currentUser
 }
 
 const initialFormStateForCreate: FormDataType = {
   profileTitle: '',
   details: '',
   area: '',
-  province: Province.ChiangMai, // Default province
+  province: Province.ChiangMai,
   category: '' as JobCategory,
   subCategory: undefined,
   availability: '',
@@ -34,7 +31,8 @@ const initialFormStateForCreate: FormDataType = {
 type FormErrorsType = Partial<Record<Exclude<keyof HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt'>, string>>;
 
 
-export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onCancel, initialData, isEditing, currentUser }) => {
+export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onCancel, initialData, isEditing }) => {
+  const { currentUser } = useAuth();
   const [formData, setFormData] = useState<FormDataType>(initialFormStateForCreate);
   const [formErrors, setFormErrors] = useState<FormErrorsType>({});
   const [availableSubCategories, setAvailableSubCategories] = useState<JobSubCategory[]>([]);

@@ -1,18 +1,15 @@
 
-
-
-
 import React, { useState, useEffect, useRef } from 'react';
 import { auth } from '../firebaseConfig.ts'; // Firebase auth instance
 import { verifyPasswordResetCode, confirmPasswordReset, type AuthError } from '@firebase/auth';
 import { Button } from './Button.tsx';
-import { View } from '../types/types.ts';
+import type { NavigateFunction } from 'react-router-dom';
 
 interface PasswordResetPageProps {
-  navigateTo: (view: View) => void;
+  navigate: NavigateFunction;
 }
 
-export const PasswordResetPage: React.FC<PasswordResetPageProps> = ({ navigateTo }) => {
+export const PasswordResetPage: React.FC<PasswordResetPageProps> = ({ navigate }) => {
   const [oobCode, setOobCode] = useState<string | null>(null);
   // mode is read but not directly used in logic beyond initial check, oobCode is key
   // const [mode, setMode] = useState<string | null>(null); 
@@ -134,7 +131,7 @@ export const PasswordResetPage: React.FC<PasswordResetPageProps> = ({ navigateTo
         <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md text-center border border-neutral-DEFAULT">
           <h2 className="text-2xl font-sans font-semibold text-accent mb-4">เกิดข้อผิดพลาด</h2>
           <p className="text-neutral-dark mb-6 font-normal">{verificationError}</p>
-          <Button onClick={() => navigateTo(View.Login)} variant="login" size="md">
+          <Button onClick={() => navigate('/login')} variant="login" size="md">
             กลับไปหน้าเข้าสู่ระบบ
           </Button>
         </div>
@@ -148,7 +145,7 @@ export const PasswordResetPage: React.FC<PasswordResetPageProps> = ({ navigateTo
                 <p className="text-neutral-dark mb-6 font-normal">
                     ลิงก์สำหรับรีเซ็ตรหัสผ่านนี้ไม่ถูกต้อง อาจเกิดจากการพิมพ์ผิด, ถูกใช้ไปแล้ว, หรือหมดอายุ
                 </p>
-                <Button onClick={() => navigateTo(View.Login)} variant="login" size="md">
+                <Button onClick={() => navigate('/login')} variant="login" size="md">
                     ขอลืมรหัสผ่านอีกครั้ง
                 </Button>
             </div>
@@ -172,7 +169,7 @@ export const PasswordResetPage: React.FC<PasswordResetPageProps> = ({ navigateTo
             <p className="text-green-600 font-sans mb-4 text-lg">
               ✅ ตั้งรหัสผ่านใหม่สำเร็จแล้ว!
             </p>
-            <Button onClick={() => navigateTo(View.Login)} variant="login" size="md">
+            <Button onClick={() => navigate('/login')} variant="login" size="md">
               ไปยังหน้าเข้าสู่ระบบ
             </Button>
           </div>
@@ -231,7 +228,7 @@ export const PasswordResetPage: React.FC<PasswordResetPageProps> = ({ navigateTo
             จำรหัสผ่านได้แล้ว?{' '}
             <button
             type="button"
-            onClick={() => navigateTo(View.Login)}
+            onClick={() => navigate('/login')}
             className="font-sans font-medium text-brandGreen hover:underline"
             >
             เข้าสู่ระบบที่นี่

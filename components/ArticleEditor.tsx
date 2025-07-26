@@ -3,6 +3,9 @@ import type { BlogPost, User } from '../types/types.ts';
 import { BlogCategory } from '../types/types.ts'; // Import the enum
 import { Button } from './Button.tsx';
 import { AISuggestionsModal } from './AISuggestionsModal.tsx';
+import { generateBlogSuggestions } from '../services/aiService.ts';
+import { useBlog } from '../hooks/useBlog.ts';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 type BlogPostFormData = Partial<Omit<BlogPost, 'id' | 'authorId' | 'authorDisplayName' | 'authorPhotoURL' | 'createdAt' | 'updatedAt' | 'publishedAt' | 'slug' | 'tags'>> & {
   newCoverImageBase64?: string | null;
@@ -11,12 +14,9 @@ type BlogPostFormData = Partial<Omit<BlogPost, 'id' | 'authorId' | 'authorDispla
 };
 
 interface ArticleEditorProps {
-  onSubmit: (data: BlogPostFormData, existingPostId?: string) => void;
   onCancel: () => void;
-  initialData?: BlogPost;
   isEditing: boolean;
-  currentUser: User;
-  onGenerateSuggestions: (task: 'title' | 'excerpt', content: string) => Promise<{ suggestions: string[] }>;
+  postId?: string;
 }
 
 const initialFormState: BlogPostFormData = {
@@ -31,7 +31,12 @@ const initialFormState: BlogPostFormData = {
   newCoverImagePreview: undefined,
 };
 
-export const ArticleEditor: React.FC<ArticleEditorProps> = ({ onSubmit, onCancel, initialData, isEditing, currentUser, onGenerateSuggestions }) => {
+export const ArticleEditor: React.FC<ArticleEditorProps> = ({ onCancel, isEditing, postId }) => {
+  const { addOrUpdateBlogPost, allBlogPostsForAdmin } = useBlog();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const initialData = isEditing ? allBlogPostsForAdmin.find(p => p.id === postId) || location.state?.item : undefined;
+
   const [formData, setFormData] = useState<BlogPostFormData>(initialFormState);
   const contentTextAreaRef = useRef<HTMLTextAreaElement>(null);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
@@ -46,7 +51,6 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ onSubmit, onCancel
         content: initialData.content || '',
         excerpt: initialData.excerpt || '',
         category: initialData.category || '',
-        // FIX: Use optional chaining to prevent crash if initialData or initialData.tags is undefined.
         tagsInput: (initialData?.tags || []).join(', '), 
         status: initialData.status || 'draft',
         coverImageURL: initialData.coverImageURL,
@@ -94,7 +98,7 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ onSubmit, onCancel
     setIsAiLoading(true);
     setAiTask(task);
     try {
-      const result = await onGenerateSuggestions(task, formData.content);
+      const result = await generateBlogSuggestions(task, formData.content);
       setAiSuggestions(result.suggestions);
       setIsAiModalOpen(true);
     } catch (error) {
@@ -113,13 +117,13 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ onSubmit, onCancel
   };
 
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const finalData = {
         ...formData,
-        tags: formData.tagsInput.split(',').map(tag => tag.trim()).filter(Boolean),
     };
-    onSubmit(finalData, initialData?.id);
+    await addOrUpdateBlogPost(finalData, initialData?.id);
+    navigate('/admin');
   };
 
   const insertTag = (tag: 'h1' | 'h2' | 'b' | 'i' | 'ul') => {
@@ -167,7 +171,7 @@ export const ArticleEditor: React.FC<ArticleEditorProps> = ({ onSubmit, onCancel
             <input type="file" name="coverImage" id="coverImage" onChange={handleImageChange} accept="image/*" className="w-full text-sm font-sans text-neutral-dark file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-hover/20 file:text-primary-hover/80 hover:file:bg-primary-hover/30" />
             {formData.newCoverImagePreview && (
                 <div className="mt-2 relative w-fit">
-                    <img src={formData.newCoverImagePreview} alt="Preview" className="h-40 rounded-md" />
+                    <img src={formData.newCoverImagePreview} alt="Preview" className="h-40 rounded-md" loading="lazy" decoding="async" />
                     <Button type="button" onClick={handleRemoveImage} size="sm" colorScheme='accent' className='absolute -top-2 -right-2 !rounded-full !p-1 !h-6 !w-6 flex items-center justify-center'>
                       &times;
                     </Button>

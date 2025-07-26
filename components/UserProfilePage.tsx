@@ -127,13 +127,13 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
       if (lastChangeDate instanceof Date) {
         const cooldownMs = DISPLAY_NAME_COOLDOWN_DAYS_UI * 24 * 60 * 60 * 1000;
         const nextChangeAllowedTime = lastChangeDate.getTime() + cooldownMs;
-        if (Date.now() < nextChangeAllowedTime) {
-          setDisplayNameCooldownInfo({
-            canChange: false,
-            message: `คุณสามารถเปลี่ยนชื่อที่แสดงได้อีกครั้งในวันที่ ${new Date(nextChangeAllowedTime).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}`
-          });
+         if (Date.now() < nextChangeAllowedTime) {
+            setDisplayNameCooldownInfo({
+                canChange: false,
+                message: `คุณสามารถเปลี่ยนชื่อที่แสดงได้อีกครั้งในวันที่ ${new Date(nextChangeAllowedTime).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}`
+            });
         } else {
-          setDisplayNameCooldownInfo({ canChange: true });
+            setDisplayNameCooldownInfo({ canChange: true });
         }
       } else {
          setDisplayNameCooldownInfo({ canChange: true }); // Should not happen if data is correct
@@ -323,7 +323,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
       <form onSubmit={handleSubmit} className="space-y-5">
         <div id="profile-photo-section" className="flex flex-col items-center mb-6">
           {photoBase64 ? (
-            <img src={photoBase64} alt="Profile Preview" className="w-32 h-32 rounded-full object-cover shadow-md mb-3" />
+            <img src={photoBase64} alt="Profile Preview" className="w-32 h-32 rounded-full object-cover shadow-md mb-3" loading="lazy" decoding="async" />
           ) : (
             <FallbackAvatar name={currentUser.publicDisplayName} size="w-32 h-32" className="mb-3" />
           )}

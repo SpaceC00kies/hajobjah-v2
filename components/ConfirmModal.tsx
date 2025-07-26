@@ -1,8 +1,8 @@
-
-
 import React, { useEffect } from 'react';
 import { Button } from './Button.tsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -30,6 +30,8 @@ const modalTransition = {
 };
 
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({ isOpen, onClose, onConfirm, title, message }) => {
+  const navigate = useNavigate();
+  
   useEffect(() => {
     const handleEscapeKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -79,7 +81,23 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({ isOpen, onClose, onC
             onClick={(e) => e.stopPropagation()}
           >
             <h2 id="confirm-modal-title" className="text-xl font-sans font-semibold text-neutral-dark mb-4">{title}</h2>
-            <p id="confirm-modal-message" className="font-serif text-base text-neutral-dark mb-6 whitespace-pre-wrap">{message}</p>
+            <p id="confirm-modal-message" className="font-serif text-base text-neutral-dark mb-6 whitespace-pre-wrap">
+              {message.includes("โปรดอ่านเพื่อความปลอดภัย") ? (
+                <>
+                  โปรดใช้ความระมัดระวัง <strong className="font-bold text-red-700">ห้ามโอนเงินก่อนเริ่มงาน</strong> และควรนัดเจอในที่ปลอดภัย
+                  <br/><br/>
+                  หาจ๊อบจ้าเป็นเพียงพื้นที่ให้คนเจอกัน โปรดใช้วิจารณญาณในการติดต่อ ฉบับเต็มโปรดอ่านที่หน้า{" "}
+                  <button
+                    onClick={() => { onClose(); navigate('/safety'); }}
+                    className="font-serif font-normal underline text-neutral-dark hover:text-secondary"
+                  >
+                    "โปรดอ่านเพื่อความปลอดภัย"
+                  </button>
+                </>
+              ) : (
+                message
+              )}
+            </p>
             <div className="flex flex-col sm:flex-row justify-end gap-3">
               <Button onClick={onClose} variant="outline" colorScheme="neutral" size="md" className="w-full sm:w-auto">
                 ยกเลิก

@@ -1,6 +1,7 @@
-import { useCallback } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useData } from '../context/DataContext';
+import { useCallback, useContext } from 'react';
+import { useAuth } from '../context/AuthContext.tsx';
+import { useUsers } from './useUsers.ts';
+import { WebboardContext } from '../context/WebboardContext.tsx';
 import {
   addWebboardPostService,
   updateWebboardPostService,
@@ -9,15 +10,21 @@ import {
   updateWebboardCommentService,
   deleteWebboardCommentService,
   toggleWebboardPostLikeService
-} from '../services/webboardService';
-import { getUserDocument } from '../services/userService';
-import { containsBlacklistedWords } from '../utils/validation';
-import { logFirebaseError } from '../firebase/logging';
+} from '../services/webboardService.ts';
+import { toggleItemFlagService } from '../services/adminService.ts';
+import { getUserDocument } from '../services/userService.ts';
+import { containsBlacklistedWords } from '../utils/validation.ts';
+import { logFirebaseError } from '../firebase/logging.ts';
 import type { User, WebboardCategory, WebboardPost } from '../types/types.ts';
 
 export const useWebboard = () => {
+  const context = useContext(WebboardContext);
+  if (!context) {
+    throw new Error('useWebboard must be used within a WebboardProvider');
+  }
+  const { allWebboardPostsForAdmin, webboardComments } = context;
   const { currentUser, setCurrentUser } = useAuth();
-  const { allWebboardPostsForAdmin, webboardComments, users } = useData();
+  const { users } = useUsers();
 
   const canEditOrDelete = useCallback((itemUserId: string, itemOwnerId?: string): boolean => {
     if (!currentUser) return false;
@@ -30,13 +37,10 @@ export const useWebboard = () => {
   }, [currentUser, users]);
   
   const checkWebboardPostLimits = useCallback((user: User): { canPost: boolean; message?: string | null } => {
-    // This is a placeholder as per the plan to move limiting logic server-side.
-    // Client-side checks are now primarily for UI feedback.
     return { canPost: true, message: null };
   }, []);
   
   const checkWebboardCommentLimits = useCallback((user: User): { canPost: boolean; message?: string } => {
-    // Placeholder for UI feedback.
     return { canPost: true };
   }, []);
 
@@ -127,13 +131,22 @@ export const useWebboard = () => {
     }
   }, [currentUser]);
 
+  const pinWebboardPost = useCallback(async (postId: string) => {
+    if (!currentUser || currentUser.role !== 'Admin') throw new Error("Permission denied");
+    const post = allWebboardPostsForAdmin.find(p => p.id === postId);
+    if (!post) throw new Error("Post not found");
+    await toggleItemFlagService('webboardPosts', postId, 'isPinned', post.isPinned);
+  }, [currentUser, allWebboardPostsForAdmin]);
+
   return {
+    ...context,
     addOrUpdateWebboardPost,
     addWebboardComment,
     updateWebboardComment,
     deleteWebboardPost,
     deleteWebboardComment,
     toggleWebboardPostLike,
+    pinWebboardPost,
     checkWebboardPostLimits,
     checkWebboardCommentLimits,
     canEditOrDelete

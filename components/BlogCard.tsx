@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { EnrichedBlogPost } from '../types/types.ts';
 import { motion } from 'framer-motion';
@@ -43,6 +44,8 @@ export const BlogCard: React.FC<BlogCardProps> = ({ post, onSelectPost }) => {
           src={post.coverImageURL}
           alt={post.title}
           className="w-full h-56 object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
+          loading="lazy"
+          decoding="async"
         />
       </div>
       <div className="p-6 flex flex-col flex-grow">

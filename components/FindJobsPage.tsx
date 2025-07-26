@@ -5,17 +5,11 @@ import { JobCard } from './JobCard.tsx';
 import { getJobsPaginated } from '../services/jobService.ts';
 import { useUser } from '../hooks/useUser.ts';
 import { useData } from '../context/DataContext.tsx';
+import { useAuth } from '../context/AuthContext.tsx';
+import { useUsers } from '../hooks/useUsers.ts';
 import { motion } from 'framer-motion';
 import { FilterSidebar } from './FilterSidebar.tsx';
-
-interface FindJobsPageProps {
-  navigateTo: (view: View, payload?: any) => void;
-  onNavigateToPublicProfile: (profileInfo: { userId: string }) => void;
-  onEditJobFromFindView: (jobId: string) => void;
-  currentUser: User | null;
-  requestLoginForAction: (view: View, payload?: any) => void;
-  getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
-}
+import { useNavigate } from 'react-router-dom';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -30,14 +24,13 @@ const itemVariants = {
   visible: { y: 0, opacity: 1 },
 };
 
-export const FindJobsPage: React.FC<FindJobsPageProps> = ({
-  navigateTo,
-  onNavigateToPublicProfile,
-  onEditJobFromFindView,
-  currentUser,
-  requestLoginForAction,
-  getAuthorDisplayName,
-}) => {
+export const FindJobsPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const { users } = useUsers();
+  const { userInterests } = useData();
+  const userActions = useUser();
+
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [cursor, setCursor] = useState<Cursor | null>(null);
@@ -48,18 +41,20 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
   const [selectedSubCategory, setSelectedSubCategory] = useState<JobSubCategory | 'all'>('all');
   const [selectedProvince, setSelectedProvince] = useState<Province | 'all'>('all');
   const [availableSubCategories, setAvailableSubCategories] = useState<JobSubCategory[]>([]);
-  const { userInterests } = useData();
-  const userActions = useUser();
   
   const loaderRef = useRef<HTMLDivElement>(null);
   const isLoadingRef = useRef(isLoading);
   const hasMoreRef = useRef(hasMore);
+  
+  const getAuthorDisplayName = useCallback((userId: string, fallbackName?: string): string => {
+    const author = users.find(u => u && u.id === userId);
+    return author?.publicDisplayName || fallbackName || "ผู้ใช้ไม่ทราบชื่อ";
+  }, [users]);
 
   useEffect(() => {
     isLoadingRef.current = isLoading;
     hasMoreRef.current = hasMore;
   }, [isLoading, hasMore]);
-
 
   const loadJobs = useCallback(async (isInitialLoad = false) => {
     setIsLoading(true);
@@ -145,7 +140,7 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
             onSearchTermChange={setSearchTerm}
             searchPlaceholder="ค้นหางาน, รายละเอียด..."
             actionButtonText="ลงประกาศงาน"
-            onActionButtonClick={() => currentUser ? navigateTo(View.PostJob) : requestLoginForAction(View.PostJob)}
+            onActionButtonClick={() => navigate('/post-job')}
           />
         </aside>
 
@@ -168,11 +163,11 @@ export const FindJobsPage: React.FC<FindJobsPageProps> = ({
                 <motion.div key={job.id} variants={itemVariants}>
                   <JobCard
                     job={job}
-                    navigateTo={navigateTo}
-                    onNavigateToPublicProfile={onNavigateToPublicProfile}
+                    navigate={navigate}
+                    onNavigateToPublicProfile={(info) => navigate(`/profile/${info.userId}`)}
                     currentUser={currentUser}
-                    requestLoginForAction={requestLoginForAction}
-                    onEditJobFromFindView={onEditJobFromFindView}
+                    requestLoginForAction={() => navigate('/login')}
+                    onEditJobFromFindView={(jobId) => navigate(`/job/edit/${jobId}`, { state: { from: '/find-jobs' } })}
                     getAuthorDisplayName={getAuthorDisplayName}
                     onToggleInterest={userActions.toggleInterest}
                     isInterested={userInterests.some(i => i.targetId === job.id)}

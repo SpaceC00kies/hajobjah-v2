@@ -1,5 +1,6 @@
-import { useCallback } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useCallback, useContext } from 'react';
+import { useAuth } from '../context/AuthContext.tsx';
+import { BlogContext } from '../context/BlogContext.tsx';
 import {
   addOrUpdateBlogPostService,
   deleteBlogPostService,
@@ -7,13 +8,18 @@ import {
   addBlogCommentService,
   updateBlogCommentService,
   deleteBlogCommentService,
-} from '../services/blogService';
+} from '../services/blogService.ts';
 import type { BlogPost, BlogComment } from '../types/types.ts';
-import { logFirebaseError } from '../firebase/logging';
+import { logFirebaseError } from '../firebase/logging.ts';
 
-type BlogPostFormData = Partial<Omit<BlogPost, 'id' | 'authorDisplayName' | 'authorPhotoURL' | 'createdAt' | 'updatedAt' | 'publishedAt'>> & { newCoverImageBase64?: string | null };
+type BlogPostFormData = Partial<Omit<BlogPost, 'id' | 'authorId' | 'authorDisplayName' | 'authorPhotoURL' | 'createdAt' | 'updatedAt' | 'publishedAt' | 'slug' | 'tags'>> & { newCoverImageBase64?: string | null; tagsInput: string; };
 
 export const useBlog = () => {
+  const context = useContext(BlogContext);
+  if (!context) {
+    throw new Error('useBlog must be used within a BlogProvider');
+  }
+  const { allBlogPosts, allBlogPostsForAdmin, blogComments } = context;
   const { currentUser } = useAuth();
 
   const addOrUpdateBlogPost = useCallback(async (blogPostData: BlogPostFormData, existingPostId?: string): Promise<string> => {
@@ -23,11 +29,10 @@ export const useBlog = () => {
     try {
       const { newCoverImageBase64, ...dataToSave } = blogPostData;
       const newPostId = await addOrUpdateBlogPostService(
-        { ...dataToSave, id: existingPostId },
+        dataToSave,
         { id: currentUser.id, publicDisplayName: currentUser.publicDisplayName, photo: currentUser.photo },
         newCoverImageBase64
       );
-      alert(`บทความ "${dataToSave.title}" ถูก${existingPostId ? 'อัปเดต' : 'สร้าง'}เรียบร้อยแล้ว`);
       return newPostId;
     } catch (error: any) {
       logFirebaseError("useBlog.addOrUpdateBlogPost", error);
@@ -35,13 +40,13 @@ export const useBlog = () => {
     }
   }, [currentUser]);
 
-  const deleteBlogPost = useCallback(async (postId: string, coverImageURL?: string): Promise<void> => {
+  const deleteBlogPost = useCallback(async (postId: string, coverImageUrl?: string): Promise<void> => {
     if (!currentUser || !(currentUser.role === 'Admin' || currentUser.role === 'Writer')) {
       throw new Error("Permission denied to delete blog post.");
     }
     try {
-      await deleteBlogPostService(postId, coverImageURL);
-      alert("ลบบทความเรียบร้อยแล้ว");
+      await deleteBlogPostService(postId, coverImageUrl);
+      alert('ลบบทความเรียบร้อยแล้ว');
     } catch (error: any) {
       logFirebaseError("useBlog.deleteBlogPost", error);
       throw error;
@@ -57,8 +62,8 @@ export const useBlog = () => {
       throw error;
     }
   }, [currentUser]);
-  
-  const addBlogComment = useCallback(async (postId: string, text: string): Promise<void> => {
+
+  const addBlogComment = useCallback(async (postId: string, text: string) => {
     if (!currentUser) throw new Error("User not authenticated to comment.");
     try {
       await addBlogCommentService(postId, text, { userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, photoURL: currentUser.photo });
@@ -67,9 +72,10 @@ export const useBlog = () => {
       throw error;
     }
   }, [currentUser]);
-  
-  const updateBlogComment = useCallback(async (commentId: string, newText: string): Promise<void> => {
+
+  const updateBlogComment = useCallback(async (commentId: string, newText: string) => {
     if (!currentUser) throw new Error("User not authenticated to update comments.");
+    // Additional permission checks can be added here if needed
     try {
       await updateBlogCommentService(commentId, newText);
     } catch (error: any) {
@@ -77,9 +83,10 @@ export const useBlog = () => {
       throw error;
     }
   }, [currentUser]);
-  
-  const deleteBlogComment = useCallback(async (commentId: string): Promise<void> => {
+
+  const deleteBlogComment = useCallback(async (commentId: string) => {
     if (!currentUser) throw new Error("User not authenticated to delete comments.");
+    // Additional permission checks can be added here if needed
     try {
       await deleteBlogCommentService(commentId);
     } catch (error: any) {
@@ -87,13 +94,16 @@ export const useBlog = () => {
       throw error;
     }
   }, [currentUser]);
-
+  
   return {
+    allBlogPosts,
+    allBlogPostsForAdmin,
+    blogComments,
     addOrUpdateBlogPost,
     deleteBlogPost,
     toggleBlogPostLike,
     addBlogComment,
     updateBlogComment,
-    deleteBlogComment,
+    deleteBlogComment
   };
 };

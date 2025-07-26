@@ -1,24 +1,23 @@
-import { useCallback } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useData } from '../context/DataContext';
+import { useCallback, useContext } from 'react';
+import { useAuth } from '../context/AuthContext.tsx';
+import { JobsContext } from '../context/JobsContext.tsx';
 import {
   addJobService,
   updateJobService,
   deleteJobService,
-  getJobDocument,
-} from '../services/jobService';
-import { toggleItemFlagService } from '../services/adminService';
-import { updateUserProfileService, getUserDocument } from '../services/userService';
-import { containsBlacklistedWords } from '../utils/validation';
-import { isDateInPast } from '../utils/dateUtils';
-import { logFirebaseError } from '../firebase/logging';
+} from '../services/jobService.ts';
+import { toggleItemFlagService } from '../services/adminService.ts';
+import { getUserDocument } from '../services/userService.ts';
+import { containsBlacklistedWords } from '../utils/validation.ts';
+import { isDateInPast } from '../utils/dateUtils.ts';
+import { logFirebaseError } from '../firebase/logging.ts';
 import type { Job, User } from '../types/types.ts';
 
 const JOB_COOLDOWN_DAYS = 3;
 const MAX_ACTIVE_JOBS_FREE_TIER = 3;
 const MAX_ACTIVE_JOBS_BADGE = 4;
 
-type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'posterIsAdminVerified' | 'interestedCount' | 'companyLogoUrl'>;
+type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'posterIsAdminVerified' | 'interestedCount' | 'companyLogoUrl' | 'adminVerified'>;
 
 const generateContactString = (user: User): string => {
     let contactParts: string[] = [];
@@ -29,8 +28,12 @@ const generateContactString = (user: User): string => {
 };
 
 export const useJobs = () => {
+  const context = useContext(JobsContext);
+  if (!context) {
+    throw new Error('useJobs must be used within a JobsProvider');
+  }
+  const { allJobsForAdmin } = context;
   const { currentUser, setCurrentUser } = useAuth();
-  const { allJobsForAdmin } = useData();
 
   const checkJobPostingLimits = useCallback(async (): Promise<{ canPost: boolean; message?: string }> => {
     if (!currentUser) return { canPost: false, message: "กรุณาเข้าสู่ระบบ" };
@@ -121,6 +124,7 @@ export const useJobs = () => {
   const toggleSuspiciousJob = (jobId: string) => toggleJobFlag(jobId, 'isSuspicious');
   const togglePinnedJob = (jobId: string) => toggleJobFlag(jobId, 'isPinned');
   const toggleHiredJob = (jobId: string) => toggleJobFlag(jobId, 'isHired');
+  const toggleVerifiedJob = (jobId: string) => toggleJobFlag(jobId, 'adminVerified');
 
-  return { addJob, updateJob, deleteJob, checkJobPostingLimits, toggleSuspiciousJob, togglePinnedJob, toggleHiredJob };
+  return { allJobsForAdmin, addJob, updateJob, deleteJob, checkJobPostingLimits, toggleSuspiciousJob, togglePinnedJob, toggleHiredJob, toggleVerifiedJob };
 };

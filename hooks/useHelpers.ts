@@ -1,17 +1,17 @@
-import { useCallback } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useData } from '../context/DataContext';
+import { useCallback, useContext } from 'react';
+import { useAuth } from '../context/AuthContext.tsx';
+import { HelpersContext } from '../context/HelpersContext.tsx';
 import {
   addHelperProfileService,
   updateHelperProfileService,
   deleteHelperProfileService,
   bumpHelperProfileService
-} from '../services/helperProfileService';
-import { toggleItemFlagService } from '../services/adminService';
-import { getUserDocument } from '../services/userService';
-import { containsBlacklistedWords } from '../utils/validation';
-import { isDateInPast } from '../utils/dateUtils';
-import { logFirebaseError } from '../firebase/logging';
+} from '../services/helperProfileService.ts';
+import { toggleItemFlagService } from '../services/adminService.ts';
+import { getUserDocument } from '../services/userService.ts';
+import { containsBlacklistedWords } from '../utils/validation.ts';
+import { isDateInPast } from '../utils/dateUtils.ts';
+import { logFirebaseError } from '../firebase/logging.ts';
 import type { HelperProfile, User, GenderOption, HelperEducationLevelOption } from '../types/types.ts';
 
 const HELPER_PROFILE_COOLDOWN_DAYS = 3;
@@ -30,8 +30,12 @@ const generateContactString = (user: User): string => {
 };
 
 export const useHelpers = () => {
+  const context = useContext(HelpersContext);
+  if (!context) {
+    throw new Error('useHelpers must be used within a HelpersProvider');
+  }
+  const { allHelperProfilesForAdmin } = context;
   const { currentUser, setCurrentUser } = useAuth();
-  const { allHelperProfilesForAdmin } = useData();
 
   const checkHelperProfilePostingLimits = useCallback(async (): Promise<{ canPost: boolean; message?: string }> => {
     if (!currentUser) return { canPost: false, message: "กรุณาเข้าสู่ระบบ" };
@@ -165,6 +169,7 @@ export const useHelpers = () => {
   const onToggleUnavailableHelperProfileForUserOrAdmin = (profileId: string) => toggleHelperFlag(profileId, 'isUnavailable');
   
   return {
+    allHelperProfilesForAdmin,
     addHelperProfile,
     updateHelperProfile,
     deleteHelperProfile,

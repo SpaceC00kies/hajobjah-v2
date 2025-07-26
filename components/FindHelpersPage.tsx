@@ -8,15 +8,10 @@ import { useHelpers } from '../hooks/useHelpers.ts';
 import { useData } from '../context/DataContext.tsx';
 import { motion } from 'framer-motion';
 import { FilterSidebar } from './FilterSidebar.tsx';
-
-interface FindHelpersPageProps {
-  navigateTo: (view: View, payload?: any) => void;
-  onNavigateToPublicProfile: (profileInfo: { userId: string; helperProfileId?: string }) => void;
-  currentUser: User | null;
-  requestLoginForAction: (view: View, payload?: any) => void;
-  onEditProfileFromFindView: (profileId: string) => void;
-  getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
-}
+import type { NavigateFunction } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.tsx';
+import { useUsers } from '../hooks/useUsers.ts';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -31,14 +26,14 @@ const itemVariants = {
   visible: { y: 0, opacity: 1 },
 };
 
-export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
-  navigateTo,
-  onNavigateToPublicProfile,
-  currentUser,
-  requestLoginForAction,
-  onEditProfileFromFindView,
-  getAuthorDisplayName,
-}) => {
+export const FindHelpersPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const { users } = useUsers();
+  const { userInterests } = useData();
+  const userActions = useUser();
+  const helperActions = useHelpers();
+
   const [profiles, setProfiles] = useState<EnrichedHelperProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [cursor, setCursor] = useState<Cursor | null>(null);
@@ -49,14 +44,16 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
   const [selectedSubCategory, setSelectedSubCategory] = useState<JobSubCategory | 'all'>('all');
   const [selectedProvince, setSelectedProvince] = useState<Province | 'all'>('all');
   const [availableSubCategories, setAvailableSubCategories] = useState<JobSubCategory[]>([]);
-  const { users, userInterests } = useData();
-  const userActions = useUser();
-  const helperActions = useHelpers();
   
   const loaderRef = useRef<HTMLDivElement>(null);
   const isLoadingRef = useRef(isLoading);
   const hasMoreRef = useRef(hasMore);
 
+  const getAuthorDisplayName = useCallback((userId: string, fallbackName?: string): string => {
+    const author = users.find(u => u && u.id === userId);
+    return author?.publicDisplayName || fallbackName || "ผู้ใช้ไม่ทราบชื่อ";
+  }, [users]);
+  
   useEffect(() => {
     isLoadingRef.current = isLoading;
     hasMoreRef.current = hasMore;
@@ -112,7 +109,7 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
 
   useEffect(() => {
     loadProfiles(true);
-  }, [debouncedSearchTerm, selectedCategory, selectedSubCategory, selectedProvince, loadProfiles]);
+  }, [debouncedSearchTerm, selectedCategory, selectedSubCategory, selectedProvince]);
 
   useEffect(() => {
     if (selectedCategory !== 'all' && JOB_SUBCATEGORIES_MAP[selectedCategory]) {
@@ -160,7 +157,7 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
             onSearchTermChange={setSearchTerm}
             searchPlaceholder="ค้นหาทักษะ, พื้นที่..."
             actionButtonText="สร้างโปรไฟล์"
-            onActionButtonClick={() => currentUser ? navigateTo(View.OfferHelp) : requestLoginForAction(View.OfferHelp)}
+            onActionButtonClick={() => currentUser ? navigate('/offer-help') : navigate('/login')}
           />
         </aside>
 
@@ -183,13 +180,13 @@ export const FindHelpersPage: React.FC<FindHelpersPageProps> = ({
                 <motion.div key={profile.id} variants={itemVariants}>
                   <HelperCard
                     profile={profile}
-                    onNavigateToPublicProfile={onNavigateToPublicProfile}
-                    navigateTo={navigateTo}
+                    onNavigateToPublicProfile={(info) => navigate(`/profile/${info.userId}/${info.helperProfileId}`)}
+                    navigate={navigate}
                     onLogHelperContact={userActions.logContact}
                     currentUser={currentUser}
-                    requestLoginForAction={requestLoginForAction}
+                    requestLoginForAction={() => navigate('/login')}
                     onBumpProfile={helperActions.onBumpProfile}
-                    onEditProfileFromFindView={onEditProfileFromFindView}
+                    onEditProfileFromFindView={(profileId) => navigate(`/profile/edit/${profileId}`, { state: { from: '/find-helpers' } })}
                     getAuthorDisplayName={getAuthorDisplayName}
                     onToggleInterest={userActions.toggleInterest}
                     isInterested={userInterests.some(i => i.targetId === profile.id)}

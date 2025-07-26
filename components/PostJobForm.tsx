@@ -1,5 +1,3 @@
-
-
 import React, { useState, useCallback, useEffect } from 'react';
 import type { Job, User } from '../types/types.ts';
 import { View, JobDesiredEducationLevelOption, JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
@@ -7,6 +5,8 @@ import { Button } from './Button.tsx';
 import { containsBlacklistedWords } from '../utils/validation.ts';
 import { getJobTemplateForCategory } from '../utils/templates.ts';
 import { useJobs } from '../hooks/useJobs.ts';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.tsx';
 
 type FormDataType = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'posterIsAdminVerified' | 'interestedCount'>;
 
@@ -14,9 +14,6 @@ interface PostJobFormProps {
   onCancel: () => void;
   initialData?: Job;
   isEditing?: boolean;
-  currentUser: User;
-  allJobsForAdmin: Job[];
-  navigateTo: (view: View, payload?: any) => void;
   sourceViewForForm: View | null;
 }
 
@@ -41,13 +38,41 @@ const initialFormStateForCreate: FormDataType = {
 
 type FormErrorsType = Partial<Record<keyof FormDataType, string>>;
 
-export const PostJobForm: React.FC<PostJobFormProps> = ({ onCancel, initialData, isEditing, currentUser, allJobsForAdmin, navigateTo, sourceViewForForm }) => {
+const viewToPath = (view: View | null): string => {
+  if (!view) return '/';
+  const map: Record<View, string> = {
+    [View.Home]: '/',
+    [View.PostJob]: '/post-job',
+    [View.FindJobs]: '/find-jobs',
+    [View.OfferHelp]: '/offer-help',
+    [View.FindHelpers]: '/find-helpers',
+    [View.Login]: '/login',
+    [View.Register]: '/register',
+    [View.AdminDashboard]: '/admin',
+    [View.MyRoom]: '/my-room',
+    [View.AboutUs]: '/about',
+    [View.Safety]: '/safety',
+    [View.PasswordReset]: '/reset-password',
+    [View.Blog]: '/blog',
+    [View.ArticleEditor]: '/article/create',
+    [View.SearchResults]: '/search',
+    [View.PublicProfile]: '/profile',
+    [View.MyPosts]: '/my-room',
+    [View.UserProfile]: '/my-room',
+    [View.Webboard]: '/webboard',
+  };
+  return map[view] || '/';
+};
+
+export const PostJobForm: React.FC<PostJobFormProps> = ({ onCancel, initialData, isEditing, sourceViewForForm }) => {
+  const { currentUser } = useAuth();
   const [formData, setFormData] = useState<FormDataType>(initialFormStateForCreate);
   const [formErrors, setFormErrors] = useState<FormErrorsType>({});
   const [availableSubCategories, setAvailableSubCategories] = useState<JobSubCategory[]>([]);
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
   const [canSubmit, setCanSubmit] = useState(true);
   const [showTemplateButton, setShowTemplateButton] = useState(false);
+  const navigate = useNavigate();
 
   const { addJob, updateJob, checkJobPostingLimits } = useJobs();
 
@@ -66,7 +91,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onCancel, initialData,
         setLimitMessage(message || null);
       });
     }
-  }, [currentUser, allJobsForAdmin, isEditing, checkJobPostingLimits]);
+  }, [currentUser, isEditing, checkJobPostingLimits]);
 
   useEffect(() => {
     if (isEditing && initialData) {
@@ -209,7 +234,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onCancel, initialData,
             await addJob(formData);
             alert('ประกาศงานของคุณถูกเพิ่มแล้ว!');
         }
-        navigateTo(sourceViewForForm || View.FindJobs);
+        navigate(viewToPath(sourceViewForForm || View.FindJobs));
         if (!isEditing) {
             setFormData(initialFormStateForCreate);
             setAvailableSubCategories([]);

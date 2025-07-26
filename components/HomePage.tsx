@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { UniversalSearchBar } from './UniversalSearchBar.tsx';
-import { View } from '../types/types.ts';
+import type { View } from '../types/types.ts';
+import type { NavigateFunction } from 'react-router-dom';
 
 interface HomePageProps {
   onSearch: (searchParams: { query: string; province: string }) => void;
@@ -9,7 +10,7 @@ interface HomePageProps {
   selectedProvince: string;
   onProvinceChange: (province: string) => void;
   onOpenLocationModal: () => void;
-  navigateTo: (view: View) => void;
+  navigate: NavigateFunction;
 }
 
 export const HomePage: React.FC<HomePageProps> = ({
@@ -18,7 +19,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   selectedProvince,
   onProvinceChange,
   onOpenLocationModal,
-  navigateTo,
+  navigate,
 }) => {
   return (
     <div className="w-full h-full flex items-center justify-center">
@@ -35,11 +36,11 @@ export const HomePage: React.FC<HomePageProps> = ({
         />
 
         <div className="flex items-center space-x-6 mt-4">
-          <button onClick={() => navigateTo(View.FindJobs)} className="secondary-browse-link">
+          <button onClick={() => navigate('/find-jobs')} className="secondary-browse-link">
             ดูประกาศงานทั้งหมด
           </button>
           <span className="text-neutral-medium">|</span>
-          <button onClick={() => navigateTo(View.FindHelpers)} className="secondary-browse-link">
+          <button onClick={() => navigate('/find-helpers')} className="secondary-browse-link">
             ดูโปรไฟล์ทั้งหมด
           </button>
         </div>

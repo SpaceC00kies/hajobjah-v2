@@ -1,24 +1,28 @@
-
 import { useCallback } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext.tsx';
+import { useJobs } from './useJobs.ts';
+import { useHelpers } from './useHelpers.ts';
+import { useWebboard } from './useWebboard.ts';
+import { useBlog } from './useBlog.ts';
 import {
   setSiteLockService,
   setUserRoleService,
   resolveVouchReportService,
-  toggleItemFlagService,
   getVouchDocument,
   orionAnalyzeService,
   forceResolveVouchReportService,
-} from '../services/adminService';
-import { deleteBlogPostService } from '../services/blogService';
-import type { UserRole, VouchReportStatus, VouchType, Job, HelperProfile, WebboardPost } from '../types/types.ts';
-import { logFirebaseError } from '../firebase/logging';
+  toggleItemFlagService,
+} from '../services/adminService.ts';
+import type { UserRole, VouchReportStatus, VouchType } from '../types/types.ts';
+import { logFirebaseError } from '../firebase/logging.ts';
 
 export const useAdmin = () => {
   const { currentUser } = useAuth();
-  const { allJobsForAdmin, allHelperProfilesForAdmin, allWebboardPostsForAdmin } = useData();
-  
+  const { toggleSuspiciousJob, togglePinnedJob, toggleVerifiedJob } = useJobs();
+  const { onToggleSuspiciousHelperProfile: toggleSuspiciousHelperProfile, onTogglePinnedHelperProfile: togglePinnedHelperProfile, onToggleVerifiedExperience: toggleVerifiedExperience } = useHelpers();
+  const { allWebboardPostsForAdmin, canEditOrDelete: canWebboardEditOrDelete } = useWebboard();
+  const { deleteBlogPost } = useBlog();
+
   const checkAdmin = useCallback(() => {
       if (!currentUser || currentUser.role !== 'Admin') {
           throw new Error("Permission denied. Administrator access required.");
@@ -69,39 +73,12 @@ export const useAdmin = () => {
     }
   }, [currentUser, checkAdmin]);
 
-  const toggleItemFlag = useCallback(async (collectionName: 'jobs' | 'helperProfiles' | 'webboardPosts', itemId: string, flagName: keyof Job | keyof HelperProfile | keyof WebboardPost) => {
-    checkAdmin();
-    const collectionMap = {
-      jobs: allJobsForAdmin,
-      helperProfiles: allHelperProfilesForAdmin,
-      webboardPosts: allWebboardPostsForAdmin,
-    };
-    const item = collectionMap[collectionName].find(i => i.id === itemId);
-    if (!item) throw new Error("Item not found");
-    await toggleItemFlagService(collectionName, itemId, flagName, (item as any)[flagName]);
-  }, [checkAdmin, allJobsForAdmin, allHelperProfilesForAdmin, allWebboardPostsForAdmin]);
-  
-  const toggleSuspiciousJob = useCallback((jobId: string) => toggleItemFlag('jobs', jobId, 'isSuspicious'), [toggleItemFlag]);
-  const togglePinnedJob = useCallback((jobId: string) => toggleItemFlag('jobs', jobId, 'isPinned'), [toggleItemFlag]);
-  const toggleVerifiedJob = useCallback((jobId: string) => toggleItemFlag('jobs', jobId, 'adminVerified'), [toggleItemFlag]);
-  const toggleSuspiciousHelperProfile = useCallback((profileId: string) => toggleItemFlag('helperProfiles', profileId, 'isSuspicious'), [toggleItemFlag]);
-  const togglePinnedHelperProfile = useCallback((profileId: string) => toggleItemFlag('helperProfiles', profileId, 'isPinned'), [toggleItemFlag]);
-  const toggleVerifiedExperience = useCallback((profileId: string) => toggleItemFlag('helperProfiles', profileId, 'adminVerifiedExperience'), [toggleItemFlag]);
-  const pinWebboardPost = useCallback((postId: string) => toggleItemFlag('webboardPosts', postId, 'isPinned'), [toggleItemFlag]);
-  
-  const deleteBlogPost = useCallback(async (postId: string, coverImageURL?: string) => {
-      if (!currentUser || !(currentUser.role === 'Admin' || currentUser.role === 'Writer')) {
-          throw new Error("Permission denied to delete blog post.");
-      }
-      try {
-          await deleteBlogPostService(postId, coverImageURL);
-          alert("ลบบทความเรียบร้อยแล้ว");
-      } catch (error: any) {
-          logFirebaseError("useAdmin.deleteBlogPost", error);
-          throw error;
-      }
-  }, [currentUser]);
-  
+  const pinWebboardPost = useCallback(async (postId: string) => {
+    const post = allWebboardPostsForAdmin.find(p => p.id === postId);
+    if (!post || !canWebboardEditOrDelete(post.userId, post.ownerId)) throw new Error("Permission denied");
+    await toggleItemFlagService('webboardPosts', postId, 'isPinned', post.isPinned);
+  }, [allWebboardPostsForAdmin, canWebboardEditOrDelete]);
+
   return {
     setUserRole,
     toggleSiteLock,

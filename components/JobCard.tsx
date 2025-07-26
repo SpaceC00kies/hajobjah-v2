@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import type { Job, User } from '../types/types.ts';
 import { View, JobCategory, JobDesiredEducationLevelOption, Province } from '../types/types.ts';
@@ -5,10 +6,11 @@ import { Button } from './Button.tsx'; // Import Button
 import { Modal } from './Modal.tsx';
 import { isDateInPast } from '../utils/dateUtils.ts';
 import { motion } from 'framer-motion';
+import type { NavigateFunction } from 'react-router-dom';
 
 interface JobCardProps {
   job: Job; // Already includes posterIsAdminVerified?
-  navigateTo: (view: View, payload?: any) => void; // Updated to accept payload
+  navigate: NavigateFunction;
   onNavigateToPublicProfile: (profileInfo: { userId: string }) => void;
   currentUser: User | null;
   requestLoginForAction: (view: View, payload?: any) => void;
@@ -53,7 +55,7 @@ const JobCardFallbackAvatar: React.FC<{ name?: string }> = ({ name }) => {
   );
 };
 
-export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, onNavigateToPublicProfile, currentUser, requestLoginForAction, onEditJobFromFindView, getAuthorDisplayName, onToggleInterest, isInterested }) => {
+export const JobCard: React.FC<JobCardProps> = ({ job, navigate, onNavigateToPublicProfile, currentUser, requestLoginForAction, onEditJobFromFindView, getAuthorDisplayName, onToggleInterest, isInterested }) => {
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
   const [showFullDetails, setShowFullDetails] = useState(false);
@@ -164,6 +166,8 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, onNavigateToP
                        alt={`${authorActualDisplayName} logo`}
                        className="job-card-logo-image"
                        onError={() => setLogoError(true)}
+                       loading="lazy"
+                       decoding="async"
                    />
                ) : (
                    <JobCardFallbackAvatar name={authorActualDisplayName} />
@@ -298,7 +302,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigateTo, onNavigateToP
                 <p>
                   หาจ๊อบจ้าเป็นเพียงพื้นที่ให้คนเจอกัน โปรดใช้วิจารณญาณในการติดต่อ ฉบับเต็มโปรดอ่านที่หน้า{" "}
                   <button
-                    onClick={() => { closeWarningModal(); navigateTo(View.Safety); }}
+                    onClick={() => { closeWarningModal(); navigate('/safety'); }}
                     className="font-serif font-normal underline text-neutral-dark hover:text-primary"
                   >
                     "โปรดอ่านเพื่อความปลอดภัย"

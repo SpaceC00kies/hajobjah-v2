@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import type { EnrichedWebboardPost, EnrichedWebboardComment, User } from '../types/types';
 import { USER_LEVELS, UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES }
@@ -30,7 +31,7 @@ interface WebboardPostDetailProps {
 
 const FallbackAvatarLarge: React.FC<{ name?: string, photo?: string, size?: string, className?: string }> = ({ name, photo, size = "w-12 h-12", className = "" }) => {
   if (photo) {
-    return <img src={photo} alt={name || 'avatar'} className={`${size} rounded-full object-cover ${className}`} />;
+    return <img src={photo} alt={name || 'avatar'} className={`${size} rounded-full object-cover ${className}`} loading="lazy" decoding="async" />;
   }
   const initial = name ? name.charAt(0).toUpperCase() : '👤';
   return (
@@ -179,7 +180,7 @@ export const WebboardPostDetail: React.FC<WebboardPostDetailProps> = ({
 
         {/* Post Content */}
         {post.image && (
-          <img src={post.image} alt={post.title} className="w-full max-h-[500px] object-contain rounded-lg my-4 bg-neutral-light" />
+          <img src={post.image} alt={post.title} className="w-full max-h-[500px] object-contain rounded-lg my-4 bg-neutral-light" loading="lazy" decoding="async" />
         )}
         <div className="prose prose-sm sm:prose-base max-w-none font-serif text-neutral-dark whitespace-pre-wrap leading-relaxed">
           {post.body}

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import type { EnrichedHelperProfile, User } from '../types/types.ts';
 import { View, Province, ACTIVITY_BADGE_DETAILS } from '../types/types.ts';
@@ -6,11 +7,12 @@ import { Button } from './Button.tsx'; // Import Button
 import { isDateInPast, calculateDaysRemaining } from '../utils/dateUtils.ts';
 import { UserLevelBadge } from './UserLevelBadge.tsx';
 import { motion } from 'framer-motion';
+import type { NavigateFunction } from 'react-router-dom';
 
 interface HelperCardProps {
   profile: EnrichedHelperProfile;
   onNavigateToPublicProfile: (profileInfo: { userId: string; helperProfileId?: string }) => void;
-  navigateTo: (view: View, payload?: any) => void;
+  navigate: NavigateFunction;
   onLogHelperContact: (helperProfileId: string) => void;
   currentUser: User | null;
   requestLoginForAction: (view: View, payload?: any) => void;
@@ -101,7 +103,7 @@ const TrustBadgesCompact: React.FC<{ profile: EnrichedHelperProfile, user: User 
 export const HelperCard: React.FC<HelperCardProps> = ({
     profile,
     onNavigateToPublicProfile,
-    navigateTo,
+    navigate,
     onLogHelperContact,
     currentUser,
     requestLoginForAction,
@@ -212,6 +214,8 @@ export const HelperCard: React.FC<HelperCardProps> = ({
                 className="helper-card-avatar"
                 onClick={() => onNavigateToPublicProfile({ userId: profile.userId, helperProfileId: profile.id })}
                 onError={(e) => (e.currentTarget.style.display = 'none')}
+                loading="lazy"
+                decoding="async"
               />
             ) : (
               <FallbackAvatarDisplay name={authorActualDisplayName} className="helper-card-avatar" />
@@ -352,7 +356,7 @@ export const HelperCard: React.FC<HelperCardProps> = ({
               <p>
                 หาจ๊อบจ้าเป็นเพียงพื้นที่ให้คนเจอกัน โปรดใช้วิจารณญาณในการติดต่อ ฉบับเต็มโปรดอ่านที่หน้า{" "}
                 <button
-                  onClick={() => { closeWarningModal(); navigateTo(View.Safety); }}
+                  onClick={() => { closeWarningModal(); navigate('/safety'); }}
                   className="font-serif font-normal underline text-neutral-dark hover:text-secondary"
                 >
                   "โปรดอ่านเพื่อความปลอดภัย"

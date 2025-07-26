@@ -1,18 +1,19 @@
-
-
 import React from 'react';
 import type { User, HelperProfile, VouchInfo } from '../types/types.ts'; 
 import { HelperEducationLevelOption, GenderOption, ACTIVITY_BADGE_DETAILS, VOUCH_TYPE_LABELS, VouchType } from '../types/types.ts'; 
 import { Button } from './Button.tsx';
 import { UserLevelBadge } from './UserLevelBadge.tsx'; 
+import { useParams, useNavigate } from 'react-router-dom';
+import { useUsers } from '../hooks/useUsers.ts';
+import { useHelpers } from '../hooks/useHelpers.ts';
+import { useAuth } from '../context/AuthContext.tsx';
 
 interface PublicProfilePageProps {
-  user: User; 
-  helperProfile?: HelperProfile; 
   onBack: () => void; 
-  currentUser: User | null; 
   onVouchForUser: (userToVouch: User) => void; 
-  onShowVouches: (userToList: User) => void; 
+  onShowVouches: (userToList: User) => void;
+  userId: string;
+  helperProfileId?: string;
 }
 
 const FallbackAvatarPublic: React.FC<{ name?: string, size?: string }> = ({ name, size = "w-40 h-40" }) => {
@@ -93,7 +94,18 @@ const VouchDisplay: React.FC<{ vouchInfo?: VouchInfo, onShowVouches: () => void 
 };
 
 
-export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, helperProfile, onBack, currentUser, onVouchForUser, onShowVouches }) => {
+export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ onBack, onVouchForUser, onShowVouches, userId, helperProfileId }) => {
+  const { currentUser } = useAuth();
+  const { users } = useUsers();
+  const { allHelperProfilesForAdmin } = useHelpers();
+
+  const user = users.find(u => u.id === userId);
+  const helperProfile = helperProfileId ? allHelperProfilesForAdmin.find(p => p.id === helperProfileId) : undefined;
+  
+  if (!user) {
+    return <div>User not found.</div>;
+  }
+
   const age = calculateAgePublic(user.birthdate);
 
   const renderInfoItem = (label: string, value?: string | number | null, highlight: boolean = false, isMultiline: boolean = false, fullWidth: boolean = false, isLink: boolean = false) => {
@@ -117,7 +129,7 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ user, help
     <div className="container mx-auto p-4 sm:p-8 max-w-2xl my-8">
       <div className="bg-white shadow-xl rounded-xl p-6 md:p-10 border border-neutral-DEFAULT">
         <div className="text-center mb-6">
-          {user.photo ? (<img src={user.photo} alt={user.publicDisplayName} className="w-40 h-40 rounded-full object-cover shadow-lg mx-auto mb-4" />) : (<FallbackAvatarPublic name={user.publicDisplayName} />)}
+          {user.photo ? (<img src={user.photo} alt={user.publicDisplayName} className="w-40 h-40 rounded-full object-cover shadow-lg mx-auto mb-4" loading="lazy" decoding="async" />) : (<FallbackAvatarPublic name={user.publicDisplayName} />)}
           <h2 className="text-3xl font-sans font-bold text-secondary-hover mt-4">{user.publicDisplayName}</h2>
           {user.userLevel && <UserLevelBadge level={user.userLevel} size="md" />}
           <TrustBadgesPublicProfile user={user} helperProfile={helperProfile} />

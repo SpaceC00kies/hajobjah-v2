@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo, useEffect } from 'react';
 import type { SearchResultItem, FilterableCategory, JobSubCategory, Province, User, Interest, Job, HelperProfile, EnrichedHelperProfile } from '../types/types.ts';
 import { View, JobCategory, JOB_SUBCATEGORIES_MAP } from '../types/types.ts';
@@ -9,6 +8,7 @@ import { HelperCard } from './HelperCard.tsx';
 import { CardSkeleton } from './CardSkeleton.tsx';
 import { Button } from './Button.tsx';
 import { motion } from 'framer-motion';
+import type { NavigateFunction } from 'react-router-dom';
 
 interface SearchResultsPageProps {
   searchQuery: string;
@@ -19,7 +19,7 @@ interface SearchResultsPageProps {
   users: User[];
   userInterests: Interest[];
   getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
-  navigateTo: (view: View, payload?: any) => void;
+  navigate: NavigateFunction;
   onNavigateToPublicProfile: (profileInfo: { userId: string; helperProfileId?: string }) => void;
   requestLoginForAction: (view: View, payload?: any) => void;
   onEditJobFromFindView: (jobId: string) => void;
@@ -50,7 +50,7 @@ const itemVariants = {
 export const SearchResultsPage: React.FC<SearchResultsPageProps> = (props) => {
   const {
     searchQuery, searchResults, isLoading, searchError, currentUser, users, userInterests,
-    getAuthorDisplayName, navigateTo, onNavigateToPublicProfile, requestLoginForAction,
+    getAuthorDisplayName, navigate, onNavigateToPublicProfile, requestLoginForAction,
     onEditJobFromFindView, onEditProfileFromFindView, onLogHelperContact,
     onBumpProfile, onToggleInterest, onGoBack, initialProvince
   } = props;
@@ -156,7 +156,7 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = (props) => {
                             <motion.div key={item.id} variants={itemVariants}>
                                 <JobCard
                                     job={item as Job}
-                                    navigateTo={navigateTo}
+                                    navigate={navigate}
                                     onNavigateToPublicProfile={onNavigateToPublicProfile}
                                     currentUser={currentUser}
                                     requestLoginForAction={requestLoginForAction}
@@ -185,7 +185,7 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = (props) => {
                                 <HelperCard
                                     profile={enrichedProfile}
                                     onNavigateToPublicProfile={onNavigateToPublicProfile}
-                                    navigateTo={navigateTo}
+                                    navigate={navigate}
                                     onLogHelperContact={onLogHelperContact}
                                     currentUser={currentUser}
                                     requestLoginForAction={requestLoginForAction}
