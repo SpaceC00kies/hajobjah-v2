@@ -34,7 +34,7 @@ export const useHelpers = () => {
   if (!context) {
     throw new Error('useHelpers must be used within a HelpersProvider');
   }
-  const { allHelperProfilesForAdmin } = context;
+  const { allHelperProfilesForAdmin, isLoadingHelpers } = context;
   const { currentUser, setCurrentUser } = useAuth();
 
   const checkHelperProfilePostingLimits = useCallback(async (): Promise<{ canPost: boolean; message?: string }> => {
@@ -179,5 +179,6 @@ export const useHelpers = () => {
     onToggleVerifiedExperience,
     onToggleUnavailableHelperProfileForUserOrAdmin,
     checkHelperProfilePostingLimits,
+    isLoadingHelpers,
   };
 };

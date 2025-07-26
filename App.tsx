@@ -48,7 +48,7 @@ const App: React.FC = () => {
   const authActions = useAuthActions();
   
   const { currentUser, isLoadingAuth } = useAuth();
-  const { isLoadingInteractions, isLoadingVouchReports } = useData();
+  const { isLoadingInteractions, isLoadingVouchReports, userInterests } = useData();
   const { users, isLoadingUsers } = useUsers();
   const { isLoadingJobs, allJobsForAdmin } = useJobs();
   const { isLoadingHelpers, allHelperProfilesForAdmin } = useHelpers();
@@ -220,6 +220,7 @@ const App: React.FC = () => {
         allWebboardPostsForAdmin={allWebboardPostsForAdmin}
         webboardComments={webboardComments}
         users={users}
+        getAuthorDisplayName={getAuthorDisplayName}
       />
       <main className={mainContentClass}>
         <Suspense fallback={<div className="text-center p-10">กำลังโหลด...</div>}>

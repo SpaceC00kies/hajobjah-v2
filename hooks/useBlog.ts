@@ -19,7 +19,7 @@ export const useBlog = () => {
   if (!context) {
     throw new Error('useBlog must be used within a BlogProvider');
   }
-  const { allBlogPosts, allBlogPostsForAdmin, blogComments } = context;
+  const { allBlogPosts, allBlogPostsForAdmin, blogComments, isLoadingBlog } = context;
   const { currentUser } = useAuth();
 
   const addOrUpdateBlogPost = useCallback(async (blogPostData: BlogPostFormData, existingPostId?: string): Promise<string> => {
@@ -104,6 +104,7 @@ export const useBlog = () => {
     toggleBlogPostLike,
     addBlogComment,
     updateBlogComment,
-    deleteBlogComment
+    deleteBlogComment,
+    isLoadingBlog
   };
 };

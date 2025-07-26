@@ -32,7 +32,7 @@ export const useJobs = () => {
   if (!context) {
     throw new Error('useJobs must be used within a JobsProvider');
   }
-  const { allJobsForAdmin } = context;
+  const { allJobsForAdmin, isLoadingJobs } = context;
   const { currentUser, setCurrentUser } = useAuth();
 
   const checkJobPostingLimits = useCallback(async (): Promise<{ canPost: boolean; message?: string }> => {
@@ -126,5 +126,5 @@ export const useJobs = () => {
   const toggleHiredJob = (jobId: string) => toggleJobFlag(jobId, 'isHired');
   const toggleVerifiedJob = (jobId: string) => toggleJobFlag(jobId, 'adminVerified');
 
-  return { allJobsForAdmin, addJob, updateJob, deleteJob, checkJobPostingLimits, toggleSuspiciousJob, togglePinnedJob, toggleHiredJob, toggleVerifiedJob };
+  return { allJobsForAdmin, addJob, updateJob, deleteJob, checkJobPostingLimits, toggleSuspiciousJob, togglePinnedJob, toggleHiredJob, toggleVerifiedJob, isLoadingJobs };
 };
