@@ -37,7 +37,6 @@ export const UniversalSearchBar: React.FC<UniversalSearchBarProps> = ({ onSearch
           onChange={(e) => setQuery(e.target.value)}
           placeholder="หาผู้ช่วยทำความสะอาด, งานเสิร์ฟใกล้ฉัน..."
           className="universal-search-input"
-          disabled={isLoading}
           aria-label="ค้นหางานและผู้ช่วย"
         />
         <button
