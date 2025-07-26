@@ -19,21 +19,21 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <AuthProvider>
-      <DataProvider>
-        <UsersProvider>
-          <JobsProvider>
-            <HelpersProvider>
-              <WebboardProvider>
-                <BlogProvider>
+      <UsersProvider>
+        <JobsProvider>
+          <HelpersProvider>
+            <WebboardProvider>
+              <BlogProvider>
+                <DataProvider>
                   <BrowserRouter>
                     <App />
                   </BrowserRouter>
-                </BlogProvider>
-              </WebboardProvider>
-            </HelpersProvider>
-          </JobsProvider>
-        </UsersProvider>
-      </DataProvider>
+                </DataProvider>
+              </BlogProvider>
+            </WebboardProvider>
+          </HelpersProvider>
+        </JobsProvider>
+      </UsersProvider>
     </AuthProvider>
   </React.StrictMode>
 );
