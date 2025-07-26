@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import type { Job, HelperProfile, User, VouchReport, Vouch, BlogPost } from '../types/types.ts';
+import type { Job, HelperProfile, User, VouchReport, Vouch, BlogPost, WebboardPost } from '../types/types.ts';
 import { UserRole, VouchReportStatus, VOUCH_TYPE_LABELS } from '../types/types.ts';
 import { Button } from './Button.tsx';
 import { OrionCommandCenter } from './OrionCommandCenter.tsx';
@@ -15,9 +15,10 @@ import { formatDateDisplay } from '../utils/dateUtils.ts';
 import { AdminOverview } from './admin/AdminOverview.tsx';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { UserLevelBadge } from './UserLevelBadge.tsx';
 
-type AdminTab = 'overview' | 'action_hub' | 'vouch_reports' | 'orion_command_center' | 'articles' | 'site_controls';
-type ActionHubSearchType = 'job' | 'profile' | 'webboardPost' | 'user' | 'blogPost';
+type AdminTab = 'overview' | 'action_hub' | 'vouch_reports' | 'orion_command_center' | 'articles' | 'users' | 'site_controls';
+type ActionHubSubTab = 'job' | 'profile' | 'webboardPost' | 'blogPost';
 
 interface AdminDashboardProps {
   isSiteLocked: boolean;
@@ -40,6 +41,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isSiteLocked }) 
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
+  const [activeSubTab, setActiveSubTab] = useState<ActionHubSubTab>('job');
   const [searchTerm, setSearchTerm] = useState('');
   const [blogStatusFilter, setBlogStatusFilter] = useState<'all' | 'draft' | 'published' | 'archived'>('all');
   const [selectedReport, setSelectedReport] = useState<VouchReport | null>(null);
@@ -48,8 +50,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isSiteLocked }) 
   const [hudAnalysis, setHudAnalysis] = useState<{ ipMatch: boolean | null; voucherIsNew: boolean | null; error?: string | null }>({ ipMatch: null, voucherIsNew: null, error: null });
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
   const actionMenuRef = useRef<HTMLDivElement>(null);
-  
-  const [actionHubSearchType, setActionHubSearchType] = useState<ActionHubSearchType>('job');
   
   const getAuthorDisplayName = useCallback((userId: string, fallbackName?: string): string => {
     const author = users.find(u => u && u.id === userId);
@@ -84,7 +84,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isSiteLocked }) 
     navigate(path, { state: { from: '/admin', item: originalItem } });
   };
   
-  const handleSelectReport = (report: VouchReport) => setSelectedReport(report);
+  const handleSelectReport = (report: VouchReport) => {
+      setSelectedReport(report);
+      setActiveTab('vouch_reports');
+  };
 
   useEffect(() => {
     setHudAnalysis({ ipMatch: null, voucherIsNew: null, error: null });
@@ -113,7 +116,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isSiteLocked }) 
         }
         
         const ipMatch = !!(voucherUser.lastLoginIP && voucheeUser.lastLoginIP && voucherUser.lastLoginIP === voucheeUser.lastLoginIP);
-        const accountAge = new Date().getTime() - (voucherUser.createdAt as Date).getTime();
+        const accountAge = new Date().getTime() - new Date(voucherUser.createdAt as string).getTime();
         const voucherIsNew = accountAge < 7 * 24 * 60 * 60 * 1000;
         setHudAnalysis({ ipMatch, voucherIsNew, error: null });
       } catch (err: any) {
@@ -127,7 +130,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isSiteLocked }) 
 
   const filteredItems = useMemo(() => {
     let items;
-    switch (actionHubSearchType) {
+    switch (activeSubTab) {
         case 'job': items = allJobsForAdmin; break;
         case 'profile': items = allHelperProfilesForAdmin; break;
         case 'webboardPost': items = allWebboardPostsForAdmin; break;
@@ -135,14 +138,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isSiteLocked }) 
         default: return [];
     }
     return items.filter(item => {
-        if (actionHubSearchType === 'blogPost' && blogStatusFilter !== 'all' && (item as BlogPost).status !== blogStatusFilter) return false;
+        if (activeSubTab === 'blogPost' && blogStatusFilter !== 'all' && (item as BlogPost).status !== blogStatusFilter) return false;
         if (!searchTerm.trim()) return true;
         const term = searchTerm.toLowerCase();
         const title = (item as any).title || (item as any).profileTitle;
         const author = getAuthorDisplayName((item as any).userId, (item as any).authorDisplayName);
         return title.toLowerCase().includes(term) || author.toLowerCase().includes(term) || item.id.toLowerCase().includes(term);
     }).sort((a,b) => new Date((b as any).postedAt || (b as any).createdAt).getTime() - new Date((a as any).postedAt || (a as any).createdAt).getTime());
-  }, [actionHubSearchType, searchTerm, allJobsForAdmin, allHelperProfilesForAdmin, allWebboardPostsForAdmin, allBlogPostsForAdmin, blogStatusFilter, getAuthorDisplayName]);
+  }, [activeSubTab, searchTerm, allJobsForAdmin, allHelperProfilesForAdmin, allWebboardPostsForAdmin, allBlogPostsForAdmin, blogStatusFilter, getAuthorDisplayName]);
 
   const filteredUsers = useMemo(() => {
     if (!searchTerm.trim()) return users;
@@ -169,12 +172,81 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isSiteLocked }) 
     { id: 'vouch_reports', label: 'รายงาน Vouch', icon: '🛡️', badgeCount: pendingReports.length },
     { id: 'orion_command_center', label: 'Orion', icon: '🤖' },
     { id: 'articles', label: 'บทความ', icon: '📖' },
+    { id: 'users', label: 'จัดการผู้ใช้', icon: '👥' },
     { id: 'site_controls', label: 'ควบคุมระบบ', icon: '⚙️' },
   ];
+
   if (currentUser?.role === UserRole.Writer) {
     TABS = [{ id: 'articles', label: 'บทความ', icon: '📖' }];
     if (activeTab !== 'articles') setActiveTab('articles');
   }
+  
+  const renderActionHub = () => (
+    <div>
+        <div className="flex gap-2 mb-4">
+            {(['job', 'profile', 'webboardPost', 'blogPost'] as ActionHubSubTab[]).map(tab => (
+                 <Button key={tab} onClick={() => setActiveSubTab(tab)} variant={activeSubTab === tab ? 'primary' : 'outline'} size="sm">
+                     {tab === 'job' && 'งาน'}
+                     {tab === 'profile' && 'โปรไฟล์ผู้ช่วย'}
+                     {tab === 'webboardPost' && 'กระทู้'}
+                     {tab === 'blogPost' && 'บทความ'}
+                 </Button>
+            ))}
+        </div>
+        {/* Table will go here */}
+    </div>
+  );
+
+  const renderVouchReports = () => (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-1">
+        <h3 className="font-semibold text-neutral-dark mb-2">Pending ({pendingReports.length})</h3>
+        <div className="space-y-2 max-h-96 overflow-y-auto">
+          {pendingReports.map(r => (
+            <button key={r.id} onClick={() => setSelectedReport(r)} className={`w-full text-left p-2 rounded ${selectedReport?.id === r.id ? 'bg-blue-100' : 'bg-neutral-light/50'}`}>
+              <p className="font-semibold text-sm truncate">By: @{getAuthorDisplayName(r.reporterId)}</p>
+              <p className="text-xs text-neutral-medium truncate">On: @{getVoucheeDisplayName(r.voucheeId)}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="lg:col-span-2 bg-neutral-light p-4 rounded-lg">
+        <h3 className="font-semibold text-neutral-dark mb-2">Heads-Up Display</h3>
+        {selectedReport ? (
+          <div className="text-sm space-y-2">
+            <p><strong>Reporter Comment:</strong> {selectedReport.reporterComment || 'N/A'}</p>
+            <hr className="my-2"/>
+            {isHudLoading ? <p>Loading analysis...</p> : (
+              <>
+                <p className="font-bold">Vouch Details:</p>
+                {selectedVouch ? (
+                  <>
+                    <p>From: @{selectedVouch.voucherDisplayName}</p>
+                    <p>To: @{getVoucheeDisplayName(selectedVouch.voucheeId)}</p>
+                    <p>Type: {VOUCH_TYPE_LABELS[selectedVouch.vouchType]}</p>
+                  </>
+                ) : <p className="text-red-500">Vouch not found.</p>}
+
+                <p className="font-bold mt-2">Risk Signals:</p>
+                {hudAnalysis.error ? <p className="text-red-500">{hudAnalysis.error}</p> : (
+                  <>
+                    <p className={hudAnalysis.ipMatch ? 'text-red-500 font-bold' : 'text-green-600'}>IP Match: {String(hudAnalysis.ipMatch)}</p>
+                    <p className={hudAnalysis.voucherIsNew ? 'text-orange-500 font-bold' : 'text-green-600'}>Voucher is new account: {String(hudAnalysis.voucherIsNew)}</p>
+                  </>
+                )}
+                
+                <div className="flex gap-2 mt-4">
+                  <Button onClick={() => admin.resolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedKept, selectedReport.vouchId, selectedReport.voucheeId, selectedReport.vouchType)} colorScheme="primary" size="sm" disabled={isHudLoading}>Keep Vouch</Button>
+                  <Button onClick={() => admin.resolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedDeleted, selectedReport.vouchId, selectedReport.voucheeId, selectedReport.vouchType)} colorScheme="accent" size="sm" disabled={isHudLoading}>Delete Vouch</Button>
+                </div>
+              </>
+            )}
+          </div>
+        ) : <p>Select a report to view details.</p>}
+      </div>
+    </div>
+  );
+
 
   const renderContent = () => {
     switch (activeTab) {
@@ -183,11 +255,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isSiteLocked }) 
       case 'orion_command_center':
         return <div className="orion-cockpit"><OrionCommandCenter /></div>
       case 'action_hub':
-        // Action Hub UI
-        return <div>Action Hub UI...</div>
+        return renderActionHub();
       case 'vouch_reports':
-        // Vouch Reports UI
-        return <div>Vouch Reports UI...</div>
+        return renderVouchReports();
       case 'site_controls':
         return (
             <div className="p-4 bg-neutral-light/50 rounded-lg">
@@ -201,8 +271,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isSiteLocked }) 
             </div>
         );
       case 'articles':
-        // Articles UI (moved from default)
-        return <div>Articles UI...</div>
+         return (
+            <div>
+              <Button onClick={() => onStartEditItem({ itemType: 'blogPost', originalItem: {} })} variant="primary" size="sm" className="mb-4">+ Create New Article</Button>
+              {/* Table rendering for articles */}
+            </div>
+          );
       default:
         return null;
     }
