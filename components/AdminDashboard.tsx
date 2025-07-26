@@ -263,7 +263,7 @@ export const AdminDashboard: React.FC = () => {
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                                         <div className="flex items-center justify-end gap-2">
-                                            {canEdit && <Button onClick={() => onStartEditItem(item as AdminItem)} size="sm">Edit</Button>}
+                                            {canEdit && <Button onClick={() => onStartEditItem({ id: item.id, itemType: activeSubTab as any, title, originalItem: item } as AdminItem)} size="sm">Edit</Button>}
                                             <div className="relative" ref={openActionMenuId === id ? actionMenuRef : null}>
                                                 <Button onClick={() => setOpenActionMenuId(openActionMenuId === id ? null : id)} size="sm" variant="ghost">...</Button>
                                                 {openActionMenuId === id && (
@@ -312,7 +312,7 @@ export const AdminDashboard: React.FC = () => {
                             <p className="text-sm text-neutral-medium truncate">by {getAuthorDisplayName(item.authorId, item.authorDisplayName)}</p>
                         </div>
                         <div className="flex-shrink-0 flex items-center gap-2 ml-4">
-                            {canEdit && <Button onClick={() => onStartEditItem(item as AdminItem)} size="sm">Edit</Button>}
+                            {canEdit && <Button onClick={() => onStartEditItem({ id: item.id, itemType: 'blogPost', title: item.title, originalItem: item } as AdminItem)} size="sm">Edit</Button>}
                             {canEdit && <Button onClick={() => { if(window.confirm('Delete this article?')) admin.deleteBlogPost(item.id, (item as BlogPost).coverImageURL); }} size="sm" colorScheme="accent">Delete</Button>}
                         </div>
                     </div>
