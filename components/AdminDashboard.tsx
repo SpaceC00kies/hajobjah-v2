@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { Job, HelperProfile, User, VouchReport, Vouch, BlogPost, WebboardPost } from '../types/types.ts';
 import { UserRole, VouchReportStatus, VOUCH_TYPE_LABELS } from '../types/types.ts';
@@ -11,11 +12,12 @@ import { useBlog } from '../hooks/useBlog.ts';
 import { useAdmin } from '../hooks/useAdmin.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useData } from '../context/DataContext.tsx';
-import { formatDateDisplay } from '../utils/dateUtils.ts';
+import { formatDateDisplay, isDateInPast } from '../utils/dateUtils.ts';
 import { AdminOverview } from './admin/AdminOverview.tsx';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserLevelBadge } from './UserLevelBadge.tsx';
+import { getUserDisplayBadge } from '../utils/userUtils.ts';
 
 type AdminTab = 'overview' | 'action_hub' | 'vouch_reports' | 'orion_command_center' | 'articles' | 'users' | 'site_controls';
 type ActionHubSubTab = 'job' | 'profile' | 'webboardPost' | 'blogPost';
@@ -31,10 +33,10 @@ const tableItemVariants = {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isSiteLocked }) => {
   const { currentUser } = useAuth();
-  const { allJobsForAdmin } = useJobs();
-  const { allHelperProfilesForAdmin } = useHelpers();
+  const { allJobsForAdmin, deleteJob } = useJobs();
+  const { allHelperProfilesForAdmin, deleteHelperProfile } = useHelpers();
   const { users } = useUsers();
-  const { allWebboardPostsForAdmin, webboardComments } = useWebboard();
+  const { allWebboardPostsForAdmin, deleteWebboardPost } = useWebboard();
   const { allBlogPostsForAdmin } = useBlog();
   const { vouchReports } = useData();
   const admin = useAdmin();
@@ -83,6 +85,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isSiteLocked }) 
     }
     navigate(path, { state: { from: '/admin', item: originalItem } });
   };
+  
+  const onDeleteItem = useCallback((itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => {
+      if (window.confirm('Are you sure you want to delete this item?')) {
+          switch (itemType) {
+              case 'job': deleteJob(itemId); break;
+              case 'profile': deleteHelperProfile(itemId); break;
+              case 'webboardPost': deleteWebboardPost(itemId); break;
+          }
+      }
+  }, [deleteJob, deleteHelperProfile, deleteWebboardPost]);
   
   const handleSelectReport = (report: VouchReport) => {
       setSelectedReport(report);
@@ -160,7 +172,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isSiteLocked }) 
   }, [searchTerm, users]);
 
   const pendingReports = useMemo(() => vouchReports.filter(r => r.status === 'pending_review'), [vouchReports]);
-  const resolvedReports = useMemo(() => vouchReports.filter(r => r.status !== 'pending_review'), [vouchReports]);
   
   if (currentUser?.role !== UserRole.Admin && currentUser?.role !== UserRole.Writer) {
     return <div className="p-8 text-center text-red-500 font-sans">คุณไม่มีสิทธิ์เข้าถึงหน้านี้</div>;
@@ -182,88 +193,125 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isSiteLocked }) 
   }
   
   const renderActionHub = () => (
-    <div>
-        <div className="flex gap-2 mb-4">
-            {(['job', 'profile', 'webboardPost', 'blogPost'] as ActionHubSubTab[]).map(tab => (
-                 <Button key={tab} onClick={() => setActiveSubTab(tab)} variant={activeSubTab === tab ? 'primary' : 'outline'} size="sm">
-                     {tab === 'job' && 'งาน'}
-                     {tab === 'profile' && 'โปรไฟล์ผู้ช่วย'}
-                     {tab === 'webboardPost' && 'กระทู้'}
-                     {tab === 'blogPost' && 'บทความ'}
-                 </Button>
-            ))}
-        </div>
-        {/* Table will go here */}
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2">
+        {(['job', 'profile', 'webboardPost', 'blogPost'] as ActionHubSubTab[]).map(tab => (
+          <Button key={tab} onClick={() => setActiveSubTab(tab)} variant={activeSubTab === tab ? 'primary' : 'outline'} size="sm">
+            {tab === 'job' && `งาน (${allJobsForAdmin.length})`}
+            {tab === 'profile' && `โปรไฟล์ผู้ช่วย (${allHelperProfilesForAdmin.length})`}
+            {tab === 'webboardPost' && `กระทู้ (${allWebboardPostsForAdmin.length})`}
+            {tab === 'blogPost' && `บทความ (${allBlogPostsForAdmin.length})`}
+          </Button>
+        ))}
+      </div>
+      <div className="relative">
+        <input type="search" placeholder="Search by title, author, or ID..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10" />
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-medium">🔍</div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-neutral-light/50">
+          <thead className="bg-neutral-light/30">
+            <tr>
+              <th className="px-4 py-2 text-left text-xs font-medium text-neutral-dark uppercase tracking-wider">Title</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-neutral-dark uppercase tracking-wider">Author</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-neutral-dark uppercase tracking-wider">Status</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-neutral-dark uppercase tracking-wider">Date</th>
+              <th className="relative px-4 py-2"><span className="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-neutral-light/50">
+            <AnimatePresence>
+              {filteredItems.map(item => (
+                <motion.tr key={item.id} variants={tableItemVariants} initial="hidden" animate="visible" exit="hidden" layout>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-neutral-dark truncate max-w-xs">{item.title || (item as any).profileTitle}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-neutral-medium">@{getAuthorDisplayName((item as any).userId, (item as any).authorDisplayName)}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm">
+                    {item.isPinned && <span className="mr-1" title="Pinned">📌</span>}
+                    {item.isSuspicious && <span className="mr-1" title="Suspicious">🚩</span>}
+                    {(item as any).isHiredOrUnavailable && <span className="mr-1" title="Unavailable/Hired">🚫</span>}
+                    {activeSubTab === 'blogPost' && <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">{(item as BlogPost).status}</span>}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-neutral-medium">{formatDateDisplay(item.postedAt || item.createdAt)}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                     <Button onClick={() => onStartEditItem(item)} size="sm" variant="outline" colorScheme="neutral">Edit</Button>
+                  </td>
+                </motion.tr>
+              ))}
+            </AnimatePresence>
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 
   const renderVouchReports = () => (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-1">
+      <div className="lg:col-span-1 bg-white p-4 rounded-lg shadow-sm border border-neutral-light/50">
         <h3 className="font-semibold text-neutral-dark mb-2">Pending ({pendingReports.length})</h3>
-        <div className="space-y-2 max-h-96 overflow-y-auto">
+        <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
           {pendingReports.map(r => (
-            <button key={r.id} onClick={() => setSelectedReport(r)} className={`w-full text-left p-2 rounded ${selectedReport?.id === r.id ? 'bg-blue-100' : 'bg-neutral-light/50'}`}>
-              <p className="font-semibold text-sm truncate">By: @{getAuthorDisplayName(r.reporterId)}</p>
+            <button key={r.id} onClick={() => setSelectedReport(r)} className={`w-full text-left p-3 rounded-lg transition-colors ${selectedReport?.id === r.id ? 'bg-primary-light ring-2 ring-primary' : 'bg-neutral-light/50 hover:bg-neutral-light'}`}>
+              <p className="font-semibold text-sm truncate text-neutral-dark">By: @{getAuthorDisplayName(r.reporterId)}</p>
               <p className="text-xs text-neutral-medium truncate">On: @{getVoucheeDisplayName(r.voucheeId)}</p>
+              <p className="text-xs text-neutral-medium truncate mt-1">"{r.reporterComment.substring(0, 30)}..."</p>
             </button>
           ))}
         </div>
       </div>
-      <div className="lg:col-span-2 bg-neutral-light p-4 rounded-lg">
-        <h3 className="font-semibold text-neutral-dark mb-2">Heads-Up Display</h3>
+      <div className="lg:col-span-2 bg-white p-4 rounded-lg shadow-sm border border-neutral-light/50">
+        <h3 className="font-semibold text-lg text-neutral-dark mb-2">Heads-Up Display</h3>
         {selectedReport ? (
-          <div className="text-sm space-y-2">
-            <p><strong>Reporter Comment:</strong> {selectedReport.reporterComment || 'N/A'}</p>
+          <div className="text-sm space-y-3 font-sans">
+            <p><strong>Reporter Comment:</strong> <span className="text-neutral-medium whitespace-pre-wrap">{selectedReport.reporterComment || 'N/A'}</span></p>
             <hr className="my-2"/>
             {isHudLoading ? <p>Loading analysis...</p> : (
               <>
                 <p className="font-bold">Vouch Details:</p>
                 {selectedVouch ? (
-                  <>
+                  <div className="pl-2 border-l-2 border-primary-light">
                     <p>From: @{selectedVouch.voucherDisplayName}</p>
                     <p>To: @{getVoucheeDisplayName(selectedVouch.voucheeId)}</p>
                     <p>Type: {VOUCH_TYPE_LABELS[selectedVouch.vouchType]}</p>
-                  </>
+                    {selectedVouch.comment && <p>Comment: "{selectedVouch.comment}"</p>}
+                  </div>
                 ) : <p className="text-red-500">Vouch not found.</p>}
 
-                <p className="font-bold mt-2">Risk Signals:</p>
-                {hudAnalysis.error ? <p className="text-red-500">{hudAnalysis.error}</p> : (
-                  <>
-                    <p className={hudAnalysis.ipMatch ? 'text-red-500 font-bold' : 'text-green-600'}>IP Match: {String(hudAnalysis.ipMatch)}</p>
-                    <p className={hudAnalysis.voucherIsNew ? 'text-orange-500 font-bold' : 'text-green-600'}>Voucher is new account: {String(hudAnalysis.voucherIsNew)}</p>
-                  </>
+                <p className="font-bold mt-3">Risk Signals:</p>
+                 {hudAnalysis.error ? <p className="text-red-500">{hudAnalysis.error}</p> : (
+                  <ul className="list-disc list-inside space-y-1">
+                    <li className={hudAnalysis.ipMatch ? 'text-red-500 font-bold' : 'text-green-600'}>IP Match: {String(hudAnalysis.ipMatch)}</li>
+                    <li className={hudAnalysis.voucherIsNew ? 'text-orange-500 font-bold' : 'text-green-600'}>Voucher is new account (&lt;7d): {String(hudAnalysis.voucherIsNew)}</li>
+                  </ul>
                 )}
                 
-                <div className="flex gap-2 mt-4">
+                <div className="flex gap-2 mt-4 pt-4 border-t border-neutral-light">
                   <Button onClick={() => admin.resolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedKept, selectedReport.vouchId, selectedReport.voucheeId, selectedReport.vouchType)} colorScheme="primary" size="sm" disabled={isHudLoading}>Keep Vouch</Button>
                   <Button onClick={() => admin.resolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedDeleted, selectedReport.vouchId, selectedReport.voucheeId, selectedReport.vouchType)} colorScheme="accent" size="sm" disabled={isHudLoading}>Delete Vouch</Button>
                 </div>
               </>
             )}
           </div>
-        ) : <p>Select a report to view details.</p>}
+        ) : <div className="flex items-center justify-center h-full text-neutral-medium font-sans"><p>Select a report to view details.</p></div>}
       </div>
     </div>
   );
-
-
+  
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
         return <AdminOverview vouchReports={vouchReports} users={users} onSelectReport={handleSelectReport} getAuthorDisplayName={getAuthorDisplayName} />;
       case 'orion_command_center':
-        return <div className="orion-cockpit"><OrionCommandCenter /></div>
+        return <div className="orion-cockpit"><OrionCommandCenter /></div>;
       case 'action_hub':
         return renderActionHub();
       case 'vouch_reports':
         return renderVouchReports();
       case 'site_controls':
         return (
-            <div className="p-4 bg-neutral-light/50 rounded-lg">
-                <h3 className="text-lg font-semibold text-neutral-700 mb-3">Site Controls</h3>
-                <div className="flex items-center justify-between p-4 bg-white rounded shadow">
-                    <p className="font-medium">Site Lock: {isSiteLocked ? 'ON' : 'OFF'}</p>
+            <div className="p-4 bg-white rounded-lg shadow-sm border border-neutral-light/50">
+                <h3 className="text-lg font-semibold text-neutral-dark mb-3">Site Controls</h3>
+                <div className="flex items-center justify-between p-4 bg-neutral-light/30 rounded-lg">
+                    <p className="font-medium">Site Lock: <span className={isSiteLocked ? 'text-red-600 font-bold' : 'text-green-600 font-bold'}>{isSiteLocked ? 'ON' : 'OFF'}</span></p>
                     <Button onClick={() => admin.toggleSiteLock(isSiteLocked)} colorScheme={isSiteLocked ? 'accent' : 'primary'}>
                         {isSiteLocked ? 'Unlock Site' : 'Lock Site'}
                     </Button>
@@ -274,7 +322,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isSiteLocked }) 
          return (
             <div>
               <Button onClick={() => onStartEditItem({ itemType: 'blogPost', originalItem: {} })} variant="primary" size="sm" className="mb-4">+ Create New Article</Button>
-              {/* Table rendering for articles */}
+               <p className="text-neutral-medium font-sans">Article management is now available in the 'Action Hub' tab.</p>
             </div>
           );
       default:
