@@ -8,7 +8,7 @@ import { JobsProvider } from './context/JobsContext.tsx';
 import { HelpersProvider } from './context/HelpersContext.tsx';
 import { WebboardProvider } from './context/WebboardContext.tsx';
 import { BlogProvider } from './context/BlogContext.tsx';
-import { BrowserRouter } from 'react-router-dom';
+import { HashRouter } from 'react-router-dom';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -25,9 +25,9 @@ root.render(
             <WebboardProvider>
               <BlogProvider>
                 <DataProvider>
-                  <BrowserRouter>
+                  <HashRouter>
                     <App />
-                  </BrowserRouter>
+                  </HashRouter>
                 </DataProvider>
               </BlogProvider>
             </WebboardProvider>
