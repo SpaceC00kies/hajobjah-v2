@@ -70,7 +70,7 @@ export const AdminDashboard: React.FC = () => {
   
   useEffect(() => {
     const unsubscribe = subscribeToSiteConfigService((config) => {
-      // Stricter check to prevent false positives
+      // Stricter check to only lock if the value is explicitly true.
       setIsSiteLocked(config.isSiteLocked === true);
     });
     return () => unsubscribe();

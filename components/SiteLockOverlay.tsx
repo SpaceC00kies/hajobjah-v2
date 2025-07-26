@@ -7,7 +7,9 @@ export const SiteLockOverlay: React.FC = () => {
 
   useEffect(() => {
     const unsubscribe = subscribeToSiteConfigService((config) => {
-      setIsLocked(config.isSiteLocked);
+      // Stricter check to only lock if the value is explicitly true.
+      // This prevents accidental locks from undefined or malformed data.
+      setIsLocked(config.isSiteLocked === true);
     });
     return () => unsubscribe();
   }, []);
