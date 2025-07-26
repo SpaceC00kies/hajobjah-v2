@@ -48,11 +48,11 @@ const App: React.FC = () => {
   const authActions = useAuthActions();
   
   const { currentUser, isLoadingAuth } = useAuth();
-  const { isLoadingInteractions, isLoadingVouchReports, userInterests } = useData();
+  const { userInterests, isLoadingInteractions, isLoadingVouchReports } = useData();
   const { users, isLoadingUsers } = useUsers();
-  const { isLoadingJobs, allJobsForAdmin } = useJobs();
-  const { isLoadingHelpers, allHelperProfilesForAdmin } = useHelpers();
-  const { isLoadingBlog, allBlogPosts } = useBlog();
+  const { isLoadingJobs } = useJobs();
+  const { isLoadingHelpers } = useHelpers();
+  const { allBlogPosts, isLoadingBlog } = useBlog();
   const { isLoadingPosts, isLoadingComments, allWebboardPostsForAdmin, webboardComments } = useWebboard();
   const userActions = useUser();
   const helperActions = useHelpers();
@@ -171,7 +171,9 @@ const App: React.FC = () => {
     setReportVouchModalData({ vouchToReport: vouch });
   };
   
-  if (isLoadingAuth || isLoadingUsers || isLoadingJobs || isLoadingHelpers || isLoadingBlog || isLoadingPosts || isLoadingComments || isLoadingInteractions || isLoadingVouchReports) {
+  const isAppLoading = isLoadingAuth || isLoadingUsers || isLoadingJobs || isLoadingHelpers || isLoadingBlog || isLoadingPosts || isLoadingComments || isLoadingInteractions || isLoadingVouchReports;
+  
+  if (isAppLoading) {
     return <div className="flex flex-grow justify-center items-center p-10 font-sans text-xl text-neutral-dark">กำลังโหลด ✨</div>;
   }
   

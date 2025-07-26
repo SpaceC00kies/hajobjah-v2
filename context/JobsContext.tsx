@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useMemo } from 'react';
 import type { Job } from '../types/types.ts';
 import { subscribeToAllJobsService } from '../services/jobService.ts';

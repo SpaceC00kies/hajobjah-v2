@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useMemo } from 'react';
 import type { HelperProfile } from '../types/types.ts';
 import { subscribeToAllHelperProfilesService } from '../services/helperProfileService.ts';

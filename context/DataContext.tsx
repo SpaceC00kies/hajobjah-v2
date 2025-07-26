@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext, useMemo } from 'react';
 import type { User, Interaction, VouchReport, Interest } from '../types/types.ts';
 import { useAuth } from './AuthContext.tsx';
