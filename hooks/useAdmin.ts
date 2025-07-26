@@ -13,6 +13,7 @@ import {
   forceResolveVouchReportService,
   toggleItemFlagService,
 } from '../services/adminService.ts';
+import { getUserDocument } from '../services/userService.ts';
 import type { UserRole, VouchReportStatus, VouchType } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging.ts';
 
@@ -83,7 +84,8 @@ export const useAdmin = () => {
     setUserRole,
     toggleSiteLock,
     resolveVouchReport,
-    getVouchDocument, 
+    getVouchDocument,
+    getUserDocument,
     orionAnalyzeService,
     forceResolveVouchReport,
     toggleSuspiciousJob,
