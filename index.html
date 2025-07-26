@@ -136,79 +136,34 @@
         color: var(--primary-blue);
         border-bottom-color: var(--primary-blue);
       }
-
-      /* --- Universal Search Bar with Glow --- */
       .universal-search-bar {
         position: relative;
         width: 100%;
-        max-width: 640px;
-        margin-bottom: 16px;
-        border-radius: 9999px;
-        padding: 3px; /* Space for the gradient border */
-        box-shadow: 0 4px 15px rgba(135, 206, 235, 0.2);
-        transition: box-shadow 0.3s ease;
-        overflow: hidden; /* Contains the pseudo-element */
-        background: transparent; /* Allows pseudo-element to be visible */
+        max-width: 640px; /* Wider search bar */
+        margin-bottom: 16px; /* Space for pills */
       }
-
-      .universal-search-bar::before {
-        content: '';
-        position: absolute;
-        z-index: -1;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: conic-gradient(
-          from 180deg at 50% 50%,
-          var(--accent-peach),
-          var(--primary-blue),
-          var(--success-green),
-          var(--primary-dark),
-          var(--accent-peach)
-        );
-        animation: spin-glow 2.5s linear infinite;
-        opacity: 0;
-        transition: opacity 0.4s ease-out;
-      }
-
-      @keyframes spin-glow {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-
-      .universal-search-bar:focus-within {
-        box-shadow: 0 4px 20px rgba(135, 206, 235, 0.3);
-      }
-      .universal-search-bar:focus-within::before {
-        opacity: 1;
-      }
-
-      /* Increased specificity to override global input styles */
-      #root input.universal-search-input {
+      .universal-search-input {
         width: 100%;
         padding: 20px 60px 20px 24px;
         font-family: 'Prompt', 'Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', '"Noto Sans"', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"';
         font-size: 18px;
-        border: none;
+        border: 1px solid var(--primary-light);
         border-radius: 9999px;
         background-color: var(--white);
-        box-shadow: none;
+        box-shadow: 0 4px 15px rgba(135, 206, 235, 0.2);
+        transition: all 0.3s ease;
         -webkit-appearance: none;
         -moz-appearance: none;
         appearance: none;
+      }
+      .universal-search-input::placeholder {
+        color: #b0c4de; /* Softer placeholder color */
+      }
+      .universal-search-input:focus {
         outline: none;
+        border-color: var(--primary-blue);
+        box-shadow: 0 4px 20px rgba(135, 206, 235, 0.3), 0 0 0 4px rgba(135, 206, 235, 0.2);
       }
-      #root input.universal-search-input::placeholder {
-        color: #b0c4de;
-      }
-      /* Ensure default focus styles are overridden */
-      #root input.universal-search-input:focus {
-        box-shadow: none;
-        border-color: transparent;
-      }
-      
       .universal-search-button {
         position: absolute;
         right: 8px;
