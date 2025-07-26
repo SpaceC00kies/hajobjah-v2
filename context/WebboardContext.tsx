@@ -5,6 +5,8 @@ import { subscribeToAllWebboardPostsService, subscribeToWebboardCommentsService 
 interface WebboardContextType {
   allWebboardPostsForAdmin: WebboardPost[];
   webboardComments: WebboardComment[];
+  isLoadingPosts: boolean;
+  isLoadingComments: boolean;
 }
 
 export const WebboardContext = createContext<WebboardContextType | undefined>(undefined);
@@ -12,10 +14,18 @@ export const WebboardContext = createContext<WebboardContextType | undefined>(un
 export const WebboardProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [allWebboardPostsForAdmin, setAllWebboardPostsForAdmin] = useState<WebboardPost[]>([]);
   const [webboardComments, setWebboardComments] = useState<WebboardComment[]>([]);
+  const [isLoadingPosts, setIsLoadingPosts] = useState(true);
+  const [isLoadingComments, setIsLoadingComments] = useState(true);
 
   useEffect(() => {
-    const unsubPosts = subscribeToAllWebboardPostsService(setAllWebboardPostsForAdmin);
-    const unsubComments = subscribeToWebboardCommentsService(setWebboardComments);
+    const unsubPosts = subscribeToAllWebboardPostsService((posts) => {
+      setAllWebboardPostsForAdmin(posts);
+      setIsLoadingPosts(false);
+    });
+    const unsubComments = subscribeToWebboardCommentsService((comments) => {
+      setWebboardComments(comments);
+      setIsLoadingComments(false);
+    });
     return () => {
       unsubPosts();
       unsubComments();
@@ -25,7 +35,9 @@ export const WebboardProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const value = useMemo(() => ({
     allWebboardPostsForAdmin,
     webboardComments,
-  }), [allWebboardPostsForAdmin, webboardComments]);
+    isLoadingPosts,
+    isLoadingComments,
+  }), [allWebboardPostsForAdmin, webboardComments, isLoadingPosts, isLoadingComments]);
 
   return (
     <WebboardContext.Provider value={value}>

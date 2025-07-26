@@ -4,21 +4,27 @@ import { subscribeToAllHelperProfilesService } from '../services/helperProfileSe
 
 interface HelpersContextType {
   allHelperProfilesForAdmin: HelperProfile[];
+  isLoadingHelpers: boolean;
 }
 
 export const HelpersContext = createContext<HelpersContextType | undefined>(undefined);
 
 export const HelpersProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [allHelperProfilesForAdmin, setAllHelperProfilesForAdmin] = useState<HelperProfile[]>([]);
+  const [isLoadingHelpers, setIsLoadingHelpers] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = subscribeToAllHelperProfilesService(setAllHelperProfilesForAdmin);
+    const unsubscribe = subscribeToAllHelperProfilesService((profiles) => {
+        setAllHelperProfilesForAdmin(profiles);
+        setIsLoadingHelpers(false);
+    });
     return () => unsubscribe();
   }, []);
 
   const value = useMemo(() => ({
     allHelperProfilesForAdmin,
-  }), [allHelperProfilesForAdmin]);
+    isLoadingHelpers,
+  }), [allHelperProfilesForAdmin, isLoadingHelpers]);
 
   return (
     <HelpersContext.Provider value={value}>

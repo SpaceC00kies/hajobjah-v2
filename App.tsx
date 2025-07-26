@@ -7,11 +7,11 @@ import { useJobs } from './hooks/useJobs.ts';
 import { useHelpers } from './hooks/useHelpers.ts';
 import { useBlog } from './hooks/useBlog.ts';
 import { useWebboard } from './hooks/useWebboard.ts';
-import { useAdmin } from './hooks/useAdmin.ts';
-import type { User, Vouch, BlogPost, RegistrationDataType, SearchResultItem, Interest } from './types/types.ts';
+import type { User, Vouch, RegistrationDataType, SearchResultItem } from './types/types.ts';
 import { View, UserRole } from './types/types.ts';
 import { useAuth } from './context/AuthContext.tsx';
 import { useData } from './context/DataContext.tsx';
+import { useUsers } from './hooks/useUsers.ts';
 import { SiteLockOverlay } from './components/SiteLockOverlay.tsx';
 import { universalSearchService } from './services/searchService.ts';
 import { logFirebaseError } from './firebase/logging.ts';
@@ -44,15 +44,16 @@ const FindHelpersPage = lazy(() => import('./components/FindHelpersPage.tsx').th
 const SearchResultsPage = lazy(() => import('./components/SearchResultsPage.tsx').then(module => ({ default: module.SearchResultsPage })));
 const LocationModal = lazy(() => import('./components/LocationModal.tsx').then(module => ({ default: module.LocationModal })));
 
-type MyRoomActiveTab = 'profile' | 'myJobs' | 'myHelperServices' | 'interests' | 'myWebboardPosts';
-
 const App: React.FC = () => {
   const authActions = useAuthActions();
   
   const { currentUser, isLoadingAuth } = useAuth();
-  const { users, userInterests, isLoadingData } = useData();
-  const { allBlogPosts } = useBlog();
-  const { allWebboardPostsForAdmin, webboardComments } = useWebboard();
+  const { isLoadingInteractions, isLoadingVouchReports } = useData();
+  const { users, isLoadingUsers } = useUsers();
+  const { isLoadingJobs, allJobsForAdmin } = useJobs();
+  const { isLoadingHelpers, allHelperProfilesForAdmin } = useHelpers();
+  const { isLoadingBlog, allBlogPosts } = useBlog();
+  const { isLoadingPosts, isLoadingComments, allWebboardPostsForAdmin, webboardComments } = useWebboard();
   const userActions = useUser();
   const helperActions = useHelpers();
 
@@ -170,7 +171,7 @@ const App: React.FC = () => {
     setReportVouchModalData({ vouchToReport: vouch });
   };
   
-  if (isLoadingAuth || isLoadingData) {
+  if (isLoadingAuth || isLoadingUsers || isLoadingJobs || isLoadingHelpers || isLoadingBlog || isLoadingPosts || isLoadingComments || isLoadingInteractions || isLoadingVouchReports) {
     return <div className="flex flex-grow justify-center items-center p-10 font-sans text-xl text-neutral-dark">กำลังโหลด ✨</div>;
   }
   
@@ -219,7 +220,6 @@ const App: React.FC = () => {
         allWebboardPostsForAdmin={allWebboardPostsForAdmin}
         webboardComments={webboardComments}
         users={users}
-        getAuthorDisplayName={getAuthorDisplayName}
       />
       <main className={mainContentClass}>
         <Suspense fallback={<div className="text-center p-10">กำลังโหลด...</div>}>

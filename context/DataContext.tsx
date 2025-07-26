@@ -1,44 +1,40 @@
 import React, { createContext, useState, useEffect, useContext, useMemo } from 'react';
 import type { User, Interaction, VouchReport, Interest } from '../types/types.ts';
 import { useAuth } from './AuthContext.tsx';
-import { useUsers } from '../hooks/useUsers.ts';
 import { subscribeToInteractionsService, subscribeToUserInterestsService } from '../services/interactionService.ts';
 import { subscribeToVouchReportsService } from '../services/adminService.ts';
 
 interface DataContextType {
-  users: User[];
   interactions: Interaction[];
   vouchReports: VouchReport[];
   userInterests: Interest[];
   userSavedPosts: string[];
-  isLoadingData: boolean;
+  isLoadingInteractions: boolean;
+  isLoadingVouchReports: boolean;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser } = useAuth();
-  const { users } = useUsers();
-
+  
   const [interactions, setInteractions] = useState<Interaction[]>([]);
+  const [isLoadingInteractions, setIsLoadingInteractions] = useState(true);
   const [vouchReports, setVouchReports] = useState<VouchReport[]>([]);
-  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isLoadingVouchReports, setIsLoadingVouchReports] = useState(true);
   const [userInterests, setUserInterests] = useState<Interest[]>([]);
   const userSavedPosts = useMemo(() => currentUser?.savedWebboardPosts || [], [currentUser]);
 
   useEffect(() => {
-    setIsLoadingData(true);
-
-    const initialLoad = async () => {
-      // Any non-subscription initial loads can go here if needed in the future
-      setIsLoadingData(false);
-    };
-
-    const unsubscribeInteractions = subscribeToInteractionsService(setInteractions);
-    const unsubscribeVouchReports = subscribeToVouchReportsService(setVouchReports);
-
-    initialLoad();
-
+    const unsubscribeInteractions = subscribeToInteractionsService((data) => {
+      setInteractions(data);
+      setIsLoadingInteractions(false);
+    });
+    const unsubscribeVouchReports = subscribeToVouchReportsService((data) => {
+      setVouchReports(data);
+      setIsLoadingVouchReports(false);
+    });
+    
     return () => {
       unsubscribeInteractions();
       unsubscribeVouchReports();
@@ -60,19 +56,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [currentUser?.id]);
 
   const value = useMemo(() => ({
-    users,
     interactions,
     vouchReports,
     userInterests,
     userSavedPosts,
-    isLoadingData,
+    isLoadingInteractions,
+    isLoadingVouchReports,
   }), [
-    users,
     interactions,
     vouchReports,
     userInterests,
     userSavedPosts,
-    isLoadingData,
+    isLoadingInteractions,
+    isLoadingVouchReports,
   ]);
 
   return (
