@@ -41,7 +41,7 @@ import { BlogArticlePage } from './components/BlogArticlePage.tsx';
 import { getUserDocument } from './services/userService.ts';
 import { FindJobsPage } from './components/FindJobsPage.tsx';
 import { FindHelpersPage } from './components/FindHelpersPage.tsx';
-import { UniversalSearchBar } from './components/UniversalSearchBar.tsx';
+import { HomePage } from './components/HomePage.tsx';
 import { SearchResultsPage } from './components/SearchResultsPage.tsx';
 import { universalSearchService } from './services/searchService.ts';
 import { LocationModal } from './components/LocationModal.tsx';
@@ -555,36 +555,6 @@ const App: React.FC = () => {
     </AnimatePresence>
   );
 
-
-  const renderHome = () => {
-    return (
-      <div className="w-full h-full flex items-center justify-center">
-        <div className="container mx-auto flex flex-col items-center px-6 text-center py-12 sm:py-20">
-          <h1 className="hero-title">✨ หาจ๊อบจ้า ✨</h1>
-          <p className="hero-subtitle">แพลตฟอร์มที่อยู่เคียงข้างคนขยัน</p>
-          
-          <UniversalSearchBar 
-            onSearch={handleSearch} 
-            isLoading={isSearching} 
-            selectedProvince={homeProvince}
-            onProvinceChange={setHomeProvince}
-            onOpenLocationModal={() => setIsLocationModalOpen(true)}
-          />
-
-          <div className="flex items-center space-x-6 mt-4">
-            <button onClick={() => navigateTo(View.FindJobs)} className="secondary-browse-link">
-              ดูประกาศงานทั้งหมด
-            </button>
-            <span className="text-neutral-medium">|</span>
-            <button onClick={() => navigateTo(View.FindHelpers)} className="secondary-browse-link">
-              ดูโปรไฟล์ทั้งหมด
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const renderFooter = () => {
     if (isLoadingAuth) return null;
     return (
@@ -729,7 +699,17 @@ const App: React.FC = () => {
       );
     }
     switch (currentView) {
-      case View.Home: return renderHome();
+      case View.Home:
+        return (
+          <HomePage
+            onSearch={handleSearch}
+            isSearching={isSearching}
+            selectedProvince={homeProvince}
+            onProvinceChange={setHomeProvince}
+            onOpenLocationModal={() => setIsLocationModalOpen(true)}
+            navigateTo={navigateTo}
+          />
+        );
       case View.PostJob:
         if (!currentUser) { navigateTo(View.Login); return null; }
         return <PostJobForm currentUser={currentUser!} onCancel={onCancelEditOrPost} initialData={editingItemType === 'job' ? itemToEdit as Job : undefined} isEditing={editingItemType === 'job'} allJobsForAdmin={allJobsForAdmin} navigateTo={navigateTo} sourceViewForForm={sourceViewForForm} />;
@@ -808,7 +788,16 @@ const App: React.FC = () => {
                   initialProvince={searchProvince}
                 />;
       default:
-        return renderHome();
+        return (
+          <HomePage
+            onSearch={handleSearch}
+            isSearching={isSearching}
+            selectedProvince={homeProvince}
+            onProvinceChange={setHomeProvince}
+            onOpenLocationModal={() => setIsLocationModalOpen(true)}
+            navigateTo={navigateTo}
+          />
+        );
     }
   };
 
