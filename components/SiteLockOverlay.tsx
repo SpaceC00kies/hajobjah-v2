@@ -1,7 +1,17 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { subscribeToSiteConfigService } from '../services/adminService.ts';
 
-export const SiteLockOverlay: React.FC<{ isLocked: boolean }> = ({ isLocked }) => {
+export const SiteLockOverlay: React.FC = () => {
+  const [isLocked, setIsLocked] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToSiteConfigService((config) => {
+      setIsLocked(config.isSiteLocked);
+    });
+    return () => unsubscribe();
+  }, []);
+  
   if (!isLocked) {
     return null;
   }

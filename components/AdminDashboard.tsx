@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import type { Job, HelperProfile, User, VouchReport, Vouch, BlogPost, WebboardPost } from '../types/types.ts';
+import type { Job, HelperProfile, User, VouchReport, Vouch, BlogPost, WebboardPost, UserLevel } from '../types/types.ts';
 import { UserRole, VouchReportStatus, VOUCH_TYPE_LABELS } from '../types/types.ts';
 import { Button } from './Button.tsx';
 import { OrionCommandCenter } from './OrionCommandCenter.tsx';
@@ -12,31 +12,40 @@ import { useBlog } from '../hooks/useBlog.ts';
 import { useAdmin } from '../hooks/useAdmin.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useData } from '../context/DataContext.tsx';
-import { formatDateDisplay, isDateInPast } from '../utils/dateUtils.ts';
+import { formatDateDisplay } from '../utils/dateUtils.ts';
 import { AdminOverview } from './admin/AdminOverview.tsx';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { UserLevelBadge } from './UserLevelBadge.tsx';
-import { getUserDisplayBadge } from '../utils/userUtils.ts';
+import { subscribeToSiteConfigService } from '../services/adminService.ts';
 
-type AdminTab = 'overview' | 'action_hub' | 'vouch_reports' | 'orion_command_center' | 'articles' | 'users' | 'site_controls';
-type ActionHubSubTab = 'job' | 'profile' | 'webboardPost' | 'blogPost';
-
-interface AdminDashboardProps {
-  isSiteLocked: boolean;
+export interface AdminItem {
+  id: string;
+  itemType: 'job' | 'profile' | 'webboardPost' | 'blogPost';
+  title: string;
+  authorDisplayName?: string;
+  userId?: string;
+  postedAt?: string;
+  isPinned?: boolean;
+  isSuspicious?: boolean;
+  isHiredOrUnavailable?: boolean;
+  originalItem: Job | HelperProfile | WebboardPost | BlogPost;
+  adminVerifiedExperience?: boolean;
+  profileComplete?: boolean;
+  likesCount?: number;
+  commentsCount?: number;
+  authorLevel?: UserLevel;
+  status?: 'draft' | 'published' | 'archived';
+  publishedAt?: string | Date;
 }
 
-const tableItemVariants = {
-  hidden: { opacity: 0, x: -10 },
-  visible: { opacity: 1, x: 0 },
-};
+type AdminTab = 'overview' | 'action_hub' | 'vouch_reports' | 'orion_command_center' | 'articles' | 'users' | 'site_controls';
+type ActionHubSubTab = 'job' | 'profile' | 'webboardPost' | 'blogPost' | 'user';
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isSiteLocked }) => {
+export const AdminDashboard: React.FC = () => {
   const { currentUser } = useAuth();
   const { allJobsForAdmin, deleteJob } = useJobs();
   const { allHelperProfilesForAdmin, deleteHelperProfile } = useHelpers();
   const { users } = useUsers();
-  const { allWebboardPostsForAdmin, deleteWebboardPost } = useWebboard();
+  const { allWebboardPostsForAdmin, webboardComments, deleteWebboardPost } = useWebboard();
   const { allBlogPostsForAdmin } = useBlog();
   const { vouchReports } = useData();
   const admin = useAdmin();
@@ -52,16 +61,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isSiteLocked }) 
   const [hudAnalysis, setHudAnalysis] = useState<{ ipMatch: boolean | null; voucherIsNew: boolean | null; error?: string | null }>({ ipMatch: null, voucherIsNew: null, error: null });
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
   const actionMenuRef = useRef<HTMLDivElement>(null);
+  const [isSiteLocked, setIsSiteLocked] = useState(false);
   
   const getAuthorDisplayName = useCallback((userId: string, fallbackName?: string): string => {
     const author = users.find(u => u && u.id === userId);
     return author?.publicDisplayName || fallbackName || "ผู้ใช้ไม่ทราบชื่อ";
   }, [users]);
   
-  const getVoucheeDisplayName = useCallback((userId: string, fallbackName?: string): string => {
-    const author = users.find(u => u && u.id === userId);
-    return author?.publicDisplayName || fallbackName || "ไม่พบผู้ถูกรับรอง";
-  }, [users]);
+  useEffect(() => {
+    const unsubscribe = subscribeToSiteConfigService((config) => {
+      setIsSiteLocked(config.isSiteLocked);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -72,8 +84,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isSiteLocked }) 
     if (openActionMenuId) document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [openActionMenuId]);
-  
-  const onStartEditItem = (item: { itemType: string; id?: string; originalItem: any }) => {
+
+  const onStartEditItem = (item: AdminItem) => {
     const { id, itemType, originalItem } = item;
     let path;
     switch(itemType) {
@@ -111,21 +123,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isSiteLocked }) 
       try {
         const vouch = await admin.getVouchDocument(selectedReport.vouchId);
         setSelectedVouch(vouch);
-
-        if (!vouch) {
-          setHudAnalysis({ ipMatch: null, voucherIsNew: null, error: "Vouch document not found." });
-          return;
-        }
+        if (!vouch) throw new Error("Vouch document not found.");
 
         const [voucherUser, voucheeUser] = await Promise.all([
             admin.getUserDocument(vouch.voucherId),
             admin.getUserDocument(vouch.voucheeId)
         ]);
         
-        if (!voucherUser || !voucheeUser) {
-          setHudAnalysis({ ipMatch: null, voucherIsNew: null, error: "Could not fetch full user data." });
-          return;
-        }
+        if (!voucherUser || !voucheeUser) throw new Error("Could not fetch full user data.");
         
         const ipMatch = !!(voucherUser.lastLoginIP && voucheeUser.lastLoginIP && voucherUser.lastLoginIP === voucheeUser.lastLoginIP);
         const accountAge = new Date().getTime() - new Date(voucherUser.createdAt as string).getTime();
@@ -183,7 +188,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isSiteLocked }) 
     { id: 'vouch_reports', label: 'รายงาน Vouch', icon: '🛡️', badgeCount: pendingReports.length },
     { id: 'orion_command_center', label: 'Orion', icon: '🤖' },
     { id: 'articles', label: 'บทความ', icon: '📖' },
-    { id: 'users', label: 'จัดการผู้ใช้', icon: '👥' },
     { id: 'site_controls', label: 'ควบคุมระบบ', icon: '⚙️' },
   ];
 
@@ -191,121 +195,174 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isSiteLocked }) 
     TABS = [{ id: 'articles', label: 'บทความ', icon: '📖' }];
     if (activeTab !== 'articles') setActiveTab('articles');
   }
-  
-  const renderActionHub = () => (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
-        {(['job', 'profile', 'webboardPost', 'blogPost'] as ActionHubSubTab[]).map(tab => (
-          <Button key={tab} onClick={() => setActiveSubTab(tab)} variant={activeSubTab === tab ? 'primary' : 'outline'} size="sm">
-            {tab === 'job' && `งาน (${allJobsForAdmin.length})`}
-            {tab === 'profile' && `โปรไฟล์ผู้ช่วย (${allHelperProfilesForAdmin.length})`}
-            {tab === 'webboardPost' && `กระทู้ (${allWebboardPostsForAdmin.length})`}
-            {tab === 'blogPost' && `บทความ (${allBlogPostsForAdmin.length})`}
-          </Button>
-        ))}
-      </div>
-      <div className="relative">
-        <input type="search" placeholder="Search by title, author, or ID..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10" />
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-medium">🔍</div>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-neutral-light/50">
-          <thead className="bg-neutral-light/30">
-            <tr>
-              <th className="px-4 py-2 text-left text-xs font-medium text-neutral-dark uppercase tracking-wider">Title</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-neutral-dark uppercase tracking-wider">Author</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-neutral-dark uppercase tracking-wider">Status</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-neutral-dark uppercase tracking-wider">Date</th>
-              <th className="relative px-4 py-2"><span className="sr-only">Actions</span></th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-neutral-light/50">
-            <AnimatePresence>
-              {filteredItems.map(item => (
-                <motion.tr key={item.id} variants={tableItemVariants} initial="hidden" animate="visible" exit="hidden" layout>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-neutral-dark truncate max-w-xs">{item.title || (item as any).profileTitle}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-neutral-medium">@{getAuthorDisplayName((item as any).userId, (item as any).authorDisplayName)}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm">
-                    {item.isPinned && <span className="mr-1" title="Pinned">📌</span>}
-                    {item.isSuspicious && <span className="mr-1" title="Suspicious">🚩</span>}
-                    {(item as any).isHiredOrUnavailable && <span className="mr-1" title="Unavailable/Hired">🚫</span>}
-                    {activeSubTab === 'blogPost' && <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">{(item as BlogPost).status}</span>}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-neutral-medium">{formatDateDisplay(item.postedAt || item.createdAt)}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-                     <Button onClick={() => onStartEditItem(item)} size="sm" variant="outline" colorScheme="neutral">Edit</Button>
-                  </td>
-                </motion.tr>
-              ))}
-            </AnimatePresence>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
 
-  const renderVouchReports = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-1 bg-white p-4 rounded-lg shadow-sm border border-neutral-light/50">
-        <h3 className="font-semibold text-neutral-dark mb-2">Pending ({pendingReports.length})</h3>
-        <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
-          {pendingReports.map(r => (
-            <button key={r.id} onClick={() => setSelectedReport(r)} className={`w-full text-left p-3 rounded-lg transition-colors ${selectedReport?.id === r.id ? 'bg-primary-light ring-2 ring-primary' : 'bg-neutral-light/50 hover:bg-neutral-light'}`}>
-              <p className="font-semibold text-sm truncate text-neutral-dark">By: @{getAuthorDisplayName(r.reporterId)}</p>
-              <p className="text-xs text-neutral-medium truncate">On: @{getVoucheeDisplayName(r.voucheeId)}</p>
-              <p className="text-xs text-neutral-medium truncate mt-1">"{r.reporterComment.substring(0, 30)}..."</p>
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="lg:col-span-2 bg-white p-4 rounded-lg shadow-sm border border-neutral-light/50">
-        <h3 className="font-semibold text-lg text-neutral-dark mb-2">Heads-Up Display</h3>
-        {selectedReport ? (
-          <div className="text-sm space-y-3 font-sans">
-            <p><strong>Reporter Comment:</strong> <span className="text-neutral-medium whitespace-pre-wrap">{selectedReport.reporterComment || 'N/A'}</span></p>
-            <hr className="my-2"/>
-            {isHudLoading ? <p>Loading analysis...</p> : (
-              <>
-                <p className="font-bold">Vouch Details:</p>
-                {selectedVouch ? (
-                  <div className="pl-2 border-l-2 border-primary-light">
-                    <p>From: @{selectedVouch.voucherDisplayName}</p>
-                    <p>To: @{getVoucheeDisplayName(selectedVouch.voucheeId)}</p>
-                    <p>Type: {VOUCH_TYPE_LABELS[selectedVouch.vouchType]}</p>
-                    {selectedVouch.comment && <p>Comment: "{selectedVouch.comment}"</p>}
-                  </div>
-                ) : <p className="text-red-500">Vouch not found.</p>}
-
-                <p className="font-bold mt-3">Risk Signals:</p>
-                 {hudAnalysis.error ? <p className="text-red-500">{hudAnalysis.error}</p> : (
-                  <ul className="list-disc list-inside space-y-1">
-                    <li className={hudAnalysis.ipMatch ? 'text-red-500 font-bold' : 'text-green-600'}>IP Match: {String(hudAnalysis.ipMatch)}</li>
-                    <li className={hudAnalysis.voucherIsNew ? 'text-orange-500 font-bold' : 'text-green-600'}>Voucher is new account (&lt;7d): {String(hudAnalysis.voucherIsNew)}</li>
-                  </ul>
-                )}
-                
-                <div className="flex gap-2 mt-4 pt-4 border-t border-neutral-light">
-                  <Button onClick={() => admin.resolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedKept, selectedReport.vouchId, selectedReport.voucheeId, selectedReport.vouchType)} colorScheme="primary" size="sm" disabled={isHudLoading}>Keep Vouch</Button>
-                  <Button onClick={() => admin.resolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedDeleted, selectedReport.vouchId, selectedReport.voucheeId, selectedReport.vouchType)} colorScheme="accent" size="sm" disabled={isHudLoading}>Delete Vouch</Button>
-                </div>
-              </>
-            )}
-          </div>
-        ) : <div className="flex items-center justify-center h-full text-neutral-medium font-sans"><p>Select a report to view details.</p></div>}
-      </div>
-    </div>
-  );
-  
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
         return <AdminOverview vouchReports={vouchReports} users={users} onSelectReport={handleSelectReport} getAuthorDisplayName={getAuthorDisplayName} />;
+      case 'action_hub':
+        const subTabs: { id: ActionHubSubTab, label: string }[] = [
+            { id: 'job', label: `งาน (${allJobsForAdmin.length})` },
+            { id: 'profile', label: `โปรไฟล์ผู้ช่วย (${allHelperProfilesForAdmin.length})` },
+            { id: 'webboardPost', label: `กระทู้ (${allWebboardPostsForAdmin.length})` },
+            { id: 'user', label: `จัดการผู้ใช้ (${users.length})` },
+        ];
+        const currentData = activeSubTab === 'user' ? filteredUsers : filteredItems;
+
+        return (
+          <div>
+            <div className="flex flex-wrap gap-2 mb-4">
+                {subTabs.map(tab => (
+                    <Button key={tab.id} onClick={() => setActiveSubTab(tab.id)} variant={activeSubTab === tab.id ? 'primary' : 'outline'} size="sm">
+                        {tab.label}
+                    </Button>
+                ))}
+            </div>
+            <input type="search" placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full mb-4" />
+            <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-neutral-light/50">
+                    <thead className="bg-neutral-light/30">
+                        <tr>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-neutral-dark uppercase tracking-wider">
+                                {activeSubTab === 'user' ? 'User' : 'Title'}
+                            </th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-neutral-dark uppercase tracking-wider">
+                                {activeSubTab === 'user' ? 'Email / Role' : 'Author'}
+                            </th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-neutral-dark uppercase tracking-wider">Status</th>
+                            <th className="relative px-4 py-2"><span className="sr-only">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-neutral-light/50">
+                        {currentData.map(item => {
+                             const isUser = 'username' in item; // Type guard
+                             const id = item.id;
+                             const title = isUser ? `${item.publicDisplayName} (@${item.username})` : item.title || (item as HelperProfile).profileTitle;
+                             const subtitle = isUser ? `${item.email} | ${item.role}` : `@${getAuthorDisplayName((item as any).userId, (item as any).authorDisplayName)}`;
+                             const canEdit = !isUser;
+                             const itemType = isUser ? 'user' : activeSubTab;
+
+                             return (
+                                <tr key={id}>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-neutral-dark truncate max-w-xs">{title}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-neutral-medium">{subtitle}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                        {!isUser && (item as any).isPinned && <span className="mr-1" title="Pinned">📌</span>}
+                                        {!isUser && (item as any).isSuspicious && <span className="mr-1" title="Suspicious">🚩</span>}
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                                        <div className="relative inline-block text-left" ref={openActionMenuId === id ? actionMenuRef : null}>
+                                            <Button onClick={() => setOpenActionMenuId(openActionMenuId === id ? null : id)} size="sm" variant="ghost">...</Button>
+                                            {openActionMenuId === id && (
+                                                <div className="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                                                    <div className="py-1">
+                                                        {canEdit && <button onClick={() => onStartEditItem(item as any)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Edit</button>}
+                                                        {!isUser && <button onClick={() => onDeleteItem(id, itemType as any)} className="block w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50">Delete</button>}
+                                                        {itemType === 'job' && <>
+                                                            <button onClick={() => { admin.toggleSuspiciousJob(id); setOpenActionMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Toggle Suspicious</button>
+                                                            <button onClick={() => { admin.togglePinnedJob(id); setOpenActionMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Toggle Pinned</button>
+                                                            <button onClick={() => { admin.toggleVerifiedJob(id); setOpenActionMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Toggle Verified</button>
+                                                        </>}
+                                                         {itemType === 'profile' && <>
+                                                            <button onClick={() => { admin.toggleSuspiciousHelperProfile(id); setOpenActionMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Toggle Suspicious</button>
+                                                            <button onClick={() => { admin.togglePinnedHelperProfile(id); setOpenActionMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Toggle Pinned</button>
+                                                            <button onClick={() => { admin.toggleVerifiedExperience(id); setOpenActionMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Toggle Verified Exp</button>
+                                                        </>}
+                                                        {itemType === 'webboardPost' && <button onClick={() => { admin.pinWebboardPost(id); setOpenActionMenuId(null); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Toggle Pinned</button>}
+                                                        {isUser && <select value={(item as User).role} onChange={e => { admin.setUserRole(id, e.target.value as UserRole); setOpenActionMenuId(null); }} disabled={id === currentUser?.id} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                            {Object.values(UserRole).map(role => <option key={role} value={role}>{role}</option>)}
+                                                        </select>}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                             )
+                        })}
+                    </tbody>
+                </table>
+            </div>
+          </div>
+        )
+      case 'articles':
+        return (
+          <div>
+            <Button onClick={() => onStartEditItem({itemType: 'blogPost', originalItem: {} as BlogPost} as AdminItem)} variant="primary" size="sm" className="mb-4">+ Create New Post</Button>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-neutral-DEFAULT">
+                  <thead><tr><th>Title</th><th>Author</th><th>Status</th><th>Published</th><th>Actions</th></tr></thead>
+                  <tbody>
+                      {filteredItems.map(item => (
+                          <tr key={item.id}>
+                              <td>{item.title}</td>
+                              <td>{item.authorDisplayName}</td>
+                              <td>{item.status}</td>
+                              <td>{item.publishedAt ? formatDateDisplay(item.publishedAt) : '—'}</td>
+                              <td>
+                                  <Button onClick={() => onStartEditItem(item)} size="sm">Edit</Button>
+                                  <Button onClick={() => admin.deleteBlogPost(item.id, (item.originalItem as BlogPost).coverImageURL)} size="sm" colorScheme="accent">Delete</Button>
+                              </td>
+                          </tr>
+                      ))}
+                  </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      case 'vouch_reports':
+         return (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-1 bg-white p-4 rounded-lg shadow-sm border border-neutral-light/50">
+                <h3 className="font-semibold text-neutral-dark mb-2">Pending ({pendingReports.length})</h3>
+                <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
+                  {pendingReports.map(r => (
+                    <button key={r.id} onClick={() => setSelectedReport(r)} className={`w-full text-left p-3 rounded-lg transition-colors ${selectedReport?.id === r.id ? 'bg-primary-light ring-2 ring-primary' : 'bg-neutral-light/50 hover:bg-neutral-light'}`}>
+                      <p className="font-semibold text-sm truncate text-neutral-dark">By: @{getAuthorDisplayName(r.reporterId)}</p>
+                      <p className="text-xs text-neutral-medium truncate">On: @{getAuthorDisplayName(r.voucheeId)}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="lg:col-span-2 bg-white p-4 rounded-lg shadow-sm border border-neutral-light/50">
+                <h3 className="font-semibold text-lg text-neutral-dark mb-2">Heads-Up Display</h3>
+                {selectedReport ? (
+                  <div className="text-sm space-y-3 font-sans">
+                    <p><strong>Reporter Comment:</strong> <span className="text-neutral-medium whitespace-pre-wrap">{selectedReport.reporterComment || 'N/A'}</span></p>
+                    <hr className="my-2"/>
+                    {isHudLoading ? <p>Loading analysis...</p> : (
+                      <>
+                        <p className="font-bold">Vouch Details:</p>
+                        {selectedVouch ? (
+                          <div className="pl-2 border-l-2 border-primary-light">
+                            <p>From: @{selectedVouch.voucherDisplayName}</p>
+                            <p>To: @{getAuthorDisplayName(selectedVouch.voucheeId)}</p>
+                            <p>Type: {VOUCH_TYPE_LABELS[selectedVouch.vouchType]}</p>
+                            {selectedVouch.comment && <p>Comment: "{selectedVouch.comment}"</p>}
+                          </div>
+                        ) : <p className="text-red-500">Vouch not found.</p>}
+
+                        <p className="font-bold mt-3">Risk Signals:</p>
+                         {hudAnalysis.error ? <p className="text-red-500">{hudAnalysis.error}</p> : (
+                          <ul className="list-disc list-inside space-y-1">
+                            <li className={hudAnalysis.ipMatch ? 'text-red-500 font-bold' : 'text-green-600'}>IP Match: {String(hudAnalysis.ipMatch)}</li>
+                            <li className={hudAnalysis.voucherIsNew ? 'text-orange-500 font-bold' : 'text-green-600'}>Voucher is new account (&lt;7d): {String(hudAnalysis.voucherIsNew)}</li>
+                          </ul>
+                        )}
+                        
+                        <div className="flex gap-2 mt-4 pt-4 border-t border-neutral-light">
+                          <Button onClick={() => admin.resolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedKept, selectedReport.vouchId, selectedReport.voucheeId, selectedReport.vouchType)} colorScheme="primary" size="sm" disabled={isHudLoading}>Keep Vouch</Button>
+                          <Button onClick={() => admin.resolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedDeleted, selectedReport.vouchId, selectedReport.voucheeId, selectedReport.vouchType)} colorScheme="accent" size="sm" disabled={isHudLoading}>Delete Vouch</Button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ) : <div className="flex items-center justify-center h-full text-neutral-medium font-sans"><p>Select a report to view details.</p></div>}
+              </div>
+            </div>
+          );
       case 'orion_command_center':
         return <div className="orion-cockpit"><OrionCommandCenter /></div>;
-      case 'action_hub':
-        return renderActionHub();
-      case 'vouch_reports':
-        return renderVouchReports();
       case 'site_controls':
         return (
             <div className="p-4 bg-white rounded-lg shadow-sm border border-neutral-light/50">
@@ -318,42 +375,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isSiteLocked }) 
                 </div>
             </div>
         );
-      case 'articles':
-         return (
-            <div>
-              <Button onClick={() => onStartEditItem({ itemType: 'blogPost', originalItem: {} })} variant="primary" size="sm" className="mb-4">+ Create New Article</Button>
-               <p className="text-neutral-medium font-sans">Article management is now available in the 'Action Hub' tab.</p>
-            </div>
-          );
       default:
         return null;
     }
   }
   
   return (
-    <div className="p-4 sm:p-6 w-full">
-      <div className="dashboard-header">
-        <h2 className="dashboard-title">🔐 Admin Dashboard</h2>
-        <nav className="dashboard-nav">
-          {TABS.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`dashboard-nav-pill ${activeTab === tab.id ? 'active' : ''}`}
-            >
-              <span>{tab.icon}</span>
-              <span>{tab.label}</span>
-              {tab.badgeCount && tab.badgeCount > 0 && (
-                <span className="ml-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{tab.badgeCount}</span>
-              )}
-            </button>
-          ))}
-        </nav>
-      </div>
-      
-      <div className="mt-6">
-        {renderContent()}
-      </div>
+    <div className="mt-6">
+      {renderContent()}
     </div>
   );
 };

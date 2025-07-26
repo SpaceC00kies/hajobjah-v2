@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate, useParams } from 'react-router-dom';
 import { useAuthActions } from './hooks/useAuthActions.ts';
@@ -58,7 +59,6 @@ const App: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [isSiteLocked] = useState<boolean>(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [confirmModalMessage, setConfirmModalMessage] = useState('');
   const [confirmModalTitle, setConfirmModalTitle] = useState('');
@@ -212,7 +212,7 @@ const App: React.FC = () => {
   
   return (
     <div className="flex flex-col min-h-screen bg-neutral-light font-serif">
-      <SiteLockOverlay isLocked={isSiteLocked} />
+      <SiteLockOverlay />
       <Header 
         currentUser={currentUser} 
         onLogout={onLogout} 
@@ -233,7 +233,7 @@ const App: React.FC = () => {
             <Route path="/find-helpers" element={<AuthRoute><FindHelpersPage /></AuthRoute>} />
             <Route path="/register" element={<RegistrationForm onRegister={onRegister} onSwitchToLogin={() => navigate('/login')} />} />
             <Route path="/login" element={<LoginForm onLogin={onLogin} onSwitchToRegister={() => navigate('/register')} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />} />
-            <Route path="/admin" element={<AdminRoute><AdminDashboard isSiteLocked={isSiteLocked} /></AdminRoute>} />
+            <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
             <Route path="/my-room" element={<AuthRoute><MyRoomPage onVouchForUser={handleVouchForUser} /></AuthRoute>} />
             <Route path="/profile/:userId/:helperProfileId?" element={<PublicProfilePageWrapper />} />
             <Route path="/about" element={<AboutUsPage />} />
