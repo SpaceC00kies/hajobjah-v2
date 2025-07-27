@@ -5,7 +5,6 @@ import { GenderOption, HelperEducationLevelOption } from '../types/types.ts';
 import { Button } from './Button.tsx';
 import { isValidThaiMobileNumber } from '../utils/validation.ts';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ProfileCompletenessWizard } from './ProfileCompletenessWizard.tsx';
 
 interface UserProfilePageProps {
   currentUser: User;
@@ -299,8 +298,6 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-xl mx-auto my-10 border border-neutral-DEFAULT">
       <h2 className="text-3xl font-sans font-semibold text-secondary-hover mb-6 text-center">👤 โปรไฟล์ของฉัน</h2>
       
-      <ProfileCompletenessWizard currentUser={currentUser} />
-
       <AnimatePresence>
           {feedback && (
             <motion.div
