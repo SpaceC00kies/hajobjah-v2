@@ -5,6 +5,7 @@ import { GenderOption, HelperEducationLevelOption } from '../types/types.ts';
 import { Button } from './Button.tsx';
 import { isValidThaiMobileNumber } from '../utils/validation.ts';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ProfileCompletenessWizard } from './ProfileCompletenessWizard.tsx';
 
 interface UserProfilePageProps {
   currentUser: User;
@@ -42,36 +43,56 @@ const FallbackAvatar: React.FC<{ name?: string, size?: string, className?: strin
 
 const DISPLAY_NAME_COOLDOWN_DAYS_UI = 14;
 
+// Helper to set all form state from a user object
+const useFormStateFromUser = (user: User) => {
+  const [publicDisplayName, setPublicDisplayName] = useState(user.publicDisplayName);
+  const [mobile, setMobile] = useState(user.mobile);
+  const [lineId, setLineId] = useState(user.lineId || '');
+  const [facebook, setFacebook] = useState(user.facebook || '');
+  const [gender, setGender] = useState(user.gender || GenderOption.NotSpecified);
+  const [birthdate, setBirthdate] = useState(user.birthdate || '');
+  const [educationLevel, setEducationLevel] = useState(user.educationLevel || HelperEducationLevelOption.NotStated);
+  const [address, setAddress] = useState(user.address || '');
+  const [photoBase64, setPhotoBase64] = useState<string | undefined | null>(user.photo); // Allow null for removal
+  const [nickname, setNickname] = useState(user.nickname || '');
+  const [firstName, setFirstName] = useState(user.firstName || '');
+  const [lastName, setLastName] = useState(user.lastName || '');
+  const [favoriteMusic, setFavoriteMusic] = useState(user.favoriteMusic || '');
+  const [favoriteBook, setFavoriteBook] = useState(user.favoriteBook || '');
+  const [favoriteMovie, setFavoriteMovie] = useState(user.favoriteMovie || '');
+  const [hobbies, setHobbies] = useState(user.hobbies || '');
+  const [favoriteFood, setFavoriteFood] = useState(user.favoriteFood || '');
+  const [dislikedThing, setDislikedThing] = useState(user.dislikedThing || '');
+  const [introSentence, setIntroSentence] = useState(user.introSentence || '');
+  const [isBusinessProfile, setIsBusinessProfile] = useState(user.isBusinessProfile || false);
+  const [businessName, setBusinessName] = useState(user.businessName || '');
+  const [businessType, setBusinessType] = useState(user.businessType || '');
+  const [aboutBusiness, setAboutBusiness] = useState(user.aboutBusiness || '');
+  const [businessAddress, setBusinessAddress] = useState(user.businessAddress || '');
+  const [businessWebsite, setBusinessWebsite] = useState(user.businessWebsite || '');
+  const [businessSocialProfileLink, setBusinessSocialProfileLink] = useState(user.businessSocialProfileLink || '');
+
+  const setters = {
+    setPublicDisplayName, setMobile, setLineId, setFacebook, setGender, setBirthdate,
+    setEducationLevel, setAddress, setPhotoBase64, setNickname, setFirstName, setLastName,
+    setFavoriteMusic, setFavoriteBook, setFavoriteMovie, setHobbies, setFavoriteFood,
+    setDislikedThing, setIntroSentence, setIsBusinessProfile, setBusinessName, setBusinessType,
+    setAboutBusiness, setBusinessAddress, setBusinessWebsite, setBusinessSocialProfileLink,
+  };
+  
+  const formState = {
+    publicDisplayName, mobile, lineId, facebook, gender, birthdate, educationLevel, address, photo: photoBase64,
+    nickname, firstName, lastName, favoriteMusic, favoriteBook, favoriteMovie, hobbies, favoriteFood,
+    dislikedThing, introSentence, isBusinessProfile, businessName, businessType, aboutBusiness,
+    businessAddress, businessWebsite, businessSocialProfileLink,
+  };
+
+  return { formState, setters };
+};
 
 export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, onUpdateProfile, onCancel }) => {
-  // --- Initialize state DIRECTLY from props. ---
-  const [publicDisplayName, setPublicDisplayName] = useState(currentUser.publicDisplayName);
-  const [mobile, setMobile] = useState(currentUser.mobile);
-  const [lineId, setLineId] = useState(currentUser.lineId || '');
-  const [facebook, setFacebook] = useState(currentUser.facebook || '');
-  const [gender, setGender] = useState(currentUser.gender || GenderOption.NotSpecified);
-  const [birthdate, setBirthdate] = useState(currentUser.birthdate || '');
-  const [educationLevel, setEducationLevel] = useState(currentUser.educationLevel || HelperEducationLevelOption.NotStated);
+  const { formState, setters } = useFormStateFromUser(currentUser);
   const [currentAge, setCurrentAge] = useState<number | null>(calculateAge(currentUser.birthdate));
-  const [address, setAddress] = useState(currentUser.address || '');
-  const [photoBase64, setPhotoBase64] = useState<string | undefined>(currentUser.photo);
-  const [nickname, setNickname] = useState(currentUser.nickname || '');
-  const [firstName, setFirstName] = useState(currentUser.firstName || '');
-  const [lastName, setLastName] = useState(currentUser.lastName || '');
-  const [favoriteMusic, setFavoriteMusic] = useState(currentUser.favoriteMusic || '');
-  const [favoriteBook, setFavoriteBook] = useState(currentUser.favoriteBook || '');
-  const [favoriteMovie, setFavoriteMovie] = useState(currentUser.favoriteMovie || '');
-  const [hobbies, setHobbies] = useState(currentUser.hobbies || '');
-  const [favoriteFood, setFavoriteFood] = useState(currentUser.favoriteFood || '');
-  const [dislikedThing, setDislikedThing] = useState(currentUser.dislikedThing || '');
-  const [introSentence, setIntroSentence] = useState(currentUser.introSentence || '');
-  const [isBusinessProfile, setIsBusinessProfile] = useState(currentUser.isBusinessProfile || false);
-  const [businessName, setBusinessName] = useState(currentUser.businessName || '');
-  const [businessType, setBusinessType] = useState(currentUser.businessType || '');
-  const [aboutBusiness, setAboutBusiness] = useState(currentUser.aboutBusiness || '');
-  const [businessAddress, setBusinessAddress] = useState(currentUser.businessAddress || '');
-  const [businessWebsite, setBusinessWebsite] = useState(currentUser.businessWebsite || '');
-  const [businessSocialProfileLink, setBusinessSocialProfileLink] = useState(currentUser.businessSocialProfileLink || '');
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<UserProfileFormErrorKeys, string>>>({});
@@ -79,62 +100,61 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
   const feedbackRef = useRef<HTMLDivElement>(null);
   const [displayNameCooldownInfo, setDisplayNameCooldownInfo] = useState<{ canChange: boolean; message?: string }>({ canChange: true });
   
+  // This effect synchronizes the form state with the currentUser prop.
+  // This is crucial for reflecting updates after a save without causing race conditions.
   useEffect(() => {
     if (currentUser) {
-      setPublicDisplayName(currentUser.publicDisplayName);
-      setMobile(currentUser.mobile);
-      setLineId(currentUser.lineId || '');
-      setFacebook(currentUser.facebook || '');
-      setGender(currentUser.gender || GenderOption.NotSpecified);
-      setBirthdate(currentUser.birthdate || '');
-      setEducationLevel(currentUser.educationLevel || HelperEducationLevelOption.NotStated);
+      setters.setPublicDisplayName(currentUser.publicDisplayName);
+      setters.setMobile(currentUser.mobile);
+      setters.setLineId(currentUser.lineId || '');
+      setters.setFacebook(currentUser.facebook || '');
+      setters.setGender(currentUser.gender || GenderOption.NotSpecified);
+      setters.setBirthdate(currentUser.birthdate || '');
+      setters.setEducationLevel(currentUser.educationLevel || HelperEducationLevelOption.NotStated);
       setCurrentAge(calculateAge(currentUser.birthdate));
-      setAddress(currentUser.address || '');
-      setPhotoBase64(currentUser.photo);
-      setNickname(currentUser.nickname || '');
-      setFirstName(currentUser.firstName || '');
-      setLastName(currentUser.lastName || '');
-      setFavoriteMusic(currentUser.favoriteMusic || '');
-      setFavoriteBook(currentUser.favoriteBook || '');
-      setFavoriteMovie(currentUser.favoriteMovie || '');
-      setHobbies(currentUser.hobbies || '');
-      setFavoriteFood(currentUser.favoriteFood || '');
-      setDislikedThing(currentUser.dislikedThing || '');
-      setIntroSentence(currentUser.introSentence || '');
-      setIsBusinessProfile(currentUser.isBusinessProfile || false);
-      setBusinessName(currentUser.businessName || '');
-      setBusinessType(currentUser.businessType || '');
-      setAboutBusiness(currentUser.aboutBusiness || '');
-      setBusinessAddress(currentUser.businessAddress || '');
-      setBusinessWebsite(currentUser.businessWebsite || '');
-      setBusinessSocialProfileLink(currentUser.businessSocialProfileLink || '');
-    }
-  }, [currentUser]);
+      setters.setAddress(currentUser.address || '');
+      setters.setPhotoBase64(currentUser.photo);
+      setters.setNickname(currentUser.nickname || '');
+      setters.setFirstName(currentUser.firstName || '');
+      setters.setLastName(currentUser.lastName || '');
+      setters.setFavoriteMusic(currentUser.favoriteMusic || '');
+      setters.setFavoriteBook(currentUser.favoriteBook || '');
+      setters.setFavoriteMovie(currentUser.favoriteMovie || '');
+      setters.setHobbies(currentUser.hobbies || '');
+      setters.setFavoriteFood(currentUser.favoriteFood || '');
+      setters.setDislikedThing(currentUser.dislikedThing || '');
+      setters.setIntroSentence(currentUser.introSentence || '');
+      setters.setIsBusinessProfile(currentUser.isBusinessProfile || false);
+      setters.setBusinessName(currentUser.businessName || '');
+      setters.setBusinessType(currentUser.businessType || '');
+      setters.setAboutBusiness(currentUser.aboutBusiness || '');
+      setters.setBusinessAddress(currentUser.businessAddress || '');
+      setters.setBusinessWebsite(currentUser.businessWebsite || '');
+      setters.setBusinessSocialProfileLink(currentUser.businessSocialProfileLink || '');
 
-  useEffect(() => {
-    const updateCount = currentUser.publicDisplayNameUpdateCount || 0;
-    const lastChange = currentUser.lastPublicDisplayNameChangeAt;
-    if (updateCount > 0 && lastChange) {
-      const lastChangeDate = typeof lastChange === 'string' ? new Date(lastChange) : lastChange;
-      if (lastChangeDate instanceof Date) {
-        const cooldownMs = DISPLAY_NAME_COOLDOWN_DAYS_UI * 24 * 60 * 60 * 1000;
-        const nextChangeAllowedTime = lastChangeDate.getTime() + cooldownMs;
-         if (Date.now() < nextChangeAllowedTime) {
-            setDisplayNameCooldownInfo({
-                canChange: false,
-                message: `คุณสามารถเปลี่ยนชื่อที่แสดงได้อีกครั้งในวันที่ ${new Date(nextChangeAllowedTime).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}`
-            });
+      const updateCount = currentUser.publicDisplayNameUpdateCount || 0;
+      const lastChange = currentUser.lastPublicDisplayNameChangeAt;
+      if (updateCount > 0 && lastChange) {
+        const lastChangeDate = typeof lastChange === 'string' ? new Date(lastChange) : lastChange;
+        if (lastChangeDate instanceof Date) {
+          const cooldownMs = DISPLAY_NAME_COOLDOWN_DAYS_UI * 24 * 60 * 60 * 1000;
+          const nextChangeAllowedTime = lastChangeDate.getTime() + cooldownMs;
+           if (Date.now() < nextChangeAllowedTime) {
+              setDisplayNameCooldownInfo({
+                  canChange: false,
+                  message: `คุณสามารถเปลี่ยนชื่อที่แสดงได้อีกครั้งในวันที่ ${new Date(nextChangeAllowedTime).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}`
+              });
+          } else {
+              setDisplayNameCooldownInfo({ canChange: true });
+          }
         } else {
-            setDisplayNameCooldownInfo({ canChange: true });
+           setDisplayNameCooldownInfo({ canChange: true });
         }
       } else {
-         setDisplayNameCooldownInfo({ canChange: true });
+        setDisplayNameCooldownInfo({ canChange: true });
       }
-    } else {
-      setDisplayNameCooldownInfo({ canChange: true });
     }
-  }, [currentUser.publicDisplayNameUpdateCount, currentUser.lastPublicDisplayNameChangeAt]);
-
+  }, [currentUser]); // This effect ONLY depends on the main currentUser prop.
 
   useEffect(() => {
     if (feedback) {
@@ -142,8 +162,8 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
         feedbackRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
       const timer = setTimeout(() => {
-        setFeedback(null); // Hide after 5 seconds
-      }, 5000); // Hide after 5 seconds
+        setFeedback(null);
+      }, 5000);
       return () => clearTimeout(timer);
     }
   }, [feedback]);
@@ -162,28 +182,28 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
       if (file.size > 2 * 1024 * 1024) {
         setErrors(prev => ({ ...prev, photo: 'ขนาดรูปภาพต้องไม่เกิน 2MB' }));
         if (event.target) event.target.value = '';
-        setPhotoBase64(currentUser.photo);
+        setters.setPhotoBase64(currentUser.photo);
         return;
       }
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPhotoBase64(reader.result as string);
+        setters.setPhotoBase64(reader.result as string);
         setErrors(prev => ({ ...prev, photo: undefined }));
       };
       reader.onerror = () => {
         setErrors(prev => ({ ...prev, photo: 'ไม่สามารถอ่านไฟล์รูปภาพได้' }));
-        setPhotoBase64(currentUser.photo);
+        setters.setPhotoBase64(currentUser.photo);
       }
       reader.readAsDataURL(file);
     } else {
-      setPhotoBase64(undefined);
+      setters.setPhotoBase64(null); // Explicitly set to null for removal
       setErrors(prev => ({ ...prev, photo: undefined }));
     }
   };
 
   const handleBirthdateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newBirthdate = e.target.value;
-    setBirthdate(newBirthdate);
+    setters.setBirthdate(newBirthdate);
     const age = calculateAge(newBirthdate);
     setCurrentAge(age);
     if (age !== null || newBirthdate === '') {
@@ -194,7 +214,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
   const isValidUrl = (urlString?: string): boolean => {
     if (!urlString || urlString.trim() === '') return true;
     try {
-      new URL(urlString);
+      new URL(urlString.startsWith('http') ? urlString : `https://${urlString}`);
       return true;
     } catch (_) {
       return false;
@@ -203,26 +223,26 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
 
   const validateForm = () => {
     const newErrors: Partial<Record<UserProfileFormErrorKeys, string>> = {};
-     if (!publicDisplayName.trim()) {
+     if (!formState.publicDisplayName.trim()) {
       newErrors.publicDisplayName = 'กรุณากรอกชื่อที่ต้องการให้แสดงบนเว็บไซต์';
-    } else if (!PUBLIC_DISPLAY_NAME_REGEX_PROFILE.test(publicDisplayName)) {
+    } else if (!PUBLIC_DISPLAY_NAME_REGEX_PROFILE.test(formState.publicDisplayName)) {
       newErrors.publicDisplayName = 'ต้องมี 2-30 ตัวอักษร (ไทย/อังกฤษ, ตัวเลข, เว้นวรรค, จุด)';
     }
 
-    if (!displayNameCooldownInfo.canChange && publicDisplayName !== currentUser.publicDisplayName) {
+    if (!displayNameCooldownInfo.canChange && formState.publicDisplayName !== currentUser.publicDisplayName) {
         newErrors.publicDisplayName = displayNameCooldownInfo.message;
     }
 
-    if (!mobile.trim()) newErrors.mobile = 'กรุณากรอกเบอร์โทรศัพท์';
-    else if (!isValidThaiMobileNumber(mobile)) newErrors.mobile = 'รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง (เช่น 08X-XXX-XXXX)';
+    if (!formState.mobile.trim()) newErrors.mobile = 'กรุณากรอกเบอร์โทรศัพท์';
+    else if (!isValidThaiMobileNumber(formState.mobile)) newErrors.mobile = 'รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง (เช่น 08X-XXX-XXXX)';
 
-    if (!gender || gender === GenderOption.NotSpecified) newErrors.gender = 'กรุณาเลือกเพศ';
-    if (!birthdate) newErrors.birthdate = 'กรุณาเลือกวันเกิด';
-    else if (calculateAge(birthdate) === null) newErrors.birthdate = 'กรุณาเลือกวันเกิดที่ถูกต้อง (ต้องไม่ใช่วันในอนาคต)';
-    if (!educationLevel || educationLevel === HelperEducationLevelOption.NotStated) newErrors.educationLevel = 'กรุณาเลือกระดับการศึกษา';
+    if (!formState.gender || formState.gender === GenderOption.NotSpecified) newErrors.gender = 'กรุณาเลือกเพศ';
+    if (!formState.birthdate) newErrors.birthdate = 'กรุณาเลือกวันเกิด';
+    else if (calculateAge(formState.birthdate) === null) newErrors.birthdate = 'กรุณาเลือกวันเกิดที่ถูกต้อง (ต้องไม่ใช่วันในอนาคต)';
+    if (!formState.educationLevel || formState.educationLevel === HelperEducationLevelOption.NotStated) newErrors.educationLevel = 'กรุณาเลือกระดับการศึกษา';
 
-    if (!isValidUrl(businessWebsite)) newErrors.businessWebsite = 'รูปแบบ URL ของเว็บไซต์ธุรกิจไม่ถูกต้อง';
-    if (!isValidUrl(businessSocialProfileLink)) newErrors.businessSocialProfileLink = 'รูปแบบ URL ของโซเชียลโปรไฟล์ธุรกิจไม่ถูกต้อง';
+    if (!isValidUrl(formState.businessWebsite)) newErrors.businessWebsite = 'รูปแบบ URL ของเว็บไซต์ธุรกิจไม่ถูกต้อง';
+    if (!isValidUrl(formState.businessSocialProfileLink)) newErrors.businessSocialProfileLink = 'รูปแบบ URL ของโซเชียลโปรไฟล์ธุรกิจไม่ถูกต้อง';
 
 
     setErrors(prev => ({...prev, ...newErrors}));
@@ -243,13 +263,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
   
     setIsSubmitting(true);
     try {
-      const success = await onUpdateProfile({
-        publicDisplayName, mobile, lineId, facebook, gender, birthdate, educationLevel, photo: photoBase64, address,
-        nickname, firstName, lastName, 
-        favoriteMusic, favoriteBook, favoriteMovie, hobbies, favoriteFood, dislikedThing, introSentence,
-        isBusinessProfile, 
-        businessName, businessType, aboutBusiness, businessAddress, businessWebsite, businessSocialProfileLink
-      });
+      const success = await onUpdateProfile(formState);
       if (success) {
         setFeedback({ type: 'success', message: 'อัปเดตโปรไฟล์เรียบร้อยแล้ว!' });
       } else {
@@ -263,21 +277,21 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
   };
 
   const personalityFields = [
-    { name: 'favoriteMusic', label: '🎧 เพลงที่ชอบ', value: favoriteMusic, setter: setFavoriteMusic, placeholder: 'เช่น Pop, Rock, ลูกทุ่ง, Jazz', type: 'text' },
-    { name: 'favoriteBook', label: '📚 หนังสือที่ชอบ', value: favoriteBook, setter: setFavoriteBook, placeholder: 'เช่น นิยายสืบสวน, การ์ตูน, พัฒนาตัวเอง', type: 'text' },
-    { name: 'favoriteMovie', label: '🎬 หนังที่ชอบ', value: favoriteMovie, setter: setFavoriteMovie, placeholder: 'เช่น Action, Comedy, Sci-fi, Drama', type: 'text' },
-    { name: 'hobbies', label: '🧶 งานอดิเรก', value: hobbies, setter: setHobbies, placeholder: 'เช่น อ่านหนังสือ, เล่นเกม, วาดรูป, ทำอาหาร', type: 'textarea' },
-    { name: 'favoriteFood', label: '🍜 อาหารที่ชอบ', value: favoriteFood, setter: setFavoriteFood, placeholder: 'เช่น ส้มตำ, พิซซ่า, ซูชิ, ก๋วยเตี๋ยว', type: 'text' },
-    { name: 'dislikedThing', label: '🚫 สิ่งที่ไม่ชอบที่สุด', value: dislikedThing, setter: setDislikedThing, placeholder: 'เช่น ความไม่ซื่อสัตย์, แมลงสาบ', type: 'text' },
+    { name: 'favoriteMusic', label: '🎧 เพลงที่ชอบ', value: formState.favoriteMusic, setter: setters.setFavoriteMusic, placeholder: 'เช่น Pop, Rock, ลูกทุ่ง, Jazz', type: 'text' },
+    { name: 'favoriteBook', label: '📚 หนังสือที่ชอบ', value: formState.favoriteBook, setter: setters.setFavoriteBook, placeholder: 'เช่น นิยายสืบสวน, การ์ตูน, พัฒนาตัวเอง', type: 'text' },
+    { name: 'favoriteMovie', label: '🎬 หนังที่ชอบ', value: formState.favoriteMovie, setter: setters.setFavoriteMovie, placeholder: 'เช่น Action, Comedy, Sci-fi, Drama', type: 'text' },
+    { name: 'hobbies', label: '🧶 งานอดิเรก', value: formState.hobbies, setter: setters.setHobbies, placeholder: 'เช่น อ่านหนังสือ, เล่นเกม, วาดรูป, ทำอาหาร', type: 'textarea' },
+    { name: 'favoriteFood', label: '🍜 อาหารที่ชอบ', value: formState.favoriteFood, setter: setters.setFavoriteFood, placeholder: 'เช่น ส้มตำ, พิซซ่า, ซูชิ, ก๋วยเตี๋ยว', type: 'text' },
+    { name: 'dislikedThing', label: '🚫 สิ่งที่ไม่ชอบที่สุด', value: formState.dislikedThing, setter: setters.setDislikedThing, placeholder: 'เช่น ความไม่ซื่อสัตย์, แมลงสาบ', type: 'text' },
   ];
 
   const businessInfoFields = [
-    { name: 'businessName', label: 'ชื่อธุรกิจ/ร้านค้า/บริษัท', value: businessName, setter: setBusinessName, placeholder: 'เช่น ร้านกาแฟแมวฟ้า, บริการออกแบบซันนี่', type: 'text' },
-    { name: 'businessType', label: 'ประเภทธุรกิจ', value: businessType, setter: setBusinessType, placeholder: 'เช่น ร้านอาหาร, บริษัทจำกัด, ฟรีแลนซ์', type: 'text' },
-    { name: 'aboutBusiness', label: 'เกี่ยวกับธุรกิจ', value: aboutBusiness, setter: setAboutBusiness, placeholder: 'อธิบายสั้นๆ เกี่ยวกับธุรกิจของคุณ...', type: 'textarea' },
-    { name: 'businessAddress', label: 'ที่ตั้งธุรกิจ (ถ้ามี)', value: businessAddress, setter: setBusinessAddress, placeholder: 'เช่น 123 ถนนนิมมาน, เชียงใหม่', type: 'text' },
-    { name: 'businessWebsite', label: 'เว็บไซต์ธุรกิจ', value: businessWebsite, setter: setBusinessWebsite, placeholder: 'https://yourbusiness.com', type: 'url', errorKey: 'businessWebsite' as UserProfileFormErrorKeys },
-    { name: 'businessSocialProfileLink', label: 'ลิงก์โซเชียลโปรไฟล์ธุรกิจ', value: businessSocialProfileLink, setter: setBusinessSocialProfileLink, placeholder: 'เช่น ลิงก์ Facebook Page, LINE OA', type: 'url', errorKey: 'businessSocialProfileLink' as UserProfileFormErrorKeys },
+    { name: 'businessName', label: 'ชื่อธุรกิจ/ร้านค้า/บริษัท', value: formState.businessName, setter: setters.setBusinessName, placeholder: 'เช่น ร้านกาแฟแมวฟ้า, บริการออกแบบซันนี่', type: 'text' },
+    { name: 'businessType', label: 'ประเภทธุรกิจ', value: formState.businessType, setter: setters.setBusinessType, placeholder: 'เช่น ร้านอาหาร, บริษัทจำกัด, ฟรีแลนซ์', type: 'text' },
+    { name: 'aboutBusiness', label: 'เกี่ยวกับธุรกิจ', value: formState.aboutBusiness, setter: setters.setAboutBusiness, placeholder: 'อธิบายสั้นๆ เกี่ยวกับธุรกิจของคุณ...', type: 'textarea' },
+    { name: 'businessAddress', label: 'ที่ตั้งธุรกิจ (ถ้ามี)', value: formState.businessAddress, setter: setters.setBusinessAddress, placeholder: 'เช่น 123 ถนนนิมมาน, เชียงใหม่', type: 'text' },
+    { name: 'businessWebsite', label: 'เว็บไซต์ธุรกิจ', value: formState.businessWebsite, setter: setters.setBusinessWebsite, placeholder: 'https://yourbusiness.com', type: 'url', errorKey: 'businessWebsite' as UserProfileFormErrorKeys },
+    { name: 'businessSocialProfileLink', label: 'ลิงก์โซเชียลโปรไฟล์ธุรกิจ', value: formState.businessSocialProfileLink, setter: setters.setBusinessSocialProfileLink, placeholder: 'เช่น ลิงก์ Facebook Page, LINE OA', type: 'url', errorKey: 'businessSocialProfileLink' as UserProfileFormErrorKeys },
   ];
 
 
@@ -285,6 +299,8 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-xl mx-auto my-10 border border-neutral-DEFAULT">
       <h2 className="text-3xl font-sans font-semibold text-secondary-hover mb-6 text-center">👤 โปรไฟล์ของฉัน</h2>
       
+      <ProfileCompletenessWizard currentUser={currentUser} />
+
       <AnimatePresence>
           {feedback && (
             <motion.div
@@ -305,8 +321,8 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div id="profile-photo-section" className="flex flex-col items-center mb-6">
-          {photoBase64 ? (
-            <img src={photoBase64} alt="Profile Preview" className="w-32 h-32 rounded-full object-cover shadow-md mb-3" loading="lazy" decoding="async" />
+          {formState.photo ? (
+            <img src={formState.photo} alt="Profile Preview" className="w-32 h-32 rounded-full object-cover shadow-md mb-3" />
           ) : (
             <FallbackAvatar name={currentUser.publicDisplayName} size="w-32 h-32" className="mb-3" />
           )}
@@ -328,8 +344,8 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
           <label className="flex items-center space-x-2 cursor-pointer">
               <input
                   type="checkbox"
-                  checked={isBusinessProfile}
-                  onChange={(e) => setIsBusinessProfile(e.target.checked)}
+                  checked={formState.isBusinessProfile}
+                  onChange={(e) => setters.setIsBusinessProfile(e.target.checked)}
                   className="form-checkbox h-5 w-5 text-secondary rounded border-neutral-DEFAULT focus:!ring-2 focus:!ring-offset-1 focus:!ring-offset-white focus:!ring-secondary focus:!ring-opacity-70"
                   disabled={isSubmitting}
               />
@@ -345,8 +361,8 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
           <input
             type="text"
             id="profilePublicDisplayName"
-            value={publicDisplayName}
-            onChange={(e) => setPublicDisplayName(e.target.value)}
+            value={formState.publicDisplayName}
+            onChange={(e) => setters.setPublicDisplayName(e.target.value)}
             className={`${inputBaseStyle} ${errors.publicDisplayName ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
             placeholder="เช่น Puuna V."
             disabled={!displayNameCooldownInfo.canChange || isSubmitting}
@@ -391,8 +407,8 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             </label>
             <textarea
                 id="profile-introSentence"
-                value={introSentence}
-                onChange={(e) => setIntroSentence(e.target.value)}
+                value={formState.introSentence}
+                onChange={(e) => setters.setIntroSentence(e.target.value)}
                 rows={3}
                 className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                 placeholder="เช่น เป็นคนง่ายๆ สบายๆ ชอบเรียนรู้สิ่งใหม่"
@@ -417,8 +433,8 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                     <div className="space-y-1">
                         {Object.values(GenderOption).map(optionValue => (
                         <label key={optionValue} className="flex items-center space-x-2 cursor-pointer">
-                            <input type="radio" name="profileGender" value={optionValue} checked={gender === optionValue}
-                                    onChange={() => setGender(optionValue)}
+                            <input type="radio" name="profileGender" value={optionValue} checked={formState.gender === optionValue}
+                                    onChange={() => setters.setGender(optionValue)}
                                     className="form-radio h-4 w-4 text-secondary border-[#CCCCCC] focus:!ring-2 focus:!ring-offset-1 focus:!ring-offset-white focus:!ring-secondary focus:!ring-opacity-70"
                                     disabled={isSubmitting}
                             />
@@ -430,7 +446,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                 </div>
                 <div>
                     <label htmlFor="profileBirthdate" className="block text-sm font-sans font-medium text-neutral-dark mb-1">วันเกิด <span className="text-red-500">*</span></label>
-                    <input type="date" id="profileBirthdate" value={birthdate} onChange={handleBirthdateChange}
+                    <input type="date" id="profileBirthdate" value={formState.birthdate} onChange={handleBirthdateChange}
                             max={new Date().toISOString().split("T")[0]}
                             className={`${inputBaseStyle} ${errors.birthdate ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`} 
                             disabled={isSubmitting}
@@ -441,8 +457,8 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             </div>
             <div>
                 <label htmlFor="profileEducationLevel" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ระดับการศึกษา <span className="text-red-500">*</span></label>
-                <select id="profileEducationLevel" value={educationLevel}
-                        onChange={(e) => setEducationLevel(e.target.value as HelperEducationLevelOption)}
+                <select id="profileEducationLevel" value={formState.educationLevel}
+                        onChange={(e) => setters.setEducationLevel(e.target.value as HelperEducationLevelOption)}
                         className={`${selectBaseStyle} ${errors.educationLevel ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
                         disabled={isSubmitting}
                 >
@@ -454,22 +470,22 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             </div>
             <div className="mt-4">
                 <label htmlFor="profileNickname" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อเล่น</label>
-                <input type="text" id="profileNickname" value={nickname} onChange={(e) => setNickname(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น ซันนี่, จอห์น" disabled={isSubmitting} />
+                <input type="text" id="profileNickname" value={formState.nickname} onChange={(e) => setters.setNickname(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น ซันนี่, จอห์น" disabled={isSubmitting} />
             </div>
             <div className="mt-4">
                 <label htmlFor="profileFirstName" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อจริง</label>
-                <input type="text" id="profileFirstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น ยาทิดา, สมชาย" disabled={isSubmitting} />
+                <input type="text" id="profileFirstName" value={formState.firstName} onChange={(e) => setters.setFirstName(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น ยาทิดา, สมชาย" disabled={isSubmitting} />
             </div>
             <div className="mt-4">
                 <label htmlFor="profileLastName" className="block text-sm font-sans font-medium text-neutral-dark mb-1">นามสกุล</label>
-                <input type="text" id="profileLastName" value={lastName} onChange={(e) => setLastName(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น แสงอรุณ, ใจดี" disabled={isSubmitting} />
+                <input type="text" id="profileLastName" value={formState.lastName} onChange={(e) => setters.setLastName(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น แสงอรุณ, ใจดี" disabled={isSubmitting} />
             </div>
             <div id="address-section">
               <label htmlFor="profileAddress" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ที่อยู่ (จะแสดงในโปรไฟล์สาธารณะของคุณ)</label>
               <textarea
                 id="profileAddress"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
+                value={formState.address}
+                onChange={(e) => setters.setAddress(e.target.value)}
                 rows={3}
                 className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                 placeholder="เช่น บ้านเลขที่, ถนน, ตำบล, อำเภอ, จังหวัด, รหัสไปรษณีย์"
@@ -576,8 +592,8 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             <input
                 type="tel"
                 id="profileMobile"
-                value={mobile}
-                onChange={(e) => setMobile(e.target.value)}
+                value={formState.mobile}
+                onChange={(e) => setters.setMobile(e.target.value)}
                 className={`${inputBaseStyle} ${errors.mobile ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
                 placeholder="เช่น 0812345678"
                 aria-describedby={errors.mobile ? "mobile-error" : undefined}
@@ -592,8 +608,8 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             <input
                 type="text"
                 id="profileLineId"
-                value={lineId}
-                onChange={(e) => setLineId(e.target.value)}
+                value={formState.lineId}
+                onChange={(e) => setters.setLineId(e.target.value)}
                 className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                 placeholder="เช่น mylineid"
                 disabled={isSubmitting}
@@ -605,8 +621,8 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             <input
                 type="text"
                 id="profileFacebook"
-                value={facebook}
-                onChange={(e) => setFacebook(e.target.value)}
+                value={formState.facebook}
+                onChange={(e) => setters.setFacebook(e.target.value)}
                 className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                 placeholder="ลิงก์โปรไฟล์ หรือชื่อผู้ใช้ Facebook"
                 disabled={isSubmitting}

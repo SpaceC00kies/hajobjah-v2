@@ -1,18 +1,17 @@
 
 import { useCallback } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext.tsx';
 import {
   updateUserProfileService,
   saveUserWebboardPostService,
   unsaveUserWebboardPostService,
   vouchForUserService,
-  getUserDocument,
-} from '../services/userService';
-import { toggleInterestService, logHelperContactInteractionService } from '../services/interactionService';
-import { getHelperProfileDocument } from '../services/helperProfileService';
-import { reportVouchService } from '../services/adminService';
+} from '../services/userService.ts';
+import { toggleInterestService, logHelperContactInteractionService } from '../services/interactionService.ts';
+import { getHelperProfileDocument } from '../services/helperProfileService.ts';
+import { reportVouchService } from '../services/adminService.ts';
 import type { User, Vouch, VouchType } from '../types/types.ts';
-import { logFirebaseError } from '../firebase/logging';
+import { logFirebaseError } from '../firebase/logging.ts';
 
 export const useUser = () => {
   const { currentUser, setCurrentUser } = useAuth();
@@ -23,8 +22,9 @@ export const useUser = () => {
       return false;
     }
     try {
+      // Perform the update. The onSnapshot listener in AuthContext will automatically
+      // receive the new data and update the currentUser state globally.
       await updateUserProfileService(currentUser.id, updatedProfileData);
-      // The onSnapshot listener in AuthContext will automatically update the currentUser.
       return true;
     } catch (error: any) {
       logFirebaseError("useUser.updateUserProfile", error);
