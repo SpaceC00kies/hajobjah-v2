@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Define own props for the Button
 interface ButtonOwnProps {
@@ -21,7 +21,7 @@ export const Button: React.FC<ButtonProps> = ({
   className: passedClassName,
   ...restProps 
 }) => {
-  const baseStyle = 'inline-flex items-center justify-center font-sans font-medium rounded-full shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-opacity-60 active:shadow-inner transition-all duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none';
+  const baseStyle = 'inline-flex items-center justify-center font-sans font-medium rounded-full shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-opacity-60 active:shadow-inner transition-all duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none relative';
 
   let variantStyle = '';
   switch (variant) {
@@ -106,10 +106,9 @@ export const Button: React.FC<ButtonProps> = ({
     .filter(Boolean)
     .join(' ');
 
-  // Define hover animations based on variant to fix "sticky hover" on mobile
   const hoverAnimation = variant === 'icon' 
-    ? { scale: 1.1 } // For icon, just scale, no y-transform to avoid shadow issues
-    : { scale: 1.03, y: -1 }; // For other buttons, keep the lift effect
+    ? { scale: 1.1 } 
+    : { scale: 1.03, y: -1 };
 
   return (
     <motion.button
@@ -119,7 +118,18 @@ export const Button: React.FC<ButtonProps> = ({
       transition={{ duration: 0.2, ease: "easeOut" as const }}
       {...restProps}
     >
-      {children}
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.span
+          key={children ? children.toString() : 'empty'}
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 5 }}
+          transition={{ duration: 0.15 }}
+          style={{ display: 'inline-block' }}
+        >
+          {children}
+        </motion.span>
+      </AnimatePresence>
     </motion.button>
   );
 };

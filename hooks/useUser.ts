@@ -22,13 +22,11 @@ export const useUser = () => {
       return false;
     }
     try {
-      // Perform the update. The onSnapshot listener in AuthContext will automatically
-      // receive the new data and update the currentUser state globally.
       await updateUserProfileService(currentUser.id, updatedProfileData);
       return true;
     } catch (error: any) {
       logFirebaseError("useUser.updateUserProfile", error);
-      throw error;
+      return false;
     }
   }, [currentUser]);
 
@@ -36,7 +34,6 @@ export const useUser = () => {
     if (!currentUser) throw new Error("User not authenticated for toggling interest.");
     try {
       await toggleInterestService(targetId, targetType, targetOwnerId, currentUser.id);
-      // UI updates are handled by the real-time listener in DataContext
     } catch (error) {
       logFirebaseError("useUser.toggleInterest", error);
       alert(`เกิดข้อผิดพลาดในการบันทึกความสนใจ: ${error}`);
@@ -52,7 +49,6 @@ export const useUser = () => {
       } else {
         await saveUserWebboardPostService(currentUser.id, postId);
       }
-      // UI updates are handled by the real-time listener in DataContext
     } catch (error) {
       logFirebaseError("useUser.saveWebboardPost", error);
       alert("เกิดข้อผิดพลาดในการบันทึกโพสต์");
@@ -72,7 +68,6 @@ export const useUser = () => {
     let currentCount = currentUser.postingLimits.vouchingActivity.monthlyCount;
     let periodNeedsReset = false;
     
-    // Check if we are in a new month
     if (now.getMonth() !== currentPeriodStart.getMonth() || now.getFullYear() !== currentPeriodStart.getFullYear()) {
         periodNeedsReset = true;
         currentCount = 0;
@@ -84,11 +79,8 @@ export const useUser = () => {
     }
 
     try {
-      // The service expects IP and user agent. Since we cannot get this reliably on the client,
-      // this should ideally be a Cloud Function call. For now, we pass placeholders.
       await vouchForUserService(currentUser, voucheeId, vouchType, 'not_recorded', 'not_recorded', comment);
       
-      // Update user's vouch count locally for immediate feedback, though Firestore trigger is the source of truth
       const updatedUser = { ...currentUser };
       if (periodNeedsReset) {
           updatedUser.postingLimits.vouchingActivity = {
@@ -130,7 +122,6 @@ export const useUser = () => {
       await logHelperContactInteractionService(helperProfileId, currentUser.id, helperProfile.userId);
     } catch (error) {
       logFirebaseError('useUser.logContact', error);
-      // Fail silently, not critical for user experience
     }
   }, [currentUser]);
 
