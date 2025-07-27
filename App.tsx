@@ -1,4 +1,5 @@
 
+import { FeedbackTest } from './components/FeedbackTest.tsx';
 import React, { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate, useParams } from 'react-router-dom';
 import { useAuthActions } from './hooks/useAuthActions.ts';
@@ -250,6 +251,7 @@ const App: React.FC = () => {
             <Route path="/webboard" element={<AuthRoute><WebboardPage /></AuthRoute>} />
             <Route path="/webboard/post/:postId" element={<AuthRoute><WebboardPage /></AuthRoute>} />
             <Route path="/webboard/post/:postId/edit" element={<AdminRoute><WebboardPage /></AdminRoute>} />
+            <Route path="/feedback-test" element={<FeedbackTest />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
