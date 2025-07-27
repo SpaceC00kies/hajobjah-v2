@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useRef } from 'react';
 import type { User } from '../types/types.ts';
 import { GenderOption, HelperEducationLevelOption } from '../types/types.ts';
@@ -9,13 +8,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface UserProfilePageProps {
   currentUser: User;
-  onUpdateProfile: (updatedData: Partial<User>) => Promise<boolean>; // Updated to accept Partial<User>
+  onUpdateProfile: (updatedData: Partial<User>) => Promise<boolean>;
   onCancel: () => void;
 }
 
-type UserProfileFormErrorKeys = 'publicDisplayName' | 'mobile' | 'gender' | 'birthdate' | 'educationLevel' | 'general' | 'photo' | 'businessWebsite' | 'businessSocialProfileLink'; // Added business fields
+type UserProfileFormErrorKeys = 'publicDisplayName' | 'mobile' | 'gender' | 'birthdate' | 'educationLevel' | 'general' | 'photo' | 'businessWebsite' | 'businessSocialProfileLink';
 type FeedbackType = { type: 'success' | 'error'; message: string };
-const PUBLIC_DISPLAY_NAME_REGEX_PROFILE = /^[a-zA-Z0-9ก-๏\s.]{2,30}$/u; // Matched with RegistrationForm
+const PUBLIC_DISPLAY_NAME_REGEX_PROFILE = /^[a-zA-Z0-9ก-๏\s.]{2,30}$/u;
 
 
 const calculateAge = (birthdateString?: string): number | null => {
@@ -45,7 +44,7 @@ const DISPLAY_NAME_COOLDOWN_DAYS_UI = 14;
 
 
 export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, onUpdateProfile, onCancel }) => {
-  const [publicDisplayName, setPublicDisplayName] = useState(currentUser.publicDisplayName); // Renamed from displayName
+  const [publicDisplayName, setPublicDisplayName] = useState(currentUser.publicDisplayName);
   const [mobile, setMobile] = useState(currentUser.mobile);
   const [lineId, setLineId] = useState(currentUser.lineId || '');
   const [facebook, setFacebook] = useState(currentUser.facebook || '');
@@ -55,13 +54,9 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
   const [currentAge, setCurrentAge] = useState<number | null>(calculateAge(currentUser.birthdate));
   const [address, setAddress] = useState(currentUser.address || '');
   const [photoBase64, setPhotoBase64] = useState<string | undefined>(currentUser.photo);
-
-  // New personal info states
   const [nickname, setNickname] = useState(currentUser.nickname || '');
   const [firstName, setFirstName] = useState(currentUser.firstName || '');
   const [lastName, setLastName] = useState(currentUser.lastName || '');
-
-  // Personality states
   const [favoriteMusic, setFavoriteMusic] = useState(currentUser.favoriteMusic || '');
   const [favoriteBook, setFavoriteBook] = useState(currentUser.favoriteBook || '');
   const [favoriteMovie, setFavoriteMovie] = useState(currentUser.favoriteMovie || '');
@@ -69,23 +64,18 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
   const [favoriteFood, setFavoriteFood] = useState(currentUser.favoriteFood || '');
   const [dislikedThing, setDislikedThing] = useState(currentUser.dislikedThing || '');
   const [introSentence, setIntroSentence] = useState(currentUser.introSentence || '');
-
-  // Business Info States
-  const [isBusinessProfile, setIsBusinessProfile] = useState(currentUser.isBusinessProfile || false); // New state for business toggle
+  const [isBusinessProfile, setIsBusinessProfile] = useState(currentUser.isBusinessProfile || false);
   const [businessName, setBusinessName] = useState(currentUser.businessName || '');
   const [businessType, setBusinessType] = useState(currentUser.businessType || '');
   const [aboutBusiness, setAboutBusiness] = useState(currentUser.aboutBusiness || '');
   const [businessAddress, setBusinessAddress] = useState(currentUser.businessAddress || '');
   const [businessWebsite, setBusinessWebsite] = useState(currentUser.businessWebsite || '');
   const [businessSocialProfileLink, setBusinessSocialProfileLink] = useState(currentUser.businessSocialProfileLink || '');
-
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<UserProfileFormErrorKeys, string>>>({});
   const [feedback, setFeedback] = useState<FeedbackType | null>(null);
   const feedbackRef = useRef<HTMLDivElement>(null);
-
   const [displayNameCooldownInfo, setDisplayNameCooldownInfo] = useState<{ canChange: boolean; message?: string }>({ canChange: true });
-
 
   useEffect(() => {
     setPublicDisplayName(currentUser.publicDisplayName);
@@ -98,11 +88,9 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     setCurrentAge(calculateAge(currentUser.birthdate));
     setAddress(currentUser.address || '');
     setPhotoBase64(currentUser.photo);
-    // Update new personal info states
     setNickname(currentUser.nickname || '');
     setFirstName(currentUser.firstName || '');
     setLastName(currentUser.lastName || '');
-    // Update personality states
     setFavoriteMusic(currentUser.favoriteMusic || '');
     setFavoriteBook(currentUser.favoriteBook || '');
     setFavoriteMovie(currentUser.favoriteMovie || '');
@@ -110,8 +98,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     setFavoriteFood(currentUser.favoriteFood || '');
     setDislikedThing(currentUser.dislikedThing || '');
     setIntroSentence(currentUser.introSentence || '');
-    // Update business info states
-    setIsBusinessProfile(currentUser.isBusinessProfile || false); // Update business toggle state
+    setIsBusinessProfile(currentUser.isBusinessProfile || false);
     setBusinessName(currentUser.businessName || '');
     setBusinessType(currentUser.businessType || '');
     setAboutBusiness(currentUser.aboutBusiness || '');
@@ -119,7 +106,6 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     setBusinessWebsite(currentUser.businessWebsite || '');
     setBusinessSocialProfileLink(currentUser.businessSocialProfileLink || '');
 
-    // Check display name cooldown
     const updateCount = currentUser.publicDisplayNameUpdateCount || 0;
     const lastChange = currentUser.lastPublicDisplayNameChangeAt;
     if (updateCount > 0 && lastChange) {
@@ -136,22 +122,27 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             setDisplayNameCooldownInfo({ canChange: true });
         }
       } else {
-         setDisplayNameCooldownInfo({ canChange: true }); // Should not happen if data is correct
+         setDisplayNameCooldownInfo({ canChange: true });
       }
     } else {
-      setDisplayNameCooldownInfo({ canChange: true }); // First change is free
+      setDisplayNameCooldownInfo({ canChange: true });
     }
-
   }, [currentUser]);
 
   useEffect(() => {
-    if (feedback && feedbackRef.current) {
-      feedbackRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (feedback) {
+      if (feedbackRef.current) {
+        feedbackRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      const timer = setTimeout(() => {
+        setFeedback(null);
+      }, 5000); // Hide after 5 seconds
+      return () => clearTimeout(timer);
     }
   }, [feedback]);
 
   const inputBaseStyle = "w-full p-3 bg-white border border-[#CCCCCC] rounded-[10px] text-neutral-dark font-sans font-normal focus:outline-none transition-colors duration-150 ease-in-out";
-  const inputFocusStyle = "focus:!border-secondary focus:!ring-2 focus:!ring-secondary focus:!ring-opacity-70"; // Added !important
+  const inputFocusStyle = "focus:!border-secondary focus:!ring-2 focus:!ring-secondary focus:!ring-opacity-70";
   const inputErrorStyle = "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500 focus:ring-opacity-70";
   const readOnlyStyle = "bg-neutral-light cursor-not-allowed";
   const selectBaseStyle = `${inputBaseStyle} appearance-none`;
@@ -161,10 +152,10 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+      if (file.size > 2 * 1024 * 1024) {
         setErrors(prev => ({ ...prev, photo: 'ขนาดรูปภาพต้องไม่เกิน 2MB' }));
-        if (event.target) event.target.value = ''; // Reset file input
-        setPhotoBase64(currentUser.photo); // Revert to original if new one is invalid
+        if (event.target) event.target.value = '';
+        setPhotoBase64(currentUser.photo);
         return;
       }
       const reader = new FileReader();
@@ -174,13 +165,12 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
       };
       reader.onerror = () => {
         setErrors(prev => ({ ...prev, photo: 'ไม่สามารถอ่านไฟล์รูปภาพได้' }));
-        setPhotoBase64(currentUser.photo); // Revert on error
+        setPhotoBase64(currentUser.photo);
       }
       reader.readAsDataURL(file);
     } else {
-      // User cancelled file selection or no file was selected
-      setPhotoBase64(undefined); // Allow removing photo by selecting no file
-      setErrors(prev => ({ ...prev, photo: undefined })); // Clear any previous photo error
+      setPhotoBase64(undefined);
+      setErrors(prev => ({ ...prev, photo: undefined }));
     }
   };
 
@@ -195,7 +185,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
   };
 
   const isValidUrl = (urlString?: string): boolean => {
-    if (!urlString || urlString.trim() === '') return true; // Optional fields are valid if empty
+    if (!urlString || urlString.trim() === '') return true;
     try {
       new URL(urlString);
       return true;
@@ -228,7 +218,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     if (!isValidUrl(businessSocialProfileLink)) newErrors.businessSocialProfileLink = 'รูปแบบ URL ของโซเชียลโปรไฟล์ธุรกิจไม่ถูกต้อง';
 
 
-    setErrors(prev => ({...prev, ...newErrors})); // Merge with existing errors (e.g. photo error)
+    setErrors(prev => ({...prev, ...newErrors}));
     return Object.keys(newErrors).filter(key => newErrors[key as keyof typeof newErrors] !== undefined).length === 0;
   };
 
@@ -244,6 +234,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
       return;
     }
   
+    setIsSubmitting(true);
     try {
       const success = await onUpdateProfile({
         publicDisplayName, mobile, lineId, facebook, gender, birthdate, educationLevel, photo: photoBase64, address,
@@ -254,31 +245,13 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
       });
       if (success) {
         setFeedback({ type: 'success', message: 'อัปเดตโปรไฟล์เรียบร้อยแล้ว!' });
-        // Re-check cooldown after successful update, as `currentUser` prop will update
-        const updateCount = currentUser.publicDisplayNameUpdateCount || 0;
-        const lastChange = currentUser.lastPublicDisplayNameChangeAt;
-        if (updateCount > 0 && lastChange) {
-            const lastChangeDate = typeof lastChange === 'string' ? new Date(lastChange) : lastChange;
-             if (lastChangeDate instanceof Date) {
-                const cooldownMs = DISPLAY_NAME_COOLDOWN_DAYS_UI * 24 * 60 * 60 * 1000;
-                const nextChangeAllowedTime = lastChangeDate.getTime() + cooldownMs;
-                 if (Date.now() < nextChangeAllowedTime) {
-                    setDisplayNameCooldownInfo({
-                        canChange: false,
-                        message: `คุณสามารถเปลี่ยนชื่อที่แสดงได้อีกครั้งในวันที่ ${new Date(nextChangeAllowedTime).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}`
-                    });
-                } else {
-                    setDisplayNameCooldownInfo({ canChange: true });
-                }
-            }
-        } else {
-             setDisplayNameCooldownInfo({ canChange: true });
-        }
       } else {
         setFeedback({ type: 'error', message: 'เกิดข้อผิดพลาดบางอย่าง ไม่สามารถบันทึกข้อมูลได้' });
       }
     } catch (error: any) {
       setFeedback({ type: 'error', message: error.message || 'เกิดข้อผิดพลาดในการอัปเดตโปรไฟล์' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -289,7 +262,6 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     { name: 'hobbies', label: '🧶 งานอดิเรก', value: hobbies, setter: setHobbies, placeholder: 'เช่น อ่านหนังสือ, เล่นเกม, วาดรูป, ทำอาหาร', type: 'textarea' },
     { name: 'favoriteFood', label: '🍜 อาหารที่ชอบ', value: favoriteFood, setter: setFavoriteFood, placeholder: 'เช่น ส้มตำ, พิซซ่า, ซูชิ, ก๋วยเตี๋ยว', type: 'text' },
     { name: 'dislikedThing', label: '🚫 สิ่งที่ไม่ชอบที่สุด', value: dislikedThing, setter: setDislikedThing, placeholder: 'เช่น ความไม่ซื่อสัตย์, แมลงสาบ', type: 'text' },
-    // introSentence is moved out
   ];
 
   const businessInfoFields = [
@@ -314,9 +286,9 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                 ${feedback.type === 'success' ? 'bg-green-100 text-green-700' : ''}
                 ${feedback.type === 'error' ? 'bg-red-100 text-red-700' : ''}`}
               role="alert"
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
             >
               {feedback.message}
@@ -340,6 +312,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             accept="image/*"
             onChange={handlePhotoChange}
             className="hidden"
+            disabled={isSubmitting}
           />
           {errors.photo && <p className="text-red-500 font-sans text-xs mt-1 text-center">{errors.photo}</p>}
         </div>
@@ -351,6 +324,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                   checked={isBusinessProfile}
                   onChange={(e) => setIsBusinessProfile(e.target.checked)}
                   className="form-checkbox h-5 w-5 text-secondary rounded border-neutral-DEFAULT focus:!ring-2 focus:!ring-offset-1 focus:!ring-offset-white focus:!ring-secondary focus:!ring-opacity-70"
+                  disabled={isSubmitting}
               />
               <span className="text-sm font-sans font-medium text-neutral-dark">ฉันเป็นธุรกิจ/ร้านค้า (โปรไฟล์สาธารณะจะแสดงเฉพาะข้อมูลธุรกิจ)</span>
           </label>
@@ -368,7 +342,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             onChange={(e) => setPublicDisplayName(e.target.value)}
             className={`${inputBaseStyle} ${errors.publicDisplayName ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
             placeholder="เช่น Puuna V."
-            disabled={!displayNameCooldownInfo.canChange}
+            disabled={!displayNameCooldownInfo.canChange || isSubmitting}
             aria-describedby={!displayNameCooldownInfo.canChange ? "displayNameCooldownMessage" : (errors.publicDisplayName ? "publicDisplayNameError" : undefined)}
           />
            <p className="text-xs font-sans text-neutral-medium mt-1">
@@ -415,6 +389,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                 rows={3}
                 className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                 placeholder="เช่น เป็นคนง่ายๆ สบายๆ ชอบเรียนรู้สิ่งใหม่"
+                disabled={isSubmitting}
             />
         </div>
 
@@ -429,7 +404,6 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             </span>
           </summary>
           <div className="mt-3 space-y-4">
-            {/* Removed hint text: "ข้อมูลส่วนนี้ จำเป็นต้องกรอก..." */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4">
                 <div>
                     <label className="block text-sm font-sans font-medium text-neutral-dark mb-1">เพศ <span className="text-red-500">*</span></label>
@@ -438,7 +412,9 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                         <label key={optionValue} className="flex items-center space-x-2 cursor-pointer">
                             <input type="radio" name="profileGender" value={optionValue} checked={gender === optionValue}
                                     onChange={() => setGender(optionValue)}
-                                    className="form-radio h-4 w-4 text-secondary border-[#CCCCCC] focus:!ring-2 focus:!ring-offset-1 focus:!ring-offset-white focus:!ring-secondary focus:!ring-opacity-70"/> {/* Added ! for focus styles */}
+                                    className="form-radio h-4 w-4 text-secondary border-[#CCCCCC] focus:!ring-2 focus:!ring-offset-1 focus:!ring-offset-white focus:!ring-secondary focus:!ring-opacity-70"
+                                    disabled={isSubmitting}
+                            />
                             <span className="text-neutral-dark font-sans font-normal text-sm">{optionValue}</span>
                         </label>
                         ))}
@@ -449,7 +425,9 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                     <label htmlFor="profileBirthdate" className="block text-sm font-sans font-medium text-neutral-dark mb-1">วันเกิด <span className="text-red-500">*</span></label>
                     <input type="date" id="profileBirthdate" value={birthdate} onChange={handleBirthdateChange}
                             max={new Date().toISOString().split("T")[0]}
-                            className={`${inputBaseStyle} ${errors.birthdate ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`} />
+                            className={`${inputBaseStyle} ${errors.birthdate ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`} 
+                            disabled={isSubmitting}
+                    />
                     {currentAge !== null && <p className="text-xs font-sans text-neutral-dark mt-1">อายุ: {currentAge} ปี</p>}
                     {errors.birthdate && <p className="text-red-500 font-sans text-xs mt-1">{errors.birthdate}</p>}
                 </div>
@@ -458,7 +436,9 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                 <label htmlFor="profileEducationLevel" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ระดับการศึกษา <span className="text-red-500">*</span></label>
                 <select id="profileEducationLevel" value={educationLevel}
                         onChange={(e) => setEducationLevel(e.target.value as HelperEducationLevelOption)}
-                        className={`${selectBaseStyle} ${errors.educationLevel ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}>
+                        className={`${selectBaseStyle} ${errors.educationLevel ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
+                        disabled={isSubmitting}
+                >
                     {Object.values(HelperEducationLevelOption).map(level => (
                         <option key={level} value={level}>{level}</option>
                     ))}
@@ -467,15 +447,15 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             </div>
             <div className="mt-4">
                 <label htmlFor="profileNickname" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อเล่น</label>
-                <input type="text" id="profileNickname" value={nickname} onChange={(e) => setNickname(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น ซันนี่, จอห์น"/>
+                <input type="text" id="profileNickname" value={nickname} onChange={(e) => setNickname(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น ซันนี่, จอห์น" disabled={isSubmitting} />
             </div>
             <div className="mt-4">
                 <label htmlFor="profileFirstName" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อจริง</label>
-                <input type="text" id="profileFirstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น ยาทิดา, สมชาย"/>
+                <input type="text" id="profileFirstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น ยาทิดา, สมชาย" disabled={isSubmitting} />
             </div>
             <div className="mt-4">
                 <label htmlFor="profileLastName" className="block text-sm font-sans font-medium text-neutral-dark mb-1">นามสกุล</label>
-                <input type="text" id="profileLastName" value={lastName} onChange={(e) => setLastName(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น แสงอรุณ, ใจดี"/>
+                <input type="text" id="profileLastName" value={lastName} onChange={(e) => setLastName(e.target.value)} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น แสงอรุณ, ใจดี" disabled={isSubmitting} />
             </div>
             <div id="address-section">
               <label htmlFor="profileAddress" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ที่อยู่ (จะแสดงในโปรไฟล์สาธารณะของคุณ)</label>
@@ -486,6 +466,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                 rows={3}
                 className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                 placeholder="เช่น บ้านเลขที่, ถนน, ตำบล, อำเภอ, จังหวัด, รหัสไปรษณีย์"
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -517,6 +498,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                     rows={field.name === 'introSentence' ? 3 : 2}
                     className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                     placeholder={field.placeholder}
+                    disabled={isSubmitting}
                   />
                 ) : (
                   <input
@@ -526,6 +508,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                     onChange={(e) => field.setter(e.target.value)}
                     className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                     placeholder={field.placeholder}
+                    disabled={isSubmitting}
                   />
                 )}
               </div>
@@ -559,6 +542,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                     rows={3}
                     className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                     placeholder={field.placeholder}
+                    disabled={isSubmitting}
                   />
                 ) : (
                   <input
@@ -568,6 +552,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                     onChange={(e) => field.setter(e.target.value)}
                     className={`${inputBaseStyle} ${errors[field.errorKey as keyof typeof errors] ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
                     placeholder={field.placeholder}
+                    disabled={isSubmitting}
                   />
                 )}
                 {field.errorKey && errors[field.errorKey as keyof typeof errors] && <p className="text-red-500 font-sans text-xs mt-1">{errors[field.errorKey as keyof typeof errors]}</p>}
@@ -590,6 +575,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                 placeholder="เช่น 0812345678"
                 aria-describedby={errors.mobile ? "mobile-error" : undefined}
                 aria-invalid={!!errors.mobile}
+                disabled={isSubmitting}
             />
             {errors.mobile && <p id="mobile-error" className="text-red-500 font-sans text-xs mt-1">{errors.mobile}</p>}
             </div>
@@ -603,6 +589,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                 onChange={(e) => setLineId(e.target.value)}
                 className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                 placeholder="เช่น mylineid"
+                disabled={isSubmitting}
             />
             </div>
 
@@ -615,14 +602,17 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                 onChange={(e) => setFacebook(e.target.value)}
                 className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                 placeholder="ลิงก์โปรไฟล์ หรือชื่อผู้ใช้ Facebook"
+                disabled={isSubmitting}
             />
             </div>
         </div>
 
         {errors.general && <p className="text-red-500 font-sans text-sm text-center">{errors.general}</p>}
         <div className="flex flex-col sm:flex-row gap-4 pt-4">
-            <Button type="submit" variant="secondary" size="lg" className="w-full sm:w-auto flex-grow">💾 บันทึกการเปลี่ยนแปลง</Button>
-            <Button type="button" onClick={onCancel} variant="outline" colorScheme="secondary" size="lg" className="w-full sm:w-auto flex-grow">
+            <Button type="submit" variant="secondary" size="lg" className="w-full sm:w-auto flex-grow" disabled={isSubmitting}>
+              {isSubmitting ? 'กำลังบันทึก...' : '💾 บันทึกการเปลี่ยนแปลง'}
+            </Button>
+            <Button type="button" onClick={onCancel} variant="outline" colorScheme="secondary" size="lg" className="w-full sm:w-auto flex-grow" disabled={isSubmitting}>
                 ยกเลิก
             </Button>
         </div>

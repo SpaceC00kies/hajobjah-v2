@@ -75,7 +75,10 @@ export const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, allWebboa
 
     const getButtonClass = (item: NavItem) => {
         const baseClass = 'nav-pill';
-        const isActive = location.pathname.startsWith(item.path);
+        const isActive = item.path === '/' 
+            ? location.pathname === '/' 
+            : location.pathname.startsWith(item.path);
+            
         if (item.specialStyle === 'login') return `${baseClass} nav-pill-login`;
         if (item.specialStyle === 'logout') return `${baseClass} nav-pill-logout`;
         if (item.specialStyle === 'special') return `${baseClass} nav-pill-special ${isActive ? 'active' : ''}`;
