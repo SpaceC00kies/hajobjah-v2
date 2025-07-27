@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import type { User } from '../types/types.ts';
 import { GenderOption, HelperEducationLevelOption } from '../types/types.ts';
@@ -77,35 +76,8 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
   const feedbackRef = useRef<HTMLDivElement>(null);
   const [displayNameCooldownInfo, setDisplayNameCooldownInfo] = useState<{ canChange: boolean; message?: string }>({ canChange: true });
 
+  // This effect now only runs once to check the display name cooldown
   useEffect(() => {
-    setPublicDisplayName(currentUser.publicDisplayName);
-    setMobile(currentUser.mobile);
-    setLineId(currentUser.lineId || '');
-    setFacebook(currentUser.facebook || '');
-    setGender(currentUser.gender || GenderOption.NotSpecified);
-    setBirthdate(currentUser.birthdate || '');
-    setEducationLevel(currentUser.educationLevel || HelperEducationLevelOption.NotStated);
-    setCurrentAge(calculateAge(currentUser.birthdate));
-    setAddress(currentUser.address || '');
-    setPhotoBase64(currentUser.photo);
-    setNickname(currentUser.nickname || '');
-    setFirstName(currentUser.firstName || '');
-    setLastName(currentUser.lastName || '');
-    setFavoriteMusic(currentUser.favoriteMusic || '');
-    setFavoriteBook(currentUser.favoriteBook || '');
-    setFavoriteMovie(currentUser.favoriteMovie || '');
-    setHobbies(currentUser.hobbies || '');
-    setFavoriteFood(currentUser.favoriteFood || '');
-    setDislikedThing(currentUser.dislikedThing || '');
-    setIntroSentence(currentUser.introSentence || '');
-    setIsBusinessProfile(currentUser.isBusinessProfile || false);
-    setBusinessName(currentUser.businessName || '');
-    setBusinessType(currentUser.businessType || '');
-    setAboutBusiness(currentUser.aboutBusiness || '');
-    setBusinessAddress(currentUser.businessAddress || '');
-    setBusinessWebsite(currentUser.businessWebsite || '');
-    setBusinessSocialProfileLink(currentUser.businessSocialProfileLink || '');
-
     const updateCount = currentUser.publicDisplayNameUpdateCount || 0;
     const lastChange = currentUser.lastPublicDisplayNameChangeAt;
     if (updateCount > 0 && lastChange) {
@@ -127,7 +99,8 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     } else {
       setDisplayNameCooldownInfo({ canChange: true });
     }
-  }, [currentUser]);
+  }, [currentUser.publicDisplayNameUpdateCount, currentUser.lastPublicDisplayNameChangeAt]);
+
 
   useEffect(() => {
     if (feedback) {

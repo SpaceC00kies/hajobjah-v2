@@ -13,7 +13,6 @@ type FormDataType = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName'
 interface PostJobFormProps {
   onCancel: () => void;
   isEditing?: boolean;
-  sourceViewForForm: View | null;
 }
 
 const initialFormStateForCreate: FormDataType = {
@@ -37,33 +36,7 @@ const initialFormStateForCreate: FormDataType = {
 
 type FormErrorsType = Partial<Record<keyof FormDataType, string>>;
 
-const viewToPath = (view: View | null): string => {
-  if (!view) return '/';
-  const map: Record<View, string> = {
-    [View.Home]: '/',
-    [View.PostJob]: '/post-job',
-    [View.FindJobs]: '/find-jobs',
-    [View.OfferHelp]: '/offer-help',
-    [View.FindHelpers]: '/find-helpers',
-    [View.Login]: '/login',
-    [View.Register]: '/register',
-    [View.AdminDashboard]: '/admin',
-    [View.MyRoom]: '/my-room',
-    [View.AboutUs]: '/about',
-    [View.Safety]: '/safety',
-    [View.PasswordReset]: '/reset-password',
-    [View.Blog]: '/blog',
-    [View.ArticleEditor]: '/article/create',
-    [View.SearchResults]: '/search',
-    [View.PublicProfile]: '/profile',
-    [View.MyPosts]: '/my-room',
-    [View.UserProfile]: '/my-room',
-    [View.Webboard]: '/webboard',
-  };
-  return map[view] || '/';
-};
-
-export const PostJobForm: React.FC<PostJobFormProps> = ({ onCancel, isEditing, sourceViewForForm }) => {
+export const PostJobForm: React.FC<PostJobFormProps> = ({ onCancel, isEditing }) => {
   const { currentUser } = useAuth();
   const { jobId } = useParams<{ jobId: string }>();
   const location = useLocation();
@@ -236,7 +209,17 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onCancel, isEditing, s
             await addJob(formData);
             alert('ประกาศงานของคุณถูกเพิ่มแล้ว!');
         }
-        navigate(viewToPath(sourceViewForForm || View.FindJobs));
+
+        const { from, originatingTab } = location.state || {};
+        let returnPath = '/find-jobs';
+        if (from === 'MY_ROOM' && originatingTab) {
+            returnPath = `/my-room/${originatingTab}`;
+        } else if (from === 'ADMIN_DASHBOARD' || from === '/admin') {
+            returnPath = '/admin';
+        }
+        
+        navigate(returnPath);
+        
         if (!isEditing) {
             setFormData(initialFormStateForCreate);
             setAvailableSubCategories([]);

@@ -228,11 +228,11 @@ const App: React.FC = () => {
         <Suspense fallback={<div className="text-center p-10">กำลังโหลด...</div>}>
           <Routes>
             <Route path="/" element={<HomePage onSearch={handleSearch} isSearching={isSearching} selectedProvince={homeProvince} onProvinceChange={setHomeProvince} onOpenLocationModal={() => setIsLocationModalOpen(true)} navigate={navigate} />} />
-            <Route path="/post-job" element={<AuthRoute><PostJobForm onCancel={() => navigate(-1)} isEditing={false} sourceViewForForm={location.state?.from} /></AuthRoute>} />
-            <Route path="/job/edit/:jobId" element={<AuthRoute><PostJobForm onCancel={() => navigate(location.state?.from || '/find-jobs')} isEditing={true} sourceViewForForm={location.state?.from as View | null} /></AuthRoute>} />
+            <Route path="/post-job" element={<AuthRoute><PostJobForm onCancel={() => navigate(-1)} isEditing={false} /></AuthRoute>} />
+            <Route path="/job/edit/:jobId" element={<AuthRoute><PostJobForm onCancel={() => navigate(-1)} isEditing={true} /></AuthRoute>} />
             <Route path="/find-jobs" element={<AuthRoute><FindJobsPage /></AuthRoute>} />
             <Route path="/offer-help" element={<AuthRoute><OfferHelpForm onCancel={() => navigate(-1)} isEditing={false} /></AuthRoute>} />
-            <Route path="/profile/edit/:profileId" element={<AuthRoute><OfferHelpForm onCancel={() => navigate(location.state?.from || '/find-helpers')} isEditing={true} /></AuthRoute>} />
+            <Route path="/profile/edit/:profileId" element={<AuthRoute><OfferHelpForm onCancel={() => navigate(-1)} isEditing={true} /></AuthRoute>} />
             <Route path="/find-helpers" element={<AuthRoute><FindHelpersPage /></AuthRoute>} />
             <Route path="/register" element={<RegistrationForm onRegister={onRegister} onSwitchToLogin={() => navigate('/login')} />} />
             <Route path="/login" element={<LoginForm onLogin={onLogin} onSwitchToRegister={() => navigate('/register')} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />} />

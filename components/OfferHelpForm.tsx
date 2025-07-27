@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import type { HelperProfile } from '../types/types.ts';
 import { JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
 import { Button } from './Button.tsx';
@@ -35,6 +35,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onCancel, isEditin
   const { currentUser } = useAuth();
   const { profileId } = useParams<{ profileId: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
   const { allHelperProfilesForAdmin, addHelperProfile, updateHelperProfile, checkHelperProfilePostingLimits } = useHelpers();
   const initialData = isEditing ? allHelperProfilesForAdmin.find(p => p.id === profileId) || location.state?.item : undefined;
 
@@ -161,7 +162,16 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onCancel, isEditin
             await addHelperProfile(formData);
             alert('สร้างโปรไฟล์เรียบร้อยแล้ว');
         }
-        onCancel(); // Use the passed onCancel to navigate back
+        
+        const { from, originatingTab } = location.state || {};
+        let returnPath = '/find-helpers'; // Default
+        if (from === 'MY_ROOM' && originatingTab) {
+            returnPath = `/my-room/${originatingTab}`;
+        } else if (from === '/admin' || from === 'ADMIN_DASHBOARD') {
+            returnPath = '/admin';
+        }
+        
+        navigate(returnPath);
     } catch (error: any) {
         logFirebaseError("OfferHelpForm.handleSubmit", error);
         alert(`เกิดข้อผิดพลาด: ${error.message}`);
