@@ -30,7 +30,7 @@ export const UserLevelBadge: React.FC<UserLevelBadgeProps> = ({ level, size = 's
       title={level.name}
     >
       <span>{emoji}</span>
-      <span className="hidden sm:inline">{text}</span>
+      <span className="lg:hidden">{text}</span>
     </span>
   );
 };

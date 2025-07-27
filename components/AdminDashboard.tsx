@@ -16,6 +16,7 @@ import { useUsers } from '../hooks/useUsers.ts';
 import { useWebboard } from '../hooks/useWebboard.ts';
 import { useBlog } from '../hooks/useBlog.ts';
 import { useData } from '../context/DataContext.tsx';
+import { ConfirmModal } from './ConfirmModal.tsx';
 
 
 export interface AdminItem {
@@ -64,7 +65,8 @@ export const AdminDashboard: React.FC = () => {
   const [isSiteLocked, setIsSiteLocked] = useState(false);
   
   const [actionHubSearchType, setActionHubSearchType] = useState<ActionHubSearchType>('job');
-  
+  const [confirmModalState, setConfirmModalState] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void; } | null>(null);
+
   const getAuthorDisplayName = useCallback((userId: string, fallbackName?: string): string => {
     const author = users.find(u => u && u.id === userId);
     return author?.publicDisplayName || fallbackName || "ผู้ใช้ไม่ทราบชื่อ";
@@ -83,14 +85,19 @@ export const AdminDashboard: React.FC = () => {
     navigate(path, { state: { from: '/admin', item: originalItem } });
   };
   
-  const onDeleteItem = useCallback((itemId: string, itemType: 'job' | 'profile' | 'webboardPost') => {
-      if (window.confirm('Are you sure you want to delete this item? This action cannot be undone.')) {
-          switch (itemType) {
-              case 'job': deleteJob(itemId); break;
-              case 'profile': deleteHelperProfile(itemId); break;
-              case 'webboardPost': deleteWebboardPost(itemId); break;
-          }
-      }
+  const onDeleteItem = useCallback((itemId: string, itemType: 'job' | 'profile' | 'webboardPost', title: string) => {
+      setConfirmModalState({
+        isOpen: true,
+        title: `Confirm Deletion`,
+        message: `Are you sure you want to delete "${title}"? This action cannot be undone.`,
+        onConfirm: () => {
+            switch (itemType) {
+                case 'job': deleteJob(itemId); break;
+                case 'profile': deleteHelperProfile(itemId); break;
+                case 'webboardPost': deleteWebboardPost(itemId); break;
+            }
+        }
+      });
   }, [deleteJob, deleteHelperProfile, deleteWebboardPost]);
 
   useEffect(() => {
@@ -260,7 +267,7 @@ export const AdminDashboard: React.FC = () => {
         if (('isHired' in contentItem && contentItem.isHired) || ('isUnavailable' in contentItem && contentItem.isUnavailable)) badges.push(renderStatusBadge('Hired/Unavailable', 'gray'));
 
         primaryAction = <Button onClick={() => { onStartEditItem({id: item.id, itemType, originalItem: item, title} as AdminItem); setOpenActionMenuId(null); }} size="sm">Edit</Button>;
-        secondaryActions = [<button key="delete" onClick={() => { onDeleteItem(item.id, itemType as 'job' | 'profile' | 'webboardPost'); setOpenActionMenuId(null); }} className="w-full text-left text-sm p-2 rounded hover:bg-red-100 text-red-700">Delete</button>];
+        secondaryActions = [<button key="delete" onClick={() => { onDeleteItem(item.id, itemType as 'job' | 'profile' | 'webboardPost', title); setOpenActionMenuId(null); }} className="w-full text-left text-sm p-2 rounded hover:bg-red-100 text-red-700">Delete</button>];
         
         if(itemType === 'job') {
             const jobItem = item as Job;
@@ -321,6 +328,7 @@ export const AdminDashboard: React.FC = () => {
   };
 
   return (
+    <>
     <div className="p-4 sm:p-6 w-full">
       <div className="dashboard-header"><h1 className="dashboard-title"><span role="img" aria-label="home" className="text-3xl">🏠</span><span>Admin Dashboard</span></h1>
         <nav className="dashboard-nav">{TABS.map(tab => (<button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`dashboard-nav-pill ${activeTab === tab.id ? 'active' : ''}`} aria-current={activeTab === tab.id ? 'page' : undefined}>
@@ -362,5 +370,16 @@ export const AdminDashboard: React.FC = () => {
 
       {activeTab === 'vouch_reports' && currentUser?.role === UserRole.Admin && (<div className="grid grid-cols-1 md:grid-cols-3 gap-6"><div className="md:col-span-1"><h3 className="text-lg font-semibold text-neutral-700 mb-3">Pending Reports ({pendingReports.length})</h3><div className="space-y-2 max-h-96 overflow-y-auto pr-2">{pendingReports.length > 0 ? (pendingReports.map(report => (<button key={report.id} onClick={() => setSelectedReport(report)} className={`block w-full text-left p-3 rounded-md ${selectedReport?.id === report.id ? 'bg-blue-100' : 'bg-neutral-light/50 hover:bg-neutral-light'}`}><p className="text-sm font-semibold truncate">Report on Vouch <code className="text-xs">{report.vouchId.substring(0, 6)}...</code></p><p className="text-xs text-neutral-medium">By: {getAuthorDisplayName(report.reporterId).substring(0, 15)}...</p></button>))) : (<div className="text-center p-4 text-sm text-neutral-medium">✅ No pending reports. Great job!</div>)}</div></div><div className="md:col-span-2 p-4 bg-neutral-light/50 rounded-lg"><h3 className="text-lg font-semibold text-neutral-700 mb-3">Report Details & HUD</h3>{selectedReport ? (<div><p><strong>Reporter Comment:</strong> {selectedReport.reporterComment}</p><hr className="my-2" /><p className="font-semibold">Vouch Info:</p>{isHudLoading ? <p>Loading Vouch Details...</p> : selectedVouch ? (<div><p>From: {selectedVouch.voucherDisplayName} ({selectedVouch.voucherId.substring(0,10)}...)</p><p>To: {getAuthorDisplayName(selectedVouch.voucheeId)} ({selectedVouch.voucheeId.substring(0,10)}...)</p><p>Type: {VOUCH_TYPE_LABELS[selectedVouch.vouchType]}</p><p>Vouch Comment: "{selectedVouch.comment}"</p></div>) : <p className="text-red-500">Vouch data not found.</p>}<hr className="my-2" /><p className="font-semibold">Risk Signals:</p>{isHudLoading ? <p>Analyzing...</p> : hudAnalysis.error ? (<p className="font-bold text-red-500">⚠️ Analysis Error: {hudAnalysis.error}</p>) : (<div>{hudAnalysis.ipMatch === null ? <p>IP check pending...</p> : hudAnalysis.ipMatch ? <p className="font-bold text-red-500">⚠️ IP ADDRESS MATCH</p> : <p className="text-green-600">✅ IP addresses do not match.</p>}{hudAnalysis.voucherIsNew === null ? <p>Account age check pending...</p> : hudAnalysis.voucherIsNew ? <p className="font-bold text-orange-500">⚠️ VOUCHER IS NEW ACCOUNT (&lt;7 days)</p> : <p className="text-green-600">✅ Voucher account is not new.</p>}</div>)}<div className="mt-4 flex flex-wrap gap-4"><Button onClick={() => admin.resolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedKept, selectedReport.vouchId, selectedReport.voucheeId, selectedVouch?.vouchType)} colorScheme="primary" disabled={isHudLoading || !selectedVouch}>Keep Vouch</Button><Button onClick={() => admin.resolveVouchReport(selectedReport.id, VouchReportStatus.ResolvedDeleted, selectedReport.vouchId, selectedReport.voucheeId, selectedVouch?.vouchType)} colorScheme="accent" disabled={isHudLoading || !selectedVouch}>Delete Vouch</Button><Button onClick={() => { if (selectedReport && window.confirm('This action will permanently resolve this report and attempt to correct user statistics. Use this for glitched or old entries. Are you sure?')) { admin.forceResolveVouchReport(selectedReport.id, selectedReport.vouchId, selectedReport.voucheeId, selectedVouch?.vouchType || selectedReport.vouchType || null).then(() => {setSelectedReport(null);}).catch(err => {console.error("Force resolve failed:", err);alert(`An error occurred: ${err.message}`);}); } }} colorScheme="accent" className="bg-red-500 hover:bg-red-600 text-white" disabled={isHudLoading || !selectedReport}>💥 Force Resolve</Button></div></div>) : <p>Select a report to view details.</p>}</div></div>)}
     </div>
+    <ConfirmModal
+        isOpen={confirmModalState?.isOpen || false}
+        onClose={() => setConfirmModalState(null)}
+        onConfirm={() => {
+            confirmModalState?.onConfirm();
+            setConfirmModalState(null);
+        }}
+        title={confirmModalState?.title || ''}
+        message={confirmModalState?.message || ''}
+    />
+    </>
   );
 };
