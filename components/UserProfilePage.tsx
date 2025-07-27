@@ -134,15 +134,6 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     }
   }, [currentUser]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    const isCheckbox = type === 'checkbox';
-    setFormState(prev => ({
-        ...prev,
-        [name]: isCheckbox ? (e.target as HTMLInputElement).checked : value
-    }));
-  };
-
   useEffect(() => {
     if (feedback) {
       if (feedbackRef.current) {
@@ -152,6 +143,12 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
         setFeedback(null);
       }, 5000);
       return () => clearTimeout(timer);
+    }
+  }, [feedback]);
+
+  useEffect(() => {
+    if (feedback) {
+      console.log("📣 UserProfilePage feedback state:", feedback);
     }
   }, [feedback]);
 
@@ -248,16 +245,23 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
 
     setErrors({});
     setIsSubmitting(true);
-    
-    const success = await onUpdateProfile(formState);
-
-    if (success) {
-        setFeedback({ type: 'success', message: 'อัปเดตโปรไฟล์เรียบร้อยแล้ว!' });
-    } else {
-        setFeedback({ type: 'error', message: 'เกิดข้อผิดพลาดบางอย่าง ไม่สามารถบันทึกข้อมูลได้' });
+    try {
+      const success = await onUpdateProfile(formState);
+      console.log("🏷 UserProfilePage.handleSubmit: onUpdateProfile returned:", success);
+      if (success) {
+        setFeedback({ type: "success", message: "อัปเดตโปรไฟล์เรียบร้อยแล้ว!" });
+      } else {
+        setFeedback({ type: "error", message: "เกิดข้อผิดพลาดบางอย่าง ไม่สามารถบันทึกข้อมูลได้" });
+      }
+    } catch (error: any) {
+      console.error("❌ UserProfilePage.handleSubmit threw:", error);
+      setFeedback({
+        type:    "error",
+        message: error.message || "เกิดข้อผิดพลาดในการอัปเดตโปรไฟล์"
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    setIsSubmitting(false);
   };
 
 
@@ -329,7 +333,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                   type="checkbox"
                   name="isBusinessProfile"
                   checked={formState.isBusinessProfile}
-                  onChange={handleChange}
+                  onChange={e => setFormState(prev => ({ ...prev, isBusinessProfile: e.target.checked }))}
                   className="form-checkbox h-5 w-5 text-secondary rounded border-neutral-DEFAULT focus:!ring-2 focus:!ring-offset-1 focus:!ring-offset-white focus:!ring-secondary focus:!ring-opacity-70"
                   disabled={isSubmitting}
               />
@@ -347,7 +351,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             id="profilePublicDisplayName"
             name="publicDisplayName"
             value={formState.publicDisplayName}
-            onChange={handleChange}
+            onChange={e => setFormState(prev => ({ ...prev, publicDisplayName: e.target.value }))}
             className={`${inputBaseStyle} ${errors.publicDisplayName ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
             placeholder="เช่น Puuna V."
             disabled={!displayNameCooldownInfo.canChange || isSubmitting}
@@ -394,7 +398,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                 id="profile-introSentence"
                 name="introSentence"
                 value={formState.introSentence}
-                onChange={handleChange}
+                onChange={e => setFormState(prev => ({ ...prev, introSentence: e.target.value }))}
                 rows={3}
                 className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                 placeholder="เช่น เป็นคนง่ายๆ สบายๆ ชอบเรียนรู้สิ่งใหม่"
@@ -420,7 +424,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                         {Object.values(GenderOption).map(optionValue => (
                         <label key={optionValue} className="flex items-center space-x-2 cursor-pointer">
                             <input type="radio" name="gender" value={optionValue} checked={formState.gender === optionValue}
-                                    onChange={handleChange}
+                                    onChange={() => setFormState(prev => ({...prev, gender: optionValue}))}
                                     className="form-radio h-4 w-4 text-secondary border-[#CCCCCC] focus:!ring-2 focus:!ring-offset-1 focus:!ring-offset-white focus:!ring-secondary focus:!ring-opacity-70"
                                     disabled={isSubmitting}
                             />
@@ -444,7 +448,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             <div>
                 <label htmlFor="profileEducationLevel" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ระดับการศึกษา <span className="text-red-500">*</span></label>
                 <select id="profileEducationLevel" name="educationLevel" value={formState.educationLevel}
-                        onChange={handleChange}
+                        onChange={e => setFormState(prev => ({...prev, educationLevel: e.target.value as HelperEducationLevelOption}))}
                         className={`${selectBaseStyle} ${errors.educationLevel ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
                         disabled={isSubmitting}
                 >
@@ -456,15 +460,15 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             </div>
             <div className="mt-4">
                 <label htmlFor="profileNickname" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อเล่น</label>
-                <input type="text" id="profileNickname" name="nickname" value={formState.nickname} onChange={handleChange} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น ซันนี่, จอห์น" disabled={isSubmitting} />
+                <input type="text" id="profileNickname" name="nickname" value={formState.nickname} onChange={e => setFormState(prev => ({ ...prev, nickname: e.target.value }))} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น ซันนี่, จอห์น" disabled={isSubmitting} />
             </div>
             <div className="mt-4">
                 <label htmlFor="profileFirstName" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อจริง</label>
-                <input type="text" id="profileFirstName" name="firstName" value={formState.firstName} onChange={handleChange} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น ยาทิดา, สมชาย" disabled={isSubmitting} />
+                <input type="text" id="profileFirstName" name="firstName" value={formState.firstName} onChange={e => setFormState(prev => ({ ...prev, firstName: e.target.value }))} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น ยาทิดา, สมชาย" disabled={isSubmitting} />
             </div>
             <div className="mt-4">
                 <label htmlFor="profileLastName" className="block text-sm font-sans font-medium text-neutral-dark mb-1">นามสกุล</label>
-                <input type="text" id="profileLastName" name="lastName" value={formState.lastName} onChange={handleChange} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น แสงอรุณ, ใจดี" disabled={isSubmitting} />
+                <input type="text" id="profileLastName" name="lastName" value={formState.lastName} onChange={e => setFormState(prev => ({ ...prev, lastName: e.target.value }))} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น แสงอรุณ, ใจดี" disabled={isSubmitting} />
             </div>
             <div id="address-section">
               <label htmlFor="profileAddress" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ที่อยู่ (จะแสดงในโปรไฟล์สาธารณะของคุณ)</label>
@@ -472,7 +476,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                 id="profileAddress"
                 name="address"
                 value={formState.address}
-                onChange={handleChange}
+                onChange={e => setFormState(prev => ({ ...prev, address: e.target.value }))}
                 rows={3}
                 className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                 placeholder="เช่น บ้านเลขที่, ถนน, ตำบล, อำเภอ, จังหวัด, รหัสไปรษณีย์"
@@ -585,7 +589,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                 id="profileMobile"
                 name="mobile"
                 value={formState.mobile}
-                onChange={handleChange}
+                onChange={e => setFormState(prev => ({ ...prev, mobile: e.target.value }))}
                 className={`${inputBaseStyle} ${errors.mobile ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
                 placeholder="เช่น 0812345678"
                 aria-describedby={errors.mobile ? "mobile-error" : undefined}
@@ -602,7 +606,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                 id="profileLineId"
                 name="lineId"
                 value={formState.lineId}
-                onChange={handleChange}
+                onChange={e => setFormState(prev => ({ ...prev, lineId: e.target.value }))}
                 className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                 placeholder="เช่น mylineid"
                 disabled={isSubmitting}
@@ -616,7 +620,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                 id="profileFacebook"
                 name="facebook"
                 value={formState.facebook}
-                onChange={handleChange}
+                onChange={e => setFormState(prev => ({ ...prev, facebook: e.target.value }))}
                 className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                 placeholder="ลิงก์โปรไฟล์ หรือชื่อผู้ใช้ Facebook"
                 disabled={isSubmitting}

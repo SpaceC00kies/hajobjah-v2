@@ -16,19 +16,23 @@ import { logFirebaseError } from '../firebase/logging.ts';
 export const useUser = () => {
   const { currentUser, setCurrentUser } = useAuth();
 
-  const updateUserProfile = useCallback(async (updatedProfileData: Partial<User>): Promise<boolean> => {
+  const updateUserProfile = useCallback(
+  async (updatedProfileData: Partial<User>): Promise<boolean> => {
     if (!currentUser) {
-      logFirebaseError("useUser.updateUserProfile", new Error('User not authenticated for profile update.'));
+      console.error("❌ useUser: user not authenticated");
       return false;
     }
     try {
       await updateUserProfileService(currentUser.id, updatedProfileData);
+      console.log("✅ useUser.updateUserProfile: service succeeded");
       return true;
-    } catch (error: any) {
-      logFirebaseError("useUser.updateUserProfile", error);
+    } catch (err: any) {
+      console.error("❌ useUser.updateUserProfile: service failed:", err);
       return false;
     }
-  }, [currentUser]);
+  },
+  [currentUser]
+);
 
   const toggleInterest = useCallback(async (targetId: string, targetType: 'job' | 'helperProfile', targetOwnerId: string) => {
     if (!currentUser) throw new Error("User not authenticated for toggling interest.");
