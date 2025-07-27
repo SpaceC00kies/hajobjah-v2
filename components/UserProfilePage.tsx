@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import type { User } from '../types/types.ts';
 import { GenderOption, HelperEducationLevelOption } from '../types/types.ts';
@@ -43,7 +44,7 @@ const DISPLAY_NAME_COOLDOWN_DAYS_UI = 14;
 
 
 export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, onUpdateProfile, onCancel }) => {
-  // --- Initialize state DIRECTLY from props. This is the key fix. ---
+  // --- Initialize state DIRECTLY from props. ---
   const [publicDisplayName, setPublicDisplayName] = useState(currentUser.publicDisplayName);
   const [mobile, setMobile] = useState(currentUser.mobile);
   const [lineId, setLineId] = useState(currentUser.lineId || '');
@@ -78,8 +79,37 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
   const feedbackRef = useRef<HTMLDivElement>(null);
   const [displayNameCooldownInfo, setDisplayNameCooldownInfo] = useState<{ canChange: boolean; message?: string }>({ canChange: true });
   
-  // This useEffect was causing the state to reset on every currentUser update, which wiped out the feedback message. It has been REMOVED.
-  // useEffect(() => { ... }, [currentUser]);
+  useEffect(() => {
+    if (currentUser) {
+      setPublicDisplayName(currentUser.publicDisplayName);
+      setMobile(currentUser.mobile);
+      setLineId(currentUser.lineId || '');
+      setFacebook(currentUser.facebook || '');
+      setGender(currentUser.gender || GenderOption.NotSpecified);
+      setBirthdate(currentUser.birthdate || '');
+      setEducationLevel(currentUser.educationLevel || HelperEducationLevelOption.NotStated);
+      setCurrentAge(calculateAge(currentUser.birthdate));
+      setAddress(currentUser.address || '');
+      setPhotoBase64(currentUser.photo);
+      setNickname(currentUser.nickname || '');
+      setFirstName(currentUser.firstName || '');
+      setLastName(currentUser.lastName || '');
+      setFavoriteMusic(currentUser.favoriteMusic || '');
+      setFavoriteBook(currentUser.favoriteBook || '');
+      setFavoriteMovie(currentUser.favoriteMovie || '');
+      setHobbies(currentUser.hobbies || '');
+      setFavoriteFood(currentUser.favoriteFood || '');
+      setDislikedThing(currentUser.dislikedThing || '');
+      setIntroSentence(currentUser.introSentence || '');
+      setIsBusinessProfile(currentUser.isBusinessProfile || false);
+      setBusinessName(currentUser.businessName || '');
+      setBusinessType(currentUser.businessType || '');
+      setAboutBusiness(currentUser.aboutBusiness || '');
+      setBusinessAddress(currentUser.businessAddress || '');
+      setBusinessWebsite(currentUser.businessWebsite || '');
+      setBusinessSocialProfileLink(currentUser.businessSocialProfileLink || '');
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     const updateCount = currentUser.publicDisplayNameUpdateCount || 0;
@@ -266,7 +296,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
+              transition={{ duration: 0.3, ease: 'easeOut' as const }}
             >
               {feedback.message}
             </motion.div>

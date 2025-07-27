@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -23,14 +24,13 @@ export const useUser = () => {
     }
     try {
       await updateUserProfileService(currentUser.id, updatedProfileData);
-      const updatedUser = await getUserDocument(currentUser.id);
-      if (updatedUser) setCurrentUser(updatedUser);
+      // The onSnapshot listener in AuthContext will automatically update the currentUser.
       return true;
     } catch (error: any) {
       logFirebaseError("useUser.updateUserProfile", error);
       throw error;
     }
-  }, [currentUser, setCurrentUser]);
+  }, [currentUser]);
 
   const toggleInterest = useCallback(async (targetId: string, targetType: 'job' | 'helperProfile', targetOwnerId: string) => {
     if (!currentUser) throw new Error("User not authenticated for toggling interest.");

@@ -114,7 +114,7 @@ export const Button: React.FC<ButtonProps> = ({
   return (
     <motion.button
       className={finalClassName}
-      whileHover={hoverAnimation} // Use the conditional animation
+      whileHover={restProps.disabled ? undefined : hoverAnimation}
       whileTap={{ scale: 0.97, y: 0 }}
       transition={{ duration: 0.2, ease: "easeOut" as const }}
       {...restProps}
