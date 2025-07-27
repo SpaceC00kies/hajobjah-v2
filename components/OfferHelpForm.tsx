@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useLocation } from 'react-router-dom';
 import type { HelperProfile } from '../types/types.ts';
 import { JobCategory, JobSubCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
 import { Button } from './Button.tsx';
@@ -11,7 +12,6 @@ type FormDataType = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDi
 
 interface OfferHelpFormProps {
   onCancel: () => void;
-  initialData?: HelperProfile;
   isEditing?: boolean;
 }
 
@@ -31,15 +31,18 @@ const initialFormStateForCreate: FormDataType = {
 type FormErrorsType = Partial<Record<Exclude<keyof HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt'>, string>>;
 
 
-export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onCancel, initialData, isEditing }) => {
+export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onCancel, isEditing }) => {
   const { currentUser } = useAuth();
+  const { profileId } = useParams<{ profileId: string }>();
+  const location = useLocation();
+  const { allHelperProfilesForAdmin, addHelperProfile, updateHelperProfile, checkHelperProfilePostingLimits } = useHelpers();
+  const initialData = isEditing ? allHelperProfilesForAdmin.find(p => p.id === profileId) || location.state?.item : undefined;
+
   const [formData, setFormData] = useState<FormDataType>(initialFormStateForCreate);
   const [formErrors, setFormErrors] = useState<FormErrorsType>({});
   const [availableSubCategories, setAvailableSubCategories] = useState<JobSubCategory[]>([]);
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
   const [canSubmit, setCanSubmit] = useState(true);
-
-  const { addHelperProfile, updateHelperProfile, checkHelperProfilePostingLimits } = useHelpers();
 
   useEffect(() => {
     if (!currentUser) {

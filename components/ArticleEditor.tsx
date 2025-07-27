@@ -5,7 +5,7 @@ import { Button } from './Button.tsx';
 import { AISuggestionsModal } from './AISuggestionsModal.tsx';
 import { generateBlogSuggestions } from '../services/aiService.ts';
 import { useBlog } from '../hooks/useBlog.ts';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 type BlogPostFormData = Partial<Omit<BlogPost, 'id' | 'authorId' | 'authorDisplayName' | 'authorPhotoURL' | 'createdAt' | 'updatedAt' | 'publishedAt' | 'slug' | 'tags'>> & {
   newCoverImageBase64?: string | null;
@@ -16,7 +16,6 @@ type BlogPostFormData = Partial<Omit<BlogPost, 'id' | 'authorId' | 'authorDispla
 interface ArticleEditorProps {
   onCancel: () => void;
   isEditing: boolean;
-  postId?: string;
 }
 
 const initialFormState: BlogPostFormData = {
@@ -31,7 +30,8 @@ const initialFormState: BlogPostFormData = {
   newCoverImagePreview: undefined,
 };
 
-export const ArticleEditor: React.FC<ArticleEditorProps> = ({ onCancel, isEditing, postId }) => {
+export const ArticleEditor: React.FC<ArticleEditorProps> = ({ onCancel, isEditing }) => {
+  const { postId } = useParams<{ postId: string }>();
   const { addOrUpdateBlogPost, allBlogPostsForAdmin } = useBlog();
   const location = useLocation();
   const navigate = useNavigate();

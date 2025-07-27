@@ -168,7 +168,10 @@ export const FindJobsPage: React.FC = () => {
                     onNavigateToPublicProfile={(info) => navigate(`/profile/${info.userId}`)}
                     currentUser={currentUser}
                     requestLoginForAction={() => navigate('/login')}
-                    onEditJobFromFindView={(jobId) => navigate(`/job/edit/${jobId}`, { state: { from: '/find-jobs' } })}
+                    onEditJobFromFindView={(jobId) => {
+                        const jobToEdit = jobs.find(j => j.id === jobId);
+                        navigate(`/job/edit/${jobId}`, { state: { from: '/find-jobs', item: jobToEdit } });
+                    }}
                     getAuthorDisplayName={getAuthorDisplayName}
                     onToggleInterest={userActions.toggleInterest}
                     isInterested={userInterests.some(i => i.targetId === job.id)}

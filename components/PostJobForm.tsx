@@ -5,14 +5,13 @@ import { Button } from './Button.tsx';
 import { containsBlacklistedWords } from '../utils/validation.ts';
 import { getJobTemplateForCategory } from '../utils/templates.ts';
 import { useJobs } from '../hooks/useJobs.ts';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.tsx';
 
 type FormDataType = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'posterIsAdminVerified' | 'interestedCount'>;
 
 interface PostJobFormProps {
   onCancel: () => void;
-  initialData?: Job;
   isEditing?: boolean;
   sourceViewForForm: View | null;
 }
@@ -64,8 +63,13 @@ const viewToPath = (view: View | null): string => {
   return map[view] || '/';
 };
 
-export const PostJobForm: React.FC<PostJobFormProps> = ({ onCancel, initialData, isEditing, sourceViewForForm }) => {
+export const PostJobForm: React.FC<PostJobFormProps> = ({ onCancel, isEditing, sourceViewForForm }) => {
   const { currentUser } = useAuth();
+  const { jobId } = useParams<{ jobId: string }>();
+  const location = useLocation();
+  const { allJobsForAdmin, addJob, updateJob, checkJobPostingLimits } = useJobs();
+  const initialData = isEditing ? allJobsForAdmin.find(j => j.id === jobId) || location.state?.item : undefined;
+
   const [formData, setFormData] = useState<FormDataType>(initialFormStateForCreate);
   const [formErrors, setFormErrors] = useState<FormErrorsType>({});
   const [availableSubCategories, setAvailableSubCategories] = useState<JobSubCategory[]>([]);
@@ -73,8 +77,6 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onCancel, initialData,
   const [canSubmit, setCanSubmit] = useState(true);
   const [showTemplateButton, setShowTemplateButton] = useState(false);
   const navigate = useNavigate();
-
-  const { addJob, updateJob, checkJobPostingLimits } = useJobs();
 
   useEffect(() => {
     if (!currentUser) {

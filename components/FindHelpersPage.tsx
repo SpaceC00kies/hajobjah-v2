@@ -187,7 +187,10 @@ export const FindHelpersPage: React.FC = () => {
                     currentUser={currentUser}
                     requestLoginForAction={() => navigate('/login')}
                     onBumpProfile={helperActions.onBumpProfile}
-                    onEditProfileFromFindView={(profileId) => navigate(`/profile/edit/${profileId}`, { state: { from: '/find-helpers' } })}
+                    onEditProfileFromFindView={(profileId) => {
+                        const profileToEdit = profiles.find(p => p.id === profileId);
+                        navigate(`/profile/edit/${profileId}`, { state: { from: '/find-helpers', item: profileToEdit } });
+                    }}
                     getAuthorDisplayName={getAuthorDisplayName}
                     onToggleInterest={userActions.toggleInterest}
                     isInterested={userInterests.some(i => i.targetId === profile.id)}
