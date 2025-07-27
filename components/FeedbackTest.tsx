@@ -16,10 +16,10 @@ export const FeedbackTest: React.FC = () => {
 
   return (
     <div className="p-6 space-y-4">
-      <Button variant="secondary" onClick={() => setFeedback({ type: 'success', message: '✅ Success!’ })}>
+      <Button variant="secondary" onClick={() => setFeedback({ type: 'success', message: '✅ Success!' })}>
         Show Success
       </Button>
-      <Button variant="outline" onClick={() => setFeedback({ type: 'error', message: '❌ Error!’ })}>
+      <Button variant="outline" onClick={() => setFeedback({ type: 'error', message: '❌ Error!' })}>
         Show Error
       </Button>
 
