@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import type { User, Job, HelperProfile, WebboardPost, EnrichedWebboardPost, Interest, EnrichedHelperProfile } from '../types/types.ts';
 import { Button } from './Button.tsx';
@@ -13,7 +14,7 @@ import { useData } from '../context/DataContext.tsx';
 import { useUsers } from '../hooks/useUsers.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import { isDateInPast, calculateDaysRemaining } from '../utils/dateUtils.ts';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 const ProfileIcon = () => <span role="img" aria-label="Profile" className="mr-1.5 sm:mr-2">👤</span>;
 const JobsIcon = () => <span role="img" aria-label="Jobs" className="mr-1.5 sm:mr-2">💼</span>;
@@ -49,6 +50,7 @@ const getExpiryWarning = (expiresAt: string | Date | undefined, isHiredOrUnavail
 };
 
 export const MyRoomPage: React.FC<MyRoomPageProps> = ({ onVouchForUser }) => {
+  const { activeTab = 'profile' } = useParams<{ activeTab: ActiveTab }>();
   const { currentUser } = useAuth();
   const { users } = useUsers();
   const { allJobsForAdmin, deleteJob, toggleHiredJob } = useJobs();
@@ -58,7 +60,6 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({ onVouchForUser }) => {
   const userActions = useUser();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<ActiveTab>('profile');
   const [activeSubTab, setActiveSubTab] = useState<ActiveSubTab>('jobs');
   
   useEffect(() => {
@@ -99,7 +100,7 @@ export const MyRoomPage: React.FC<MyRoomPageProps> = ({ onVouchForUser }) => {
 
   return (
     <div className="w-full h-full flex flex-col">
-      <div className="sticky top-0 z-10" style={{ backgroundColor: 'rgba(250, 250, 244, 0.85)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', }}><div className="border-b border-neutral-DEFAULT"><nav className="flex space-x-1 overflow-x-auto pb-px -mb-px" aria-label="Tabs">{tabs.map(tab => (<button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`whitespace-nowrap flex items-center py-3 px-4 text-sm font-sans font-medium rounded-t-lg border-b-2 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-secondary/50 ${activeTab === tab.id ? 'border-secondary text-secondary' : 'border-transparent text-neutral-medium hover:text-neutral-dark'}`} aria-current={activeTab === tab.id ? 'page' : undefined}>{tab.icon}<span>{tab.label}</span></button>))}</nav></div></div>
+      <div className="sticky top-0 z-10" style={{ backgroundColor: 'rgba(250, 250, 244, 0.85)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', }}><div className="border-b border-neutral-DEFAULT"><nav className="flex space-x-1 overflow-x-auto pb-px -mb-px" aria-label="Tabs">{tabs.map(tab => (<button key={tab.id} onClick={() => navigate(`/my-room/${tab.id}`)} className={`whitespace-nowrap flex items-center py-3 px-4 text-sm font-sans font-medium rounded-t-lg border-b-2 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-secondary/50 ${activeTab === tab.id ? 'border-secondary text-secondary' : 'border-transparent text-neutral-medium hover:text-neutral-dark'}`} aria-current={activeTab === tab.id ? 'page' : undefined}>{tab.icon}<span>{tab.label}</span></button>))}</nav></div></div>
       <main className="flex-1 overflow-y-auto px-4 py-6">
         <div>
           {activeTab === 'profile' && <UserProfilePage currentUser={currentUser} onUpdateProfile={userActions.updateUserProfile} onCancel={() => {}} />}

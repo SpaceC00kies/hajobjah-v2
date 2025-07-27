@@ -75,7 +75,7 @@ export const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, allWebboa
 
     const getButtonClass = (item: NavItem) => {
         const baseClass = 'nav-pill';
-        const isActive = location.pathname === item.path;
+        const isActive = location.pathname.startsWith(item.path);
         if (item.specialStyle === 'login') return `${baseClass} nav-pill-login`;
         if (item.specialStyle === 'logout') return `${baseClass} nav-pill-logout`;
         if (item.specialStyle === 'special') return `${baseClass} nav-pill-special ${isActive ? 'active' : ''}`;
@@ -86,7 +86,7 @@ export const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, allWebboa
       ? [
           ...(location.pathname !== '/' ? [{ label: "หน้าแรก", emoji: "🏠", path: "/" }] : []),
           ...((currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer) ? [{ label: "Admin", emoji: "🔐", path: "/admin", specialStyle: 'special' as const }] : []),
-          { label: "ห้องของฉัน", emoji: "🛋️", path: "/my-room", specialStyle: 'special' as const },
+          { label: "ห้องของฉัน", emoji: "🛋️", path: "/my-room/profile", specialStyle: 'special' as const },
           { label: "ประกาศงาน", emoji: "📢", path: "/find-jobs" },
           { label: "โปรไฟล์ผู้ช่วย", emoji: "👥", path: "/find-helpers" },
           { label: "บทความ", emoji: "📖", path: "/blog" },

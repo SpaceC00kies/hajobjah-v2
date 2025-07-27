@@ -5,7 +5,7 @@ import type { User } from '../types/types.ts';
 import { GenderOption, HelperEducationLevelOption } from '../types/types.ts';
 import { Button } from './Button.tsx';
 import { isValidThaiMobileNumber } from '../utils/validation.ts';
-import { ProfileCompletenessWizard } from './ProfileCompletenessWizard.tsx'; // Import the new wizard
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface UserProfilePageProps {
   currentUser: User;
@@ -306,19 +306,23 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-xl mx-auto my-10 border border-neutral-DEFAULT">
       <h2 className="text-3xl font-sans font-semibold text-primary-dark mb-6 text-center">👤 โปรไฟล์ของฉัน</h2>
       
-      <ProfileCompletenessWizard currentUser={currentUser} />
-
-      {feedback && (
-        <div
-          ref={feedbackRef}
-          className={`p-3 my-4 rounded-md text-sm font-sans font-medium text-center
-            ${feedback.type === 'success' ? 'bg-green-100 text-green-700' : ''}
-            ${feedback.type === 'error' ? 'bg-red-100 text-red-700' : ''}`}
-          role="alert"
-        >
-          {feedback.message}
-        </div>
-      )}
+      <AnimatePresence>
+          {feedback && (
+            <motion.div
+              ref={feedbackRef}
+              className={`p-3 my-4 rounded-md text-sm font-sans font-medium text-center
+                ${feedback.type === 'success' ? 'bg-green-100 text-green-700' : ''}
+                ${feedback.type === 'error' ? 'bg-red-100 text-red-700' : ''}`}
+              role="alert"
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+            >
+              {feedback.message}
+            </motion.div>
+          )}
+      </AnimatePresence>
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div id="profile-photo-section" className="flex flex-col items-center mb-6">

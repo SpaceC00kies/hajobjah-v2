@@ -237,7 +237,7 @@ const App: React.FC = () => {
             <Route path="/register" element={<RegistrationForm onRegister={onRegister} onSwitchToLogin={() => navigate('/login')} />} />
             <Route path="/login" element={<LoginForm onLogin={onLogin} onSwitchToRegister={() => navigate('/register')} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />} />
             <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-            <Route path="/my-room" element={<AuthRoute><MyRoomPage onVouchForUser={handleVouchForUser} /></AuthRoute>} />
+            <Route path="/my-room/:activeTab?" element={<AuthRoute><MyRoomPage onVouchForUser={handleVouchForUser} /></AuthRoute>} />
             <Route path="/profile/:userId/:helperProfileId?" element={<PublicProfilePageWrapper />} />
             <Route path="/about" element={<AboutUsPage />} />
             <Route path="/safety" element={<SafetyPage />} />
