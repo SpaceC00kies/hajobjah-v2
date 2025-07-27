@@ -10,7 +10,7 @@ import { ProfileCompletenessWizard } from './ProfileCompletenessWizard.tsx';
 
 interface UserProfilePageProps {
   currentUser: User;
-  onUpdateProfile: (updatedData: Partial<User>) => Promise<boolean>;
+  onUpdateProfile: (updatedData: Partial<User>) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -236,26 +236,26 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFeedback(null);
-  
+
     const newErrors = validateForm();
-  
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       const firstErrorKey = Object.keys(newErrors)[0] as UserProfileFormErrorKeys;
       setFeedback({ type: 'error', message: newErrors[firstErrorKey] || 'ข้อมูลไม่ถูกต้อง โปรดตรวจสอบข้อผิดพลาด' });
       return;
     }
-  
+
     setErrors({});
     setIsSubmitting(true);
-    const success = await onUpdateProfile(formState);
-    if (success) {
+    
+    try {
+      await onUpdateProfile(formState);
       setFeedback({ type: 'success', message: 'อัปเดตโปรไฟล์เรียบร้อยแล้ว!' });
-    } else {
-      setFeedback({ type: 'error', message: 'เกิดข้อผิดพลาดบางอย่าง ไม่สามารถบันทึกข้อมูลได้' });
+    } catch (error: any) {
+      setFeedback({ type: 'error', message: error.message || 'เกิดข้อผิดพลาดบางอย่าง ไม่สามารถบันทึกข้อมูลได้' });
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
 
@@ -562,12 +562,12 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                     name={field.name}
                     value={field.value}
                     onChange={handleChange}
-                    className={`${inputBaseStyle} ${errors[field.errorKey as keyof typeof errors] ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
+                    className={`${inputBaseStyle} ${errors[field.errorKey] ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
                     placeholder={field.placeholder}
                     disabled={isSubmitting}
                   />
                 )}
-                {field.errorKey && errors[field.errorKey as keyof typeof errors] && <p className="text-red-500 font-sans text-xs mt-1">{errors[field.errorKey as keyof typeof errors]}</p>}
+                {field.errorKey && errors[field.errorKey] && <p className="text-red-500 font-sans text-xs mt-1">{errors[field.errorKey]}</p>}
               </div>
             ))}
           </div>
