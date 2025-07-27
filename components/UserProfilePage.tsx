@@ -43,6 +43,7 @@ const DISPLAY_NAME_COOLDOWN_DAYS_UI = 14;
 
 
 export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, onUpdateProfile, onCancel }) => {
+  // --- Initialize state DIRECTLY from props. This is the key fix. ---
   const [publicDisplayName, setPublicDisplayName] = useState(currentUser.publicDisplayName);
   const [mobile, setMobile] = useState(currentUser.mobile);
   const [lineId, setLineId] = useState(currentUser.lineId || '');
@@ -70,17 +71,15 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
   const [businessAddress, setBusinessAddress] = useState(currentUser.businessAddress || '');
   const [businessWebsite, setBusinessWebsite] = useState(currentUser.businessWebsite || '');
   const [businessSocialProfileLink, setBusinessSocialProfileLink] = useState(currentUser.businessSocialProfileLink || '');
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<UserProfileFormErrorKeys, string>>>({});
   const [feedback, setFeedback] = useState<FeedbackType | null>(null);
   const feedbackRef = useRef<HTMLDivElement>(null);
   const [displayNameCooldownInfo, setDisplayNameCooldownInfo] = useState<{ canChange: boolean; message?: string }>({ canChange: true });
   
-  useEffect(() => {
-    setPublicDisplayName(currentUser.publicDisplayName);
-    setMobile(currentUser.mobile);
-    // ... reset all other form fields from currentUser
-  }, [currentUser]);
+  // This useEffect was causing the state to reset on every currentUser update, which wiped out the feedback message. It has been REMOVED.
+  // useEffect(() => { ... }, [currentUser]);
 
   useEffect(() => {
     const updateCount = currentUser.publicDisplayNameUpdateCount || 0;
@@ -113,7 +112,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
         feedbackRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
       const timer = setTimeout(() => {
-        setFeedback(null);
+        setFeedback(null); // Hide after 5 seconds
       }, 5000); // Hide after 5 seconds
       return () => clearTimeout(timer);
     }
@@ -202,7 +201,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrors(prev => ({ ...prev, general: undefined }));
+    setErrors({});
     setFeedback(null);
   
     if (!validateForm()) {
@@ -254,7 +253,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
 
   return (
     <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-xl mx-auto my-10 border border-neutral-DEFAULT">
-      <h2 className="text-3xl font-sans font-semibold text-primary-dark mb-6 text-center">👤 โปรไฟล์ของฉัน</h2>
+      <h2 className="text-3xl font-sans font-semibold text-secondary-hover mb-6 text-center">👤 โปรไฟล์ของฉัน</h2>
       
       <AnimatePresence>
           {feedback && (
