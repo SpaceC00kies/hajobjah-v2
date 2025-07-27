@@ -10,7 +10,7 @@ import { ProfileCompletenessWizard } from './ProfileCompletenessWizard.tsx';
 
 interface UserProfilePageProps {
   currentUser: User;
-  onUpdateProfile: (updatedData: Partial<User>) => Promise<void>;
+  onUpdateProfile: (updatedData: Partial<User>) => Promise<boolean>;
   onCancel: () => void;
 }
 
@@ -208,7 +208,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     }
   };
 
-  const validateForm = (): Record<UserProfileFormErrorKeys, string> => {
+  const validateForm = (): Partial<Record<UserProfileFormErrorKeys, string>> => {
     const newErrors: Partial<Record<UserProfileFormErrorKeys, string>> = {};
     if (!formState.publicDisplayName.trim()) {
       newErrors.publicDisplayName = 'กรุณากรอกชื่อที่ต้องการให้แสดงบนเว็บไซต์';
@@ -231,13 +231,14 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     if (!isValidUrl(formState.businessWebsite)) newErrors.businessWebsite = 'รูปแบบ URL ของเว็บไซต์ธุรกิจไม่ถูกต้อง';
     if (!isValidUrl(formState.businessSocialProfileLink)) newErrors.businessSocialProfileLink = 'รูปแบบ URL ของโซเชียลโปรไฟล์ธุรกิจไม่ถูกต้อง';
     
-    return newErrors as Record<UserProfileFormErrorKeys, string>;
+    return newErrors;
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    setFeedback(null);
     const newErrors = validateForm();
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       const firstErrorKey = Object.keys(newErrors)[0] as UserProfileFormErrorKeys;
@@ -248,14 +249,15 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     setErrors({});
     setIsSubmitting(true);
     
-    try {
-      await onUpdateProfile(formState);
-      setFeedback({ type: 'success', message: 'อัปเดตโปรไฟล์เรียบร้อยแล้ว!' });
-    } catch (error: any) {
-      setFeedback({ type: 'error', message: error.message || 'เกิดข้อผิดพลาดบางอย่าง ไม่สามารถบันทึกข้อมูลได้' });
-    } finally {
-      setIsSubmitting(false);
+    const success = await onUpdateProfile(formState);
+
+    if (success) {
+        setFeedback({ type: 'success', message: 'อัปเดตโปรไฟล์เรียบร้อยแล้ว!' });
+    } else {
+        setFeedback({ type: 'error', message: 'เกิดข้อผิดพลาดบางอย่าง ไม่สามารถบันทึกข้อมูลได้' });
     }
+    
+    setIsSubmitting(false);
   };
 
 
@@ -503,7 +505,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                     id={`profile-${field.name}`}
                     name={field.name}
                     value={field.value}
-                    onChange={handleChange}
+                    onChange={(e) => setFormState(prev => ({ ...prev, [field.name]: e.target.value }))}
                     rows={field.name === 'introSentence' ? 3 : 2}
                     className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                     placeholder={field.placeholder}
@@ -515,7 +517,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                     id={`profile-${field.name}`}
                     name={field.name}
                     value={field.value}
-                    onChange={handleChange}
+                    onChange={(e) => setFormState(prev => ({ ...prev, [field.name]: e.target.value }))}
                     className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                     placeholder={field.placeholder}
                     disabled={isSubmitting}
@@ -549,7 +551,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                     id={`profile-${field.name}`}
                     name={field.name}
                     value={field.value}
-                    onChange={handleChange}
+                    onChange={(e) => setFormState(prev => ({ ...prev, [field.name]: e.target.value }))}
                     rows={3}
                     className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
                     placeholder={field.placeholder}
@@ -561,7 +563,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                     id={`profile-${field.name}`}
                     name={field.name}
                     value={field.value}
-                    onChange={handleChange}
+                    onChange={(e) => setFormState(prev => ({ ...prev, [field.name]: e.target.value }))}
                     className={`${inputBaseStyle} ${errors[field.errorKey] ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
                     placeholder={field.placeholder}
                     disabled={isSubmitting}

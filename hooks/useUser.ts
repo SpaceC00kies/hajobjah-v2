@@ -16,15 +16,17 @@ import { logFirebaseError } from '../firebase/logging.ts';
 export const useUser = () => {
   const { currentUser, setCurrentUser } = useAuth();
 
-  const updateUserProfile = useCallback(async (updatedProfileData: Partial<User>): Promise<void> => {
+  const updateUserProfile = useCallback(async (updatedProfileData: Partial<User>): Promise<boolean> => {
     if (!currentUser) {
-      throw new Error('ผู้ใช้ไม่ได้เข้าสู่ระบบ');
+      logFirebaseError("useUser.updateUserProfile", new Error('User not authenticated for profile update.'));
+      return false;
     }
     try {
       await updateUserProfileService(currentUser.id, updatedProfileData);
+      return true;
     } catch (error: any) {
       logFirebaseError("useUser.updateUserProfile", error);
-      throw error; // Re-throw the error to be caught by the component
+      return false;
     }
   }, [currentUser]);
 
