@@ -245,23 +245,14 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
 
     setErrors({});
     setIsSubmitting(true);
-    try {
-      const success = await onUpdateProfile(formState);
-      console.log("🏷 UserProfilePage.handleSubmit: onUpdateProfile returned:", success);
-      if (success) {
-        setFeedback({ type: "success", message: "อัปเดตโปรไฟล์เรียบร้อยแล้ว!" });
-      } else {
-        setFeedback({ type: "error", message: "เกิดข้อผิดพลาดบางอย่าง ไม่สามารถบันทึกข้อมูลได้" });
-      }
-    } catch (error: any) {
-      console.error("❌ UserProfilePage.handleSubmit threw:", error);
-      setFeedback({
-        type:    "error",
-        message: error.message || "เกิดข้อผิดพลาดในการอัปเดตโปรไฟล์"
-      });
-    } finally {
-      setIsSubmitting(false);
+    const result = await onUpdateProfile(formState);
+    console.log("🏷 handleSubmit → onUpdateProfile returned:", result);
+    if (result) {
+      setFeedback({ type: 'success', message: 'อัปเดตโปรไฟล์เรียบร้อยแล้ว!' });
+    } else {
+      setFeedback({ type: 'error', message: 'ไม่สามารถบันทึกข้อมูลได้' });
     }
+    setIsSubmitting(false);
   };
 
 
@@ -288,23 +279,25 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-xl mx-auto my-10 border border-neutral-DEFAULT">
       <h2 className="text-3xl font-sans font-semibold text-secondary-hover mb-6 text-center">👤 โปรไฟล์ของฉัน</h2>
       
-      <AnimatePresence>
-          {feedback && (
-            <motion.div
-              ref={feedbackRef}
-              className={`p-3 my-4 rounded-md text-sm font-sans font-medium text-center
-                ${feedback.type === 'success' ? 'bg-green-100 text-green-700' : ''}
-                ${feedback.type === 'error' ? 'bg-red-100 text-red-700' : ''}`}
-              role="alert"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3, ease: 'easeOut' as const }}
-            >
-              {feedback.message}
-            </motion.div>
-          )}
-      </AnimatePresence>
+      {feedback && (
+        <div
+          ref={feedbackRef}
+          data-testid="feedback"
+          style={{
+            padding: '12px',
+            margin: '16px 0',
+            borderRadius: '8px',
+            fontFamily: 'Prompt, sans-serif',
+            fontWeight: 500,
+            textAlign: 'center',
+            background: feedback.type === "success" ? "#D1FAE5" : "#FEE2E2",
+            color: feedback.type === "success" ? "#065F46" : "#991B1B",
+            border: `1px solid ${feedback.type === "success" ? "#6EE7B7" : "#FCA5A5"}`
+          }}
+        >
+          {feedback.message}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div id="profile-photo-section" className="flex flex-col items-center mb-6">
