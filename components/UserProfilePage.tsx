@@ -625,7 +625,18 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
         {errors.general && <p className="text-red-500 font-sans text-sm text-center">{errors.general}</p>}
         <div className="flex flex-col sm:flex-row gap-4 pt-4">
           <Button type="submit" variant="secondary" size="lg" className="w-full sm:w-auto flex-grow" disabled={isSubmitting}>
-            {isSubmitting ? 'กำลังบันทึก...' : '💾 บันทึกการเปลี่ยนแปลง'}
+            <AnimatePresence mode="wait" initial={false}>
+                <motion.span
+                    key={isSubmitting ? 'saving' : 'save'}
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 5 }}
+                    transition={{ duration: 0.15 }}
+                    style={{ display: 'inline-block' }}
+                >
+                    {isSubmitting ? 'กำลังบันทึก...' : '💾 บันทึกการเปลี่ยนแปลง'}
+                </motion.span>
+            </AnimatePresence>
           </Button>
           <Button type="button" onClick={onCancel} variant="outline" colorScheme="secondary" size="lg" className="w-full sm:w-auto flex-grow" disabled={isSubmitting}>
               ยกเลิก
