@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { UserLevel } from '../types/types.ts'; // UserLevel is now generic for all badge types
 
@@ -30,7 +29,7 @@ export const UserLevelBadge: React.FC<UserLevelBadgeProps> = ({ level, size = 's
       title={level.name}
     >
       <span>{emoji}</span>
-      <span className="lg:hidden">{text}</span>
+      <span className="hidden sm:inline">{text}</span>
     </span>
   );
 };

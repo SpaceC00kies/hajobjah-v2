@@ -75,8 +75,13 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
   const [feedback, setFeedback] = useState<FeedbackType | null>(null);
   const feedbackRef = useRef<HTMLDivElement>(null);
   const [displayNameCooldownInfo, setDisplayNameCooldownInfo] = useState<{ canChange: boolean; message?: string }>({ canChange: true });
+  
+  useEffect(() => {
+    setPublicDisplayName(currentUser.publicDisplayName);
+    setMobile(currentUser.mobile);
+    // ... reset all other form fields from currentUser
+  }, [currentUser]);
 
-  // This effect now only runs once to check the display name cooldown
   useEffect(() => {
     const updateCount = currentUser.publicDisplayNameUpdateCount || 0;
     const lastChange = currentUser.lastPublicDisplayNameChangeAt;

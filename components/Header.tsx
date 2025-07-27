@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { User, WebboardPost, WebboardComment } from '../types/types.ts';
@@ -53,6 +52,22 @@ const MenuToggle = ({ toggle }: { toggle: () => void }) => (
     </button>
 );
 
+const DesktopGreeting: React.FC<{ currentUser: User }> = ({ currentUser }) => (
+    <div className="hidden lg:flex items-center gap-2 font-sans font-medium text-primary-dark whitespace-nowrap">
+        <span>สวัสดี, {currentUser.publicDisplayName}!</span>
+    </div>
+);
+
+const MobileGreeting: React.FC<{ currentUser: User, badge: any, activityBadge: any }> = ({ currentUser, badge, activityBadge }) => (
+    <div className="font-sans font-medium text-base mb-3 py-2 px-4 border-b border-primary-light w-full text-primary-dark flex flex-col items-center justify-center">
+        <span>สวัสดี, {currentUser.publicDisplayName}!</span>
+        <div className="flex items-center mt-1">
+            <UserLevelBadge level={badge} size="sm" />
+            {currentUser.activityBadge?.isActive && <UserLevelBadge level={activityBadge} size="sm" />}
+        </div>
+    </div>
+);
+
 export const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, allWebboardPostsForAdmin, webboardComments, users }) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const navigate = useNavigate();
@@ -75,9 +90,7 @@ export const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, allWebboa
 
     const getButtonClass = (item: NavItem) => {
         const baseClass = 'nav-pill';
-        const isActive = item.path === '/' 
-            ? location.pathname === '/' 
-            : location.pathname.startsWith(item.path);
+        const isActive = location.pathname === '/' ? item.path === '/' : item.path !== '/' && location.pathname.startsWith(item.path);
             
         if (item.specialStyle === 'login') return `${baseClass} nav-pill-login`;
         if (item.specialStyle === 'logout') return `${baseClass} nav-pill-logout`;
@@ -117,15 +130,6 @@ export const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, allWebboa
         );
         return navItems.map(item => <React.Fragment key={item.label}>{itemWrapper(item)}</React.Fragment>);
     };
-
-    const greeting = currentUser && (
-        <div className={`font-sans font-medium ${isMobileMenuOpen ? 'text-base mb-3 py-2 px-4 border-b border-primary-light w-full text-left text-primary-dark' : 'hidden lg:flex items-center gap-2 text-primary-dark whitespace-nowrap overflow-hidden'}`}
-             title={`สวัสดี, ${currentUser.publicDisplayName}!`}>
-            <span className={isMobileMenuOpen ? '' : 'truncate'}>สวัสดี, {currentUser.publicDisplayName}!</span>
-            <div className="flex-shrink-0"><UserLevelBadge level={displayBadgeForProfile} size="sm" /></div>
-            {currentUser.activityBadge?.isActive && (<div className="flex-shrink-0"><UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="sm" /></div>)}
-        </div>
-    );
     
     return (
         <>
@@ -135,7 +139,7 @@ export const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, allWebboa
               <div className="flex-shrink-0">
                   <span onClick={() => handleNavigate('/')} className="cursor-pointer font-sans font-bold text-lg sm:text-xl lg:text-2xl" style={{color: 'var(--primary-blue)'}}>HAJOBJA.COM</span>
               </div>
-              {greeting}
+              {currentUser && <DesktopGreeting currentUser={currentUser} />}
             </div>
             <div className="flex-grow">
               <nav className="hidden lg:flex items-center flex-nowrap justify-end gap-2">{renderLinks(false)}</nav>
@@ -155,7 +159,7 @@ export const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, allWebboa
                             </button>
                         </div>
                         <motion.div className="flex flex-col items-start p-5 space-y-2" variants={menuContentVariants}>
-                            {greeting}
+                            {currentUser && <MobileGreeting currentUser={currentUser} badge={displayBadgeForProfile} activityBadge={ACTIVITY_BADGE_DETAILS} />}
                             {renderLinks(true)}
                         </motion.div>
                     </motion.div>
