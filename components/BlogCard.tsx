@@ -49,7 +49,7 @@ export const BlogCard: React.FC<BlogCardProps> = ({ post, onSelectPost }) => {
         />
       </div>
       <div className="p-6 flex flex-col flex-grow">
-        <p className="text-sm font-semibold text-rose-700 mb-2">{post.category}</p>
+        <p className="text-sm font-semibold text-primary-dark font-sans mb-2">{post.category}</p>
         <h3 className="text-xl font-bold font-sans text-neutral-dark group-hover:text-primary transition-colors duration-200 flex-grow">
           {post.title}
         </h3>

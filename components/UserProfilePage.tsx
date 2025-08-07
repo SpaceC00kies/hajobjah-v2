@@ -1,21 +1,18 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import type { User } from '../types/types.ts';
+import type { User } from '../types/types';
 import { GenderOption, HelperEducationLevelOption } from '../types/types.ts';
 import { Button } from './Button.tsx';
 import { isValidThaiMobileNumber } from '../utils/validation.ts';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ProfileCompletenessWizard } from './ProfileCompletenessWizard.tsx';
-
 
 interface UserProfilePageProps {
   currentUser: User;
-  onUpdateProfile: (updatedData: Partial<User>) => Promise<boolean>;
+  onUpdateProfile: (updatedData: Partial<User>) => Promise<void>;
   onCancel: () => void;
+  showBanner: (message: string, type?: 'success' | 'error') => void;
 }
 
 type UserProfileFormErrorKeys = 'publicDisplayName' | 'mobile' | 'gender' | 'birthdate' | 'educationLevel' | 'general' | 'photo' | 'businessWebsite' | 'businessSocialProfileLink';
-type FeedbackType = { type: 'success' | 'error'; message: string };
 const PUBLIC_DISPLAY_NAME_REGEX_PROFILE = /^[a-zA-Z0-9ก-๏\s.]{2,30}$/u;
 
 
@@ -44,7 +41,7 @@ const FallbackAvatar: React.FC<{ name?: string, size?: string, className?: strin
 
 const DISPLAY_NAME_COOLDOWN_DAYS_UI = 14;
 
-export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, onUpdateProfile, onCancel }) => {
+export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, onUpdateProfile, onCancel, showBanner }) => {
   const [formState, setFormState] = useState({
     publicDisplayName: currentUser.publicDisplayName,
     mobile: currentUser.mobile,
@@ -77,13 +74,9 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
   const [currentAge, setCurrentAge] = useState<number | null>(calculateAge(currentUser.birthdate));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<UserProfileFormErrorKeys, string>>>({});
-  const [feedback, setFeedback] = useState<FeedbackType | null>(null);
-  const feedbackRef = useRef<HTMLDivElement>(null);
   const [displayNameCooldownInfo, setDisplayNameCooldownInfo] = useState<{ canChange: boolean; message?: string }>({ canChange: true });
 
   useEffect(() => {
-    // This effect synchronizes the form with external changes to currentUser,
-    // but crucially, it does not reset the feedback message.
     setFormState({
       publicDisplayName: currentUser.publicDisplayName,
       mobile: currentUser.mobile,
@@ -114,7 +107,6 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     });
     setCurrentAge(calculateAge(currentUser.birthdate));
 
-    // Also re-evaluate cooldown info when user data changes
     const updateCount = currentUser.publicDisplayNameUpdateCount || 0;
     const lastChange = currentUser.lastPublicDisplayNameChangeAt;
     if (updateCount > 0 && lastChange) {
@@ -134,26 +126,8 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     }
   }, [currentUser]);
 
-  useEffect(() => {
-    if (feedback) {
-      if (feedbackRef.current) {
-        feedbackRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-      const timer = setTimeout(() => {
-        setFeedback(null);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [feedback]);
-
-  useEffect(() => {
-    if (feedback) {
-      console.log("📣 UserProfilePage feedback state:", feedback);
-    }
-  }, [feedback]);
-
   const inputBaseStyle = "w-full p-3 bg-white border border-[#CCCCCC] rounded-[10px] text-neutral-dark font-sans font-normal focus:outline-none transition-colors duration-150 ease-in-out";
-  const inputFocusStyle = "focus:!border-secondary focus:!ring-2 focus:!ring-secondary focus:!ring-opacity-70";
+  const inputFocusStyle = "focus:!border-primary focus:!ring-2 focus:!ring-primary focus:!ring-opacity-70";
   const inputErrorStyle = "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500 focus:ring-opacity-70";
   const readOnlyStyle = "bg-neutral-light cursor-not-allowed";
   const selectBaseStyle = `${inputBaseStyle} appearance-none`;
@@ -233,28 +207,28 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFeedback(null);
     const newErrors = validateForm();
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       const firstErrorKey = Object.keys(newErrors)[0] as UserProfileFormErrorKeys;
-      setFeedback({ type: 'error', message: newErrors[firstErrorKey] || 'ข้อมูลไม่ถูกต้อง โปรดตรวจสอบข้อผิดพลาด' });
+      const errorMessage = newErrors[firstErrorKey] || 'ข้อมูลไม่ถูกต้อง โปรดตรวจสอบข้อผิดพลาด';
+      showBanner(errorMessage, 'error');
       return;
     }
-
     setErrors({});
     setIsSubmitting(true);
-    const result = await onUpdateProfile(formState);
-    console.log("🏷 handleSubmit → onUpdateProfile returned:", result);
-    if (result) {
-      setFeedback({ type: 'success', message: 'อัปเดตโปรไฟล์เรียบร้อยแล้ว!' });
-    } else {
-      setFeedback({ type: 'error', message: 'ไม่สามารถบันทึกข้อมูลได้' });
+    
+    try {
+      await onUpdateProfile(formState);
+      showBanner('บันทึกสำเร็จ', 'success');
+    } catch (error: any) {
+      const errorMessage = error.message || "เกิดข้อผิดพลาดในการบันทึก";
+      showBanner(errorMessage, 'error');
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
-
 
   const personalityFields = [
     { name: 'favoriteMusic', label: '🎧 เพลงที่ชอบ', value: formState.favoriteMusic, placeholder: 'เช่น Pop, Rock, ลูกทุ่ง, Jazz', type: 'text' },
@@ -276,29 +250,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
 
 
   return (
-    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-xl mx-auto my-10 border border-neutral-DEFAULT">
-      <h2 className="text-3xl font-sans font-semibold text-secondary-hover mb-6 text-center">👤 โปรไฟล์ของฉัน</h2>
-      
-      <ProfileCompletenessWizard currentUser={currentUser} />
-      <AnimatePresence>
-        {feedback && (
-          <motion.div
-            key="feedback-banner"
-            ref={feedbackRef}
-            data-testid="feedback"
-            className={`p-3 my-4 rounded-md text-sm font-medium text-center
-              ${feedback.type === 'success' ? 'bg-green-100 text-green-700' : ''}
-              ${feedback.type === 'error' ? 'bg-red-100 text-red-700' : ''}`}
-            role="alert"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
-          >
-            {feedback.message}
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-xl mx-auto border border-neutral-DEFAULT">
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div id="profile-photo-section" className="flex flex-col items-center mb-6">
@@ -307,7 +259,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
           ) : (
             <FallbackAvatar name={currentUser.publicDisplayName} size="w-32 h-32" className="mb-3" />
           )}
-          <label htmlFor="photoUpload" className="cursor-pointer text-sm font-sans text-secondary hover:underline">
+          <label htmlFor="photoUpload" className="cursor-pointer text-sm font-sans text-neutral-dark hover:text-primary hover:underline">
             เปลี่ยนรูปโปรไฟล์ (ไม่เกิน 2MB)
           </label>
           <input
@@ -328,7 +280,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                   name="isBusinessProfile"
                   checked={formState.isBusinessProfile}
                   onChange={e => setFormState(prev => ({ ...prev, isBusinessProfile: e.target.checked }))}
-                  className="form-checkbox h-5 w-5 text-secondary rounded border-neutral-DEFAULT focus:!ring-2 focus:!ring-offset-1 focus:!ring-offset-white focus:!ring-secondary focus:!ring-opacity-70"
+                  className="form-checkbox h-5 w-5 text-primary rounded border-neutral-DEFAULT focus:!ring-2 focus:!ring-offset-1 focus:!ring-offset-white focus:!ring-primary focus:!ring-opacity-70"
                   disabled={isSubmitting}
               />
               <span className="text-sm font-sans font-medium text-neutral-dark">ฉันเป็นธุรกิจ/ร้านค้า (โปรไฟล์สาธารณะจะแสดงเฉพาะข้อมูลธุรกิจ)</span>
@@ -406,9 +358,9 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             <h3 className="text-lg font-sans font-medium text-neutral-dark">
               ข้อมูลส่วนตัว
             </h3>
-            <span className="text-secondary transform transition-transform duration-200 group-open:rotate-90">
-              ▶
-            </span>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary transform transition-transform duration-200 group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+            </svg>
           </summary>
           <div className="mt-3 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4">
@@ -419,7 +371,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                         <label key={optionValue} className="flex items-center space-x-2 cursor-pointer">
                             <input type="radio" name="gender" value={optionValue} checked={formState.gender === optionValue}
                                     onChange={() => setFormState(prev => ({...prev, gender: optionValue}))}
-                                    className="form-radio h-4 w-4 text-secondary border-[#CCCCCC] focus:!ring-2 focus:!ring-offset-1 focus:!ring-offset-white focus:!ring-secondary focus:!ring-opacity-70"
+                                    className="form-radio h-4 w-4 text-primary border-[#CCCCCC] focus:!ring-2 focus:!ring-offset-1 focus:!ring-offset-white focus:!ring-primary focus:!ring-opacity-70"
                                     disabled={isSubmitting}
                             />
                             <span className="text-neutral-dark font-sans font-normal text-sm">{optionValue}</span>
@@ -485,9 +437,9 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             <h3 className="text-lg font-sans font-medium text-neutral-dark">
               👤 เพิ่มเติมเกี่ยวกับฉัน
             </h3>
-            <span className="text-secondary transform transition-transform duration-200 group-open:rotate-90">
-              ▶
-            </span>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary transform transition-transform duration-200 group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+            </svg>
           </summary>
           <div className="mt-3 space-y-4">
             <p className="text-xs font-sans text-neutral-medium mb-3">
@@ -531,9 +483,9 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
             <h3 className="text-lg font-sans font-medium text-neutral-dark">
               🏢 ข้อมูลธุรกิจ
             </h3>
-            <span className="text-secondary transform transition-transform duration-200 group-open:rotate-90">
-              ▶
-            </span>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary transform transition-transform duration-200 group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+            </svg>
           </summary>
           <div className="mt-3 space-y-4">
              <p className="text-xs font-sans text-neutral-medium mb-3">
@@ -562,7 +514,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                     name={field.name}
                     value={field.value}
                     onChange={(e) => setFormState(prev => ({ ...prev, [field.name]: e.target.value }))}
-                    className={`${inputBaseStyle} ${errors[field.errorKey] ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
+                    className={`${inputBaseStyle} ${errors[field.errorKey!] ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
                     placeholder={field.placeholder}
                     disabled={isSubmitting}
                   />
@@ -624,21 +576,10 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
 
         {errors.general && <p className="text-red-500 font-sans text-sm text-center">{errors.general}</p>}
         <div className="flex flex-col sm:flex-row gap-4 pt-4">
-          <Button type="submit" variant="secondary" size="lg" className="w-full sm:w-auto flex-grow" disabled={isSubmitting}>
-            <AnimatePresence mode="wait" initial={false}>
-                <motion.span
-                    key={isSubmitting ? 'saving' : 'save'}
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 5 }}
-                    transition={{ duration: 0.15 }}
-                    style={{ display: 'inline-block' }}
-                >
-                    {isSubmitting ? 'กำลังบันทึก...' : '💾 บันทึกการเปลี่ยนแปลง'}
-                </motion.span>
-            </AnimatePresence>
+          <Button type="submit" variant="primary" size="lg" className="w-full sm:w-auto flex-grow" disabled={isSubmitting}>
+            💾 บันทึกการเปลี่ยนแปลง
           </Button>
-          <Button type="button" onClick={onCancel} variant="outline" colorScheme="secondary" size="lg" className="w-full sm:w-auto flex-grow" disabled={isSubmitting}>
+          <Button type="button" onClick={onCancel} variant="outline" colorScheme="primary" size="lg" className="w-full sm:w-auto flex-grow" disabled={isSubmitting}>
               ยกเลิก
           </Button>
         </div>

@@ -1,7 +1,7 @@
 
 import React, { createContext, useState, useEffect, useMemo } from 'react';
 import type { BlogPost, BlogComment } from '../types/types.ts';
-import { getAllBlogPosts, getBlogPostsForAdmin, subscribeToAllBlogCommentsService } from '../services/blogService.ts';
+import { subscribeToAllBlogPostsService, subscribeToAllBlogPostsForAdminService, subscribeToAllBlogCommentsService } from '../services/blogService.ts';
 
 interface BlogContextType {
   allBlogPosts: BlogPost[];
@@ -19,18 +19,23 @@ export const BlogProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoadingBlog, setIsLoadingBlog] = useState(true);
 
   useEffect(() => {
-    const fetchBlogData = async () => {
-      setIsLoadingBlog(true);
-      const publicPosts = await getAllBlogPosts();
-      setAllBlogPosts(publicPosts);
-      const adminPosts = await getBlogPostsForAdmin();
-      setAllBlogPostsForAdmin(adminPosts);
-      setIsLoadingBlog(false);
-    };
-    fetchBlogData();
+    setIsLoadingBlog(true);
+
+    const unsubPublicPosts = subscribeToAllBlogPostsService((posts) => {
+      setAllBlogPosts(posts);
+      // Consider loading state resolved when both are loaded.
+    });
+
+    const unsubAdminPosts = subscribeToAllBlogPostsForAdminService((posts) => {
+      setAllBlogPostsForAdmin(posts);
+      setIsLoadingBlog(false); 
+    });
     
     const unsubComments = subscribeToAllBlogCommentsService(setBlogComments);
+    
     return () => {
+      unsubPublicPosts();
+      unsubAdminPosts();
       unsubComments();
     };
   }, []);

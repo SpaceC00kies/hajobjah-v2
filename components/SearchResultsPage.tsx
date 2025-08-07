@@ -1,14 +1,14 @@
-
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { SearchResultItem, FilterableCategory, JobSubCategory, Province, User, Interest, Job, HelperProfile, EnrichedHelperProfile } from '../types/types.ts';
-import { View, JobCategory, JOB_SUBCATEGORIES_MAP } from '../types/types.ts';
+import { JobCategory, JOB_SUBCATEGORIES_MAP } from '../types/types.ts';
 import { FilterSidebar } from './FilterSidebar.tsx';
 import { JobCard } from './JobCard.tsx';
 import { HelperCard } from './HelperCard.tsx';
 import { CardSkeleton } from './CardSkeleton.tsx';
 import { Button } from './Button.tsx';
 import { motion } from 'framer-motion';
-import type { NavigateFunction } from 'react-router-dom';
+import { useInterests } from '../hooks/useInterests.ts';
+import { useNavigate } from 'react-router-dom';
 
 interface SearchResultsPageProps {
   searchQuery: string;
@@ -19,14 +19,6 @@ interface SearchResultsPageProps {
   users: User[];
   userInterests: Interest[];
   getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
-  navigate: NavigateFunction;
-  onNavigateToPublicProfile: (profileInfo: { userId: string; helperProfileId?: string }) => void;
-  requestLoginForAction: (view: View, payload?: any) => void;
-  onEditJobFromFindView: (jobId: string) => void;
-  onEditProfileFromFindView: (profileId: string) => void;
-  onLogHelperContact: (helperProfileId: string) => void;
-  onBumpProfile: (profileId: string) => void;
-  onToggleInterest: (targetId: string, targetType: 'job' | 'helperProfile', targetOwnerId: string) => void;
   onGoBack: () => void;
   initialProvince?: string;
 }
@@ -46,14 +38,45 @@ const itemVariants = {
   visible: { y: 0, opacity: 1 },
 };
 
+type EnrichedSearchResultItem = ((Job & { resultType: 'job' }) | (EnrichedHelperProfile & { resultType: 'helper' })) & { isInterested: boolean };
 
 export const SearchResultsPage: React.FC<SearchResultsPageProps> = (props) => {
   const {
-    searchQuery, searchResults, isLoading, searchError, currentUser, users, userInterests,
-    getAuthorDisplayName, navigate, onNavigateToPublicProfile, requestLoginForAction,
-    onEditJobFromFindView, onEditProfileFromFindView, onLogHelperContact,
-    onBumpProfile, onToggleInterest, onGoBack, initialProvince
+    searchQuery, searchResults: searchResultsProp, isLoading, searchError, currentUser, users, userInterests,
+    getAuthorDisplayName, onGoBack, initialProvince
   } = props;
+  
+  const navigate = useNavigate();
+
+  const [results, setResults] = useState<EnrichedSearchResultItem[]>([]);
+  const { toggleInterest } = useInterests(results, setResults);
+  const dataHydrated = useRef(false);
+
+  useEffect(() => {
+    if (!dataHydrated.current && searchResultsProp.length > 0) {
+        const enriched = searchResultsProp.map((item): EnrichedSearchResultItem => {
+          const isInterested = userInterests.some(i => i.targetId === item.id);
+          if (item.resultType === 'helper') {
+            const profile = item as HelperProfile;
+            const user = users.find(u => u.id === profile.userId);
+            return {
+              ...profile,
+              resultType: 'helper',
+              userPhoto: user?.photo,
+              userAddress: user?.address,
+              profileCompleteBadge: !!user?.profileComplete,
+              warningBadge: !!profile.isSuspicious,
+              verifiedExperienceBadge: !!profile.adminVerifiedExperience,
+              interestedCount: profile.interestedCount || 0,
+              isInterested
+            };
+          }
+          return { ...item, isInterested } as Job & { resultType: 'job', isInterested: boolean };
+        });
+        setResults(enriched);
+        dataHydrated.current = true;
+    }
+  }, [searchResultsProp, userInterests, users]);
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('all');
   const [selectedCategory, setSelectedCategory] = useState<FilterableCategory>('all');
@@ -71,14 +94,14 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = (props) => {
   }, [selectedCategory]);
 
   const displayedResults = useMemo(() => {
-    return searchResults.filter(item => {
+    return results.filter(item => {
       const tabMatch = activeTab === 'all' || (activeTab === 'jobs' && item.resultType === 'job') || (activeTab === 'helpers' && item.resultType === 'helper');
       const categoryMatch = selectedCategory === 'all' || item.category === selectedCategory;
       const subCategoryMatch = selectedSubCategory === 'all' || item.subCategory === selectedSubCategory;
       const provinceMatch = selectedProvince === 'all' || item.province === selectedProvince;
       return tabMatch && categoryMatch && subCategoryMatch && provinceMatch;
     });
-  }, [searchResults, activeTab, selectedCategory, selectedSubCategory, selectedProvince]);
+  }, [results, activeTab, selectedCategory, selectedSubCategory, selectedProvince]);
   
   const getTabClass = (tab: ActiveTab) => {
       return activeTab === tab 
@@ -86,8 +109,8 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = (props) => {
         : 'border-transparent text-neutral-medium hover:text-primary-dark hover:border-neutral-dark/30';
   }
 
-  const jobCount = useMemo(() => searchResults.filter(r => r.resultType === 'job').length, [searchResults]);
-  const helperCount = useMemo(() => searchResults.filter(r => r.resultType === 'helper').length, [searchResults]);
+  const jobCount = useMemo(() => results.filter(r => r.resultType === 'job').length, [results]);
+  const helperCount = useMemo(() => results.filter(r => r.resultType === 'helper').length, [results]);
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
@@ -119,7 +142,7 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = (props) => {
             <div className="border-b border-neutral-DEFAULT mb-6">
                 <nav className="-mb-px flex space-x-6" aria-label="Tabs">
                     <button onClick={() => setActiveTab('all')} className={`py-3 px-1 border-b-2 text-sm font-medium ${getTabClass('all')}`}>
-                        ทั้งหมด ({searchResults.length})
+                        ทั้งหมด ({results.length})
                     </button>
                     <button onClick={() => setActiveTab('jobs')} className={`py-3 px-1 border-b-2 text-sm font-medium ${getTabClass('jobs')}`}>
                         📢 งาน ({jobCount})
@@ -152,48 +175,29 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = (props) => {
                 >
                 {displayedResults.map(item => {
                     if (item.resultType === 'job') {
+                        const author = users.find(u => u.id === item.userId);
                         return (
                             <motion.div key={item.id} variants={itemVariants}>
                                 <JobCard
                                     job={item as Job}
-                                    navigate={navigate}
-                                    onNavigateToPublicProfile={onNavigateToPublicProfile}
                                     currentUser={currentUser}
-                                    requestLoginForAction={requestLoginForAction}
-                                    onEditJobFromFindView={onEditJobFromFindView}
                                     getAuthorDisplayName={getAuthorDisplayName}
-                                    onToggleInterest={onToggleInterest}
-                                    isInterested={userInterests.some(i => i.targetId === item.id)}
+                                    onToggleInterest={() => toggleInterest(item, 'job')}
+                                    isInterested={item.isInterested}
+                                    authorPhotoUrl={author?.photo}
                                 />
                             </motion.div>
                         );
                     }
                     if (item.resultType === 'helper') {
-                        const profile = item as HelperProfile;
-                        const user = users.find(u => u.id === profile.userId);
-                        const enrichedProfile: EnrichedHelperProfile = {
-                            ...profile,
-                            userPhoto: user?.photo,
-                            userAddress: user?.address,
-                            profileCompleteBadge: !!user?.profileComplete,
-                            warningBadge: !!profile.isSuspicious,
-                            verifiedExperienceBadge: !!profile.adminVerifiedExperience,
-                            interestedCount: profile.interestedCount || 0
-                        };
                         return (
                              <motion.div key={item.id} variants={itemVariants}>
                                 <HelperCard
-                                    profile={enrichedProfile}
-                                    onNavigateToPublicProfile={onNavigateToPublicProfile}
-                                    navigate={navigate}
-                                    onLogHelperContact={onLogHelperContact}
+                                    profile={item as EnrichedHelperProfile}
                                     currentUser={currentUser}
-                                    requestLoginForAction={requestLoginForAction}
-                                    onBumpProfile={onBumpProfile}
-                                    onEditProfileFromFindView={onEditProfileFromFindView}
                                     getAuthorDisplayName={getAuthorDisplayName}
-                                    onToggleInterest={onToggleInterest}
-                                    isInterested={userInterests.some(i => i.targetId === item.id)}
+                                    onToggleInterest={() => toggleInterest(item, 'helperProfile')}
+                                    isInterested={item.isInterested}
                                 />
                              </motion.div>
                         );

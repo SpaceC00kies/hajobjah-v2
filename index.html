@@ -373,40 +373,12 @@
         padding: 16px;
         text-align: left;
         position: relative;
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
         border-bottom: 1px solid var(--primary-light);
-      }
-      .job-card-logo-container {
-        flex-shrink: 0;
-        width: 56px;
-        height: 56px;
-      }
-      .job-card-logo-image {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        border-radius: 12px;
-        border: 1px solid var(--primary-light);
-      }
-      .job-card-logo-fallback {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 12px;
-        background-color: var(--primary-light);
-        color: var(--primary-dark);
-        font-size: 24px;
-        font-weight: 600;
-        font-family: 'Prompt', sans-serif;
       }
       
       .helper-card-header {
         background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-blue) 100%);
-        padding: 24px 16px;
+        padding: 16px;
         text-align: center;
         position: relative;
         display: flex;
@@ -444,23 +416,47 @@
         flex-direction: column;
         align-items: center;
       }
-      .helper-card-main-title, .job-card-main-title {
+      .helper-card-main-title {
         font-size: 18px;
         font-weight: 600;
         color: var(--primary-dark);
         margin: 0 0 2px 0;
-        line-height: 1.3;
+        line-height: 1.4;
         width: 100%;
-        white-space: nowrap;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
         overflow: hidden;
         text-overflow: ellipsis;
+        word-break: break-word;
+        min-height: 2.8em; /* 1.4 line-height * 2 lines */
       }
-      .helper-card-name-container, .job-card-author-name-container {
+      .job-card-main-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--primary-dark);
+        margin: 0 0 4px 0;
+        line-height: 1.4;
+        width: 100%;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        word-break: break-word;
+        min-height: 2.8em;
+      }
+      .helper-card-name-container {
         display: flex;
         align-items: center;
         margin-bottom: 2px;
       }
-      .helper-card-name, .job-card-author-name {
+      .job-card-author-name-container {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .helper-card-name {
         font-weight: 500;
         color: rgba(74, 144, 164, 0.8);
         cursor: pointer;
@@ -468,27 +464,45 @@
         align-items: center;
         transition: color 0.3s ease;
       }
-      .helper-card-name:hover, .job-card-author-name:hover { color: var(--primary-dark); }
-      .helper-card-name .name-arrow, .job-card-author-name .name-arrow {
+      .job-card-author-name {
+        font-weight: 600;
+        color: var(--primary-dark);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        transition: color 0.3s ease;
+        line-height: 1.2; /* Tighter line height */
+      }
+
+      .helper-card-name:hover { color: var(--primary-dark); }
+      .job-card-author-name:hover { color: color-mix(in srgb, var(--primary-dark) 80%, black); }
+
+      .helper-card-name .name-arrow {
         margin-left: 4px;
         font-size: 14px;
         color: var(--neutral-gray);
       }
+      .job-card-author-name .name-arrow {
+        margin-left: 4px;
+        font-size: 14px;
+        color: var(--primary-dark);
+        opacity: 0.7;
+      }
       .helper-card-header-location {
-        font-size: 12px;
+        font-size: 14px;
         color: var(--primary-dark);
         display: flex;
         align-items: center;
         gap: 4px;
-        margin-bottom: 6px;
+        margin-bottom: 4px;
       }
       .helper-card-header-location .location-pin-emoji { font-size: 1em; }
       .helper-card-header-categories-combined, .job-card-header-categories-combined {
         color: var(--primary-dark);
         font-weight: 600;
-        font-size: 11px;
+        font-size: 13px;
         line-height: 1.4;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
       }
       .helper-card-header-categories-combined .category-separator, .job-card-header-categories-combined .category-separator {
         margin: 0 4px;
@@ -496,19 +510,20 @@
       }
       .card-content-wrapper {
         flex-grow: 1;
+        padding: 0 16px;
       }
       .helper-card-info-grid, .job-card-info-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        padding: 0 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 8px; /* Added margin for spacing in job card header */
       }
       .helper-card-info-item, .job-card-info-item {
         display: flex;
         align-items: flex-start;
-        font-size: 12px;
+        font-size: 14px;
         color: var(--neutral-gray);
-        padding: 4px 0;
-        margin-bottom: 2px;
+        padding: 0;
       }
       .helper-card-info-item .info-icon, .job-card-info-item .info-icon {
         margin-right: 8px;
@@ -517,7 +532,7 @@
       .helper-card-details-box, .job-card-details-box {
         background-color: var(--neutral-light);
         padding: 12px 16px;
-        margin: 12px 16px;
+        margin: 16px 0;
         border-radius: 12px;
       }
       .helper-card-details-title, .job-card-details-title {
@@ -527,21 +542,83 @@
       }
       .job-card-details-box .qualifications-list { list-style-type: '✓ '; padding-left: 1.5em; margin-top: 0; }
       .helper-card-details-box ul, .job-card-details-box ul { list-style-type: none; padding-left: 0; margin: 0; }
-      .helper-card-footer, .job-card-footer {
+      .helper-card-footer {
         display: flex;
         justify-content: space-between;
         align-items: center;
         padding: 12px 16px;
         border-top: 1px solid var(--primary-light);
       }
-      .helper-card-posted-time, .job-card-posted-time {
-        font-size: 12px;
+      .helper-card-posted-time {
+        font-size: 14px;
         color: var(--neutral-gray);
       }
       .helper-card-action-buttons, .job-card-action-buttons {
         display: flex;
         gap: 8px;
       }
+      /* NEW JOB CARD AUTHOR FOOTER */
+      .job-card-author-section {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        border-top: 1px solid var(--primary-light);
+        background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-blue) 100%);
+        color: var(--primary-dark);
+      }
+      .job-card-author-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--white);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      .job-card-author-info {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+      }
+      .verified-badge {
+          background-color: var(--success-green);
+          color: color-mix(in srgb, var(--success-green) 40%, black); /* Matching helper card */
+          font-size: 10px;
+          padding: 2px 6px;
+          border-radius: 9999px;
+          font-weight: 600;
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+      }
+      .job-card-posted-time {
+          font-size: 12px;
+          color: rgba(74, 144, 164, 0.9);
+          line-height: 1.2; /* Tighter line height */
+      }
+      .job-card-interest-section {
+        display: none; /* MOVED TO TOP RIGHT */
+      }
+      .helper-card-posted-time > span[title="จำนวนผู้สนใจ"] {
+          display: inline-block;
+          min-width: 1.2ch;
+          text-align: right;
+      }
+      .job-card-action-buttons .job-card-edit-button {
+        border-color: rgba(74, 144, 164, 0.6) !important;
+        color: rgba(74, 144, 164, 0.9) !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+      }
+      .job-card-action-buttons .job-card-edit-button:hover {
+        border-color: var(--primary-dark) !important;
+        background-color: rgba(74, 144, 164, 0.1) !important;
+        color: var(--primary-dark) !important;
+      }
+
       .helper-card-trust-badges { 
         display: flex; 
         flex-wrap: wrap; 
@@ -591,13 +668,18 @@
       }
       .card-pin-icon {
         position: absolute;
-        top: 8px;
-        right: 8px;
+        top: 12px;
+        right: 8px; /* Star icon will be here */
         font-size: 12px;
-        z-index: 10;
+        z-index: 5; /* Below star icon */
         text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
         opacity: 0.8;
       }
+      /* When job card has an interest icon, move the pin to the left */
+      .app-card:has(.job-card-interest-top) .card-pin-icon {
+        right: 56px;
+      }
+
 
       /* === NEW ADMIN DASHBOARD STYLES === */
       .dashboard-header {
@@ -769,50 +851,46 @@
           box-shadow: 0 0 0 3px rgba(135, 206, 235, 0.25);
           background-color: #111827; /* gray-900 */
       }
+
+      /* --- NEW Safety Warning Box --- */
+      .safety-warning-box {
+        background-color: var(--primary-light);
+        border-left: 4px solid var(--primary-blue);
+        padding: 16px;
+        border-radius: 0 8px 8px 0;
+        margin-top: 8px;
+        margin-bottom: 8px;
+      }
+      .safety-warning-box .warning-title {
+          font-family: 'Prompt', sans-serif;
+          font-weight: 600;
+          color: var(--primary-dark);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 8px;
+      }
+      .safety-warning-box .warning-text {
+          font-size: 14px;
+          color: var(--neutral-gray);
+          line-height: 1.6;
+      }
+      .safety-warning-box .warning-link {
+          text-decoration: underline;
+          color: var(--primary-dark);
+          font-weight: 500;
+          transition: color 0.2s;
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-family: inherit;
+          font-size: inherit;
+      }
+      .safety-warning-box .warning-link:hover {
+          color: var(--primary-medium);
+      }
     </style>
 
-    <!-- 3. Tailwind CDN Script -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- 4. Tailwind Config Script -->
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Prompt', 'Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', '"Noto Sans"', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"'],
-              serif: ['Sarabun', 'ui-serif', 'Georgia', 'Cambria', '"Times New Roman"', 'Times', 'serif'],
-            },
-            colors: {
-              primary: {
-                DEFAULT: 'var(--primary-blue)',
-                hover: 'var(--primary-medium)',
-                dark: 'var(--primary-dark)',
-                light: 'var(--primary-light)',
-              },
-              secondary: {
-                DEFAULT: 'var(--accent-peach)',
-                hover: 'var(--accent-peach-hover)',
-              },
-              accent: {
-                DEFAULT: 'var(--error-red)',
-              },
-              neutral: {
-                light: 'var(--neutral-light)',
-                DEFAULT: '#E0E0E0',
-                dark: 'var(--neutral-gray)',
-                medium: 'var(--neutral-gray)',
-              },
-              white: 'var(--white)',
-              brandGreen: {
-                DEFAULT: 'var(--success-green)',
-                text: 'color-mix(in srgb, var(--success-green) 50%, black)',
-              }
-            }
-          }
-        }
-      }
-    </script>
   <script type="importmap">
 {
   "imports": {
@@ -840,6 +918,7 @@
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
   <body class="bg-neutral-light font-serif text-neutral-dark">
     <div id="root"></div>

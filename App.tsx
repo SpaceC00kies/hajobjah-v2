@@ -1,5 +1,4 @@
 
-import { FeedbackTest } from './components/FeedbackTest.tsx';
 import React, { useState, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate, useParams } from 'react-router-dom';
 import { useAuthActions } from './hooks/useAuthActions.ts';
@@ -17,6 +16,7 @@ import { SiteLockOverlay } from './components/SiteLockOverlay.tsx';
 import { universalSearchService } from './services/searchService.ts';
 import { logFirebaseError } from './firebase/logging.ts';
 import { Header } from './components/Header.tsx';
+import { Banner } from './components/Banner.tsx';
 
 // Lazy load page components
 const HomePage = lazy(() => import('./components/HomePage.tsx').then(module => ({ default: module.HomePage })));
@@ -45,6 +45,29 @@ const FindHelpersPage = lazy(() => import('./components/FindHelpersPage.tsx').th
 const SearchResultsPage = lazy(() => import('./components/SearchResultsPage.tsx').then(module => ({ default: module.SearchResultsPage })));
 const LocationModal = lazy(() => import('./components/LocationModal.tsx').then(module => ({ default: module.LocationModal })));
 
+// Placed outside of App component to prevent remounting on App re-render
+const AuthRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
+  const { currentUser } = useAuth();
+  const location = useLocation();
+
+  if (!currentUser) {
+    // Redirect them to the /login page, but save the current location they were
+    // trying to go to. This allows us to send them back after they log in.
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return children;
+};
+
+// Moved outside of App component to prevent remounting on state changes in App
+const AdminRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
+  const { currentUser } = useAuth();
+  if (!currentUser || !(currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer)) {
+    return <Navigate to="/" replace />;
+  }
+  return children;
+};
+
 const App: React.FC = () => {
   const authActions = useAuthActions();
   
@@ -61,6 +84,12 @@ const App: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const [banner, setBanner] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  
+  const showBanner = (message: string, type: 'success' | 'error' = 'success') => {
+    setBanner({ message, type });
+  };
+
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [confirmModalMessage, setConfirmModalMessage] = useState('');
   const [confirmModalTitle, setConfirmModalTitle] = useState('');
@@ -69,8 +98,7 @@ const App: React.FC = () => {
   const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false);
   const [vouchModalData, setVouchModalData] = useState<{ userToVouch: User } | null>(null);
   const [vouchListModalData, setVouchListModalData] = useState<{ userToList: User } | null>(null);
-  const [reportVouchModalData, setReportVouchModalData] = useState<{ vouchToReport: Vouch } | null>(null);
-  const [loginRedirectInfo, setLoginRedirectInfo] = useState<{ view: string; payload?: any } | null>(null);
+  const [reportVouchModalData, setReportVouchModalData] = useState<{ vouchToReport: Vouch; mode: 'report' | 'withdraw' } | null>(null);
   
   const [copiedLinkNotification, setCopiedLinkNotification] = useState<string | null>(null);
   const copiedNotificationTimerRef = useRef<number | null>(null);
@@ -101,39 +129,16 @@ const App: React.FC = () => {
     navigate(`/job/edit/${jobId}`, { state: { from: '/search' } });
   }, [navigate]);
 
-  const onEditProfileFromFindView = useCallback((profileId: string) => {
-    navigate(`/profile/edit/${profileId}`, { state: { from: '/search' } });
-  }, [navigate]);
-  
-  const requestLoginForAction = (originalPath: string, originalPayload?: any) => {
-    if (!currentUser) {
-      setLoginRedirectInfo({ view: originalPath, payload: originalPayload });
-      navigate('/login');
-    }
-  };
-
   const onLogin = async (loginIdentifier: string, passwordAttempt: string): Promise<boolean> => {
     const result = await authActions.login(loginIdentifier, passwordAttempt);
-    if (result.success) {
-      if (loginRedirectInfo) {
-        navigate(loginRedirectInfo.view, { state: loginRedirectInfo.payload });
-        setLoginRedirectInfo(null);
-      } else {
-        navigate('/');
-      }
-    }
+    // Navigation is now handled inside LoginForm to access location state
     return result.success;
   };
 
   const onRegister = async (userData: RegistrationDataType): Promise<boolean> => {
     const success = await authActions.register(userData);
     if (success) {
-      if (loginRedirectInfo) {
-        navigate(loginRedirectInfo.view, { state: loginRedirectInfo.payload });
-        setLoginRedirectInfo(null);
-      } else {
-        navigate('/');
-      }
+      navigate('/');
     }
     return success;
   };
@@ -144,7 +149,7 @@ const App: React.FC = () => {
   };
 
   const handleSearch = async (searchParams: { query: string, province: string }) => {
-    if (!currentUser) { requestLoginForAction('/search', { intent: 'search', ...searchParams }); return; }
+    if (!currentUser) { navigate('/login', { state: { from: location, intent: 'search', ...searchParams } }); return; }
     setIsSearching(true); setSearchQuery(searchParams.query); setSearchProvince(searchParams.province); setSearchError(null);
     navigate('/search');
     try {
@@ -160,16 +165,16 @@ const App: React.FC = () => {
   };
   
   const handleVouchForUser = (userToVouch: User) => {
-    if (!currentUser) { requestLoginForAction(`/profile/${userToVouch.id}`); return; }
+    if (!currentUser) { navigate('/login', { state: { from: location }}); return; }
     if (currentUser.id === userToVouch.id) { alert("คุณไม่สามารถรับรองตัวเองได้"); return; }
     setVouchModalData({ userToVouch });
   };
 
   const handleShowVouches = (userToList: User) => setVouchListModalData({ userToList });
-  const handleReportVouch = (vouch: Vouch) => {
-    if (!currentUser) { requestLoginForAction(location.pathname); return; }
+  const handleReportVouch = (vouch: Vouch, mode: 'report' | 'withdraw') => {
+    if (!currentUser) { navigate('/login', { state: { from: location }}); return; }
     setVouchListModalData(null);
-    setReportVouchModalData({ vouchToReport: vouch });
+    setReportVouchModalData({ vouchToReport: vouch, mode });
   };
   
   const isAppLoading = isLoadingAuth || isLoadingUsers || isLoadingJobs || isLoadingHelpers || isLoadingBlog || isLoadingPosts || isLoadingComments || isLoadingInteractions || isLoadingVouchReports;
@@ -179,22 +184,6 @@ const App: React.FC = () => {
   }
   
   const mainContentClass = location.pathname === '/' ? 'hero-section flex-grow flex items-center' : 'container mx-auto p-4 sm:p-6 lg:p-8 flex-grow';
-
-  // Wrapper Components
-  const AuthRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
-    if (!currentUser) {
-      requestLoginForAction(location.pathname, location.state);
-      return <Navigate to="/login" replace />;
-    }
-    return children;
-  };
-
-  const AdminRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
-    if (!currentUser || !(currentUser.role === UserRole.Admin || currentUser.role === UserRole.Writer)) {
-      return <Navigate to="/" replace />;
-    }
-    return children;
-  };
   
   const PublicProfilePageWrapper = () => {
     const { userId, helperProfileId } = useParams<{ userId: string; helperProfileId?: string }>();
@@ -225,6 +214,7 @@ const App: React.FC = () => {
         users={users}
         getAuthorDisplayName={getAuthorDisplayName}
       />
+      {banner && <Banner message={banner.message} type={banner.type} onClose={() => setBanner(null)} />}
       <main className={mainContentClass}>
         <Suspense fallback={<div className="text-center p-10">กำลังโหลด...</div>}>
           <Routes>
@@ -232,22 +222,27 @@ const App: React.FC = () => {
             <Route path="/post-job" element={<AuthRoute><PostJobForm onCancel={() => navigate(-1)} isEditing={false} /></AuthRoute>} />
             <Route path="/job/edit/:jobId" element={<AuthRoute><PostJobForm onCancel={() => navigate(-1)} isEditing={true} /></AuthRoute>} />
             <Route path="/find-jobs" element={<AuthRoute><FindJobsPage /></AuthRoute>} />
-            <Route path="/offer-help" element={<AuthRoute><OfferHelpForm onCancel={() => navigate(-1)} isEditing={false} /></AuthRoute>} />
-            <Route path="/profile/edit/:profileId" element={<AuthRoute><OfferHelpForm onCancel={() => navigate(-1)} isEditing={true} /></AuthRoute>} />
             <Route path="/find-helpers" element={<AuthRoute><FindHelpersPage /></AuthRoute>} />
-            <Route path="/register" element={<RegistrationForm onRegister={onRegister} onSwitchToLogin={() => navigate('/login')} />} />
-            <Route path="/login" element={<LoginForm onLogin={onLogin} onSwitchToRegister={() => navigate('/register')} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />} />
-            <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-            <Route path="/my-room/:activeTab?" element={<AuthRoute><MyRoomPage onVouchForUser={handleVouchForUser} /></AuthRoute>} />
+            <Route path="/post-helper" element={<AuthRoute><OfferHelpForm isEditing={false} /></AuthRoute>} />
+            <Route path="/my-room/:activeTab?" element={<AuthRoute><MyRoomPage showBanner={showBanner} /></AuthRoute>} />
+            
+            <Route path="/helper/edit/:profileId" element={<AuthRoute><OfferHelpForm isEditing={true} /></AuthRoute>} />
+            
+            <Route path="/profile/edit/:profileId" element={<AuthRoute><Navigate to="/my-room/profile" replace /></AuthRoute>} />
+            
             <Route path="/profile/:userId/:helperProfileId?" element={<PublicProfilePageWrapper />} />
+
             <Route path="/about" element={<AboutUsPage />} />
             <Route path="/safety" element={<SafetyPage />} />
             <Route path="/reset-password" element={<PasswordResetPage navigate={navigate} />} />
+            <Route path="/register" element={<RegistrationForm onRegister={onRegister} onSwitchToLogin={() => navigate('/login')} />} />
+            <Route path="/login" element={<LoginForm onLogin={onLogin} onSwitchToRegister={() => navigate('/register')} onForgotPassword={() => setIsForgotPasswordModalOpen(true)} />} />
+            <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
             <Route path="/blog" element={<BlogPage posts={allBlogPosts.map(p => ({...p, author: users.find(u => u.id === p.authorId)}))} onSelectPost={onSelectPost} />} />
             <Route path="/blog/:articleSlug" element={<BlogArticlePage onVouchForUser={handleVouchForUser} />} />
             <Route path="/article/create" element={<AdminRoute><ArticleEditor onCancel={() => navigate('/admin')} isEditing={false} /></AdminRoute>} />
             <Route path="/article/edit/:postId" element={<AdminRoute><ArticleEditor onCancel={() => navigate('/admin')} isEditing={true} /></AdminRoute>} />
-            <Route path="/search" element={<AuthRoute><SearchResultsPage searchQuery={searchQuery} searchResults={searchResults} isLoading={isSearching} searchError={searchError} onGoBack={() => {setHomeProvince(searchProvince); navigate('/')}} initialProvince={searchProvince} currentUser={currentUser} users={users} userInterests={userInterests} getAuthorDisplayName={getAuthorDisplayName} navigate={navigate} onNavigateToPublicProfile={onNavigateToPublicProfile} requestLoginForAction={requestLoginForAction} onEditJobFromFindView={onEditJobFromFindView} onEditProfileFromFindView={onEditProfileFromFindView} onLogHelperContact={userActions.logContact} onBumpProfile={helperActions.onBumpProfile} onToggleInterest={userActions.toggleInterest} /></AuthRoute>} />
+            <Route path="/search" element={<AuthRoute><SearchResultsPage searchQuery={searchQuery} searchResults={searchResults} isLoading={isSearching} searchError={searchError} onGoBack={() => {setHomeProvince(searchProvince); navigate('/')}} initialProvince={searchProvince} currentUser={currentUser} users={users} userInterests={userInterests} getAuthorDisplayName={getAuthorDisplayName} /></AuthRoute>} />
             <Route path="/webboard" element={<AuthRoute><WebboardPage /></AuthRoute>} />
             <Route path="/webboard/post/:postId" element={<AuthRoute><WebboardPage /></AuthRoute>} />
             <Route path="/webboard/post/:postId/edit" element={<AdminRoute><WebboardPage /></AdminRoute>} />
@@ -273,7 +268,7 @@ const App: React.FC = () => {
         {isForgotPasswordModalOpen && <ForgotPasswordModal isOpen={isForgotPasswordModalOpen} onClose={() => setIsForgotPasswordModalOpen(false)} onSendResetEmail={authActions.sendPasswordResetEmail} />}
         {vouchModalData && <VouchModal isOpen={!!vouchModalData} onClose={() => setVouchModalData(null)} userToVouch={vouchModalData.userToVouch} currentUser={currentUser!} />}
         {vouchListModalData && <VouchesListModal isOpen={!!vouchListModalData} onClose={() => setVouchListModalData(null)} userToList={vouchListModalData.userToList} navigateToPublicProfile={(userId) => navigate(`/profile/${userId}`)} onReportVouch={handleReportVouch} currentUser={currentUser} />}
-        {reportVouchModalData && <ReportVouchModal isOpen={!!reportVouchModalData} onClose={() => setReportVouchModalData(null)} vouchToReport={reportVouchModalData.vouchToReport} />}
+        {reportVouchModalData && <ReportVouchModal isOpen={!!reportVouchModalData} onClose={() => setReportVouchModalData(null)} vouchToReport={reportVouchModalData.vouchToReport} mode={reportVouchModalData.mode} />}
         {isLocationModalOpen && <LocationModal isOpen={isLocationModalOpen} onClose={() => setIsLocationModalOpen(false)} onSelectProvince={(province) => setHomeProvince(province)} currentProvince={homeProvince} />}
       </Suspense>
     </div>

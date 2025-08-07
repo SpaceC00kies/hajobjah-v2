@@ -8,6 +8,7 @@ interface WebboardContextType {
   webboardComments: WebboardComment[];
   isLoadingPosts: boolean;
   isLoadingComments: boolean;
+  setAllWebboardPostsForAdmin: React.Dispatch<React.SetStateAction<WebboardPost[]>>;
 }
 
 export const WebboardContext = createContext<WebboardContextType | undefined>(undefined);
@@ -38,7 +39,8 @@ export const WebboardProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     webboardComments,
     isLoadingPosts,
     isLoadingComments,
-  }), [allWebboardPostsForAdmin, webboardComments, isLoadingPosts, isLoadingComments]);
+    setAllWebboardPostsForAdmin,
+  }), [allWebboardPostsForAdmin, webboardComments, isLoadingPosts, isLoadingComments, setAllWebboardPostsForAdmin]);
 
   return (
     <WebboardContext.Provider value={value}>

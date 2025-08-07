@@ -31,7 +31,7 @@ import {
 } from '@firebase/firestore';
 import { db } from '../firebaseConfig.ts';
 import type { WebboardPost, WebboardComment, WebboardCategory, PaginatedDocsResponse, Cursor } from '../types/types.ts';
-import { logFirebaseError } from '../firebase/logging';
+import { logFirebaseError } from '../firebase/logging.ts';
 import { convertTimestamps, cleanDataForFirestore } from './serviceUtils';
 import { uploadImageService, deleteImageService } from './storageService';
 
@@ -229,7 +229,7 @@ export const addWebboardCommentService = async (postId: string, text: string, au
       postId,
       userId: author.userId,
       authorDisplayName: author.authorDisplayName,
-      authorPhoto: author.photo || undefined,
+      authorPhoto: author.photo || null,
       ownerId: author.userId,
       text,
       createdAt: serverTimestamp() as any,

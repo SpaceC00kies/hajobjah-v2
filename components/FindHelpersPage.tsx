@@ -1,18 +1,17 @@
 
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import type { HelperProfile, EnrichedHelperProfile, FilterableCategory, JobSubCategory, User, PaginatedDocsResponse, Cursor } from '../types/types.ts';
-import { View, JobCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
+import type { HelperProfile, EnrichedHelperProfile, FilterableCategory, JobSubCategory, PaginatedDocsResponse, Cursor } from '../types/types.ts';
+import { JobCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
 import { HelperCard } from './HelperCard.tsx';
 import { getHelperProfilesPaginated } from '../services/helperProfileService.ts';
-import { useUser } from '../hooks/useUser.ts';
-import { useHelpers } from '../hooks/useHelpers.ts';
 import { useData } from '../context/DataContext.tsx';
 import { motion } from 'framer-motion';
 import { FilterSidebar } from './FilterSidebar.tsx';
-import type { NavigateFunction } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useUsers } from '../hooks/useUsers.ts';
+import { useUser } from '../hooks/useUser.ts';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -27,15 +26,17 @@ const itemVariants = {
   visible: { y: 0, opacity: 1 },
 };
 
+type FullyEnrichedHelperProfile = EnrichedHelperProfile;
+
 export const FindHelpersPage: React.FC = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const { users } = useUsers();
   const { userInterests } = useData();
   const userActions = useUser();
-  const helperActions = useHelpers();
 
-  const [profiles, setProfiles] = useState<EnrichedHelperProfile[]>([]);
+  const [profiles, setProfiles] = useState<FullyEnrichedHelperProfile[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [cursor, setCursor] = useState<Cursor | null>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -49,6 +50,19 @@ export const FindHelpersPage: React.FC = () => {
   const loaderRef = useRef<HTMLDivElement>(null);
   const isLoadingRef = useRef(isLoading);
   const hasMoreRef = useRef(hasMore);
+  const scrollPositionRef = useRef(0);
+
+  useEffect(() => {
+    const saveScroll = () => {
+      scrollPositionRef.current = window.scrollY;
+    };
+    window.addEventListener('scroll', saveScroll);
+    return () => window.removeEventListener('scroll', saveScroll);
+  }, []);
+
+  useEffect(() => {
+    window.scrollTo(0, scrollPositionRef.current);
+  }, [profiles]);
 
   const getAuthorDisplayName = useCallback((userId: string, fallbackName?: string): string => {
     const author = users.find(u => u && u.id === userId);
@@ -60,21 +74,6 @@ export const FindHelpersPage: React.FC = () => {
     hasMoreRef.current = hasMore;
   }, [isLoading, hasMore]);
 
-
-  const enrichProfiles = useCallback((profilesToEnrich: HelperProfile[]): EnrichedHelperProfile[] => {
-    return profilesToEnrich.map(profile => {
-      const user = users.find(u => u.id === profile.userId);
-      return {
-        ...profile,
-        userPhoto: user?.photo,
-        userAddress: user?.address,
-        profileCompleteBadge: !!user?.profileComplete,
-        warningBadge: !!profile.isSuspicious,
-        verifiedExperienceBadge: !!profile.adminVerifiedExperience,
-        interestedCount: profile.interestedCount || 0,
-      };
-    });
-  }, [users]);
 
   const loadProfiles = useCallback(async (isInitialLoad = false) => {
     setIsLoading(true);
@@ -89,7 +88,19 @@ export const FindHelpersPage: React.FC = () => {
         selectedProvince
       );
       
-      const enriched = enrichProfiles(result.items);
+      const enriched = result.items.map(profile => {
+        const user = users.find(u => u.id === profile.userId);
+        return {
+          ...profile,
+          userPhoto: user?.photo,
+          userAddress: user?.address,
+          profileCompleteBadge: !!user?.profileComplete,
+          warningBadge: !!profile.isSuspicious,
+          verifiedExperienceBadge: !!profile.adminVerifiedExperience,
+          interestedCount: profile.interestedCount || 0,
+        };
+      });
+
       setProfiles(prev => isInitialLoad ? enriched : [...prev, ...enriched]);
       setCursor(result.cursor);
       setHasMore(!!result.cursor);
@@ -99,7 +110,7 @@ export const FindHelpersPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearchTerm, cursor, selectedCategory, selectedSubCategory, selectedProvince, enrichProfiles]);
+  }, [debouncedSearchTerm, cursor, selectedCategory, selectedSubCategory, selectedProvince, users]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -109,6 +120,7 @@ export const FindHelpersPage: React.FC = () => {
   }, [searchTerm]);
 
   useEffect(() => {
+    setProfiles([]);
     loadProfiles(true);
   }, [debouncedSearchTerm, selectedCategory, selectedSubCategory, selectedProvince]);
 
@@ -141,7 +153,6 @@ export const FindHelpersPage: React.FC = () => {
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="text-center mb-8">
         <h2 className="text-3xl font-sans font-bold text-primary-dark mb-2">👥 โปรไฟล์ผู้ช่วยและบริการ</h2>
-        <p className="text-neutral-medium font-serif">เลือกคนที่ตรงกับความต้องการ แล้วติดต่อได้เลย!</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-x-8">
@@ -158,7 +169,7 @@ export const FindHelpersPage: React.FC = () => {
             onSearchTermChange={setSearchTerm}
             searchPlaceholder="ค้นหาทักษะ, พื้นที่..."
             actionButtonText="สร้างโปรไฟล์"
-            onActionButtonClick={() => currentUser ? navigate('/offer-help') : navigate('/login')}
+            onActionButtonClick={() => currentUser ? navigate('/post-helper') : navigate('/login')}
           />
         </aside>
 
@@ -181,18 +192,9 @@ export const FindHelpersPage: React.FC = () => {
                 <motion.div key={profile.id} variants={itemVariants}>
                   <HelperCard
                     profile={profile}
-                    onNavigateToPublicProfile={(info) => navigate(`/profile/${info.userId}/${info.helperProfileId}`)}
-                    navigate={navigate}
-                    onLogHelperContact={userActions.logContact}
                     currentUser={currentUser}
-                    requestLoginForAction={() => navigate('/login')}
-                    onBumpProfile={helperActions.onBumpProfile}
-                    onEditProfileFromFindView={(profileId) => {
-                        const profileToEdit = profiles.find(p => p.id === profileId);
-                        navigate(`/profile/edit/${profileId}`, { state: { from: '/find-helpers', item: profileToEdit } });
-                    }}
                     getAuthorDisplayName={getAuthorDisplayName}
-                    onToggleInterest={userActions.toggleInterest}
+                    onToggleInterest={() => userActions.toggleInterest(profile.id, 'helperProfile', profile.userId)}
                     isInterested={userInterests.some(i => i.targetId === profile.id)}
                   />
                 </motion.div>

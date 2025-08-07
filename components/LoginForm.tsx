@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { Button } from './Button.tsx';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 interface LoginFormProps {
   onLogin: (loginIdentifier: string, passwordAttempt: string) => Promise<boolean>; // Returns true on success
@@ -13,6 +14,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegiste
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,11 +28,14 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegiste
     const success = await onLogin(loginIdentifier, password);
     setIsLoading(false);
 
-    if (!success) {
-      setError('ชื่อผู้ใช้/อีเมล หรือรหัสผ่านไม่ถูกต้อง');
-    } else {
+    if (success) {
+      const from = location.state?.from?.pathname || '/';
+      const fromState = { ...location.state?.from?.state };
+      navigate(from, { state: fromState, replace: true });
       setLoginIdentifier('');
       setPassword('');
+    } else {
+      setError('ชื่อผู้ใช้/อีเมล หรือรหัสผ่านไม่ถูกต้อง');
     }
   };
 

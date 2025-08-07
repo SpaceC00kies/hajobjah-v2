@@ -18,7 +18,7 @@ interface PostJobFormProps {
 const initialFormStateForCreate: FormDataType = {
   title: '',
   location: '',
-  province: Province.ChiangMai,
+  province: '' as Province,
   dateTime: '',
   payment: '',
   description: '',
@@ -35,6 +35,7 @@ const initialFormStateForCreate: FormDataType = {
 };
 
 type FormErrorsType = Partial<Record<keyof FormDataType, string>>;
+const MAX_TITLE_LENGTH = 80;
 
 export const PostJobForm: React.FC<PostJobFormProps> = ({ onCancel, isEditing }) => {
   const { currentUser } = useAuth();
@@ -220,10 +221,6 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onCancel, isEditing })
         
         navigate(returnPath);
         
-        if (!isEditing) {
-            setFormData(initialFormStateForCreate);
-            setAvailableSubCategories([]);
-        }
     } catch (error: any) {
         alert(`เกิดข้อผิดพลาด: ${error.message}`);
     }
@@ -246,6 +243,8 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onCancel, isEditing })
     if (typeof dateValue === 'string') return dateValue;
     return dateValue.toISOString().split('T')[0];
   };
+
+  const titleCharCount = formData.title.length;
 
   return (
     <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-2xl mx-auto my-8 border border-neutral-DEFAULT">
@@ -277,7 +276,13 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onCancel, isEditing })
               placeholder={field.placeholder}
               className={`${inputBaseStyle} ${formErrors[field.name as keyof FormErrorsType] ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
               disabled={!canSubmit && !isEditing}
+              maxLength={field.name === 'title' ? MAX_TITLE_LENGTH : undefined}
             />
+            {field.name === 'title' && (
+              <div className={`text-right text-xs mt-1 ${titleCharCount > MAX_TITLE_LENGTH - 10 ? 'text-red-500' : 'text-neutral-medium'}`}>
+                {titleCharCount} / {MAX_TITLE_LENGTH}
+              </div>
+            )}
             {formErrors[field.name as keyof FormErrorsType] && <p className="text-red-500 font-sans text-xs mt-1 font-normal">{formErrors[field.name as keyof FormErrorsType]}</p>}
           </div>
         ))}
@@ -294,6 +299,7 @@ export const PostJobForm: React.FC<PostJobFormProps> = ({ onCancel, isEditing })
             className={`${selectBaseStyle} ${formErrors.province ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
             disabled={!canSubmit && !isEditing}
           >
+            <option value="" disabled>-- เลือกจังหวัด --</option>
             {Object.values(Province).map(provinceValue => (
               <option key={provinceValue} value={provinceValue}>{provinceValue}</option>
             ))}

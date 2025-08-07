@@ -1,9 +1,10 @@
+
+
 import React from 'react';
 import type { User, HelperProfile, VouchInfo } from '../types/types.ts'; 
-import { HelperEducationLevelOption, GenderOption, ACTIVITY_BADGE_DETAILS, VOUCH_TYPE_LABELS, VouchType } from '../types/types.ts'; 
+import { HelperEducationLevelOption, GenderOption, VOUCH_TYPE_LABELS, VouchType } from '../types/types.ts'; 
 import { Button } from './Button.tsx';
-import { UserLevelBadge } from './UserLevelBadge.tsx'; 
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useUsers } from '../hooks/useUsers.ts';
 import { useHelpers } from '../hooks/useHelpers.ts';
 import { useAuth } from '../context/AuthContext.tsx';
@@ -40,20 +41,28 @@ const calculateAgePublic = (birthdateString?: string): number | null => {
 };
 
 const TrustBadgesPublicProfile: React.FC<{ user: User, helperProfile?: HelperProfile }> = ({ user, helperProfile }) => {
+  const badges = [];
+  if (helperProfile?.adminVerifiedExperience) {
+    badges.push(
+      <span key="verified" className="bg-green-100 text-green-700 text-sm px-2.5 py-1 rounded-full font-medium">✅ ยืนยันตัวตน</span>
+    );
+  }
+  if (user.profileComplete) {
+    badges.push(
+      <span key="complete" className="bg-blue-100 text-blue-700 text-sm px-2.5 py-1 rounded-full font-medium">โปรไฟล์ครบถ้วน</span>
+    );
+  }
+  if (helperProfile?.isSuspicious) { 
+    badges.push(
+      <span key="suspicious" className="bg-red-100 text-red-700 text-sm px-2.5 py-1 rounded-full font-medium">🔺 ระวังผู้ใช้นี้</span>
+    );
+  }
+  
+  if (badges.length === 0) return null;
+  
   return (
-    <div className="flex gap-1 flex-wrap my-3 justify-center font-sans">
-      {helperProfile?.adminVerifiedExperience && (
-        <span className="bg-yellow-200 text-yellow-800 text-sm px-2.5 py-1 rounded-full font-medium">⭐ ผ่านงานมาก่อน</span>
-      )}
-      {user.profileComplete && (
-        <span className="bg-green-100 text-green-700 text-sm px-2.5 py-1 rounded-full font-medium">🟢 โปรไฟล์ครบถ้วน</span>
-      )}
-      {helperProfile?.isSuspicious && ( 
-        <span className="bg-red-100 text-red-700 text-sm px-2.5 py-1 rounded-full font-medium">🔺 ระวังผู้ใช้นี้</span>
-      )}
-      {user.activityBadge?.isActive && (
-        <UserLevelBadge level={ACTIVITY_BADGE_DETAILS} size="md" />
-      )}
+    <div className="flex gap-2 flex-wrap my-3 justify-center font-sans">
+      {badges}
     </div>
   );
 };
@@ -98,6 +107,8 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ onBack, on
   const { currentUser } = useAuth();
   const { users } = useUsers();
   const { allHelperProfilesForAdmin } = useHelpers();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const user = users.find(u => u.id === userId);
   const helperProfile = helperProfileId ? allHelperProfilesForAdmin.find(p => p.id === helperProfileId) : undefined;
@@ -105,6 +116,22 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ onBack, on
   if (!user) {
     return <div>User not found.</div>;
   }
+  
+  const generateContactString = (userForContact: User): string => {
+    const parts: string[] = [];
+    if (userForContact.isBusinessProfile) {
+        if (userForContact.businessName) parts.push(`ธุรกิจ: ${userForContact.businessName}`);
+        if (userForContact.mobile) parts.push(`เบอร์โทร: ${userForContact.mobile}`);
+        if (userForContact.businessWebsite) parts.push(`เว็บไซต์: ${userForContact.businessWebsite}`);
+        if (userForContact.businessSocialProfileLink) parts.push(`โซเชียล: ${userForContact.businessSocialProfileLink}`);
+    } else {
+        if (userForContact.mobile) parts.push(`เบอร์โทร: ${userForContact.mobile}`);
+        if (userForContact.lineId) parts.push(`LINE ID: ${userForContact.lineId}`);
+        if (userForContact.facebook) parts.push(`Facebook: ${userForContact.facebook}`);
+    }
+    return parts.join('\n') || 'ผู้ใช้ไม่ได้ระบุช่องทางติดต่อสาธารณะ';
+  };
+
 
   const age = calculateAgePublic(user.birthdate);
 
@@ -131,9 +158,7 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ onBack, on
         <div className="text-center mb-6">
           {user.photo ? (<img src={user.photo} alt={user.publicDisplayName} className="w-40 h-40 rounded-full object-cover shadow-lg mx-auto mb-4" loading="lazy" decoding="async" />) : (<FallbackAvatarPublic name={user.publicDisplayName} />)}
           <h2 className="text-3xl font-sans font-bold text-secondary-hover mt-4">{user.publicDisplayName}</h2>
-          {user.userLevel && <UserLevelBadge level={user.userLevel} size="md" />}
           <TrustBadgesPublicProfile user={user} helperProfile={helperProfile} />
-           {user.activityBadge?.isActive && (<div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded-md text-xs font-sans"><p className="font-medium text-orange-600">สิทธิพิเศษสำหรับผู้ใช้ "🔥 ขยันใช้เว็บ":</p><ul className="list-disc list-inside text-left ml-4 text-orange-500"><li>โพสต์กระทู้ได้ 4 ครั้ง/วัน (ปกติ 3)</li><li>มีโปรไฟล์ผู้ช่วยได้ 2 โปรไฟล์พร้อมกัน (ปกติ 1)</li></ul></div>)}
         </div>
         <div className="mb-6 pt-4 border-t border-neutral-DEFAULT/30"><h3 className="text-xl font-sans font-semibold text-neutral-dark mb-3">⭐ การรับรองจากชุมชน</h3><VouchDisplay vouchInfo={user.vouchInfo} onShowVouches={() => onShowVouches(user)} />{currentUser && currentUser.id !== user.id && (<div className="text-center mt-4"><Button onClick={() => onVouchForUser(user)} variant="outline" colorScheme="primary" size="sm">👍 รับรองคุณ {user.publicDisplayName}</Button></div>)}</div>
         {!user.isBusinessProfile && (<div className="mb-6 pt-4 border-t border-neutral-DEFAULT/30"><h3 className="text-xl font-sans font-semibold text-neutral-dark mb-3">ข้อมูลส่วนตัว:</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0">{renderInfoItem("ชื่อเล่น", user.nickname)}{renderInfoItem("ชื่อจริง", user.firstName)}{renderInfoItem("นามสกุล", user.lastName)}{renderInfoItem("อายุ", age ? `${age} ปี` : (user.birthdate ? 'ข้อมูลวันเกิดไม่ถูกต้อง' : null))}{renderInfoItem("เพศ", user.gender !== GenderOption.NotSpecified ? user.gender : null)}{renderInfoItem("ระดับการศึกษา", user.educationLevel !== HelperEducationLevelOption.NotStated ? user.educationLevel : null)}{renderInfoItem("ที่อยู่", user.address, false, true, true)}</div></div>)}
@@ -141,6 +166,37 @@ export const PublicProfilePage: React.FC<PublicProfilePageProps> = ({ onBack, on
         {!user.isBusinessProfile && user.introSentence && user.introSentence.trim() !== '' && (<div className="mb-6 pt-4 border-t border-neutral-DEFAULT/30"><h3 className="text-xl font-sans font-semibold text-neutral-dark mb-2">💬 เกี่ยวกับฉัน</h3><p className="font-serif text-neutral-medium whitespace-pre-wrap p-3 bg-neutral-light rounded-md">{user.introSentence}</p></div>)}
         {hasBusinessInfo && (<div className="mb-6 pt-4 border-t border-neutral-DEFAULT/30"><h3 className="text-xl font-sans font-semibold text-neutral-dark mb-3">🏢 ข้อมูลธุรกิจ:</h3><div className="space-y-1 bg-neutral-light/30 p-4 rounded-lg border border-neutral-DEFAULT/50">{renderInfoItem("ชื่อธุรกิจ/ร้านค้า", user.businessName)}{renderInfoItem("ประเภทธุรกิจ", user.businessType)}{renderInfoItem("เกี่ยวกับธุรกิจ", user.aboutBusiness, false, true)}{renderInfoItem("ที่ตั้งธุรกิจ", user.businessAddress, false, true)}{renderInfoItem("เว็บไซต์", user.businessWebsite, false, false, false, true)}{renderInfoItem("โซเชียลโปรไฟล์ธุรกิจ", user.businessSocialProfileLink, false, false, false, true)}</div></div>)}
         {!user.isBusinessProfile && personalityItems.length > 0 && (<div className="mb-6 pt-4 border-t border-neutral-DEFAULT/30"><h3 className="text-xl font-sans font-semibold text-neutral-dark mb-3">ข้อมูลเพิ่มเติม:</h3><div className="space-y-1 bg-neutral-light/50 p-4 rounded-lg">{personalityItems.map(item => renderInfoItem(item.label, item.value, false, true))}</div></div>)}
+
+        {currentUser ? (
+          <div className="mb-6 pt-4 border-t border-neutral-DEFAULT/30">
+            <h3 className="text-xl font-sans font-semibold text-neutral-dark mb-3">ข้อมูลติดต่อ</h3>
+             <div className="safety-warning-box">
+                <p className="warning-title">
+                    <span>⚠️</span>
+                    <span>โปรดระวังมิจฉาชีพ</span>
+                </p>
+                <p className="warning-text">
+                  กรุณาใช้ความระมัดระวังในการติดต่อ ควรมีการตกลงเรื่องเงินที่ชัดเจนและควรนัดเจอในที่ปลอดภัย หาจ๊อบจ้าเป็นเพียงพื้นที่ให้คนเจอกัน โปรดใช้วิจารณญาณในการติดต่อ ฉบับเต็มโปรดอ่านที่หน้า{" "}
+                  <button
+                    onClick={() => navigate('/safety')}
+                    className="warning-link"
+                  >
+                    "โปรดอ่านเพื่อความปลอดภัย"
+                  </button>
+                </p>
+            </div>
+            <div className="bg-neutral-light p-4 rounded-md border border-neutral-DEFAULT whitespace-pre-wrap font-sans">
+              <p>{generateContactString(user)}</p>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-6 pt-4 border-t border-neutral-DEFAULT/30 text-center">
+            <Button onClick={() => navigate('/login', { state: { from: location.pathname } })} variant="primary" size="lg">
+              เข้าสู่ระบบเพื่อดูข้อมูลติดต่อ
+            </Button>
+          </div>
+        )}
+        
         <div className="mt-8 text-center"><Button onClick={onBack} variant="outline" colorScheme="secondary" size="md">กลับไปหน้ารายการ</Button></div>
       </div>
     </div>

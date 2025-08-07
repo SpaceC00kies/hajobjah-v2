@@ -1,24 +1,40 @@
 
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import type { Job, User } from '../types/types.ts';
-import { View, JobCategory, JobDesiredEducationLevelOption, Province } from '../types/types.ts';
-import { Button } from './Button.tsx'; // Import Button
-import { Modal } from './Modal.tsx';
+import { JobDesiredEducationLevelOption } from '../types/types.ts';
+import { Button } from './Button.tsx';
 import { isDateInPast } from '../utils/dateUtils.ts';
-import { motion } from 'framer-motion';
-import type { NavigateFunction } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 interface JobCardProps {
-  job: Job; // Already includes posterIsAdminVerified?
-  navigate: NavigateFunction;
-  onNavigateToPublicProfile: (profileInfo: { userId: string }) => void;
+  job: Job;
   currentUser: User | null;
-  requestLoginForAction: (view: View, payload?: any) => void;
-  onEditJobFromFindView?: (jobId: string) => void; 
   getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
-  onToggleInterest: (targetId: string, targetType: 'job' | 'helperProfile', targetOwnerId: string) => void; // New prop
-  isInterested: boolean; // New prop
+  onToggleInterest: () => void;
+  isInterested: boolean;
+  authorPhotoUrl?: string | null;
 }
+
+const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
+  if (dateInput === null || dateInput === undefined) return null;
+  let dateObject: Date;
+  if (dateInput instanceof Date) dateObject = dateInput;
+  else if (typeof dateInput === 'string') dateObject = new Date(dateInput);
+  else if (typeof dateInput === 'object' && dateInput && 'toDate' in dateInput && typeof (dateInput as any).toDate === 'function') dateObject = (dateInput as any).toDate();
+  else return "Invalid date";
+  if (isNaN(dateObject.getTime())) return null;
+  return dateObject.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+const JobCardAuthorFallbackAvatar: React.FC<{ name?: string }> = ({ name }) => {
+  const initial = name ? name.charAt(0).toUpperCase() : '👤';
+  return (
+    <div className="job-card-author-avatar bg-primary-light flex items-center justify-center text-xl font-sans font-semibold text-primary-dark">
+      {initial}
+    </div>
+  );
+};
 
 const StarIcon = ({ filled = false, className = "" }) => (
   <svg
@@ -35,58 +51,35 @@ const StarIcon = ({ filled = false, className = "" }) => (
   </svg>
 );
 
-const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
-  if (dateInput === null || dateInput === undefined) return null;
-  let dateObject: Date;
-  if (dateInput instanceof Date) dateObject = dateInput;
-  else if (typeof dateInput === 'string') dateObject = new Date(dateInput);
-  else if (typeof dateInput === 'object' && dateInput && 'toDate' in dateInput && typeof (dateInput as any).toDate === 'function') dateObject = (dateInput as any).toDate();
-  else return "Invalid date";
-  if (isNaN(dateObject.getTime())) return null;
-  return dateObject.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
-};
 
-const JobCardFallbackAvatar: React.FC<{ name?: string }> = ({ name }) => {
-  const initial = name ? name.charAt(0).toUpperCase() : '🏢';
-  return (
-    <div className="job-card-logo-fallback">
-      {initial}
-    </div>
-  );
-};
-
-export const JobCard: React.FC<JobCardProps> = ({ job, navigate, onNavigateToPublicProfile, currentUser, requestLoginForAction, onEditJobFromFindView, getAuthorDisplayName, onToggleInterest, isInterested }) => {
-  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
-  const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
+export const JobCard: React.FC<JobCardProps> = React.memo(({ job, currentUser, getAuthorDisplayName, onToggleInterest, isInterested, authorPhotoUrl }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [showFullDetails, setShowFullDetails] = useState(false);
-  const [logoError, setLogoError] = useState(false);
   
-  const authorActualDisplayName = getAuthorDisplayName(job.userId, job.authorDisplayName);
+  const [localIsInterested, setLocalIsInterested] = useState(isInterested);
+  const [localInterestedCount, setLocalInterestedCount] = useState(job.interestedCount || 0);
 
+  useEffect(() => {
+    setLocalIsInterested(isInterested);
+  }, [isInterested]);
 
-  const handleContact = () => {
-    if (!currentUser) {
-      requestLoginForAction(View.FindJobs, { intent: 'contactJob', postId: job.id });
-      return;
-    }
-    setIsWarningModalOpen(true);
-  };
-  const closeContactModal = () => setIsContactModalOpen(false);
-  const closeWarningModal = () => setIsWarningModalOpen(false);
+  useEffect(() => {
+    setLocalInterestedCount(job.interestedCount || 0);
+  }, [job.interestedCount]);
 
-  const handleProceedToContact = () => {
-    setIsWarningModalOpen(false);
-    setIsContactModalOpen(true);
-  };
-  
-  const handleInterestClick = (e: React.MouseEvent) => {
+  const handleToggleInterest = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!currentUser) {
-        requestLoginForAction(View.FindJobs, { intent: 'interest', postId: job.id });
+        navigate('/login', { state: { from: location.pathname, intent: 'interest', postId: job.id } });
         return;
     }
-    onToggleInterest(job.id, 'job', job.userId);
+    setLocalIsInterested(!localIsInterested);
+    setLocalInterestedCount(prev => localIsInterested ? prev - 1 : prev + 1);
+    onToggleInterest();
   };
+  
+  const authorActualDisplayName = getAuthorDisplayName(job.userId, job.authorDisplayName);
 
   const postedAtDate = job.postedAt ? (job.postedAt instanceof Date ? job.postedAt : new Date(job.postedAt as string)) : null;
   const formattedPostedAt = postedAtDate && !isNaN(postedAtDate.getTime()) ? formatDateDisplay(postedAtDate) : "N/A";
@@ -99,7 +92,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigate, onNavigateToPub
   const toggleShowFullDetails = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!currentUser && (detailsNeedsTruncation || jobIsTrulyExpired)) {
-      requestLoginForAction(View.FindJobs, { focusOnPostId: job.id, type: 'job' });
+        navigate('/login', { state: { from: location.pathname, focusOnPostId: job.id, type: 'job' } });
     } else {
       setShowFullDetails(!showFullDetails);
     }
@@ -137,17 +130,32 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigate, onNavigateToPub
     return parts.join(', ') || null;
   };
 
-
   return (
     <>
-      <div
-        className="app-card"
-      >
+      <div className="app-card">
         {job.isPinned && (
           <div className="card-pin-icon" title="ปักหมุดโดยแอดมิน">
             📌
           </div>
         )}
+        
+        {/* NEW: Star icon moved to top right */}
+        {currentUser?.id !== job.userId && (
+            <div className="absolute top-3 right-3 z-10 flex items-center gap-1 text-primary-dark bg-white/70 backdrop-blur-sm rounded-full pl-1">
+                <Button
+                    onClick={handleToggleInterest}
+                    variant="icon"
+                    size="sm"
+                    title={localIsInterested ? "เลิกสนใจ" : "สนใจ"}
+                    disabled={job.isHired || jobIsTrulyExpired}
+                    className={`${localIsInterested ? 'text-amber-400 hover:text-amber-500' : 'text-primary-dark hover:text-amber-400'} !p-1.5`}
+                >
+                    <StarIcon filled={localIsInterested} />
+                </Button>
+                <span className="font-sans font-semibold text-sm pr-2.5 -ml-1">{localInterestedCount}</span>
+            </div>
+        )}
+
         {job.isHired && !jobIsTrulyExpired && (
           <div className="job-card-status-banner status-banner-hired">✅ มีคนทำแล้ว</div>
         )}
@@ -159,45 +167,13 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigate, onNavigateToPub
         )}
 
         <div className="job-card-header">
-           <div className="job-card-logo-container">
-               {job.companyLogoUrl && !logoError ? (
-                   <img 
-                       src={job.companyLogoUrl} 
-                       alt={`${authorActualDisplayName} logo`}
-                       className="job-card-logo-image"
-                       onError={() => setLogoError(true)}
-                       loading="lazy"
-                       decoding="async"
-                   />
-               ) : (
-                   <JobCardFallbackAvatar name={authorActualDisplayName} />
-               )}
-           </div>
            <div className="job-card-header-content">
-                <h4
-                    className="job-card-main-title text-left"
-                    title={job.title}
-                >
+                <h4 className="job-card-main-title" title={job.title}>
                     {job.title}
                 </h4>
-                <div className="flex items-center gap-1.5 mt-1">
-                    <span 
-                        className="job-card-author-name text-sm" 
-                        onClick={(e) => { e.stopPropagation(); onNavigateToPublicProfile({userId: job.userId})}}
-                    >
-                        {authorActualDisplayName}
-                        <span className="name-arrow">→</span>
-                    </span>
-                    {job.adminVerified && (
-                        <span className="bg-green-100 text-green-800 text-xs px-1.5 py-0.5 rounded-full font-medium flex items-center gap-1">
-                            <span>✅</span>
-                            <span>ยืนยันตัวตน</span>
-                        </span>
-                    )}
-                </div>
                 {(job.category || job.subCategory) && (
                   <div
-                    className="job-card-header-categories-combined !text-xs mt-1"
+                    className="job-card-header-categories-combined !text-xs !mb-2"
                     title={job.category && job.subCategory ? `${job.category} - ${job.subCategory}` : job.category || job.subCategory}
                   >
                     {job.category}
@@ -205,17 +181,15 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigate, onNavigateToPub
                     {job.subCategory}
                   </div>
                 )}
+                <div className="job-card-info-grid">
+                    {renderInfoItem("📍", `${job.location}, ${job.province}`, "Location")}
+                    {renderInfoItem("💰", job.payment, "Payment")}
+                    {formattedDateTime() && renderInfoItem("⏰", formattedDateTime(), "Date & Time")}
+                </div>
            </div>
         </div>
         
         <div className="card-content-wrapper">
-            <div className="job-card-info-grid">
-                {renderInfoItem("📍", `${job.location}, ${job.province}`, "Location")}
-                {renderInfoItem("💰", job.payment, "Payment")}
-                {formattedDateTime() && renderInfoItem("⏰", formattedDateTime(), "Date & Time")}
-            </div>
-
-
             <div className="job-card-details-box">
               <h5 className="job-card-details-title text-sm">
                 รายละเอียดงาน
@@ -227,6 +201,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigate, onNavigateToPub
               </ul>
               {detailsNeedsTruncation && !(currentUser && !jobIsTrulyExpired) && (
                 <button
+                    type="button"
                     onClick={toggleShowFullDetails}
                     className="text-xs text-primary-dark hover:underline mt-1 font-medium"
                     aria-expanded={showFullDetails}
@@ -249,84 +224,54 @@ export const JobCard: React.FC<JobCardProps> = ({ job, navigate, onNavigateToPub
         </div>
 
 
-        <div className="job-card-footer">
-          <div className="flex items-center gap-1 text-sm">
-            {currentUser?.id !== job.userId && (
-              <Button
-                onClick={handleInterestClick}
-                variant="icon"
-                size="sm"
-                title={isInterested ? "เลิกสนใจ" : "สนใจ"}
-                disabled={job.isHired || jobIsTrulyExpired}
-                className={`${isInterested ? 'text-amber-400 hover:text-amber-500' : 'text-neutral-medium hover:text-amber-400'}`}
-              >
-                <StarIcon filled={isInterested} />
-              </Button>
-            )}
-            <div className="job-card-posted-time">
-              <span title="จำนวนผู้สนใจ">{job.interestedCount || 0}</span>
-              <span className="text-neutral-medium mx-1.5">|</span>
-              <span>{formattedPostedAt}</span>
-            </div>
+        <div className="job-card-author-section mt-auto">
+          {authorPhotoUrl ? (
+            <img 
+              src={authorPhotoUrl} 
+              alt={authorActualDisplayName}
+              className="job-card-author-avatar"
+              loading="lazy"
+              decoding="async"
+            />
+          ) : (
+            <JobCardAuthorFallbackAvatar name={authorActualDisplayName} />
+          )}
+
+          <div className="job-card-author-info">
+             <div className="job-card-author-name-container">
+                  <span 
+                      className="job-card-author-name text-sm" 
+                      onClick={(e) => { e.stopPropagation(); navigate(`/profile/${job.userId}`)}}
+                  >
+                      {authorActualDisplayName}
+                      <span className="name-arrow">→</span>
+                  </span>
+                  {job.adminVerified && (
+                    <span className="verified-badge">
+                        <span>✅</span>
+                        <span>ยืนยันตัวตน</span>
+                    </span>
+                  )}
+              </div>
+              <p className="job-card-posted-time">{formattedPostedAt}</p>
           </div>
+
           <div className="job-card-action-buttons">
-            {onEditJobFromFindView && currentUser?.id === job.userId ? (
+            {currentUser?.id === job.userId ? (
              <Button
-                onClick={() => onEditJobFromFindView(job.id)}
+                onClick={() => navigate(`/job/edit/${job.id}`, { state: { from: location.pathname, item: job } })}
                 variant="outline"
                 colorScheme="neutral"
                 size="sm"
+                className="job-card-edit-button"
                 disabled={jobIsTrulyExpired}
             >
                 ✏️ แก้ไข
             </Button>
-            ) : (
-                <Button
-                onClick={handleContact}
-                variant="primary"
-                size="sm"
-                disabled={job.isHired || jobIsTrulyExpired || currentUser?.id === job.userId}
-                >
-                {job.isHired ? '✅ มีคนทำแล้ว' : jobIsTrulyExpired ? '⛔ หมดอายุ' : (currentUser?.id === job.userId ? '👤 งานของคุณ' : 'ติดต่อ')}
-                </Button>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
-
-      {currentUser && !jobIsTrulyExpired && (
-        <>
-          <Modal isOpen={isWarningModalOpen} onClose={closeWarningModal} title="⚠️ โปรดระวังมิจฉาชีพ">
-            <div className="bg-amber-50 border border-amber-300 p-4 rounded-md my-2 text-neutral-dark font-serif">
-                <p className="mb-2">โปรดใช้ความระมัดระวัง <strong className="font-bold text-red-700">ห้ามโอนเงินก่อนเริ่มงาน</strong> และควรนัดเจอในที่ปลอดภัย</p>
-                <p>
-                  หาจ๊อบจ้าเป็นเพียงพื้นที่ให้คนเจอกัน โปรดใช้วิจารณญาณในการติดต่อ ฉบับเต็มโปรดอ่านที่หน้า{" "}
-                  <button
-                    onClick={() => { closeWarningModal(); navigate('/safety'); }}
-                    className="font-serif font-normal underline text-neutral-dark hover:text-primary"
-                  >
-                    "โปรดอ่านเพื่อความปลอดภัย"
-                  </button>
-                </p>
-            </div>
-            <Button onClick={handleProceedToContact} variant="accent" className="w-full mt-4">
-              เข้าใจแล้ว ดำเนินการต่อ
-            </Button>
-          </Modal>
-
-          <Modal isOpen={isContactModalOpen} onClose={closeContactModal} title="ขอบคุณที่สนใจงาน">
-            <div className="text-neutral-dark font-serif p-4 rounded-md">
-                <p className="mb-4">กรุณาติดต่อผู้ประกาศโดยตรงตามข้อมูลด้านล่าง เพื่อนัดหมาย หรือสอบถามรายละเอียดเพิ่มเติม</p>
-                <div className="bg-neutral-light p-4 rounded-md border border-neutral-DEFAULT whitespace-pre-wrap font-sans">
-                  <p>{job.contact}</p>
-                </div>
-                <Button onClick={closeContactModal} variant="primary" className="w-full mt-6">
-                  ปิดหน้าต่างนี้
-                </Button>
-            </div>
-          </Modal>
-        </>
-      )}
     </>
   );
-};
+});

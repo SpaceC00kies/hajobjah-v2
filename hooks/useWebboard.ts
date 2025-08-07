@@ -77,7 +77,11 @@ export const useWebboard = () => {
     if (!currentUser) throw new Error("User not authenticated.");
     if (containsBlacklistedWords(text)) throw new Error('เนื้อหาคอมเมนต์มีคำที่ไม่เหมาะสม');
     try {
-      await addWebboardCommentService(postId, text, { userId: currentUser.id, authorDisplayName: currentUser.publicDisplayName, photo: currentUser.photo });
+      await addWebboardCommentService(postId, text, { 
+        userId: currentUser.id, 
+        authorDisplayName: currentUser.publicDisplayName, 
+        photo: currentUser.photo || null
+      });
       const updatedUser = await getUserDocument(currentUser.id);
       if (updatedUser) setCurrentUser(updatedUser);
     } catch (error: any) {
@@ -122,21 +126,21 @@ export const useWebboard = () => {
   }, [canEditOrDelete, webboardComments]);
 
   const toggleWebboardPostLike = useCallback(async (postId: string) => {
-    if (!currentUser) throw new Error("User not authenticated.");
+    if (!currentUser) throw new Error("User not authenticated");
+    
     try {
       await toggleWebboardPostLikeService(postId, currentUser.id);
-    } catch (error: any) {
-      logFirebaseError("useWebboard.toggleLike", error);
-      throw error;
+    } catch (error) {
+      logFirebaseError("useWebboard.toggleWebboardPostLike", error);
+      alert("เกิดข้อผิดพลาดในการกดไลค์");
     }
   }, [currentUser]);
 
   const pinWebboardPost = useCallback(async (postId: string) => {
-    if (!currentUser || currentUser.role !== 'Admin') throw new Error("Permission denied");
     const post = allWebboardPostsForAdmin.find(p => p.id === postId);
-    if (!post) throw new Error("Post not found");
+    if (!post || !canEditOrDelete(post.userId, post.ownerId)) throw new Error("Permission denied to pin this post.");
     await toggleItemFlagService('webboardPosts', postId, 'isPinned', post.isPinned);
-  }, [currentUser, allWebboardPostsForAdmin]);
+  }, [allWebboardPostsForAdmin, canEditOrDelete]);
 
   return {
     ...context,

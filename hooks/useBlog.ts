@@ -5,10 +5,10 @@ import { BlogContext } from '../context/BlogContext.tsx';
 import {
   addOrUpdateBlogPostService,
   deleteBlogPostService,
-  toggleBlogPostLikeService,
   addBlogCommentService,
   updateBlogCommentService,
   deleteBlogCommentService,
+  toggleBlogPostLikeService,
 } from '../services/blogService.ts';
 import type { BlogPost, BlogComment } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging.ts';
@@ -29,17 +29,20 @@ export const useBlog = () => {
     }
     try {
       const { newCoverImageBase64, ...dataToSave } = blogPostData;
+      const existingPost = existingPostId ? allBlogPostsForAdmin.find(p => p.id === existingPostId) : null;
+      
       const newPostId = await addOrUpdateBlogPostService(
         dataToSave,
         { id: currentUser.id, publicDisplayName: currentUser.publicDisplayName, photo: currentUser.photo },
-        newCoverImageBase64
+        newCoverImageBase64,
+        existingPost
       );
       return newPostId;
     } catch (error: any) {
       logFirebaseError("useBlog.addOrUpdateBlogPost", error);
       throw error;
     }
-  }, [currentUser]);
+  }, [currentUser, allBlogPostsForAdmin]);
 
   const deleteBlogPost = useCallback(async (postId: string, coverImageUrl?: string): Promise<void> => {
     if (!currentUser || !(currentUser.role === 'Admin' || currentUser.role === 'Writer')) {
@@ -47,19 +50,8 @@ export const useBlog = () => {
     }
     try {
       await deleteBlogPostService(postId, coverImageUrl);
-      alert('ลบบทความเรียบร้อยแล้ว');
     } catch (error: any) {
       logFirebaseError("useBlog.deleteBlogPost", error);
-      throw error;
-    }
-  }, [currentUser]);
-
-  const toggleBlogPostLike = useCallback(async (postId: string) => {
-    if (!currentUser) throw new Error("User not authenticated to like posts.");
-    try {
-      await toggleBlogPostLikeService(postId, currentUser.id);
-    } catch (error: any) {
-      logFirebaseError("useBlog.toggleBlogPostLike", error);
       throw error;
     }
   }, [currentUser]);
@@ -95,6 +87,16 @@ export const useBlog = () => {
       throw error;
     }
   }, [currentUser]);
+
+  const toggleBlogPostLike = useCallback(async (postId: string) => {
+    if (!currentUser) throw new Error("User not authenticated to like posts.");
+    try {
+      await toggleBlogPostLikeService(postId, currentUser.id);
+    } catch (error: any) {
+      logFirebaseError("useBlog.toggleBlogPostLike", error);
+      throw error;
+    }
+  }, [currentUser]);
   
   return {
     allBlogPosts,
@@ -102,10 +104,10 @@ export const useBlog = () => {
     blogComments,
     addOrUpdateBlogPost,
     deleteBlogPost,
-    toggleBlogPostLike,
     addBlogComment,
     updateBlogComment,
     deleteBlogComment,
+    toggleBlogPostLike,
     isLoadingBlog
   };
 };

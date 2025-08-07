@@ -1,26 +1,23 @@
 
-import React, { useState, useEffect, useRef } from 'react'; // Added useEffect, useRef
-import type { EnrichedWebboardPost, User } from '../types/types.ts';
-import { UserRole, View, WebboardCategory, WEBBOARD_CATEGORY_STYLES }
-from '../types/types';
-// Button component might be used for consistency if styled appropriately, or use raw <button> for icons
-// import { Button } from './Button';
-import { motion, AnimatePresence } from 'framer-motion';
 
+import React, { useState } from 'react';
+import type { EnrichedWebboardPost, User } from '../types/types.ts';
+import { View, WEBBOARD_CATEGORY_STYLES, WebboardCategory } from '../types/types.ts';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 interface WebboardPostCardProps {
-  post: EnrichedWebboardPost;
+  post: EnrichedWebboardPost & { isSaved?: boolean };
   currentUser: User | null;
   onViewPost: (postId: string) => void;
-  onToggleLike: (postId: string) => void;
-  onSavePost: (postId: string) => void;
+  onToggleLike: () => void;
+  onToggleSave: () => void;
   onSharePost: (postId: string, postTitle: string) => void;
   requestLoginForAction: (view: View, payload?: any) => void;
-  onNavigateToPublicProfile: (profileInfo: { userId: string }) => void; // Corrected type
   getAuthorDisplayName: (userId: string, fallbackName?: string) => string;
+  isSaved?: boolean;
 }
 
-// Helper function to define SVG icons (example)
 const Icon = ({ path, className = "w-4 h-4" }: { path: string; className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 20 20">
     <path fillRule="evenodd" d={path} clipRule="evenodd" />
@@ -35,22 +32,24 @@ const SavedIcon = () => <Icon path="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 
 const ShareIcon = () => <Icon path="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" className="w-4 h-4 text-neutral-500" />;
 
 
-export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
+export const WebboardPostCard: React.FC<WebboardPostCardProps> = React.memo(({
   post,
   currentUser,
   onViewPost,
   onToggleLike,
-  onSavePost,
+  onToggleSave,
   onSharePost,
   requestLoginForAction,
-  onNavigateToPublicProfile,
   getAuthorDisplayName,
+  isSaved,
 }) => {
-  const hasLiked = currentUser && post.likes.includes(currentUser.id);
-  const isSaved = currentUser?.savedWebboardPosts?.includes(post.id) || false;
-  const authorActualDisplayName = getAuthorDisplayName(post.userId, post.authorDisplayName);
+  const navigate = useNavigate();
+  
+  const [localLikeCount, setLocalLikeCount] = useState(post.likes.length);
+  const [localIsLiked, setLocalIsLiked] = useState(currentUser ? post.likes.includes(currentUser.id) : false);
+  const [localIsSaved, setLocalIsSaved] = useState(isSaved || false);
 
-  // Removed isAnimatingLike and prevHasLikedRef as Framer Motion handles animation state internally more effectively for this type of icon switch.
+  const authorActualDisplayName = getAuthorDisplayName(post.userId, post.authorDisplayName);
 
   const timeSince = (dateInput: string | Date | null | undefined): string => {
     if (dateInput === null || dateInput === undefined) return "just now";
@@ -75,24 +74,35 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
     e.stopPropagation();
     if (!currentUser) {
       requestLoginForAction(View.Webboard, { action: 'like', postId: post.id });
-    } else {
-      onToggleLike(post.id);
+      return;
     }
+    setLocalIsLiked(!localIsLiked);
+    setLocalLikeCount(prev => localIsLiked ? prev - 1 : prev + 1);
+    onToggleLike();
   };
 
   const handleSaveClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!currentUser) requestLoginForAction(View.Webboard, { action: 'save', postId: post.id });
-    else onSavePost(post.id);
+    if (!currentUser) {
+        requestLoginForAction(View.Webboard, { action: 'save', postId: post.id });
+        return;
+    }
+    setLocalIsSaved(!localIsSaved);
+    onToggleSave();
   };
 
   const handleShareClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onSharePost(post.id, post.title);
   };
+  
+  const handleNavigateToPublicProfile = (e: React.SyntheticEvent) => {
+      e.stopPropagation();
+      navigate(`/profile/${post.userId}`);
+  }
 
   const categoryStyle = WEBBOARD_CATEGORY_STYLES[post.category] || WEBBOARD_CATEGORY_STYLES[WebboardCategory.General];
-  const actionButtonBaseClass = "flex items-center gap-1 p-1.5 rounded-md hover:bg-neutral-light focus:outline-none focus:ring-1 focus:ring-neutral-DEFAULT transition-colors duration-150";
+  const actionButtonBaseClass = "flex items-center gap-1 p-1.5 rounded-md hover:bg-neutral-light focus:outline-none transition-colors duration-150";
 
 
   return (
@@ -103,7 +113,6 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
       aria-labelledby={`post-title-${post.id}`}
       whileHover={{ y: -2, transition: { duration: 0.15 } }}
     >
-      {/* Thumbnail Section */}
       <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 bg-neutral-light rounded-l-lg overflow-hidden m-3">
         {post.image ? (
           <img src={post.image} alt="Post thumbnail" className="w-full h-full object-cover" loading="lazy" decoding="async" />
@@ -114,8 +123,7 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
         )}
       </div>
 
-      {/* Content Section */}
-      <div className="flex-1 p-3 flex flex-col justify-between min-w-0"> {/* min-w-0 for text truncation */}
+      <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
         <div>
           {post.isPinned && (
             <span className="text-xs font-semibold text-yellow-600 mb-1 inline-block">📌 Pinned</span>
@@ -136,8 +144,8 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
           <div className="text-xs text-neutral-500 mt-1.5">
             <span
               className="hover:underline cursor-pointer"
-              onClick={(e) => { e.stopPropagation(); onNavigateToPublicProfile({ userId: post.userId });}}
-              role="link" tabIndex={0} onKeyPress={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onNavigateToPublicProfile({ userId: post.userId });}}}
+              onClick={handleNavigateToPublicProfile}
+              role="link" tabIndex={0} onKeyPress={(e) => { if (e.key === 'Enter') { handleNavigateToPublicProfile(e); }}}
             >
               @{authorActualDisplayName}
             </span>
@@ -150,27 +158,27 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
           <motion.button
             onClick={handleLikeClick}
             className={`${actionButtonBaseClass}`}
-            aria-pressed={hasLiked}
-            aria-label={hasLiked ? "Unlike" : "Like"}
+            aria-pressed={localIsLiked}
+            aria-label={localIsLiked ? "Unlike" : "Like"}
             whileTap={{ scale: 0.9 }}
           >
             <motion.span
-              key={hasLiked ? "liked" : "unliked"}
+              key={localIsLiked ? "liked" : "unliked"}
               initial={{ scale: 1 }}
-              animate={hasLiked ? { scale: [1, 1.3, 1], transition: { type: "spring" as const, stiffness: 400, damping: 10 } } : { scale: [1, 0.8, 1], transition: { type: "spring" as const, stiffness: 300, damping: 15 } }}
+              animate={localIsLiked ? { scale: [1, 1.3, 1], transition: { type: "spring" as const, stiffness: 400, damping: 10 } } : { scale: [1, 0.8, 1], transition: { type: "spring" as const, stiffness: 300, damping: 15 } }}
               className="inline-block"
             >
-              {hasLiked ? <LikedIcon /> : <LikeIcon />}
+              {localIsLiked ? <LikedIcon /> : <LikeIcon />}
             </motion.span>
             <AnimatePresence mode="popLayout">
               <motion.span
-                key={post.likes.length}
+                key={localLikeCount}
                 initial={{ opacity: 0, y: -3 }}
                 animate={{ opacity: 1, y: 0, transition: { duration: 0.15 } }}
                 exit={{ opacity: 0, y: 3, transition: { duration: 0.15 } }}
-                className={`${hasLiked ? 'text-red-500' : 'text-neutral-500'}`}
+                className={`${localIsLiked ? 'text-red-500' : 'text-neutral-500'}`}
               >
-                {post.likes.length}
+                {localLikeCount}
               </motion.span>
             </AnimatePresence>
           </motion.button>
@@ -189,19 +197,19 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
               <motion.button
                 onClick={handleSaveClick}
                 className={`${actionButtonBaseClass}`}
-                aria-pressed={isSaved}
-                aria-label={isSaved ? "Unsave" : "Save"}
+                aria-pressed={localIsSaved}
+                aria-label={localIsSaved ? "Unsave" : "Save"}
                 whileTap={{ scale: 0.9 }}
               >
                 <motion.span
-                  key={isSaved ? "saved" : "unsaved"}
+                  key={localIsSaved ? "saved" : "unsaved"}
                   initial={{ scale: 1 }}
                   animate={{ scale: [1, 0.8, 1.1, 1], transition: { type: "spring" as const, stiffness: 350, damping: 12 } }}
                   className="inline-block"
                 >
-                  {isSaved ? <SavedIcon/> : <SaveIcon />}
+                  {localIsSaved ? <SavedIcon/> : <SaveIcon />}
                 </motion.span>
-                <span className={`hidden sm:inline ${isSaved ? 'text-primary' : 'text-neutral-500'}`}>{isSaved ? 'Saved' : 'Save'}</span>
+                <span className={`hidden sm:inline ${localIsSaved ? 'text-primary' : 'text-neutral-500'}`}>{localIsSaved ? 'Saved' : 'Save'}</span>
               </motion.button>
 
               <motion.button
@@ -209,7 +217,7 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
                 className={`${actionButtonBaseClass} text-neutral-500`}
                 aria-label="Share"
                 whileTap={{ scale: 0.9 }}
-                animate={{ scale: 1 }} // Base state for programmatic animation
+                animate={{ scale: 1 }}
               >
                 <ShareIcon /> <span className="hidden sm:inline">Share</span>
               </motion.button>
@@ -219,4 +227,4 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = ({
       </div>
     </motion.div>
   );
-};
+});

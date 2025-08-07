@@ -4,8 +4,6 @@ import { orionAnalyzeService } from '../services/adminService.ts';
 import type { OrionMessage, OrionInsightData } from '../types/types.ts';
 import { Button } from './Button.tsx';
 import { motion, AnimatePresence } from 'framer-motion';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { OrionInsightCard } from './orion/OrionInsightCard.tsx';
 
 const TypingIndicator = () => (
@@ -27,6 +25,7 @@ export const OrionCommandCenter: React.FC = () => {
     const [inputCommand, setInputCommand] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const analysisCache = useRef<Map<string, OrionInsightData>>(new Map());
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -42,6 +41,22 @@ export const OrionCommandCenter: React.FC = () => {
         setMessages(prev => [...prev, userMessage]);
         setInputCommand('');
         setIsLoading(true);
+        
+        const usernameMatch = command.match(/@(\w+)/);
+        if (usernameMatch) {
+            const username = usernameMatch[1];
+            if (analysisCache.current.has(username)) {
+                const cachedInsight = analysisCache.current.get(username)!;
+                const orionMessage: OrionMessage = {
+                    id: `orion-cached-${Date.now()}`,
+                    sender: 'orion',
+                    insightPayload: cachedInsight,
+                };
+                setMessages(prev => [...prev, orionMessage]);
+                setIsLoading(false);
+                return;
+            }
+        }
 
         try {
             const historyForAPI = [...messages, userMessage].map(m => ({
@@ -55,6 +70,9 @@ export const OrionCommandCenter: React.FC = () => {
             let orionMessage: OrionMessage;
 
             if (typeof replyData === 'object' && replyData !== null && 'threat_level' in replyData) {
+                if (usernameMatch) {
+                    analysisCache.current.set(usernameMatch[1], replyData as OrionInsightData);
+                }
                 orionMessage = {
                     id: `orion-${Date.now()}`,
                     sender: 'orion',
@@ -122,8 +140,8 @@ export const OrionCommandCenter: React.FC = () => {
                                 }`}
                             >
                                {message.text && (
-                                   <div className="text-sm whitespace-pre-wrap">
-                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.text}</ReactMarkdown>
+                                   <div className="text-sm whitespace-pre-wrap prose prose-sm max-w-none">
+                                        <p>{message.text}</p>
                                    </div>
                                 )}
                                 {message.insightPayload && (

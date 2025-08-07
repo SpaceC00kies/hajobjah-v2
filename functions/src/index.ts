@@ -1,3 +1,4 @@
+
 import admin from "firebase-admin";
 import { GoogleGenAI, Type } from "@google/genai";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
@@ -147,6 +148,8 @@ export const orionAnalyze = onCall(commonHttpsOptions, async (request: CallableR
         systemInstruction,
         responseMimeType: "application/json",
         responseSchema,
+        temperature: 0,
+        seed: 42,
       },
     });
 

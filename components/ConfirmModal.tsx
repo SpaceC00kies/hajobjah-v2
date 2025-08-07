@@ -84,9 +84,12 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({ isOpen, onClose, onC
             <p id="confirm-modal-message" className="font-serif text-base text-neutral-dark mb-6 whitespace-pre-wrap">
               {message.includes("โปรดอ่านเพื่อความปลอดภัย") ? (
                 <>
-                  โปรดใช้ความระมัดระวัง <strong className="font-bold text-red-700">ห้ามโอนเงินก่อนเริ่มงาน</strong> และควรนัดเจอในที่ปลอดภัย
-                  <br/><br/>
-                  หาจ๊อบจ้าเป็นเพียงพื้นที่ให้คนเจอกัน โปรดใช้วิจารณญาณในการติดต่อ ฉบับเต็มโปรดอ่านที่หน้า{" "}
+                  <span className="font-sans font-semibold text-lg flex items-center gap-2 mb-2">
+                    <span>⚠️</span>
+                    <span>โปรดระวังมิจฉาชีพ</span>
+                  </span>
+                  <br/>
+                  กรุณาใช้ความระมัดระวังในการติดต่อ ควรมีการตกลงเรื่องเงินที่ชัดเจนและควรนัดเจอในที่ปลอดภัย หาจ๊อบจ้าเป็นเพียงพื้นที่ให้คนเจอกัน โปรดใช้วิจารณญาณในการติดต่อ ฉบับเต็มโปรดอ่านที่หน้า{" "}
                   <button
                     onClick={() => { onClose(); navigate('/safety'); }}
                     className="font-serif font-normal underline text-neutral-dark hover:text-secondary"

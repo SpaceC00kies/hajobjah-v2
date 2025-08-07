@@ -1,10 +1,11 @@
-
 import { useCallback } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 import {
   updateUserProfileService,
   saveUserWebboardPostService,
   unsaveUserWebboardPostService,
+  saveUserBlogPostService,
+  unsaveUserBlogPostService,
   vouchForUserService,
 } from '../services/userService.ts';
 import { toggleInterestService, logHelperContactInteractionService } from '../services/interactionService.ts';
@@ -12,30 +13,33 @@ import { getHelperProfileDocument } from '../services/helperProfileService.ts';
 import { reportVouchService } from '../services/adminService.ts';
 import type { User, Vouch, VouchType } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging.ts';
+import { getUserDocument } from '../services/userService.ts';
 
 export const useUser = () => {
   const { currentUser, setCurrentUser } = useAuth();
 
   const updateUserProfile = useCallback(
-    async (data: Partial<User>): Promise<boolean> => {
+    async (updatedProfileData: Partial<User>): Promise<void> => {
       if (!currentUser) {
-        console.error("⚠️ Not authenticated");
-        return false;
+        throw new Error("User not authenticated");
       }
       try {
-        await updateUserProfileService(currentUser.id, data);
-        console.log("✅ updateUserProfile: success");
-        return true;
-      } catch (err) {
-        console.error("❌ updateUserProfile: failure", err);
-        return false;
+        await updateUserProfileService(currentUser.id, updatedProfileData);
+        const updatedUser = await getUserDocument(currentUser.id);
+        if (updatedUser) {
+            setCurrentUser(updatedUser);
+        }
+      } catch (err: any) {
+        logFirebaseError("useUser.updateUserProfile", err);
+        throw err;
       }
     },
-    [currentUser]
+    [currentUser, setCurrentUser]
   );
 
   const toggleInterest = useCallback(async (targetId: string, targetType: 'job' | 'helperProfile', targetOwnerId: string) => {
     if (!currentUser) throw new Error("User not authenticated for toggling interest.");
+    
     try {
       await toggleInterestService(targetId, targetType, targetOwnerId, currentUser.id);
     } catch (error) {
@@ -46,6 +50,7 @@ export const useUser = () => {
   
   const saveWebboardPost = useCallback(async (postId: string) => {
     if (!currentUser) throw new Error("User not authenticated for saving post.");
+    
     try {
       const isCurrentlySaved = currentUser.savedWebboardPosts?.includes(postId);
       if (isCurrentlySaved) {
@@ -59,6 +64,22 @@ export const useUser = () => {
     }
   }, [currentUser]);
 
+  const saveBlogPost = useCallback(async (postId: string) => {
+    if (!currentUser) throw new Error("User not authenticated for saving blog post.");
+    
+    try {
+      const isCurrentlySaved = currentUser.savedBlogPosts?.includes(postId);
+      if (isCurrentlySaved) {
+        await unsaveUserBlogPostService(currentUser.id, postId);
+      } else {
+        await saveUserBlogPostService(currentUser.id, postId);
+      }
+    } catch (error) {
+      logFirebaseError("useUser.saveBlogPost", error);
+      alert("เกิดข้อผิดพลาดในการบันทึกบทความ");
+    }
+  }, [currentUser]);
+
   const vouchForUser = useCallback(async (voucheeId: string, vouchType: VouchType, comment?: string): Promise<void> => {
     if (!currentUser) {
         alert("กรุณาเข้าสู่ระบบเพื่อรับรองผู้ใช้");
@@ -67,11 +88,18 @@ export const useUser = () => {
 
     const VOUCH_LIMIT_PER_MONTH = 5;
     const now = new Date();
-    const currentPeriodStart = new Date(currentUser.postingLimits.vouchingActivity.periodStart as string);
 
-    let currentCount = currentUser.postingLimits.vouchingActivity.monthlyCount;
+    // Defensively get vouching activity, providing a default if it doesn't exist for older users.
+    const vouchingActivity = currentUser.postingLimits?.vouchingActivity || {
+        monthlyCount: 0,
+        periodStart: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(),
+    };
+
+    const currentPeriodStart = new Date(vouchingActivity.periodStart as string);
+    let currentCount = vouchingActivity.monthlyCount;
     let periodNeedsReset = false;
     
+    // Check if the vouching period has reset (new month).
     if (now.getMonth() !== currentPeriodStart.getMonth() || now.getFullYear() !== currentPeriodStart.getFullYear()) {
         periodNeedsReset = true;
         currentCount = 0;
@@ -83,17 +111,28 @@ export const useUser = () => {
     }
 
     try {
+      // This service call handles the backend transaction.
       await vouchForUserService(currentUser, voucheeId, vouchType, 'not_recorded', 'not_recorded', comment);
       
+      // Optimistically update the local user state for immediate UI feedback.
       const updatedUser = { ...currentUser };
-      if (periodNeedsReset) {
-          updatedUser.postingLimits.vouchingActivity = {
-              monthlyCount: 1,
-              periodStart: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(),
+      
+      const newVouchingActivity = periodNeedsReset
+        ? {
+            monthlyCount: 1,
+            periodStart: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(),
+          }
+        : {
+            ...vouchingActivity,
+            monthlyCount: vouchingActivity.monthlyCount + 1,
           };
-      } else {
-          updatedUser.postingLimits.vouchingActivity.monthlyCount += 1;
-      }
+
+      // Safely update the nested property.
+      updatedUser.postingLimits = {
+        ...(updatedUser.postingLimits || {}),
+        vouchingActivity: newVouchingActivity,
+      } as any;
+      
       setCurrentUser(updatedUser);
 
       alert("ขอบคุณสำหรับการรับรอง!");
@@ -133,6 +172,7 @@ export const useUser = () => {
     updateUserProfile,
     toggleInterest,
     saveWebboardPost,
+    saveBlogPost,
     vouchForUser,
     reportVouch,
     logContact,

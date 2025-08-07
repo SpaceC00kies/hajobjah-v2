@@ -1,6 +1,6 @@
 
+
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 // Define own props for the Button
 interface ButtonOwnProps {
@@ -10,8 +10,8 @@ interface ButtonOwnProps {
   colorScheme?: 'primary' | 'secondary' | 'accent' | 'neutral' | 'brandGreen';
 }
 
-// Combine own props with all valid props for motion.button
-type ButtonProps = ButtonOwnProps & React.ComponentProps<typeof motion.button>;
+// Combine own props with all valid props for a standard HTML button
+type ButtonProps = ButtonOwnProps & React.ComponentProps<'button'>;
 
 export const Button: React.FC<ButtonProps> = ({
   children,
@@ -19,17 +19,18 @@ export const Button: React.FC<ButtonProps> = ({
   size = 'md',
   colorScheme = 'primary',
   className: passedClassName,
+  type = 'button', // Default type to 'button'
   ...restProps 
 }) => {
-  const baseStyle = 'inline-flex items-center justify-center font-sans font-medium rounded-full shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-opacity-60 active:shadow-inner transition-all duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none relative';
+  const baseStyle = `inline-flex items-center justify-center font-sans font-medium rounded-full active:shadow-inner transition-[background-color,box-shadow,opacity,transform] duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none relative`;
 
   let variantStyle = '';
   switch (variant) {
     case 'primary':
-      variantStyle = `bg-primary text-white hover:bg-primary-dark focus:ring-primary`;
+      variantStyle = `bg-primary text-white hover:bg-primary-dark focus:ring-primary disabled:bg-primary-dark`;
       break;
     case 'secondary':
-      variantStyle = `bg-secondary text-primary-dark hover:bg-secondary-hover focus:ring-secondary`;
+      variantStyle = `bg-secondary text-primary-dark hover:bg-secondary-hover focus:ring-secondary disabled:bg-secondary-hover`;
       break;
     case 'accent':
       variantStyle = `bg-accent text-white hover:bg-accent focus:ring-accent`;
@@ -38,32 +39,32 @@ export const Button: React.FC<ButtonProps> = ({
       variantStyle = `bg-brandGreen text-white hover:bg-brandGreen focus:ring-brandGreen`;
       break;
     case 'ghost':
-      variantStyle = `bg-transparent hover:bg-neutral-light/50 text-neutral-dark focus:ring-neutral-dark`;
+      variantStyle = `bg-transparent hover:bg-neutral-light/50 text-neutral-dark focus:ring-neutral-dark disabled:bg-neutral-light/50`;
       break;
     case 'icon':
-      variantStyle = 'bg-transparent shadow-none hover:shadow-none hover:bg-transparent focus:outline-none focus:ring-0 focus:ring-offset-0';
+      variantStyle = 'bg-transparent hover:bg-transparent';
       break;
     case 'outline': {
       const scheme = colorScheme;
       if (scheme === 'neutral') {
         variantStyle = `
           bg-transparent border
-          border-neutral-dark/30 text-neutral-dark hover:bg-neutral-dark/5 hover:border-neutral-dark/50 focus:ring-neutral-dark
+          border-neutral-dark/30 text-neutral-dark hover:bg-neutral-dark/5 hover:border-neutral-dark/50 focus:ring-neutral-dark disabled:bg-neutral-dark/5
         `;
       } else if (scheme === 'brandGreen') {
         variantStyle = `
           bg-transparent border
-          border-brandGreen text-brandGreen-text hover:bg-brandGreen hover:text-white focus:ring-brandGreen
+          border-brandGreen text-brandGreen-text hover:bg-brandGreen hover:text-white focus:ring-brandGreen disabled:bg-brandGreen disabled:text-white
         `;
       } else if (scheme === 'secondary') {
         variantStyle = `
           bg-transparent border
-          border-secondary text-neutral-dark hover:bg-secondary-hover hover:text-white focus:ring-secondary
+          border-secondary text-neutral-dark hover:bg-secondary-hover hover:text-white focus:ring-secondary disabled:bg-secondary-hover disabled:text-white
         `;
       } else { // primary, accent
         variantStyle = `
           bg-primary-light border border-primary text-primary-dark
-          hover:bg-primary-hover hover:text-white focus:ring-primary
+          hover:bg-primary-hover hover:text-white focus:ring-primary disabled:bg-primary-hover disabled:text-white
         `;
       }
       break;
@@ -96,40 +97,29 @@ export const Button: React.FC<ButtonProps> = ({
         break;
     }
   }
+  
+  const interactiveStyles = (variant !== 'icon' && variant !== 'outline')
+    ? 'shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-opacity-60'
+    : 'shadow-none focus:outline-none focus:ring-0 focus:ring-offset-0';
+
 
   const finalClassName = [
     baseStyle, 
     variantStyle, 
-    sizeStyle, 
+    sizeStyle,
+    interactiveStyles,
     passedClassName,
   ]
     .filter(Boolean)
     .join(' ');
 
-  const hoverAnimation = variant === 'icon' 
-    ? { scale: 1.1 } 
-    : { scale: 1.03, y: -1 };
-
   return (
-    <motion.button
+    <button
       className={finalClassName}
-      whileHover={restProps.disabled ? undefined : hoverAnimation}
-      whileTap={{ scale: 0.97, y: 0 }}
-      transition={{ duration: 0.2, ease: "easeOut" as const }}
+      type={type}
       {...restProps}
     >
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.span
-          key={children ? children.toString() : 'empty'}
-          initial={{ opacity: 0, y: -5 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 5 }}
-          transition={{ duration: 0.15 }}
-          style={{ display: 'inline-block' }}
-        >
-          {children}
-        </motion.span>
-      </AnimatePresence>
-    </motion.button>
+        {children}
+    </button>
   );
 };

@@ -11,7 +11,6 @@ import { containsBlacklistedWords } from '../utils/validation.ts';
 type FormDataType = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt'>;
 
 interface OfferHelpFormProps {
-  onCancel: () => void;
   isEditing?: boolean;
 }
 
@@ -19,7 +18,7 @@ const initialFormStateForCreate: FormDataType = {
   profileTitle: '',
   details: '',
   area: '',
-  province: Province.ChiangMai,
+  province: '' as Province,
   category: '' as JobCategory,
   subCategory: undefined,
   availability: '',
@@ -30,8 +29,9 @@ const initialFormStateForCreate: FormDataType = {
 
 type FormErrorsType = Partial<Record<Exclude<keyof HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt'>, string>>;
 
+const MAX_TITLE_LENGTH = 80;
 
-export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onCancel, isEditing }) => {
+export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ isEditing }) => {
   const { currentUser } = useAuth();
   const { profileId } = useParams<{ profileId: string }>();
   const location = useLocation();
@@ -177,6 +177,15 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onCancel, isEditin
         alert(`เกิดข้อผิดพลาด: ${error.message}`);
     }
   };
+  
+  const handleCancel = () => {
+    const { from } = location.state || {};
+    if (from) {
+      navigate(-1); // Go back if we came from a specific page
+    } else {
+      navigate('/find-helpers'); // Default to the main listing page
+    }
+  };
 
   const baseProfileFields = [
     { name: 'profileTitle', label: 'หัวข้อโปรไฟล์/บริการ', placeholder: 'เช่น รับจ้างขนของ, ช่วยสอนพิเศษคณิต', type: 'text', required: true },
@@ -193,6 +202,8 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onCancel, isEditin
     if (typeof dateValue === 'string') return dateValue;
     return dateValue.toISOString().split('T')[0];
   };
+
+  const titleCharCount = formData.profileTitle.length;
 
   return (
     <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-2xl mx-auto my-8 border border-neutral-DEFAULT">
@@ -228,7 +239,13 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onCancel, isEditin
                   placeholder={field.name === 'profileTitle' ? 'เช่น รับจ้างทำบัญชี, ช่วยสอนพิเศษคณิตศาสตร์, รับตัดต่อวิดีโอ' : field.placeholder}
                   className={`${inputBaseStyle} ${formErrors[field.name as keyof FormErrorsType] ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
                   disabled={!canSubmit && !isEditing}
+                  maxLength={field.name === 'profileTitle' ? MAX_TITLE_LENGTH : undefined}
                 />
+                 {field.name === 'profileTitle' && (
+                  <div className={`text-right text-xs mt-1 ${titleCharCount > MAX_TITLE_LENGTH - 10 ? 'text-red-500' : 'text-neutral-medium'}`}>
+                    {titleCharCount} / {MAX_TITLE_LENGTH}
+                  </div>
+                )}
                 {formErrors[field.name as keyof FormErrorsType] && <p className="text-red-500 font-sans text-xs mt-1 font-normal">{formErrors[field.name as keyof FormErrorsType]}</p>}
             </div>
             ))}
@@ -245,6 +262,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onCancel, isEditin
                 className={`${selectBaseStyle} ${formErrors.province ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
                 disabled={!canSubmit && !isEditing}
               >
+                <option value="" disabled>-- เลือกจังหวัด --</option>
                 {Object.values(Province).map(provinceValue => (
                   <option key={provinceValue} value={provinceValue}>{provinceValue}</option>
                 ))}
@@ -311,7 +329,7 @@ export const OfferHelpForm: React.FC<OfferHelpFormProps> = ({ onCancel, isEditin
           <Button type="submit" variant="secondary" size="lg" className="w-full sm:w-auto flex-grow" disabled={!canSubmit && !isEditing}>
             {isEditing ? '💾 บันทึกการแก้ไข' : (canSubmit ? 'ส่งโปรไฟล์' : 'ไม่สามารถส่งโปรไฟล์')}
           </Button>
-          <Button type="button" onClick={onCancel} variant="outline" colorScheme="secondary" size="lg" className="w-full sm:w-auto flex-grow">
+          <Button type="button" onClick={handleCancel} variant="outline" colorScheme="secondary" size="lg" className="w-full sm:w-auto flex-grow">
             ยกเลิก
           </Button>
         </div>

@@ -300,7 +300,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
           <Button type="button" onClick={onClose} variant="outline" colorScheme="neutral" size="md">
             ยกเลิก
           </Button>
-          <Button type="submit" variant="login" size="md" disabled={!canSubmitForm && !editingPost}>
+          <Button type="submit" variant="secondary" size="md" disabled={!canSubmitForm && !editingPost}>
             {editingPost ? '💾 บันทึกการแก้ไข' : (canSubmitForm ? '🚀 โพสต์กระทู้' : 'ไม่สามารถโพสต์')}
           </Button>
         </div>

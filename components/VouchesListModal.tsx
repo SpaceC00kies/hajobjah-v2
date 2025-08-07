@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from './Button.tsx';
 import { Modal } from './Modal.tsx';
-import type { User, Vouch } from '../types/types';
-import { VOUCH_TYPE_LABELS } from '../types/types';
+import type { User, Vouch } from '../types/types.ts';
+import { VOUCH_TYPE_LABELS } from '../types/types.ts';
 import { getVouchesForUserService } from '../services/userService.ts';
 import { logFirebaseError } from '../firebase/logging.ts';
 import { useUser } from '../hooks/useUser.ts';
@@ -12,7 +12,7 @@ interface VouchesListModalProps {
   onClose: () => void;
   userToList: User;
   navigateToPublicProfile: (userId: string) => void;
-  onReportVouch: (vouch: Vouch) => void;
+  onReportVouch: (vouch: Vouch, mode: 'report' | 'withdraw') => void;
   currentUser: User | null;
 }
 
@@ -47,11 +47,6 @@ export const VouchesListModal: React.FC<VouchesListModalProps> = ({
     }
   }, [isOpen, userToList.id]);
 
-  const handleReportClick = (e: React.MouseEvent, vouch: Vouch) => {
-    e.stopPropagation();
-    onReportVouch(vouch);
-  };
-
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`⭐ การรับรองสำหรับ @${userToList.publicDisplayName}`}>
       <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
@@ -61,38 +56,49 @@ export const VouchesListModal: React.FC<VouchesListModalProps> = ({
           <p className="text-center text-neutral-medium">ยังไม่มีข้อมูลการรับรอง</p>
         )}
         {!isLoading && vouches.length > 0 && (
-          vouches.map(vouch => (
-            <div key={vouch.id} className="p-3 bg-neutral-light/50 rounded-lg border border-neutral-DEFAULT/30">
-              <div className="flex items-start justify-between">
-                <div>
-                  <button
-                    onClick={() => navigateToPublicProfile(vouch.voucherId)}
-                    className="text-sm font-semibold text-neutral-dark hover:underline"
-                  >
-                    @{vouch.voucherDisplayName}
-                  </button>
-                  <span className="block text-xs font-medium text-blue-600">
-                    {VOUCH_TYPE_LABELS[vouch.vouchType]}
-                  </span>
+          vouches.map(vouch => {
+            const isOwnVouch = currentUser && currentUser.id === vouch.voucherId;
+            const reportMode = isOwnVouch ? 'withdraw' : 'report';
+            const reportButtonText = isOwnVouch ? 'ขอถอน' : 'Report';
+            const reportButtonIcon = isOwnVouch ? '💬' : '🚩';
+            const reportButtonTitle = isOwnVouch ? 'ขอถอนการรับรองนี้' : 'รายงานการรับรองนี้';
+            
+            return (
+              <div key={vouch.id} className="p-3 bg-neutral-light/50 rounded-lg border border-neutral-DEFAULT/30">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <button
+                      onClick={() => navigateToPublicProfile(vouch.voucherId)}
+                      className="text-sm font-semibold text-neutral-dark hover:underline"
+                    >
+                      @{vouch.voucherDisplayName}
+                    </button>
+                    <span className="block text-xs font-medium text-blue-600">
+                      {VOUCH_TYPE_LABELS[vouch.vouchType]}
+                    </span>
+                  </div>
+                  {currentUser && (
+                     <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onReportVouch(vouch, reportMode);
+                      }}
+                      className="text-xs text-neutral-medium hover:text-red-500 p-1 rounded-full flex items-center gap-1"
+                      title={reportButtonTitle}
+                    >
+                      <span className="text-base">{reportButtonIcon}</span>
+                      <span className="hidden sm:inline">{reportButtonText}</span>
+                    </button>
+                  )}
                 </div>
-                {currentUser && (
-                   <button
-                    onClick={(e) => handleReportClick(e, vouch)}
-                    className="text-xs text-neutral-medium hover:text-red-500 p-1 rounded-full flex items-center gap-1"
-                    title="รายงานการรับรองนี้"
-                  >
-                    <span className="text-base">🚩</span>
-                    <span className="hidden sm:inline">Report</span>
-                  </button>
+                {vouch.comment && (
+                  <p className="mt-2 text-sm text-neutral-dark pl-2 border-l-2 border-neutral-DEFAULT">
+                    "{vouch.comment}"
+                  </p>
                 )}
               </div>
-              {vouch.comment && (
-                <p className="mt-2 text-sm text-neutral-dark pl-2 border-l-2 border-neutral-DEFAULT">
-                  "{vouch.comment}"
-                </p>
-              )}
-            </div>
-          ))
+            );
+          })
         )}
       </div>
        <div className="text-center mt-6">

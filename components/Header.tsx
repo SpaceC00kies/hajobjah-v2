@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { User, WebboardPost, WebboardComment } from '../types/types.ts';
-import { UserRole, ACTIVITY_BADGE_DETAILS } from '../types/types.ts';
-import { UserLevelBadge } from './UserLevelBadge.tsx';
+import { UserRole } from '../types/types.ts';
 import { getUserDisplayBadge } from '../utils/userUtils.ts';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -58,13 +57,9 @@ const DesktopGreeting: React.FC<{ currentUser: User }> = ({ currentUser }) => (
     </div>
 );
 
-const MobileGreeting: React.FC<{ currentUser: User, badge: any, activityBadge: any }> = ({ currentUser, badge, activityBadge }) => (
+const MobileGreeting: React.FC<{ currentUser: User }> = ({ currentUser }) => (
     <div className="font-sans font-medium text-base mb-3 py-2 px-4 border-b border-primary-light w-full text-primary-dark flex flex-col items-center justify-center">
         <span>สวัสดี, {currentUser.publicDisplayName}!</span>
-        <div className="flex items-center mt-1">
-            <UserLevelBadge level={badge} size="sm" />
-            {currentUser.activityBadge?.isActive && <UserLevelBadge level={activityBadge} size="sm" />}
-        </div>
     </div>
 );
 
@@ -77,8 +72,6 @@ export const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, allWebboa
         navigate(path);
         setIsMobileMenuOpen(false);
     };
-
-    const displayBadgeForProfile = getUserDisplayBadge(currentUser, allWebboardPostsForAdmin, webboardComments);
     
     type NavItem = {
         label: string;
@@ -159,7 +152,7 @@ export const Header: React.FC<HeaderProps> = ({ currentUser, onLogout, allWebboa
                             </button>
                         </div>
                         <motion.div className="flex flex-col items-start p-5 space-y-2" variants={menuContentVariants}>
-                            {currentUser && <MobileGreeting currentUser={currentUser} badge={displayBadgeForProfile} activityBadge={ACTIVITY_BADGE_DETAILS} />}
+                            {currentUser && <MobileGreeting currentUser={currentUser} />}
                             {renderLinks(true)}
                         </motion.div>
                     </motion.div>

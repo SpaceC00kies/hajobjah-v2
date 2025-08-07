@@ -25,7 +25,7 @@ import {
 } from '@firebase/firestore';
 import { db } from '../firebaseConfig.ts';
 import type { User, Vouch, VouchType } from '../types/types.ts';
-import { logFirebaseError } from '../firebase/logging';
+import { logFirebaseError } from '../firebase/logging.ts';
 import { convertTimestamps, cleanDataForFirestore } from './serviceUtils';
 import { uploadImageService, deleteImageService } from './storageService';
 
@@ -33,7 +33,7 @@ const USERS_COLLECTION = 'users';
 const VOUCHES_COLLECTION = 'vouches';
 
 const DISPLAY_NAME_COOLDOWN_DAYS = 14;
-type UserProfileUpdateData = Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username' | 'postingLimits' | 'activityBadge' | 'userLevel' | 'tier' | 'savedWebboardPosts' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount' | 'vouchInfo' | 'lastLoginIP' | 'lastLoginUserAgent'>>;
+type UserProfileUpdateData = Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username' | 'postingLimits' | 'activityBadge' | 'userLevel' | 'tier' | 'savedWebboardPosts' | 'savedBlogPosts' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount' | 'vouchInfo' | 'lastLoginIP' | 'lastLoginUserAgent'>>;
 
 export const updateUserProfileService = async (
   userId: string,
@@ -143,6 +143,31 @@ export const unsaveUserWebboardPostService = async (userId: string, postId: stri
     throw error;
   }
 };
+
+export const saveUserBlogPostService = async (userId: string, postId: string): Promise<void> => {
+  try {
+    const userRef = doc(db, USERS_COLLECTION, userId);
+    await updateDoc(userRef, {
+      savedBlogPosts: arrayUnion(postId)
+    });
+  } catch (error: any) {
+    logFirebaseError("saveUserBlogPostService", error);
+    throw error;
+  }
+};
+
+export const unsaveUserBlogPostService = async (userId: string, postId: string): Promise<void> => {
+  try {
+    const userRef = doc(db, USERS_COLLECTION, userId);
+    await updateDoc(userRef, {
+      savedBlogPosts: arrayRemove(postId)
+    });
+  } catch (error: any) {
+    logFirebaseError("unsaveUserBlogPostService", error);
+    throw error;
+  }
+};
+
 
 export const subscribeToUserSavedPostsService = (userId: string, callback: (savedPostIds: string[]) => void): (() => void) => {
   const userDocRef = doc(db, USERS_COLLECTION, userId);

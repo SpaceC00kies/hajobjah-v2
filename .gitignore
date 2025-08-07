@@ -345,3 +345,5 @@ functions/src/listingService copy.ts
 .next/types/app/search/page.ts
 .next/types/app/webboard/\[postId\]/page.ts
 .next/types/app/webboard/page.ts
+vite copy.config.ts
+.vercel

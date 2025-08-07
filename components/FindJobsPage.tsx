@@ -1,13 +1,14 @@
 
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import type { Job, FilterableCategory, JobSubCategory, User, PaginatedDocsResponse, Cursor } from '../types/types.ts';
-import { View, JobCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
+import type { Job, FilterableCategory, JobSubCategory, PaginatedDocsResponse, Cursor } from '../types/types.ts';
+import { JobCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
 import { JobCard } from './JobCard.tsx';
 import { getJobsPaginated } from '../services/jobService.ts';
-import { useUser } from '../hooks/useUser.ts';
 import { useData } from '../context/DataContext.tsx';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useUsers } from '../hooks/useUsers.ts';
+import { useUser } from '../hooks/useUser.ts';
 import { motion } from 'framer-motion';
 import { FilterSidebar } from './FilterSidebar.tsx';
 import { useNavigate } from 'react-router-dom';
@@ -25,14 +26,17 @@ const itemVariants = {
   visible: { y: 0, opacity: 1 },
 };
 
+type EnrichedJob = Job;
+
 export const FindJobsPage: React.FC = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const { users } = useUsers();
   const { userInterests } = useData();
   const userActions = useUser();
-
-  const [jobs, setJobs] = useState<Job[]>([]);
+  
+  const [jobs, setJobs] = useState<EnrichedJob[]>([]);
+  
   const [isLoading, setIsLoading] = useState(true);
   const [cursor, setCursor] = useState<Cursor | null>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -46,6 +50,19 @@ export const FindJobsPage: React.FC = () => {
   const loaderRef = useRef<HTMLDivElement>(null);
   const isLoadingRef = useRef(isLoading);
   const hasMoreRef = useRef(hasMore);
+  const scrollPositionRef = useRef(0);
+
+  useEffect(() => {
+    const saveScroll = () => {
+      scrollPositionRef.current = window.scrollY;
+    };
+    window.addEventListener('scroll', saveScroll);
+    return () => window.removeEventListener('scroll', saveScroll);
+  }, []);
+
+  useEffect(() => {
+    window.scrollTo(0, scrollPositionRef.current);
+  }, [jobs]);
   
   const getAuthorDisplayName = useCallback((userId: string, fallbackName?: string): string => {
     const author = users.find(u => u && u.id === userId);
@@ -71,7 +88,9 @@ export const FindJobsPage: React.FC = () => {
         selectedProvince
       );
       
-      setJobs(prev => isInitialLoad ? result.items : [...prev, ...result.items]);
+      const enriched = result.items.map(job => ({ ...job }));
+
+      setJobs(prev => isInitialLoad ? enriched : [...prev, ...enriched]);
       setCursor(result.cursor);
       setHasMore(!!result.cursor);
     } catch (error) {
@@ -82,7 +101,6 @@ export const FindJobsPage: React.FC = () => {
     }
   }, [debouncedSearchTerm, cursor, selectedCategory, selectedProvince, selectedSubCategory]);
 
-
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
@@ -91,9 +109,10 @@ export const FindJobsPage: React.FC = () => {
   }, [searchTerm]);
 
   useEffect(() => {
+    setJobs([]);
     loadJobs(true);
   }, [debouncedSearchTerm, selectedCategory, selectedSubCategory, selectedProvince]);
-
+  
   useEffect(() => {
     if (selectedCategory !== 'all' && JOB_SUBCATEGORIES_MAP[selectedCategory]) {
       setAvailableSubCategories(JOB_SUBCATEGORIES_MAP[selectedCategory]);
@@ -119,12 +138,10 @@ export const FindJobsPage: React.FC = () => {
     return () => { if (currentLoader) observer.unobserve(currentLoader); };
   }, [loadJobs]);
   
-
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="text-center mb-8">
         <h2 className="text-3xl font-sans font-bold text-primary-dark mb-2">📢 ประกาศงาน</h2>
-        <p className="text-neutral-medium font-serif">เวลาและทักษะตรงกับงานไหน ติดต่อเลย!</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-x-8">
@@ -160,24 +177,21 @@ export const FindJobsPage: React.FC = () => {
               initial="hidden"
               animate="visible"
             >
-              {jobs.map(job => (
-                <motion.div key={job.id} variants={itemVariants}>
-                  <JobCard
-                    job={job}
-                    navigate={navigate}
-                    onNavigateToPublicProfile={(info) => navigate(`/profile/${info.userId}`)}
-                    currentUser={currentUser}
-                    requestLoginForAction={() => navigate('/login')}
-                    onEditJobFromFindView={(jobId) => {
-                        const jobToEdit = jobs.find(j => j.id === jobId);
-                        navigate(`/job/edit/${jobId}`, { state: { from: '/find-jobs', item: jobToEdit } });
-                    }}
-                    getAuthorDisplayName={getAuthorDisplayName}
-                    onToggleInterest={userActions.toggleInterest}
-                    isInterested={userInterests.some(i => i.targetId === job.id)}
-                  />
-                </motion.div>
-              ))}
+              {jobs.map(job => {
+                const author = users.find(u => u.id === job.userId);
+                return (
+                  <motion.div key={job.id} variants={itemVariants}>
+                    <JobCard
+                      job={job}
+                      currentUser={currentUser}
+                      getAuthorDisplayName={getAuthorDisplayName}
+                      onToggleInterest={() => userActions.toggleInterest(job.id, 'job', job.userId)}
+                      isInterested={userInterests.some(i => i.targetId === job.id)}
+                      authorPhotoUrl={author?.photo}
+                    />
+                  </motion.div>
+                );
+              })}
             </motion.div>
           )}
 

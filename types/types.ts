@@ -189,6 +189,7 @@ export interface User {
   postingLimits: UserPostingLimits;
   activityBadge: UserActivityBadge;
   savedWebboardPosts?: string[]; // Array of saved post IDs
+  savedBlogPosts?: string[]; // Array of saved blog post IDs
 
   // Business Profile Fields
   isBusinessProfile?: boolean; // New field for business profile toggle
@@ -210,7 +211,7 @@ export interface User {
   lastLoginUserAgent?: string;
 }
 
-export type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook' | 'isBusinessProfile' | 'businessName' | 'businessType' | 'businessAddress' | 'businessWebsite' | 'businessSocialProfileLink' | 'aboutBusiness' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount' | 'vouchInfo' | 'lastLoginIP' | 'lastLoginUserAgent'> & { password: string };
+export type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'savedBlogPosts' |'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook' | 'isBusinessProfile' | 'businessName' | 'businessType' | 'businessAddress' | 'businessWebsite' | 'businessSocialProfileLink' | 'aboutBusiness' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount' | 'vouchInfo' | 'lastLoginIP' | 'lastLoginUserAgent'> & { password: string };
 
 export enum View {
   Home = 'HOME',
@@ -275,6 +276,12 @@ export const VOUCH_TYPE_LABELS: Record<VouchType, string> = {
   [VouchType.Personal]: 'รู้จักเป็นการส่วนตัว (เพื่อน, คนรู้จัก)',
 };
 
+export enum VouchReportStatus {
+  Pending = 'pending_review',
+  ResolvedKept = 'resolved_kept',
+  ResolvedDeleted = 'resolved_deleted',
+}
+
 export interface Vouch {
   id: string;
   voucherId: string;
@@ -283,14 +290,8 @@ export interface Vouch {
   vouchType: VouchType;
   comment?: string;
   createdAt: string | Date;
-  creatorIP?: string; // For moderation HUD
-  creatorUserAgent?: string; // For moderation HUD
-}
-
-export enum VouchReportStatus {
-  Pending = 'pending_review',
-  ResolvedKept = 'resolved_kept',
-  ResolvedDeleted = 'resolved_deleted',
+  creatorIP: string;
+  creatorUserAgent: string;
 }
 
 export interface VouchReport {
@@ -524,21 +525,23 @@ export type FilterableBlogCategory = BlogCategory | 'all';
 export interface BlogPost {
   id: string;
   title: string;
-  slug: string; // e.g., "how-to-write-a-great-resume"
-  content: string; // Storing HTML or JSON from the rich text editor
+  slug: string;
+  metaTitle?: string;
+  content: string;
   excerpt: string;
-  coverImageURL?: string; // Optional now
-  authorId: string; // The User ID of the writer
-  authorDisplayName: string; // Denormalized for performance
-  authorPhotoURL?: string; // Denormalized
+  coverImageURL?: string;
+  coverImageAltText?: string;
+  authorId: string;
+  authorDisplayName: string;
+  authorPhotoURL?: string;
   status: 'draft' | 'published' | 'archived';
   category: BlogCategory | '';
   tags: string[];
   createdAt: string | Date;
-  publishedAt?: string | Date; // Set only when status becomes 'published'
+  publishedAt?: string | Date;
   updatedAt: string | Date;
-  likes: string[]; // Array of user IDs
-  likeCount: number; // Denormalized count
+  likes: string[];
+  likeCount: number;
 }
 
 export interface BlogComment {

@@ -1,3 +1,4 @@
+import './index.css';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from '/App.tsx';
@@ -8,7 +9,7 @@ import { JobsProvider } from './context/JobsContext.tsx';
 import { HelpersProvider } from './context/HelpersContext.tsx';
 import { WebboardProvider } from './context/WebboardContext.tsx';
 import { BlogProvider } from './context/BlogContext.tsx';
-import { HashRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -17,23 +18,21 @@ if (!rootElement) {
 
 const root = ReactDOM.createRoot(rootElement);
 root.render(
-  <React.StrictMode>
-    <AuthProvider>
-      <UsersProvider>
-        <JobsProvider>
-          <HelpersProvider>
-            <WebboardProvider>
-              <BlogProvider>
-                <DataProvider>
-                  <HashRouter>
-                    <App />
-                  </HashRouter>
-                </DataProvider>
-              </BlogProvider>
-            </WebboardProvider>
-          </HelpersProvider>
-        </JobsProvider>
-      </UsersProvider>
-    </AuthProvider>
-  </React.StrictMode>
+  <AuthProvider>
+    <UsersProvider>
+      <JobsProvider>
+        <HelpersProvider>
+          <WebboardProvider>
+            <BlogProvider>
+              <DataProvider>
+                <BrowserRouter>
+                  <App />
+                </BrowserRouter>
+              </DataProvider>
+            </BlogProvider>
+          </WebboardProvider>
+        </HelpersProvider>
+      </JobsProvider>
+    </UsersProvider>
+  </AuthProvider>
 );

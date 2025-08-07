@@ -1,33 +1,25 @@
-import { useCallback } from 'react';
-import { useAuth } from '../context/AuthContext.tsx';
-import { useJobs } from './useJobs.ts';
-import { useHelpers } from './useHelpers.ts';
-import { useWebboard } from './useWebboard.ts';
-import { useBlog } from './useBlog.ts';
+
+import React, { useCallback } from 'react';
+import type { User, UserRole, VouchReport, VouchReportStatus, VouchType, WebboardPost } from '../types/types.ts';
 import {
   setSiteLockService,
   setUserRoleService,
   resolveVouchReportService,
-  getVouchDocument,
-  orionAnalyzeService,
+  getVouchDocument as getVouchDocumentService,
   forceResolveVouchReportService,
-  toggleItemFlagService,
+  orionAnalyzeService as orionAnalyzeServiceFunction,
 } from '../services/adminService.ts';
-import { getUserDocument } from '../services/userService.ts';
-import type { UserRole, VouchReportStatus, VouchType } from '../types/types.ts';
+import { getUserDocument as getUserDocumentService } from '../services/userService.ts';
+import { useAuth } from '../context/AuthContext.tsx';
 import { logFirebaseError } from '../firebase/logging.ts';
 
 export const useAdmin = () => {
   const { currentUser } = useAuth();
-  const { toggleSuspiciousJob, togglePinnedJob, toggleVerifiedJob } = useJobs();
-  const { onToggleSuspiciousHelperProfile: toggleSuspiciousHelperProfile, onTogglePinnedHelperProfile: togglePinnedHelperProfile, onToggleVerifiedExperience: toggleVerifiedExperience } = useHelpers();
-  const { allWebboardPostsForAdmin, canEditOrDelete: canWebboardEditOrDelete } = useWebboard();
-  const { deleteBlogPost } = useBlog();
 
   const checkAdmin = useCallback(() => {
-      if (!currentUser || currentUser.role !== 'Admin') {
-          throw new Error("Permission denied. Administrator access required.");
-      }
+    if (!currentUser || currentUser.role !== 'Admin') {
+      throw new Error("Permission denied. Administrator access required.");
+    }
   }, [currentUser]);
 
   const setUserRole = useCallback(async (userIdToUpdate: string, newRole: UserRole) => {
@@ -51,7 +43,7 @@ export const useAdmin = () => {
       throw error;
     }
   }, [currentUser, checkAdmin]);
-  
+
   const resolveVouchReport = useCallback(async (reportId: string, resolution: VouchReportStatus.ResolvedDeleted | VouchReportStatus.ResolvedKept, vouchId: string, voucheeId: string, vouchType?: VouchType) => {
     checkAdmin();
     try {
@@ -62,6 +54,21 @@ export const useAdmin = () => {
       throw error;
     }
   }, [currentUser, checkAdmin]);
+  
+  const getVouchDocument = useCallback(async (vouchId: string) => {
+      checkAdmin();
+      return getVouchDocumentService(vouchId);
+  }, [checkAdmin]);
+  
+  const getUserDocument = useCallback(async (userId: string) => {
+      checkAdmin();
+      return getUserDocumentService(userId);
+  }, [checkAdmin]);
+  
+  const orionAnalyzeService = useCallback(async (params: { command: string; history: any[] }) => {
+      checkAdmin();
+      return orionAnalyzeServiceFunction(params);
+  }, [checkAdmin]);
 
   const forceResolveVouchReport = useCallback(async (reportId: string, vouchId: string, voucheeId: string, vouchType: VouchType | null) => {
     checkAdmin();
@@ -74,12 +81,6 @@ export const useAdmin = () => {
     }
   }, [currentUser, checkAdmin]);
 
-  const pinWebboardPost = useCallback(async (postId: string) => {
-    const post = allWebboardPostsForAdmin.find(p => p.id === postId);
-    if (!post || !canWebboardEditOrDelete(post.userId, post.ownerId)) throw new Error("Permission denied");
-    await toggleItemFlagService('webboardPosts', postId, 'isPinned', post.isPinned);
-  }, [allWebboardPostsForAdmin, canWebboardEditOrDelete]);
-
   return {
     setUserRole,
     toggleSiteLock,
@@ -88,13 +89,5 @@ export const useAdmin = () => {
     getUserDocument,
     orionAnalyzeService,
     forceResolveVouchReport,
-    toggleSuspiciousJob,
-    togglePinnedJob,
-    toggleVerifiedJob,
-    toggleSuspiciousHelperProfile,
-    togglePinnedHelperProfile,
-    toggleVerifiedExperience,
-    pinWebboardPost,
-    deleteBlogPost,
   };
 };
