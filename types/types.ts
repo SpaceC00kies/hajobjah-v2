@@ -1,4 +1,3 @@
-import type { DocumentSnapshot, DocumentData } from '@firebase/firestore';
 
 export interface PaginatedDocsResponse<T> {
   items: T[];
@@ -15,28 +14,45 @@ export enum Province {
   Bangkok = 'กรุงเทพมหานคร',
 }
 
+export enum PaymentType {
+  Hourly = 'รายชั่วโมง',
+  Daily = 'รายวัน',
+  Weekly = 'รายสัปดาห์',
+  Monthly = 'รายเดือน',
+  Contract = 'ตามสัญญาจ้าง',
+  Negotiable = 'ตามตกลง',
+}
+
 export interface Job {
   id: string;
   title: string;
-  location: string;
-  province: Province; // Added province
-  dateTime: string;
-  payment: string;
-  contact: string;
+  province: Province;
+  district?: string; // New required field for structured location
+  location?: string; // Old location field, now optional for shop name/details
+  dateTime: string; // Kept for backward compatibility display & simple search
+  payment: string; // Kept for backward compatibility display & simple search
   description: string;
   category: JobCategory;
   subCategory?: JobSubCategory;
-  desiredAgeStart?: number;
-  desiredAgeEnd?: number;
-  preferredGender?: 'ชาย' | 'หญิง' | 'ไม่จำกัด';
-  desiredEducationLevel?: JobDesiredEducationLevelOption;
+
+  // New structured fields
+  paymentType?: PaymentType;
+  paymentAmount?: number;
+  paymentAmountMax?: number;
   dateNeededFrom?: string | Date;
   dateNeededTo?: string | Date;
   timeNeededStart?: string;
   timeNeededEnd?: string;
+
+  desiredAgeStart?: number;
+  desiredAgeEnd?: number;
+  preferredGender?: 'ชาย' | 'หญิง' | 'ไม่จำกัด';
+  desiredEducationLevel?: JobDesiredEducationLevelOption;
+
   postedAt?: string | Date;
   userId: string;
   authorDisplayName: string;
+  contact: string;
   ownerId?: string;
   isSuspicious?: boolean;
   isPinned?: boolean;
@@ -47,7 +63,7 @@ export interface Job {
   // New fields for expiration
   expiresAt?: string | Date; // Date when the job expires
   isExpired?: boolean;     // Flag indicating if the job has expired
-  adminVerified?: boolean; // New flag for job-specific verification
+  adminVerified?: boolean; // Kept for backward compatibility but UI will now use User's status
   posterIsAdminVerified?: boolean; // Flag indicating if the job poster is admin verified
   interestedCount?: number;
   companyLogoUrl?: string;
@@ -82,18 +98,19 @@ export interface HelperProfile {
   id: string;
   profileTitle: string;
   details: string;
-  area: string;
-  province: Province; // Added province
-  availability: string;
+  area?: string; // Now for additional details like street/neighborhood
+  province: Province;
+  district?: string; // New structured district field
+  availability?: string; // Kept for backward compatibility
   contact: string;
   category: JobCategory;
   subCategory?: JobSubCategory;
   gender?: GenderOption;
   birthdate?: string;
   educationLevel?: HelperEducationLevelOption;
-  availabilityDateFrom?: string | Date;
-  availabilityDateTo?: string | Date;
-  availabilityTimeDetails?: string;
+  availabilityDateFrom?: string | Date; // New structured date
+  availabilityDateTo?: string | Date; // New structured date
+  availabilityTimeDetails?: string; // New free-form time details
   postedAt?: string | Date;
   userId: string;
   authorDisplayName: string;
@@ -105,6 +122,7 @@ export interface HelperProfile {
   interestedCount?: number;
   createdAt?: string | Date;
   updatedAt?: string | Date;
+  serviceVoiceIntroUrl?: string | null;
 
   // New fields for expiration and bump feature
   expiresAt?: string | Date;   // Date when the profile expires
@@ -124,13 +142,13 @@ export interface UserPostingLimits {
   lastHelperProfileDate?: string | Date; // Cooldown for helper profiles
   dailyWebboardPosts: { // Retained for structure, not active limiting
     count: number;
-    resetDate: string | Date; 
+    resetDate: string | Date;
   };
   hourlyComments: { // Retained for structure, not active limiting
     count: number;
-    resetTime: string | Date; 
+    resetTime: string | Date;
   };
-  lastBumpDates: { 
+  lastBumpDates: {
     [profileId: string]: string | Date;
   };
   vouchingActivity: { // For monthly vouch limit
@@ -140,9 +158,9 @@ export interface UserPostingLimits {
 }
 
 export interface UserActivityBadge {
-  isActive: boolean; 
-  lastActivityCheck?: string | Date; 
-  last30DaysActivity: number; 
+  isActive: boolean;
+  lastActivityCheck?: string | Date;
+  last30DaysActivity: number;
 }
 
 export type UserTier = 'free' | 'premium';
@@ -161,14 +179,16 @@ export interface User {
   username: string;
   email: string;
   role: UserRole;
-  tier: UserTier; 
+  tier: UserTier;
   mobile: string;
   lineId?: string;
   facebook?: string;
+  instagram?: string;
+  tiktok?: string;
   gender?: GenderOption;
   birthdate?: string;
   educationLevel?: HelperEducationLevelOption;
-  photo?: string;
+  photo?: string | null;
   address?: string;
   nickname?: string;
   firstName?: string;
@@ -181,10 +201,12 @@ export interface User {
   dislikedThing?: string;
   introSentence?: string;
   profileComplete?: boolean;
+  adminVerified?: boolean; // This is the new flag for user verification
   userLevel: UserLevel; // This general user level badge remains for profiles etc.
   isMuted?: boolean;
   createdAt?: string | Date;
   updatedAt?: string | Date;
+  voiceIntroUrl?: string | null;
 
   postingLimits: UserPostingLimits;
   activityBadge: UserActivityBadge;
@@ -203,7 +225,13 @@ export interface User {
   // Fields for display name change cooldown
   lastPublicDisplayNameChangeAt?: string | Date;
   publicDisplayNameUpdateCount?: number;
-  
+
+  // Fields for social media change cooldown
+  lastInstagramChangeAt?: string | Date;
+  instagramUpdateCount?: number;
+  lastTiktokChangeAt?: string | Date;
+  tiktokUpdateCount?: number;
+
   vouchInfo?: VouchInfo; // New field for community verification
 
   // Fields for Vouch Moderation HUD
@@ -211,7 +239,7 @@ export interface User {
   lastLoginUserAgent?: string;
 }
 
-export type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'savedBlogPosts' |'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook' | 'isBusinessProfile' | 'businessName' | 'businessType' | 'businessAddress' | 'businessWebsite' | 'businessSocialProfileLink' | 'aboutBusiness' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount' | 'vouchInfo' | 'lastLoginIP' | 'lastLoginUserAgent'> & { password: string };
+export type RegistrationDataType = Omit<User, 'id' | 'tier' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'savedBlogPosts' | 'voiceIntroUrl' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook' | 'isBusinessProfile' | 'businessName' | 'businessType' | 'businessAddress' | 'businessWebsite' | 'businessSocialProfileLink' | 'aboutBusiness' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount' | 'vouchInfo' | 'lastLoginIP' | 'lastLoginUserAgent' | 'adminVerified'> & { password: string };
 
 export enum View {
   Home = 'HOME',
@@ -236,7 +264,7 @@ export enum View {
 }
 
 export interface EnrichedHelperProfile extends HelperProfile {
-  userPhoto?: string;
+  userPhoto?: string | null;
   userAddress?: string;
   profileCompleteBadge: boolean;
   warningBadge: boolean;
@@ -254,12 +282,12 @@ export interface Interaction {
 }
 
 export interface Interest {
-    id: string;
-    userId: string; // The user who is interested
-    targetId: string; // The ID of the Job or HelperProfile
-    targetType: 'job' | 'helperProfile';
-    targetOwnerId: string; // The ID of the user who owns the target
-    createdAt: string | Date;
+  id: string;
+  userId: string; // The user who is interested
+  targetId: string; // The ID of the Job or HelperProfile
+  targetType: 'job' | 'helperProfile';
+  targetOwnerId: string; // The ID of the user who owns the target
+  createdAt: string | Date;
 }
 
 export enum VouchType {
@@ -412,7 +440,7 @@ export enum JobSubCategory {
   ShortTermMisc_OtherMiscTasks = "งานอื่นๆ/งานจิปาถะ",
 }
 
-export const JOB_SUBCATEGORIES_MAP: Record<JobCategory, JobSubCategory[]> = {
+export const JOB_SUBCATEGORIES_MAP: Partial<Record<JobCategory, JobSubCategory[]>> = {
   [JobCategory.DigitalCreative]: [
     JobSubCategory.DigitalCreative_GraphicDesign,
     JobSubCategory.DigitalCreative_WritingTranslation,
@@ -477,105 +505,120 @@ export const JOB_SUBCATEGORIES_MAP: Record<JobCategory, JobSubCategory[]> = {
   ],
 };
 
+// New Types for Blog/Journal feature
+export enum BlogCategory {
+  JobTips = "เคล็ดลับหางาน",
+  SuccessStories = "เรื่องราวความสำเร็จ",
+  CareerAdvice = "แนะนำอาชีพ",
+  Finance = "การเงิน",
+  SelfDevelopment = "พัฒนาตัวเอง",
+  IndustryNews = "ข่าวสารในวงการ",
+  Interviews = "สัมภาษณ์บุคคลน่าสนใจ",
+  Lifestyle = "ไลฟ์สไตล์และการทำงาน",
+}
+export type FilterableBlogCategory = BlogCategory | 'all';
+
+export interface BlogPost {
+  id: string;
+  title: string;
+  content: string; // HTML content
+  excerpt: string;
+  category: BlogCategory | '';
+  tags: string[];
+  coverImageURL?: string; // Horizontal cover image for inside articles
+  coverImageAltText?: string;
+  cardImageURL?: string; // Vertical/poster image for blog cards
+  cardImageAltText?: string;
+  authorId: string;
+  authorDisplayName: string;
+  authorPhotoURL?: string;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  publishedAt?: string | Date;
+  status: 'draft' | 'published' | 'archived';
+  slug: string; // URL-friendly identifier
+  metaTitle?: string;
+  likes: string[];
+  likeCount: number;
+  isFeatured?: boolean; // New field for writers to mark articles as featured
+  isSubFeatured?: boolean; // New field for writers to mark articles as sub-featured
+}
+
+export interface EnrichedBlogPost extends BlogPost {
+  author?: User;
+}
+
+export interface BlogComment {
+  id: string;
+  postId: string;
+  userId: string;
+  authorDisplayName: string;
+  authorPhotoURL?: string;
+  text: string;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+
+export interface EnrichedWebboardPost extends WebboardPost {
+  commentCount: number;
+  authorPhoto?: string | null;
+  isAuthorAdmin: boolean;
+}
 
 export interface WebboardPost {
   id: string;
   title: string;
   body: string;
   category: WebboardCategory;
-  image?: string; // URL of the image
+  image?: string;
   userId: string;
   authorDisplayName: string;
-  ownerId?: string; // Retained for consistency, usually same as userId
-  authorPhoto?: string; // URL of author's profile photo
+  authorPhoto?: string;
+  ownerId?: string;
+  likes: string[];
+  isPinned: boolean;
   createdAt: string | Date;
   updatedAt: string | Date;
-  likes: string[]; // Array of user IDs who liked the post
-  isPinned?: boolean;
-  isEditing?: boolean; // UI state, not stored in DB
-  savedAt?: string | Date; // Timestamp for when it was saved by current user (not directly on post doc)
 }
 
 export interface WebboardComment {
   id: string;
   postId: string;
   userId: string;
+  ownerId?: string;
   authorDisplayName: string;
-  ownerId?: string; // Retained for consistency, usually same as userId
-  authorPhoto?: string; // URL of author's profile photo
+  authorPhoto?: string | null;
   text: string;
   createdAt: string | Date;
   updatedAt: string | Date;
 }
 
-// New Types for Blog/Journal feature
-export enum BlogCategory {
-    JobTips = "เคล็ดลับหางาน",
-    SuccessStories = "เรื่องราวความสำเร็จ",
-    CareerAdvice = "แนะนำอาชีพ",
-    Finance = "การเงินและการลงทุน",
-    SelfDevelopment = "พัฒนาตัวเอง",
-    IndustryNews = "ข่าวสารในวงการ",
-    Interviews = "สัมภาษณ์บุคคลน่าสนใจ",
-    Lifestyle = "ไลฟ์สไตล์และการทำงาน",
+export interface EnrichedWebboardComment extends WebboardComment {
+  authorPhoto?: string | null;
+  isAuthorAdmin: boolean;
 }
 
-export type FilterableBlogCategory = BlogCategory | 'all';
-
-export interface BlogPost {
-  id: string;
-  title: string;
-  slug: string;
-  metaTitle?: string;
-  content: string;
-  excerpt: string;
-  coverImageURL?: string;
-  coverImageAltText?: string;
-  authorId: string;
-  authorDisplayName: string;
-  authorPhotoURL?: string;
-  status: 'draft' | 'published' | 'archived';
-  category: BlogCategory | '';
-  tags: string[];
-  createdAt: string | Date;
-  publishedAt?: string | Date;
-  updatedAt: string | Date;
-  likes: string[];
-  likeCount: number;
-}
-
-export interface BlogComment {
-    id: string;
-    postId: string;
-    userId: string;
-    authorDisplayName: string;
-    authorPhotoURL?: string;
-    text: string;
-    createdAt: string | Date;
-    updatedAt: string | Date;
-}
-
-
-export interface EnrichedBlogPost extends BlogPost {
-    author?: User; // The full author object, if available
-}
-
-
-export enum UserLevelName {
-  Level1_NewbiePoster = "🐣 มือใหม่หัดโพสต์",
-  Level2_FieryNewbie = "🔥 เด็กใหม่ไฟแรง",
-  Level3_RegularSenior = "👑 รุ่นพี่ขาประจำ",
-  Level4_ClassTeacher = "📘 ครูประจำชั้น",
-  Level5_KnowledgeGuru = "🧠 กูรูผู้รอบรู้",
-  Level6_BoardFavorite = "💖 ขวัญใจชาวบอร์ด",
-  Level7_LegendOfHajobjah = "🪄 ตำนานผู้มีของหาจ๊อบจ้า",
+export interface SiteConfig {
+  isSiteLocked: boolean;
+  updatedAt?: string | Date;
+  updatedBy?: string;
 }
 
 export interface UserLevel {
   name: string;
   minScore?: number;
   colorClass: string;
-  textColorClass?: string;
+  textColorClass: string;
+}
+export enum UserLevelName {
+  Level1_NewbiePoster = '🐣 มือใหม่หัดโพสต์',
+  Level2_FieryNewbie = '🔥 เด็กใหม่ไฟแรง',
+  Level3_RegularSenior = '👑 รุ่นพี่ขาประจำ',
+  Level4_ClassTeacher = '📘 ครูประจำชั้น',
+  Level5_KnowledgeGuru = '🧠 กูรูผู้รอบรู้',
+  Level6_BoardFavorite = '💖 ขวัญใจชาวบอร์ด',
+  Level7_LegendOfHajobjah = '🪄 ตำนานผู้มีของหาจ๊อบจ้า',
 }
 
 export const USER_LEVELS: UserLevel[] = [
@@ -599,38 +642,26 @@ export const MODERATOR_BADGE_DETAILS: UserLevel = {
   colorClass: 'bg-primary',
   textColorClass: 'text-white',
 };
-
 export const ACTIVITY_BADGE_DETAILS: UserLevel = {
-    name: "🔥 ขยันใช้เว็บ",
-    colorClass: 'bg-red-200',
-    textColorClass: 'text-red-800',
+  name: "🔥 ขยันใช้เว็บ",
+  colorClass: 'bg-red-200',
+  textColorClass: 'text-red-800',
 };
 
-// Enriched types for Webboard - authorLevel is removed as badges are not shown on webboard items
-export interface EnrichedWebboardPost extends WebboardPost {
-  commentCount: number;
-  // authorLevel: UserLevel; // Removed for webboard card/detail
-  isAuthorAdmin?: boolean;
-}
 
-export interface EnrichedWebboardComment extends WebboardComment {
-  // authorLevel: UserLevel; // Removed for webboard comments
-  isAuthorAdmin?: boolean;
-}
+export type SearchResultItem =
+  | (Job & { resultType: 'job' })
+  | (HelperProfile & { resultType: 'helper' });
 
-export interface SiteConfig {
-    isSiteLocked: boolean;
-    updatedAt?: string | Date;
-    updatedBy?: string;
-}
-
-// For storing user's saved posts in Firestore
-export interface UserSavedWebboardPostEntry {
-  postId: string;
-  savedAt: string | Date;
-}
 
 // For Orion Command Center
+export interface OrionMessage {
+  id: string;
+  text?: string;
+  sender: 'user' | 'orion';
+  isError?: boolean;
+  insightPayload?: OrionInsightData;
+}
 export interface OrionInsightData {
   threat_level: 'LOW' | 'GUARDED' | 'ELEVATED' | 'SEVERE' | 'CRITICAL';
   trust_score: number;
@@ -640,37 +671,35 @@ export interface OrionInsightData {
   recommended_action: string;
 }
 
-export interface OrionMessage {
+export interface JobApplication {
   id: string;
-  sender: 'user' | 'orion';
-  isError?: boolean;
-  text?: string;
-  insightPayload?: OrionInsightData;
+  jobId: string;
+  jobOwnerId: string;
+  applicantId: string;
+  applicantName: string;
+  applicantAvatar: string | null;
+  audioUrl: string;
+  createdAt: string | Date;
 }
 
-// Types for Admin Mission Control Dashboard
+
+// Dashboard types
 export interface PlatformVitals {
   newUsers24h: number;
   activeJobs: number;
   activeHelpers: number;
   pendingReports: number;
 }
-
 export interface ChartDataPoint {
-  date: string; // e.g., "Jun 20"
+  date: string;
   count: number;
 }
-
 export interface CategoryDataPoint {
   name: string;
   count: number;
 }
-
 export interface AdminDashboardData {
   vitals: PlatformVitals;
   userGrowth: ChartDataPoint[];
   postActivity: CategoryDataPoint[];
 }
-
-// Type for Universal Search results
-export type SearchResultItem = (Job | HelperProfile) & { resultType: 'job' | 'helper' };

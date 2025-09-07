@@ -1,8 +1,6 @@
-
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { Job, FilterableCategory, JobSubCategory, PaginatedDocsResponse, Cursor } from '../types/types.ts';
-import { JobCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
+import { JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
 import { JobCard } from './JobCard.tsx';
 import { getJobsPaginated } from '../services/jobService.ts';
 import { useData } from '../context/DataContext.tsx';
@@ -12,19 +10,9 @@ import { useUser } from '../hooks/useUser.ts';
 import { motion } from 'framer-motion';
 import { FilterSidebar } from './FilterSidebar.tsx';
 import { useNavigate } from 'react-router-dom';
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.05 },
-  },
-};
-
-const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: { y: 0, opacity: 1 },
-};
+import { ListingPageLayout, itemVariants } from './ListingPageLayout.tsx';
+import { FastLottie } from './FastLottie.tsx';
+import '../utils/lottiePreloader.ts';
 
 type EnrichedJob = Job;
 
@@ -34,9 +22,9 @@ export const FindJobsPage: React.FC = () => {
   const { users } = useUsers();
   const { userInterests } = useData();
   const userActions = useUser();
-  
+
   const [jobs, setJobs] = useState<EnrichedJob[]>([]);
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [cursor, setCursor] = useState<Cursor | null>(null);
   const [hasMore, setHasMore] = useState(true);
@@ -46,7 +34,7 @@ export const FindJobsPage: React.FC = () => {
   const [selectedSubCategory, setSelectedSubCategory] = useState<JobSubCategory | 'all'>('all');
   const [selectedProvince, setSelectedProvince] = useState<Province | 'all'>('all');
   const [availableSubCategories, setAvailableSubCategories] = useState<JobSubCategory[]>([]);
-  
+
   const loaderRef = useRef<HTMLDivElement>(null);
   const isLoadingRef = useRef(isLoading);
   const hasMoreRef = useRef(hasMore);
@@ -63,7 +51,7 @@ export const FindJobsPage: React.FC = () => {
   useEffect(() => {
     window.scrollTo(0, scrollPositionRef.current);
   }, [jobs]);
-  
+
   const getAuthorDisplayName = useCallback((userId: string, fallbackName?: string): string => {
     const author = users.find(u => u && u.id === userId);
     return author?.publicDisplayName || fallbackName || "ผู้ใช้ไม่ทราบชื่อ";
@@ -87,7 +75,7 @@ export const FindJobsPage: React.FC = () => {
         selectedSubCategory,
         selectedProvince
       );
-      
+
       const enriched = result.items.map(job => ({ ...job }));
 
       setJobs(prev => isInitialLoad ? enriched : [...prev, ...enriched]);
@@ -112,17 +100,15 @@ export const FindJobsPage: React.FC = () => {
     setJobs([]);
     loadJobs(true);
   }, [debouncedSearchTerm, selectedCategory, selectedSubCategory, selectedProvince]);
-  
-  useEffect(() => {
-    if (selectedCategory !== 'all' && JOB_SUBCATEGORIES_MAP[selectedCategory]) {
-      setAvailableSubCategories(JOB_SUBCATEGORIES_MAP[selectedCategory]);
-    } else {
-      setAvailableSubCategories([]);
-    }
-    if (selectedCategory !== 'all') {
-      setSelectedSubCategory('all');
-    }
-  }, [selectedCategory]);
+
+  const handleCategoryChange = useCallback((category: FilterableCategory) => {
+    setSelectedCategory(category);
+    const newSubCategories = category !== 'all'
+      ? JOB_SUBCATEGORIES_MAP[category] || []
+      : [];
+    setAvailableSubCategories(newSubCategories);
+    setSelectedSubCategory('all');
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -137,70 +123,79 @@ export const FindJobsPage: React.FC = () => {
     if (currentLoader) observer.observe(currentLoader);
     return () => { if (currentLoader) observer.unobserve(currentLoader); };
   }, [loadJobs]);
-  
-  return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-sans font-bold text-primary-dark mb-2">📢 ประกาศงาน</h2>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-x-8">
-        <aside className="lg:col-span-3 mb-8 lg:mb-0">
-          <FilterSidebar
-            selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
-            availableSubCategories={availableSubCategories}
-            selectedSubCategory={selectedSubCategory}
-            onSubCategoryChange={setSelectedSubCategory}
-            selectedProvince={selectedProvince}
-            onProvinceChange={setSelectedProvince}
-            searchTerm={searchTerm}
-            onSearchTermChange={setSearchTerm}
-            searchPlaceholder="ค้นหางาน, รายละเอียด..."
-            actionButtonText="ลงประกาศงาน"
-            onActionButtonClick={() => navigate('/post-job')}
-          />
-        </aside>
+  const sidebarContent = (
+    <FilterSidebar
+      selectedCategory={selectedCategory}
+      onCategoryChange={handleCategoryChange}
+      availableSubCategories={availableSubCategories}
+      selectedSubCategory={selectedSubCategory}
+      onSubCategoryChange={setSelectedSubCategory}
+      selectedProvince={selectedProvince}
+      onProvinceChange={setSelectedProvince}
+      searchTerm={searchTerm}
+      onSearchTermChange={setSearchTerm}
+      searchPlaceholder="ค้นหางาน, รายละเอียด..."
+      actionButtonText="ลงประกาศรับสมัคร"
+      onActionButtonClick={() => navigate('/post-job')}
+    />
+  );
 
-        <section className="lg:col-span-9">
-          {isLoading && jobs.length === 0 ? (
-            <div className="text-center py-10 text-primary-dark font-sans">กำลังโหลด...</div>
-          ) : jobs.length === 0 ? (
-            <div className="text-center py-10 bg-white rounded-lg shadow flex flex-col items-center justify-center min-h-[300px]">
-              <p className="text-xl text-neutral-dark mb-2">ไม่พบประกาศงานที่ตรงกับเงื่อนไขของคุณ</p>
-              <p className="text-sm text-neutral-medium">ลองปรับเปลี่ยนตัวกรอง</p>
-            </div>
-          ) : (
-            <motion.div
-              className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              {jobs.map(job => {
-                const author = users.find(u => u.id === job.userId);
-                return (
-                  <motion.div key={job.id} variants={itemVariants}>
-                    <JobCard
-                      job={job}
-                      currentUser={currentUser}
-                      getAuthorDisplayName={getAuthorDisplayName}
-                      onToggleInterest={() => userActions.toggleInterest(job.id, 'job', job.userId)}
-                      isInterested={userInterests.some(i => i.targetId === job.id)}
-                      authorPhotoUrl={author?.photo}
-                    />
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          )}
-
-          <div ref={loaderRef} className="h-10 flex justify-center items-center mt-4">
-            {isLoading && jobs.length > 0 && <p className="text-sm text-neutral-medium">กำลังโหลดเพิ่มเติม...</p>}
-            {!hasMore && jobs.length > 0 && <p className="text-sm text-neutral-medium mt-4">🎉 คุณดูครบทุกรายการแล้ว</p>}
-          </div>
-        </section>
-      </div>
+  const loadMoreContent = (
+    <div ref={loaderRef} className="h-10 flex justify-center items-center">
+      {isLoading && jobs.length > 0 && (
+        <p className="text-sm text-neutral-medium" role="status" aria-live="polite">
+          กำลังโหลดเพิ่มเติม...
+        </p>
+      )}
+      {!hasMore && jobs.length > 0 && (
+        <p className="text-sm text-neutral-medium" role="status">
+          🎉 คุณดูครบทุกรายการแล้ว
+        </p>
+      )}
     </div>
+  );
+
+  return (
+    <ListingPageLayout
+      title="ประกาศรับสมัคร"
+      titleIcon={
+        <FastLottie
+          src="https://lottie.host/66d7b594-e55f-4009-95c6-973c443ca44f/H5nAQT6qnO.lottie"
+          width="4rem"
+          height="4rem"
+          title="Megaphone animation"
+          priority="high"
+        />
+      }
+      subtitle="รับสมัครพนักงานหรือผู้ช่วยประกาศตรงนี้"
+      sidebar={sidebarContent}
+      isLoading={isLoading}
+      hasItems={jobs.length > 0}
+      emptyStateMessage="ไม่พบประกาศรับสมัครที่ตรงกับเงื่อนไขของคุณ"
+      emptyStateSubMessage="ลองปรับเปลี่ยนตัวกรอง"
+      loadMoreContent={loadMoreContent}
+    >
+      {jobs.map(job => {
+        const author = users.find(u => u.id === job.userId);
+        return (
+          <motion.div
+            key={job.id}
+            variants={itemVariants}
+            role="listitem"
+          >
+            <JobCard
+              job={job}
+              currentUser={currentUser}
+              getAuthorDisplayName={getAuthorDisplayName}
+              onToggleInterest={() => userActions.toggleInterest(job.id, 'job', job.userId)}
+              isInterested={userInterests.some(i => i.targetId === job.id)}
+              authorPhotoUrl={author?.photo}
+              isAuthorVerified={author?.adminVerified}
+            />
+          </motion.div>
+        );
+      })}
+    </ListingPageLayout>
   );
 };

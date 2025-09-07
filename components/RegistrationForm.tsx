@@ -1,10 +1,11 @@
 
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { User } from '../types/types.ts';
-import { GenderOption, HelperEducationLevelOption } from '../types/types.ts'; // Keep for default values, not for form inputs
 import { Button } from './Button.tsx';
 import { isValidThaiMobileNumber } from '../utils/validation.ts';
+import { useFormAccessibility } from '../hooks/useFormAccessibility.ts';
 
 interface RegistrationFormProps {
   onRegister: (userData: Omit<User, 'id' | 'photo' | 'address' | 'userLevel' | 'profileComplete' | 'isMuted' | 'nickname' | 'firstName' | 'lastName' | 'role' | 'postingLimits' | 'activityBadge' | 'favoriteMusic' | 'favoriteBook' | 'favoriteMovie' | 'hobbies' | 'favoriteFood' | 'dislikedThing' | 'introSentence' | 'createdAt' | 'updatedAt' | 'savedWebboardPosts' | 'gender' | 'birthdate' | 'educationLevel' | 'lineId' | 'facebook'> & { password: string }) => Promise<boolean>;
@@ -13,7 +14,7 @@ interface RegistrationFormProps {
 
 type RegistrationFormErrorKeys =
   'publicDisplayName' | 'username' | 'email' | 'password' | 'confirmPassword' |
-  'mobile' | 'general';
+  'mobile' | 'businessName' | 'general';
 
 const SYMBOL_REGEX = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~]/;
 const PUBLIC_DISPLAY_NAME_REGEX = /^[a-zA-Z0-9ก-๏\s.]{2,30}$/u; // Added 0-9
@@ -33,8 +34,11 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [mobile, setMobile] = useState('');
+  const [isBusinessProfile, setIsBusinessProfile] = useState(false);
+  const [businessName, setBusinessName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+  const navigate = useNavigate();
+
   const [errors, setErrors] = useState<Partial<Record<RegistrationFormErrorKeys, string>>>({});
   const [passwordCriteria, setPasswordCriteria] = useState<PasswordCriteria>({
     length: false,
@@ -43,6 +47,14 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
     number: false,
     symbol: false,
   });
+
+  const {
+    getInputProps,
+    getLabelProps,
+    getErrorProps,
+    ErrorAnnouncement,
+    handleValidationErrors
+  } = useFormAccessibility();
 
   useEffect(() => {
     const newCriteria: PasswordCriteria = {
@@ -89,6 +101,11 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
     if (!mobile.trim()) newErrors.mobile = 'กรุณากรอกเบอร์โทรศัพท์';
     else if (!isValidThaiMobileNumber(mobile)) newErrors.mobile = 'รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง (เช่น 08X-XXX-XXXX)';
 
+    // Business profile validation
+    if (isBusinessProfile && !businessName.trim()) {
+      newErrors.businessName = 'กรุณากรอกชื่อธุรกิจ/ร้านค้า/บริษัท';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -96,15 +113,26 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-    if (!validateForm()) return;
-    
+
+    if (!validateForm()) {
+      // Enhanced accessibility for validation errors
+      const errorRecord: Record<string, string> = {};
+      Object.entries(errors).forEach(([key, value]) => {
+        if (value) errorRecord[key] = value;
+      });
+      handleValidationErrors(errorRecord);
+      return;
+    }
+
     setIsLoading(true);
     const formDataToSubmit = {
-        publicDisplayName,
-        username,
-        email,
-        password,
-        mobile,
+      publicDisplayName,
+      username,
+      email,
+      password,
+      mobile,
+      isBusinessProfile,
+      businessName: isBusinessProfile ? businessName : '',
     };
 
     const success = await onRegister(formDataToSubmit as any);
@@ -116,97 +144,222 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ onRegister, 
       setPassword('');
       setConfirmPassword('');
       setMobile('');
+      setIsBusinessProfile(false);
+      setBusinessName('');
       setPasswordCriteria({ length: false, uppercase: false, lowercase: false, number: false, symbol: false });
+      navigate('/');
     } else {
-        setErrors({ general: 'การลงทะเบียนล้มเหลว โปรดลองอีกครั้ง หรืออาจเป็นเพราะชื่อผู้ใช้หรืออีเมลนี้มีอยู่แล้ว' });
+      const generalError = 'การลงทะเบียนล้มเหลว โปรดลองอีกครั้ง หรืออาจเป็นเพราะชื่อผู้ใช้หรืออีเมลนี้มีอยู่แล้ว';
+      setErrors({ general: generalError });
+      handleValidationErrors({ general: generalError });
     }
   };
 
   const PasswordCriteriaDisplay: React.FC<{ criteria: PasswordCriteria }> = ({ criteria }) => {
-    const getItemClass = (isMet: boolean) => isMet ? 'text-brandGreen' : 'text-accent';
-    const getIcon = (isMet: boolean) => isMet ? '✓' : '✗';
+    const getItemClass = (isMet: boolean) => isMet ? 'text-green-600 font-medium' : 'text-text-tertiary';
+    const getIcon = (isMet: boolean) => isMet ? '✓' : '○';
 
     return (
-      <ul className="text-xs font-sans mt-1 space-y-0.5">
-        <li className={getItemClass(criteria.length)}>{getIcon(criteria.length)} ความยาว 9-12 ตัวอักษร</li>
-        <li className={getItemClass(criteria.uppercase)}>{getIcon(criteria.uppercase)} มีตัวพิมพ์ใหญ่ (A-Z)</li>
-        <li className={getItemClass(criteria.lowercase)}>{getIcon(criteria.lowercase)} มีตัวพิมพ์เล็ก (a-z)</li>
-        <li className={getItemClass(criteria.number)}>{getIcon(criteria.number)} มีตัวเลข (0-9)</li>
-        <li className={getItemClass(criteria.symbol)}>{getIcon(criteria.symbol)} มีสัญลักษณ์พิเศษ (เช่น !@#$)</li>
-      </ul>
+      <div className="bg-gray-50 rounded-lg p-3 mt-2">
+        <p className="text-xs font-modern font-semibold text-text-secondary mb-2">รหัสผ่านต้องมี:</p>
+        <ul className="text-xs font-modern space-y-1 grid grid-cols-1 gap-1">
+          <li className={`flex items-center gap-2 ${getItemClass(criteria.length)}`}>
+            <span className="w-4 text-center">{getIcon(criteria.length)}</span>
+            <span>ความยาว 9-12 ตัวอักษร</span>
+          </li>
+          <li className={`flex items-center gap-2 ${getItemClass(criteria.uppercase)}`}>
+            <span className="w-4 text-center">{getIcon(criteria.uppercase)}</span>
+            <span>มีตัวพิมพ์ใหญ่ (A-Z)</span>
+          </li>
+          <li className={`flex items-center gap-2 ${getItemClass(criteria.lowercase)}`}>
+            <span className="w-4 text-center">{getIcon(criteria.lowercase)}</span>
+            <span>มีตัวพิมพ์เล็ก (a-z)</span>
+          </li>
+          <li className={`flex items-center gap-2 ${getItemClass(criteria.number)}`}>
+            <span className="w-4 text-center">{getIcon(criteria.number)}</span>
+            <span>มีตัวเลข (0-9)</span>
+          </li>
+          <li className={`flex items-center gap-2 ${getItemClass(criteria.symbol)}`}>
+            <span className="w-4 text-center">{getIcon(criteria.symbol)}</span>
+            <span>มีสัญลักษณ์พิเศษ (เช่น !@#$)</span>
+          </li>
+        </ul>
+      </div>
     );
   };
 
 
   return (
-    <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg mx-auto my-10 border border-neutral-DEFAULT">
-      <h2 className="text-3xl font-sans font-semibold text-primary-dark mb-6 text-center">สร้างบัญชีใหม่</h2>
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div className="min-h-[calc(100vh-200px)] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 w-full max-w-lg border border-neutral-DEFAULT overflow-hidden p-6">
+        <div className="text-center mb-6">
+          <h2 className="text-4xl font-sans font-bold text-primary mb-2 leading-tight">สร้างบัญชีใหม่</h2>
+          <p className="text-text-secondary font-sans text-base">ยินดีต้อนรับสู่ HAJOBJA</p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <ErrorAnnouncement />
+          <div className="grid grid-cols-1 md:grid-cols-2 md:items-start gap-4">
             <div>
-            <label htmlFor="publicDisplayName" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อที่แสดงบนเว็บไซต์ (สาธารณะ) <span className="text-red-500">*</span></label>
-            <input type="text" id="publicDisplayName" value={publicDisplayName} onChange={(e) => setPublicDisplayName(e.target.value)}
-                    className={`w-full ${errors.publicDisplayName ? 'input-error' : ''}`} placeholder="เช่น Sunny Y., ช่างภาพใจดี123" disabled={isLoading} />
-            <p className="text-xs font-sans text-neutral-medium mt-1">
-              ชื่อแสดงสาธารณะ (2-30 ตัวอักษร): ไทย/อังกฤษ, ตัวเลข, เว้นวรรค, จุด (.) เท่านั้น เช่น Sunny J. 123
-            </p>
-            {errors.publicDisplayName && <p className="text-red-500 font-sans text-xs mt-1">{errors.publicDisplayName}</p>}
+              <label {...getLabelProps('publicDisplayName', true)}>ชื่อสาธารณะบนเว็บ</label>
+              <input
+                type="text"
+                value={publicDisplayName}
+                onChange={(e) => setPublicDisplayName(e.target.value)}
+                className={`form-input ${errors.publicDisplayName ? 'error' : ''}`}
+                disabled={isLoading}
+                autoComplete="name"
+                {...getInputProps('publicDisplayName', !!errors.publicDisplayName, errors.publicDisplayName, '2-30 ตัวอักษร, ไทย/อังกฤษ, ตัวเลข, เว้นวรรค, จุด (.) เท่านั้น และเปลี่ยนได้ 2 ครั้งทุก 14 วัน')}
+              />
+              <p className="text-xs font-modern text-text-tertiary mt-1">
+                2-30 ตัวอักษร, ไทย/อังกฤษ, ตัวเลข, เว้นวรรค, จุด (.) เท่านั้น และเปลี่ยนได้ 2 ครั้งทุก 14 วัน
+              </p>
+              {errors.publicDisplayName && <p {...getErrorProps('publicDisplayName')}>{errors.publicDisplayName}</p>}
             </div>
             <div>
-            <label htmlFor="username" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อผู้ใช้ (สำหรับเข้าระบบ) <span className="text-red-500">*</span></label>
-            <input type="text" id="username" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())}
-                    className={`w-full ${errors.username ? 'input-error' : ''}`} placeholder="เช่น somchai_j (อังกฤษ/ตัวเลข)" disabled={isLoading} />
-            {errors.username && <p className="text-red-500 font-sans text-xs mt-1">{errors.username}</p>}
+              <label {...getLabelProps('username', true)}>ชื่อผู้ใช้ (สำหรับเข้าระบบ)</label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                className={`form-input ${errors.username ? 'error' : ''}`}
+                disabled={isLoading}
+                autoComplete="username"
+                {...getInputProps('username', !!errors.username, errors.username)}
+              />
+              {errors.username && <p {...getErrorProps('username')}>{errors.username}</p>}
             </div>
-        </div>
+          </div>
 
-        <div>
-          <label htmlFor="email" className="block text-sm font-sans font-medium text-neutral-dark mb-1">อีเมล <span className="text-red-500">*</span></label>
-          <input type="email" id="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                 className={`w-full ${errors.email ? 'input-error' : ''}`} placeholder="เช่น user@example.com" disabled={isLoading} />
-          {errors.email && <p className="text-red-500 font-sans text-xs mt-1">{errors.email}</p>}
-        </div>
+          <div>
+            <label {...getLabelProps('email', true)}>อีเมล</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={`form-input ${errors.email ? 'error' : ''}`}
+              disabled={isLoading}
+              autoComplete="email"
+              {...getInputProps('email', !!errors.email, errors.email)}
+            />
+            {errors.email && <p {...getErrorProps('email')}>{errors.email}</p>}
+          </div>
 
-        <div className="pt-3 mt-3 border-t border-neutral-DEFAULT/50">
-          <h3 className="text-md font-sans font-medium text-neutral-dark mb-2">ข้อมูลติดต่อ (จะแสดงในโพสต์ของคุณ)</h3>
+          <div className="pt-3 mt-3">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100">
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="isBusinessProfile"
+                  checked={isBusinessProfile}
+                  onChange={(e) => setIsBusinessProfile(e.target.checked)}
+                  className="form-checkbox h-5 w-5 rounded focus:ring-2 focus:ring-offset-1 mt-0.5"
+                  style={{ color: 'var(--primary-blue)', borderColor: 'var(--border-medium)' }}
+                  disabled={isLoading}
+                />
+                <div className="flex-1">
+                  <label htmlFor="isBusinessProfile" className="cursor-pointer">
+                    <span className="text-sm text-blue-800 font-modern">
+                      🏢 โปรไฟล์นี้เป็นธุรกิจ/ร้านค้า
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {isBusinessProfile && (
+                <div className="mt-4 pt-3 border-t border-blue-200">
+                  <label htmlFor="businessName" className="text-blue-800 font-modern text-sm block mb-1">
+                    ชื่อธุรกิจ/ร้านค้า/บริษัท <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={businessName}
+                    onChange={(e) => setBusinessName(e.target.value)}
+                    className={`form-input ${errors.businessName ? 'error' : ''}`}
+                    disabled={isLoading}
+                    {...getInputProps('businessName', !!errors.businessName, errors.businessName)}
+                  />
+                  {errors.businessName && <p {...getErrorProps('businessName')}>{errors.businessName}</p>}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="pt-3 mt-3 border-t border-neutral-DEFAULT/50">
+            <h3 className="text-md font-sans font-medium text-neutral-dark mb-2">ข้อมูลติดต่อ</h3>
             <div>
-            <label htmlFor="mobile" className="block text-sm font-sans font-medium text-neutral-dark mb-1">เบอร์โทรศัพท์ <span className="text-red-500">*</span></label>
-            <input type="tel" id="mobile" value={mobile} onChange={(e) => setMobile(e.target.value)}
-                    className={`w-full ${errors.mobile ? 'input-error' : ''}`} placeholder="เช่น 0812345678" disabled={isLoading}/>
-            {errors.mobile && <p className="text-red-500 font-sans text-xs mt-1">{errors.mobile}</p>}
+              <label {...getLabelProps('mobile', true)}>เบอร์โทรศัพท์</label>
+              <input
+                type="tel"
+                value={mobile}
+                onChange={(e) => setMobile(e.target.value)}
+                className={`form-input ${errors.mobile ? 'error' : ''}`}
+                disabled={isLoading}
+                autoComplete="tel"
+                {...getInputProps('mobile', !!errors.mobile, errors.mobile)}
+              />
+              {errors.mobile && <p {...getErrorProps('mobile')}>{errors.mobile}</p>}
             </div>
-        </div>
+          </div>
 
-        <div className="pt-3 mt-3 border-t border-neutral-DEFAULT/50">
+          <div className="pt-3 mt-3 border-t border-neutral-DEFAULT/50">
             <h3 className="text-md font-sans font-medium text-neutral-dark mb-2">ตั้งรหัสผ่าน</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                <label htmlFor="password" className="block text-sm font-sans font-medium text-neutral-dark mb-1">รหัสผ่าน <span className="text-red-500">*</span></label>
-                <input type="password" id="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                        className={`w-full ${errors.password ? 'input-error' : ''}`} placeholder="9-12 ตัวอักษร, ตัวใหญ่/เล็ก, เลข, สัญลักษณ์" disabled={isLoading}/>
-                {errors.password && <p className="text-red-500 font-sans text-xs mt-1">{errors.password}</p>}
+              <div>
+                <label {...getLabelProps('password', true)}>รหัสผ่าน</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={`form-input ${errors.password ? 'error' : ''}`}
+                  disabled={isLoading}
+                  autoComplete="new-password"
+                  {...getInputProps('password', !!errors.password, errors.password, 'รหัสผ่านต้องมีความยาว 9-12 ตัวอักษร และประกอบด้วยตัวพิมพ์ใหญ่ ตัวพิมพ์เล็ก ตัวเลข และสัญลักษณ์พิเศษ')}
+                />
+                {errors.password && <p {...getErrorProps('password')}>{errors.password}</p>}
                 <PasswordCriteriaDisplay criteria={passwordCriteria} />
-                </div>
-                <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ยืนยันรหัสผ่าน <span className="text-red-500">*</span></label>
-                <input type="password" id="confirmPassword" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-                        className={`w-full ${errors.confirmPassword ? 'input-error' : ''}`} placeholder="กรอกรหัสผ่านอีกครั้ง" disabled={isLoading}/>
-                {errors.confirmPassword && <p className="text-red-500 font-sans text-xs mt-1">{errors.confirmPassword}</p>}
-                </div>
+              </div>
+              <div>
+                <label {...getLabelProps('confirmPassword', true)}>ยืนยันรหัสผ่าน</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className={`form-input ${errors.confirmPassword ? 'error' : ''}`}
+                  disabled={isLoading}
+                  autoComplete="new-password"
+                  {...getInputProps('confirmPassword', !!errors.confirmPassword, errors.confirmPassword)}
+                />
+                {errors.confirmPassword && <p {...getErrorProps('confirmPassword')}>{errors.confirmPassword}</p>}
+              </div>
             </div>
-        </div>
+          </div>
 
-        {errors.general && <p className="text-red-500 font-sans text-sm text-center">{errors.general}</p>}
-        <Button type="submit" variant="primary" size="lg" className="w-full mt-6" disabled={isLoading}>
-            {isLoading ? 'กำลังลงทะเบียน...' : 'ลงทะเบียน'}
-        </Button>
-        <p className="text-center text-sm font-serif text-neutral-dark font-normal">
-          มีบัญชีอยู่แล้ว?{' '}
-          <button type="button" onClick={onSwitchToLogin} className="font-sans font-medium text-primary hover:underline" disabled={isLoading}>
-            เข้าสู่ระบบที่นี่
-          </button>
-        </p>
-      </form>
+          {errors.general && (
+            <div {...getErrorProps('general')} className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+              <p className="text-red-600 font-sans text-sm font-medium">{errors.general}</p>
+            </div>
+          )}
+
+          <div className="mt-2">
+            <Button type="submit" variant="primary" size="lg" className="w-full font-sans font-semibold" disabled={isLoading} style={{ minHeight: '52px', fontSize: '16px' }}>
+              {isLoading ? 'กำลังลงทะเบียน...' : 'ลงทะเบียน'}
+            </Button>
+          </div>
+          <div className="text-center pt-3 border-t border-gray-100 mt-3">
+            <div className="text-text-secondary font-sans text-sm">
+              <span>มีบัญชีอยู่แล้ว? </span>
+              <button
+                type="button"
+                onClick={onSwitchToLogin}
+                className="font-sans font-semibold text-primary hover:text-primary-hover transition-colors duration-200 focus:outline-none focus:text-primary-hover"
+                disabled={isLoading}
+              >
+                เข้าสู่ระบบที่นี่
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

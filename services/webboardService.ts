@@ -33,7 +33,7 @@ import { db } from '../firebaseConfig.ts';
 import type { WebboardPost, WebboardComment, WebboardCategory, PaginatedDocsResponse, Cursor } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging.ts';
 import { convertTimestamps, cleanDataForFirestore } from './serviceUtils';
-import { uploadImageService, deleteImageService } from './storageService';
+import { uploadImageService, deleteFileService } from './storageService';
 
 const WEBBOARD_POSTS_COLLECTION = 'webboardPosts';
 const WEBBOARD_COMMENTS_COLLECTION = 'webboardComments';
@@ -103,13 +103,13 @@ export const updateWebboardPostService = async (postId: string, postData: Partia
     if (postData.image && postData.image.startsWith('data:image')) {
       const existingPost = await getDoc(doc(db, WEBBOARD_POSTS_COLLECTION, postId));
       if (existingPost.exists() && existingPost.data().image) {
-        await deleteImageService(existingPost.data().image);
+        await deleteFileService(existingPost.data().image);
       }
       dataToUpdate.image = await uploadImageService(`webboardImages/${doc(db, WEBBOARD_POSTS_COLLECTION, postId).id}/${Date.now()}`, postData.image);
     } else if (postData.image === undefined) {
       const existingPost = await getDoc(doc(db, WEBBOARD_POSTS_COLLECTION, postId));
       if (existingPost.exists() && existingPost.data().image) {
-        await deleteImageService(existingPost.data().image);
+        await deleteFileService(existingPost.data().image);
       }
       dataToUpdate.image = deleteField() as any;
     }
@@ -130,7 +130,7 @@ export const deleteWebboardPostService = async (postId: string): Promise<void> =
     const postRef = doc(db, WEBBOARD_POSTS_COLLECTION, postId);
     const postSnap = await getDoc(postRef);
     if (postSnap.exists() && postSnap.data().image) {
-      await deleteImageService(postSnap.data().image);
+      await deleteFileService(postSnap.data().image);
     }
     await deleteDoc(postRef);
   } catch (error: any) {

@@ -10,6 +10,7 @@ import { HelpersProvider } from './context/HelpersContext.tsx';
 import { WebboardProvider } from './context/WebboardContext.tsx';
 import { BlogProvider } from './context/BlogContext.tsx';
 import { BrowserRouter } from 'react-router-dom';
+import { ApplicationsProvider } from './context/ApplicationsContext.tsx';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -25,9 +26,11 @@ root.render(
           <WebboardProvider>
             <BlogProvider>
               <DataProvider>
-                <BrowserRouter>
-                  <App />
-                </BrowserRouter>
+                <ApplicationsProvider>
+                  <BrowserRouter>
+                    <App />
+                  </BrowserRouter>
+                </ApplicationsProvider>
               </DataProvider>
             </BlogProvider>
           </WebboardProvider>

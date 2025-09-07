@@ -27,13 +27,40 @@ import { db } from '../firebaseConfig.ts';
 import type { User, Vouch, VouchType } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging.ts';
 import { convertTimestamps, cleanDataForFirestore } from './serviceUtils';
-import { uploadImageService, deleteImageService } from './storageService';
+import { uploadImageService, deleteFileService, uploadAudioService } from './storageService';
 
 const USERS_COLLECTION = 'users';
 const VOUCHES_COLLECTION = 'vouches';
 
 const DISPLAY_NAME_COOLDOWN_DAYS = 14;
 type UserProfileUpdateData = Partial<Omit<User, 'id' | 'email' | 'role' | 'createdAt' | 'updatedAt' | 'username' | 'postingLimits' | 'activityBadge' | 'userLevel' | 'tier' | 'savedWebboardPosts' | 'savedBlogPosts' | 'lastPublicDisplayNameChangeAt' | 'publicDisplayNameUpdateCount' | 'vouchInfo' | 'lastLoginIP' | 'lastLoginUserAgent'>>;
+
+export const updateUserVoiceIntroUrlService = async (userId: string, audioBlob: Blob | null): Promise<string | null> => {
+    try {
+        const userDocRef = doc(db, USERS_COLLECTION, userId);
+        const userSnap = await getDoc(userDocRef);
+        if (!userSnap.exists()) throw new Error("User not found");
+
+        const oldUrl = userSnap.data()?.voiceIntroUrl;
+        if (oldUrl) {
+            await deleteFileService(oldUrl);
+        }
+
+        if (audioBlob) {
+            const newUrl = await uploadAudioService(`helperVoiceIntros/${userId}.webm`, audioBlob);
+            await updateDoc(userDocRef, { voiceIntroUrl: newUrl });
+            return newUrl;
+        } else {
+            await updateDoc(userDocRef, { voiceIntroUrl: deleteField() });
+            return null;
+        }
+
+    } catch (error: any) {
+        logFirebaseError("updateUserVoiceIntroUrlService", error);
+        throw error;
+    }
+};
+
 
 export const updateUserProfileService = async (
   userId: string,
@@ -71,12 +98,12 @@ export const updateUserProfileService = async (
 
     if (profileData.photo && typeof profileData.photo === 'string' && profileData.photo.startsWith('data:image')) {
       if(currentUserData.photo) {
-          await deleteImageService(currentUserData.photo);
+          await deleteFileService(currentUserData.photo);
       }
       dataToUpdate.photo = await uploadImageService(`profileImages/${userId}/${Date.now()}`, profileData.photo);
     } else if (profileData.hasOwnProperty('photo') && profileData.photo === undefined) {
        if(currentUserData.photo) {
-           await deleteImageService(currentUserData.photo);
+           await deleteFileService(currentUserData.photo);
        }
       dataToUpdate.photo = deleteField() as any;
     }

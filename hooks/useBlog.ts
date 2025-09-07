@@ -1,4 +1,3 @@
-
 import { useCallback, useContext } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { BlogContext } from '../context/BlogContext.tsx';
@@ -8,12 +7,15 @@ import {
   addBlogCommentService,
   updateBlogCommentService,
   deleteBlogCommentService,
-  toggleBlogPostLikeService,
 } from '../services/blogService.ts';
 import type { BlogPost, BlogComment } from '../types/types.ts';
 import { logFirebaseError } from '../firebase/logging.ts';
 
-type BlogPostFormData = Partial<Omit<BlogPost, 'id' | 'authorId' | 'authorDisplayName' | 'authorPhotoURL' | 'createdAt' | 'updatedAt' | 'publishedAt' | 'slug' | 'tags'>> & { newCoverImageBase64?: string | null; tagsInput: string; };
+type BlogPostFormData = Partial<Omit<BlogPost, 'id' | 'authorId' | 'authorDisplayName' | 'authorPhotoURL' | 'createdAt' | 'updatedAt' | 'publishedAt' | 'slug' | 'tags'>> & { 
+  newCoverImageBase64?: string | null; 
+  newCardImageBase64?: string | null;
+  tagsInput: string; 
+};
 
 export const useBlog = () => {
   const context = useContext(BlogContext);
@@ -28,14 +30,15 @@ export const useBlog = () => {
       throw new Error("Permission denied to create or update blog post.");
     }
     try {
-      const { newCoverImageBase64, ...dataToSave } = blogPostData;
+      const { newCoverImageBase64, newCardImageBase64, ...dataToSave } = blogPostData;
       const existingPost = existingPostId ? allBlogPostsForAdmin.find(p => p.id === existingPostId) : null;
       
       const newPostId = await addOrUpdateBlogPostService(
         dataToSave,
         { id: currentUser.id, publicDisplayName: currentUser.publicDisplayName, photo: currentUser.photo },
         newCoverImageBase64,
-        existingPost
+        existingPost,
+        newCardImageBase64
       );
       return newPostId;
     } catch (error: any) {
@@ -44,12 +47,12 @@ export const useBlog = () => {
     }
   }, [currentUser, allBlogPostsForAdmin]);
 
-  const deleteBlogPost = useCallback(async (postId: string, coverImageUrl?: string): Promise<void> => {
+  const deleteBlogPost = useCallback(async (postId: string, coverImageUrl?: string, cardImageUrl?: string): Promise<void> => {
     if (!currentUser || !(currentUser.role === 'Admin' || currentUser.role === 'Writer')) {
       throw new Error("Permission denied to delete blog post.");
     }
     try {
-      await deleteBlogPostService(postId, coverImageUrl);
+      await deleteBlogPostService(postId, coverImageUrl, cardImageUrl);
     } catch (error: any) {
       logFirebaseError("useBlog.deleteBlogPost", error);
       throw error;
@@ -87,16 +90,6 @@ export const useBlog = () => {
       throw error;
     }
   }, [currentUser]);
-
-  const toggleBlogPostLike = useCallback(async (postId: string) => {
-    if (!currentUser) throw new Error("User not authenticated to like posts.");
-    try {
-      await toggleBlogPostLikeService(postId, currentUser.id);
-    } catch (error: any) {
-      logFirebaseError("useBlog.toggleBlogPostLike", error);
-      throw error;
-    }
-  }, [currentUser]);
   
   return {
     allBlogPosts,
@@ -107,7 +100,6 @@ export const useBlog = () => {
     addBlogComment,
     updateBlogComment,
     deleteBlogComment,
-    toggleBlogPostLike,
     isLoadingBlog
   };
 };

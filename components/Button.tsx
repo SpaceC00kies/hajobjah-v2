@@ -22,7 +22,7 @@ export const Button: React.FC<ButtonProps> = ({
   type = 'button', // Default type to 'button'
   ...restProps 
 }) => {
-  const baseStyle = `inline-flex items-center justify-center font-sans font-medium rounded-full active:shadow-inner transition-[background-color,box-shadow,opacity,transform] duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none relative`;
+  const baseStyle = `inline-flex items-center justify-center font-sans font-medium rounded-full active:shadow-inner transition-[background-color,box-shadow,opacity,transform] duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none relative touch-optimized`;
 
   let variantStyle = '';
   switch (variant) {
@@ -75,32 +75,32 @@ export const Button: React.FC<ButtonProps> = ({
   if (variant === 'icon') {
     switch (size) {
       case 'sm':
-        sizeStyle = 'p-1.5 text-base';
+        sizeStyle = 'p-1.5 text-base touch-target-sm';
         break;
       case 'md':
-        sizeStyle = 'p-2.5 text-lg';
+        sizeStyle = 'p-2.5 text-lg touch-target-md';
         break;
       case 'lg':
-        sizeStyle = 'p-3 text-xl';
+        sizeStyle = 'p-3 text-xl touch-target-lg';
         break;
     }
   } else {
     switch (size) {
       case 'sm':
-        sizeStyle = 'py-1 px-3 text-xs';
+        sizeStyle = 'py-1 px-3 text-xs touch-target-sm';
         break;
       case 'md':
-        sizeStyle = 'py-2.5 px-6 text-sm';
+        sizeStyle = 'py-2.5 px-6 text-sm touch-target-md';
         break;
       case 'lg':
-        sizeStyle = 'py-3 px-8 text-base';
+        sizeStyle = 'py-3 px-8 text-base touch-target-lg';
         break;
     }
   }
   
   const interactiveStyles = (variant !== 'icon' && variant !== 'outline')
-    ? 'shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-opacity-60'
-    : 'shadow-none focus:outline-none focus:ring-0 focus:ring-offset-0';
+    ? 'shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-opacity-60 focus-enhanced touch-feedback'
+    : 'shadow-none focus:outline-none focus:ring-0 focus:ring-offset-0 focus-enhanced touch-feedback';
 
 
   const finalClassName = [

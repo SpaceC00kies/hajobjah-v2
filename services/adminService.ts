@@ -6,12 +6,12 @@
  * privileged operations are isolated and consistently managed.
  */
 
-import { doc, onSnapshot, setDoc, updateDoc, collection, addDoc, orderBy, query, runTransaction, deleteDoc, getDoc, increment } from '@firebase/firestore';
+import { doc, onSnapshot, setDoc, updateDoc, collection, addDoc, orderBy, query, runTransaction, deleteDoc, getDoc, increment, getDocs, where } from '@firebase/firestore';
 import { httpsCallable } from '@firebase/functions';
 import { db, functions } from '../firebaseConfig.ts';
-import { type SiteConfig, type UserRole, type Vouch, type VouchReport, VouchReportStatus, type VouchType, type Job, type HelperProfile, type WebboardPost } from '../types/types.ts';
-import { logFirebaseError } from '../firebase/logging';
-import { convertTimestamps } from './serviceUtils';
+import { type SiteConfig, type UserRole, type Vouch, type VouchReport, VouchReportStatus, type VouchType, type Job, type HelperProfile, type WebboardPost, type User } from '../types/types.ts';
+import { logFirebaseError } from '../firebase/logging.ts';
+import { convertTimestamps } from './serviceUtils.ts';
 
 const USERS_COLLECTION = 'users';
 
@@ -58,8 +58,26 @@ export const setUserRoleService = async (userId: string, newRole: UserRole): Pro
   }
 };
 
+export const toggleUserVerificationService = async (userId: string): Promise<void> => {
+    const userRef = doc(db, USERS_COLLECTION, userId);
+    try {
+        await runTransaction(db, async (transaction) => {
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists()) {
+                throw new Error("User not found");
+            }
+            const currentStatus = userDoc.data().adminVerified || false;
+            transaction.update(userRef, { adminVerified: !currentStatus });
+        });
+    } catch (error: any) {
+        logFirebaseError("toggleUserVerificationService", error);
+        throw error;
+    }
+};
+
+
 // Generic Item Flagging
-export const toggleItemFlagService = async (collectionName: 'jobs' | 'helperProfiles' | 'webboardPosts', itemId: string, flagName: keyof Job | keyof HelperProfile | keyof WebboardPost, currentValue?: boolean): Promise<void> => {
+export const toggleItemFlagService = async (collectionName: 'jobs' | 'helperProfiles' | 'webboardPosts' | 'users', itemId: string, flagName: keyof Job | keyof HelperProfile | keyof WebboardPost | keyof User, currentValue?: boolean): Promise<void> => {
   try {
     await updateDoc(doc(db, collectionName, itemId), { [flagName as string]: !currentValue });
   } catch (error: any) {

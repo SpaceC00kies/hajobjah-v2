@@ -1,6 +1,8 @@
 {
   "name": "HAJOBJA.COM",
   "description": "เว็บแอปสำหรับโพสต์งานพาร์ทไทม์ งานช่วยด่วน และค้นหาคนว่างพร้อมรับงานในเชียงใหม่",
-  "requestFramePermissions": [],
+  "requestFramePermissions": [
+    "microphone"
+  ],
   "prompt": ""
 }

@@ -44,7 +44,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="your.email@example.com"
-            className="w-full"
+            className="form-input"
           />
         </div>
         <div>
@@ -60,7 +60,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
             placeholder="เราอยากรู้ว่าคุณคิดอย่างไร..."
             required
             aria-required="true"
-            className="w-full"
+            className="form-input form-textarea"
           />
         </div>
         <Button

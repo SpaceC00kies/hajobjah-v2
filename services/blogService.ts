@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview
  * This service module contains all Firebase interactions related to the Blog feature.
@@ -12,23 +11,18 @@ import {
     addDoc,
     updateDoc,
     deleteDoc,
-    getDocs,
     query,
     where,
     orderBy,
     onSnapshot,
     serverTimestamp,
-    runTransaction,
-    increment,
-    arrayRemove,
-    arrayUnion,
     deleteField,
   } from '@firebase/firestore';
   import { db } from '../firebaseConfig.ts';
   import type { BlogPost, BlogComment } from '../types/types.ts';
   import { logFirebaseError } from '../firebase/logging.ts';
   import { convertTimestamps, cleanDataForFirestore } from './serviceUtils';
-  import { uploadImageService, deleteImageService } from './storageService';
+  import { uploadImageService, deleteFileService } from './storageService';
   
   const BLOG_POSTS_COLLECTION = 'blogPosts';
   const BLOG_COMMENTS_COLLECTION = 'blogComments';
@@ -69,76 +63,146 @@ import {
       blogPostData: Partial<BlogPost> & { tagsInput?: string },
       author: { id: string, publicDisplayName: string, photo?: string | null },
       newCoverImageBase64: string | null | undefined,
-      existingPost?: BlogPost | null
+      existingPost?: BlogPost | null,
+      newCardImageBase64?: string | null | undefined
   ): Promise<string> => {
-      const { tagsInput, ...dataToSave } = blogPostData;
-      let coverImageURL = existingPost?.coverImageURL;
+      try {
+          console.log('Starting addOrUpdateBlogPostService', { 
+              hasNewCoverImage: !!newCoverImageBase64,
+              hasNewCardImage: !!newCardImageBase64,
+              isUpdate: !!existingPost 
+          });
   
-      const imagePathId = existingPost?.id || `${author.id}-${Date.now()}`;
+          const { tagsInput, ...dataToSave } = blogPostData;
+          let coverImageURL = existingPost?.coverImageURL;
+          let cardImageURL = existingPost?.cardImageURL;
   
-      if (newCoverImageBase64) {
-          if (existingPost?.coverImageURL) {
-              await deleteImageService(existingPost.coverImageURL);
+          const imagePathId = existingPost?.id || `${author.id}-${Date.now()}`;
+  
+          // Handle cover image
+          if (newCoverImageBase64) {
+              console.log('Uploading cover image...');
+              if (existingPost?.coverImageURL) {
+                  console.log('Deleting existing cover image...');
+                  await deleteFileService(existingPost.coverImageURL);
+              }
+              coverImageURL = await uploadImageService(`blogCovers/${imagePathId}`, newCoverImageBase64);
+              console.log('Cover image uploaded successfully:', coverImageURL);
+          } else if (newCoverImageBase64 === null) {
+              console.log('Removing cover image...');
+              if (existingPost?.coverImageURL) {
+                  await deleteFileService(existingPost.coverImageURL);
+              }
+              coverImageURL = undefined;
           }
-          coverImageURL = await uploadImageService(`blogCovers/${imagePathId}`, newCoverImageBase64);
-      } else if (newCoverImageBase64 === null) {
-          if (existingPost?.coverImageURL) {
-              await deleteImageService(existingPost.coverImageURL);
+  
+          // Handle card image
+          if (newCardImageBase64) {
+              console.log('Uploading card image...');
+              if (existingPost?.cardImageURL) {
+                  console.log('Deleting existing card image...');
+                  await deleteFileService(existingPost.cardImageURL);
+              }
+              cardImageURL = await uploadImageService(`blogCards/${imagePathId}`, newCardImageBase64);
+              console.log('Card image uploaded successfully:', cardImageURL);
+          } else if (newCardImageBase64 === null) {
+              console.log('Removing card image...');
+              if (existingPost?.cardImageURL) {
+                  await deleteFileService(existingPost.cardImageURL);
+              }
+              cardImageURL = undefined;
           }
-          coverImageURL = undefined;
-      }
   
-      let finalSlug = dataToSave.slug?.trim();
-      if (!finalSlug) {
-        finalSlug = slugify(dataToSave.title || 'untitled') + '-' + Date.now().toString(36).slice(-6);
-      }
+          console.log('Processing document data...');
+          let finalSlug = dataToSave.slug?.trim();
+          if (!finalSlug) {
+            finalSlug = slugify(dataToSave.title || 'untitled') + '-' + Date.now().toString(36).slice(-6);
+          }
   
-      const docData: Partial<BlogPost> = {
-          ...dataToSave,
-          title: dataToSave.title || '',
-          content: dataToSave.content || '',
-          excerpt: dataToSave.excerpt || '',
-          category: dataToSave.category || '',
-          status: dataToSave.status || 'draft',
-          tags: tagsInput ? tagsInput.split(',').map(t => t.trim()).filter(Boolean) : (existingPost?.tags || []),
-          slug: finalSlug,
-          updatedAt: serverTimestamp() as any,
-      };
-      
-      if (docData.status === 'published' && (!existingPost || existingPost.status !== 'published')) {
-          docData.publishedAt = serverTimestamp() as any;
-      }
-      
-      delete (docData as any).coverImageURL;
-  
-      if (existingPost) {
-          const postId = existingPost.id;
-          const updatePayload: Record<string, any> = {
-              ...docData,
-              coverImageURL: coverImageURL === undefined ? deleteField() : coverImageURL
+          const docData: Partial<BlogPost> = {
+              ...dataToSave,
+              title: dataToSave.title || '',
+              content: dataToSave.content || '',
+              excerpt: dataToSave.excerpt || '',
+              category: dataToSave.category || '',
+              status: dataToSave.status || 'draft',
+              tags: tagsInput ? tagsInput.split(',').map(t => t.trim()).filter(Boolean) : (existingPost?.tags || []),
+              slug: finalSlug,
+              metaTitle: dataToSave.metaTitle || '',
+              coverImageAltText: dataToSave.coverImageAltText || '',
+              cardImageAltText: dataToSave.cardImageAltText || '',
+              updatedAt: serverTimestamp() as any,
           };
-          await updateDoc(doc(db, BLOG_POSTS_COLLECTION, postId), cleanDataForFirestore(updatePayload));
-          return postId;
-      } else {
-          const finalDocData: Omit<BlogPost, 'id'> = {
-              ...docData,
-              coverImageURL: coverImageURL || undefined,
-              authorId: author.id,
-              authorDisplayName: author.publicDisplayName,
-              authorPhotoURL: author.photo || undefined,
-              createdAt: serverTimestamp() as any,
-          } as Omit<BlogPost, 'id'>;
           
-          const newDocRef = await addDoc(collection(db, BLOG_POSTS_COLLECTION), cleanDataForFirestore(finalDocData as Record<string, any>));
-          return newDocRef.id;
+          if (docData.status === 'published' && (!existingPost || existingPost.status !== 'published')) {
+              docData.publishedAt = serverTimestamp() as any;
+          }
+          
+          delete (docData as any).coverImageURL;
+          delete (docData as any).cardImageURL;
+  
+          if (existingPost) {
+              console.log('Updating existing post...');
+              const postId = existingPost.id;
+              const updatePayload: Record<string, any> = {
+                  ...docData,
+                  coverImageURL: coverImageURL === undefined ? deleteField() : coverImageURL,
+                  cardImageURL: cardImageURL === undefined ? deleteField() : cardImageURL
+              };
+              await updateDoc(doc(db, BLOG_POSTS_COLLECTION, postId), cleanDataForFirestore(updatePayload));
+              console.log('Post updated successfully:', postId);
+              return postId;
+          } else {
+              console.log('Creating new post...');
+              const finalDocData = {
+                  title: docData.title,
+                  content: docData.content,
+                  excerpt: docData.excerpt,
+                  category: docData.category,
+                  status: docData.status,
+                  tags: docData.tags,
+                  slug: docData.slug,
+                  metaTitle: docData.metaTitle,
+                  coverImageAltText: docData.coverImageAltText,
+                  cardImageAltText: docData.cardImageAltText,
+                  updatedAt: docData.updatedAt,
+                  publishedAt: docData.publishedAt,
+                  coverImageURL: coverImageURL,
+                  cardImageURL: cardImageURL,
+                  authorId: author.id,
+                  authorDisplayName: author.publicDisplayName,
+                  authorPhotoURL: author.photo,
+                  createdAt: serverTimestamp(),
+              };
+              
+              // Remove undefined values manually
+              const cleanedData: any = {};
+              for (const [key, value] of Object.entries(finalDocData)) {
+                  if (value !== undefined) {
+                      cleanedData[key] = value;
+                  }
+              }
+              
+              console.log('Final document data:', cleanedData);
+              const newDocRef = await addDoc(collection(db, BLOG_POSTS_COLLECTION), cleanedData);
+              console.log('New post created successfully:', newDocRef.id);
+              return newDocRef.id;
+          }
+      } catch (error: any) {
+          console.error('Error in addOrUpdateBlogPostService:', error);
+          logFirebaseError("addOrUpdateBlogPostService", error);
+          throw error;
       }
   };
   
   
-  export const deleteBlogPostService = async (postId: string, coverImageUrl?: string): Promise<void> => {
+  export const deleteBlogPostService = async (postId: string, coverImageUrl?: string, cardImageUrl?: string): Promise<void> => {
     try {
       if (coverImageUrl) {
-        await deleteImageService(coverImageUrl);
+        await deleteFileService(coverImageUrl);
+      }
+      if (cardImageUrl) {
+        await deleteFileService(cardImageUrl);
       }
       await deleteDoc(doc(db, BLOG_POSTS_COLLECTION, postId));
     } catch (error: any) {
@@ -196,26 +260,3 @@ import {
   export const deleteBlogCommentService = async (commentId: string): Promise<void> => {
       await deleteDoc(doc(db, BLOG_COMMENTS_COLLECTION, commentId));
   };
-  
-  export const toggleBlogPostLikeService = async (postId: string, userId: string): Promise<void> => {
-    try {
-      const postRef = doc(db, BLOG_POSTS_COLLECTION, postId);
-      await runTransaction(db, async (transaction) => {
-        const postDoc = await transaction.get(postRef);
-        if (!postDoc.exists()) {
-          throw new Error("Blog post does not exist!");
-        }
-        const postData = postDoc.data() as BlogPost;
-        const hasLiked = postData.likes.includes(userId);
-  
-        transaction.update(postRef, {
-          likes: hasLiked ? arrayRemove(userId) : arrayUnion(userId),
-          likeCount: increment(hasLiked ? -1 : 1),
-        });
-      });
-    } catch (error: any) {
-      logFirebaseError("toggleBlogPostLikeService", error);
-      throw error;
-    }
-  };
-  

@@ -1,8 +1,7 @@
 
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { EnrichedBlogPost, FilterableBlogCategory } from '../types/types.ts';
-import { BlogCategory } from '../types/types.ts';
 import { BlogCard } from './BlogCard.tsx';
 import { motion } from 'framer-motion';
 
@@ -21,9 +20,27 @@ const containerVariants = {
   },
 };
 
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: 'spring' as const,
+      stiffness: 100,
+      damping: 12,
+    },
+  },
+};
+
+
+
+
 export const BlogPage: React.FC<BlogPageProps> = ({ posts, onSelectPost }) => {
   const [categoryFilter, setCategoryFilter] = useState<FilterableBlogCategory>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  
+
 
   const filteredPosts = useMemo(() => {
     return posts.filter(post => {
@@ -33,67 +50,139 @@ export const BlogPage: React.FC<BlogPageProps> = ({ posts, onSelectPost }) => {
         post.title.toLowerCase().includes(searchTermLower) ||
         post.excerpt.toLowerCase().includes(searchTermLower) ||
         (post.author?.publicDisplayName || '').toLowerCase().includes(searchTermLower);
-      
+
       return categoryMatch && searchMatch;
     });
   }, [posts, categoryFilter, searchTerm]);
 
-  const filterInputBaseStyle = "w-full p-3 bg-white border border-neutral-DEFAULT rounded-md text-neutral-dark font-sans focus:outline-none focus:ring-1 focus:ring-neutral-DEFAULT text-sm sm:text-base";
-  const filterSelectBaseStyle = `${filterInputBaseStyle} appearance-none`;
-  
+  // Separate featured, sub-featured, and regular posts
+  const featuredPosts = filteredPosts.filter(post => post.isFeatured);
+  const subFeaturedPosts = filteredPosts.filter(post => post.isSubFeatured && !post.isFeatured);
+  const regularPosts = filteredPosts.filter(post => !post.isFeatured && !post.isSubFeatured);
+
+  // Update scroll indicator
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollContainer = document.querySelector('.blog-grid-sub-featured');
+      const counter = document.getElementById('scroll-counter');
+
+      if (scrollContainer && counter && subFeaturedPosts.length > 2) {
+        const cardWidth = 280 + 16; // card width + gap
+        const scrollLeft = scrollContainer.scrollLeft;
+        const currentIndex = Math.round(scrollLeft / cardWidth) + 1;
+        const maxIndex = Math.min(currentIndex, subFeaturedPosts.length);
+
+        counter.textContent = `${maxIndex}/${subFeaturedPosts.length}`;
+      }
+    };
+
+    const scrollContainer = document.querySelector('.blog-grid-sub-featured');
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', handleScroll);
+      return () => scrollContainer.removeEventListener('scroll', handleScroll);
+    }
+  }, [subFeaturedPosts.length]);
+
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-sans font-bold text-primary-dark">
-          📖 บทความ
-        </h1>
+    <div className="relative">
+      {/* Simple Red Hero Section */}
+      <div className="blog-hero-simple">
       </div>
-
-      {/* Filter Bar */}
-      <div className="mb-8 p-3 sm:p-4 bg-white rounded-lg shadow-sm border border-neutral-DEFAULT/30 flex flex-col sm:flex-row gap-3 sm:gap-4 items-center">
-        <div className="w-full sm:w-auto sm:flex-1">
-          <label htmlFor="blogCategoryFilter" className="sr-only">กรองตามหมวดหมู่</label>
-          <select
-            id="blogCategoryFilter"
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value as FilterableBlogCategory)}
-            className={`${filterSelectBaseStyle} w-full`}
-          >
-            <option value="all">ทุกหมวดหมู่</option>
-            {Object.values(BlogCategory).map((cat) => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
-        </div>
-        <div className="w-full sm:w-auto sm:flex-1">
-          <label htmlFor="blogSearch" className="sr-only">ค้นหาบทความ</label>
-          <input
-            type="search"
-            id="blogSearch"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="ค้นหาชื่อเรื่อง, เนื้อหา..."
-            className={`${filterInputBaseStyle} w-full`}
-          />
-        </div>
-      </div>
-
 
       {filteredPosts.length === 0 ? (
-        <div className="text-center py-16">
-          <p className="text-xl text-neutral-medium font-serif">ไม่พบบทความที่ตรงกับเงื่อนไขของคุณ...</p>
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid-empty-state">
+            <div className="text-6xl mb-4">📖</div>
+            <h3>ไม่พบบทความ</h3>
+            <p>ไม่พบบทความที่ตรงกับเงื่อนไขการค้นหาของคุณ ลองเปลี่ยนคำค้นหาหรือหมวดหมู่ดูนะ</p>
+          </div>
         </div>
       ) : (
-        <motion.div
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          {filteredPosts.map(post => (
-            <BlogCard key={post.id} post={post} onSelectPost={onSelectPost} />
-          ))}
-        </motion.div>
+        <>
+          {/* Featured Articles Section - Full Width Yellow Background */}
+          {featuredPosts.length > 0 && (
+            <motion.div
+              className="blog-grid-featured"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                {featuredPosts.map((post) => (
+                  <motion.div
+                    key={post.id}
+                    variants={itemVariants}
+                  >
+                    <BlogCard
+                      post={post}
+                      onSelectPost={onSelectPost}
+                      featured={true}
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Sub-Featured Articles Grid - 3 Column Layout */}
+          {subFeaturedPosts.length > 0 && (
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <motion.div
+                className="blog-grid-sub-featured"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+              >
+                {subFeaturedPosts.map((post, index) => (
+                  <motion.div
+                    key={post.id}
+                    className="blog-grid-item"
+                    variants={itemVariants}
+                  >
+                    <BlogCard
+                      post={post}
+                      onSelectPost={onSelectPost}
+                      featured={false}
+                    />
+                  </motion.div>
+                ))}
+              </motion.div>
+
+              {/* Mobile scroll indicator - centered below cards */}
+              {subFeaturedPosts.length > 2 && (
+                <div className="sub-featured-scroll-indicator">
+                  <span className="scroll-indicator-text" id="scroll-counter">1/{subFeaturedPosts.length}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Regular Articles Grid - 5 Column Layout */}
+          {regularPosts.length > 0 && (
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <motion.div
+                className="blog-grid-container"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+              >
+                {regularPosts.map((post) => (
+                  <motion.div
+                    key={post.id}
+                    className="blog-grid-item"
+                    variants={itemVariants}
+                  >
+                    <BlogCard
+                      post={post}
+                      onSelectPost={onSelectPost}
+                      featured={false}
+                    />
+                  </motion.div>
+                ))}
+              </motion.div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

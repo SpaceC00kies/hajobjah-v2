@@ -1,11 +1,11 @@
 
-
 import React, { useState, useEffect } from 'react';
-import type { Job, User } from '../types/types.ts';
-import { JobDesiredEducationLevelOption } from '../types/types.ts';
+import type { Job, User, PaymentType } from '../types/types.ts';
+import { JobDesiredEducationLevelOption, PaymentType as PaymentTypeEnum } from '../types/types.ts';
 import { Button } from './Button.tsx';
 import { isDateInPast } from '../utils/dateUtils.ts';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { VoiceApplicationModal } from './VoiceApplicationModal.tsx';
 
 interface JobCardProps {
   job: Job;
@@ -14,18 +14,43 @@ interface JobCardProps {
   onToggleInterest: () => void;
   isInterested: boolean;
   authorPhotoUrl?: string | null;
+  isAuthorVerified?: boolean;
 }
 
-const formatDateDisplay = (dateInput?: string | Date | null): string | null => {
-  if (dateInput === null || dateInput === undefined) return null;
+const formatDateForJobCard = (dateInput?: string | Date | null): string => {
+  if (!dateInput) return '';
   let dateObject: Date;
-  if (dateInput instanceof Date) dateObject = dateInput;
-  else if (typeof dateInput === 'string') dateObject = new Date(dateInput);
-  else if (typeof dateInput === 'object' && dateInput && 'toDate' in dateInput && typeof (dateInput as any).toDate === 'function') dateObject = (dateInput as any).toDate();
-  else return "Invalid date";
-  if (isNaN(dateObject.getTime())) return null;
-  return dateObject.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+  if (dateInput instanceof Date) {
+    dateObject = dateInput;
+  } else if (typeof dateInput === 'string') {
+    // Handle YYYY-MM-DD which JS parses as UTC midnight.
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
+        const parts = dateInput.split('-').map(p => parseInt(p, 10));
+        dateObject = new Date(parts[0], parts[1] - 1, parts[2]);
+    } else {
+        dateObject = new Date(dateInput);
+    }
+  } else if (typeof dateInput === 'object' && dateInput && 'toDate' in dateInput && typeof (dateInput as any).toDate === 'function') {
+    dateObject = (dateInput as any).toDate();
+  } else {
+    return "Invalid date";
+  }
+
+  if (isNaN(dateObject.getTime())) return "Processing...";
+  return dateObject.toLocaleDateString('th-TH-u-ca-gregory', { day: 'numeric', month: 'short', year: 'numeric' });
 };
+
+const formatDateOnlyDisplay = (dateInput?: string | Date | null): string => {
+    if (!dateInput) return 'N/A';
+    let dateObject: Date;
+    if (dateInput instanceof Date) { dateObject = dateInput; }
+    else if (typeof dateInput === 'string') { dateObject = new Date(dateInput); }
+    else if (typeof dateInput === 'object' && 'toDate' in dateInput && typeof (dateInput as any).toDate === 'function') { dateObject = (dateInput as any).toDate(); }
+    else return "Invalid date";
+    if (isNaN(dateObject.getTime())) return "Processing...";
+    return dateObject.toLocaleDateString('th-TH-u-ca-gregory', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
 
 const JobCardAuthorFallbackAvatar: React.FC<{ name?: string }> = ({ name }) => {
   const initial = name ? name.charAt(0).toUpperCase() : '👤';
@@ -36,7 +61,7 @@ const JobCardAuthorFallbackAvatar: React.FC<{ name?: string }> = ({ name }) => {
   );
 };
 
-const StarIcon = ({ filled = false, className = "" }) => (
+const StarIcon: React.FC<{ filled?: boolean, className?: string }> = ({ filled = false, className = "" }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 24 24"
@@ -46,16 +71,23 @@ const StarIcon = ({ filled = false, className = "" }) => (
     strokeLinecap="round"
     strokeLinejoin="round"
     className={`w-5 h-5 ${className}`}
+    data-filled={filled}
   >
     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
   </svg>
 );
 
+const formatInterestCount = (count: number): string => {
+    if (count < 1000) return String(count);
+    const thousands = count / 1000;
+    return `${parseFloat(thousands.toFixed(1))}k`;
+};
 
-export const JobCard: React.FC<JobCardProps> = React.memo(({ job, currentUser, getAuthorDisplayName, onToggleInterest, isInterested, authorPhotoUrl }) => {
+
+export const JobCard: React.FC<JobCardProps> = React.memo(({ job, currentUser, getAuthorDisplayName, onToggleInterest, isInterested, authorPhotoUrl, isAuthorVerified }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [showFullDetails, setShowFullDetails] = useState(false);
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   
   const [localIsInterested, setLocalIsInterested] = useState(isInterested);
   const [localInterestedCount, setLocalInterestedCount] = useState(job.interestedCount || 0);
@@ -82,20 +114,15 @@ export const JobCard: React.FC<JobCardProps> = React.memo(({ job, currentUser, g
   const authorActualDisplayName = getAuthorDisplayName(job.userId, job.authorDisplayName);
 
   const postedAtDate = job.postedAt ? (job.postedAt instanceof Date ? job.postedAt : new Date(job.postedAt as string)) : null;
-  const formattedPostedAt = postedAtDate && !isNaN(postedAtDate.getTime()) ? formatDateDisplay(postedAtDate) : "N/A";
+  const formattedPostedAt = postedAtDate && !isNaN(postedAtDate.getTime()) ? formatDateOnlyDisplay(postedAtDate) : "N/A";
   
   const jobIsTrulyExpired = job.isExpired || (job.expiresAt ? isDateInPast(job.expiresAt) : false);
 
   const detailsNeedsTruncation = job.description.length > 120;
-  const displayDetails = showFullDetails || !detailsNeedsTruncation || (currentUser && !jobIsTrulyExpired) ? job.description : `${job.description.substring(0, 120)}...`;
 
-  const toggleShowFullDetails = (e: React.MouseEvent) => {
+  const handleReadMore = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!currentUser && (detailsNeedsTruncation || jobIsTrulyExpired)) {
-        navigate('/login', { state: { from: location.pathname, focusOnPostId: job.id, type: 'job' } });
-    } else {
-      setShowFullDetails(!showFullDetails);
-    }
+    navigate(`/profile/${job.userId}/job/${job.id}`);
   };
   
   const renderInfoItem = (icon: string, text: string | number | undefined | null, label: string, title?: string) => {
@@ -108,54 +135,68 @@ export const JobCard: React.FC<JobCardProps> = React.memo(({ job, currentUser, g
     );
   };
   
-  const formattedDateTime = () => {
-    const parts = [];
-    if(job.dateNeededFrom) {
-        let dateStr = `เริ่ม ${formatDateDisplay(job.dateNeededFrom)}`;
-        if (job.dateNeededTo) {
-            dateStr += ` - ${formatDateDisplay(job.dateNeededTo)}`;
+  const formattedDate = (): string | null => {
+    if (job.dateNeededFrom) {
+        let dateStr = formatDateForJobCard(job.dateNeededFrom);
+        if (job.dateNeededTo && job.dateNeededTo !== job.dateNeededFrom) {
+            dateStr += ` - ${formatDateForJobCard(job.dateNeededTo)}`;
         }
-        parts.push(dateStr);
+        return dateStr;
     }
+    return null;
+  };
+  
+  const formattedTime = (): string | null => {
     if (job.timeNeededStart) {
-        let timeStr = `ช่วง ${job.timeNeededStart}`;
+        let timeStr = job.timeNeededStart;
         if (job.timeNeededEnd) {
             timeStr += ` - ${job.timeNeededEnd}`;
         }
-        parts.push(timeStr);
+        return timeStr;
     }
-    if(job.dateTime && parts.length === 0) {
-        parts.push(job.dateTime);
-    }
-    return parts.join(', ') || null;
+    return null;
   };
+  
+  const formattedPayment = () => {
+      if (job.paymentType) {
+          if (job.paymentType === PaymentTypeEnum.Negotiable || !job.paymentAmount) {
+              return 'ตามตกลง';
+          }
+           if (job.paymentType === PaymentTypeEnum.Monthly && job.paymentAmount === 70000 && !job.paymentAmountMax) {
+              return '฿70,000+ /เดือน';
+          }
+          const base = `฿${job.paymentAmount.toLocaleString()}`;
+          const range = job.paymentAmountMax ? ` - ฿${job.paymentAmountMax.toLocaleString()}` : '';
+          const unit = job.paymentType.replace('ราย', '/');
+          return `${base}${range} ${unit}`;
+      }
+      return job.payment;
+  };
+
+  const canApplyWithVoice = currentUser && currentUser.id !== job.userId && !job.isHired && !jobIsTrulyExpired;
+  const hasInterestSection = currentUser?.id !== job.userId;
+  const locationText = job.district ? `${job.district}, ${job.province}` : `${job.location}, ${job.province}`;
 
   return (
     <>
-      <div className="app-card">
-        {job.isPinned && (
-          <div className="card-pin-icon" title="ปักหมุดโดยแอดมิน">
-            📌
-          </div>
-        )}
-        
-        {/* NEW: Star icon moved to top right */}
-        {currentUser?.id !== job.userId && (
-            <div className="absolute top-3 right-3 z-10 flex items-center gap-1 text-primary-dark bg-white/70 backdrop-blur-sm rounded-full pl-1">
-                <Button
-                    onClick={handleToggleInterest}
-                    variant="icon"
+      <div
+        className={`app-card ${job.isPinned ? 'app-card--pinned' : ''}`}
+        title={job.isPinned ? 'ปักหมุดโดยแอดมิน' : ''}
+      >
+        {canApplyWithVoice && (
+            <div className="absolute top-2 right-2 z-10">
+                <Button 
+                    onClick={() => setIsVoiceModalOpen(true)} 
+                    variant="outline"
                     size="sm"
-                    title={localIsInterested ? "เลิกสนใจ" : "สนใจ"}
-                    disabled={job.isHired || jobIsTrulyExpired}
-                    className={`${localIsInterested ? 'text-amber-400 hover:text-amber-500' : 'text-primary-dark hover:text-amber-400'} !p-1.5`}
+                    className="!bg-white !border border-secondary !rounded-full !w-8 !h-8 !p-0 flex items-center justify-center shadow-md hover:shadow-lg transition-shadow"
+                    style={{ transitionDuration: 'var(--transition-base)' }}
+                    aria-label="สมัครงานด้วยเสียง"
                 >
-                    <StarIcon filled={localIsInterested} />
-                </Button>
-                <span className="font-sans font-semibold text-sm pr-2.5 -ml-1">{localInterestedCount}</span>
+                   🎙️
+               </Button>
             </div>
         )}
-
         {job.isHired && !jobIsTrulyExpired && (
           <div className="job-card-status-banner status-banner-hired">✅ มีคนทำแล้ว</div>
         )}
@@ -166,65 +207,83 @@ export const JobCard: React.FC<JobCardProps> = React.memo(({ job, currentUser, g
           <div className="job-card-status-banner status-banner-suspicious">🔺 งานนี้อาจถูกระงับ</div>
         )}
 
-        <div className="job-card-header">
+        <div className="card-header">
            <div className="job-card-header-content">
-                <h4 className="job-card-main-title" title={job.title}>
+                <h4 className="job-card-main-title pr-8" title={job.title} style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-semibold)', lineHeight: 'var(--leading-snug)', marginBottom: 'var(--space-1)', color: 'var(--text-primary)' }}>
                     {job.title}
                 </h4>
                 {(job.category || job.subCategory) && (
                   <div
-                    className="job-card-header-categories-combined !text-xs !mb-2"
+                    className="job-card-header-categories-combined"
                     title={job.category && job.subCategory ? `${job.category} - ${job.subCategory}` : job.category || job.subCategory}
+                    style={{ fontSize: 'var(--font-size-sm)', marginBottom: 'var(--space-2)', color: 'var(--text-secondary)', fontWeight: 'var(--font-medium)' }}
                   >
                     {job.category}
                     {job.category && job.subCategory && <span className="category-separator">›</span>}
-                    {job.subCategory}
+                    {job.subCategory && job.subCategory.split(' (')[0].trim()}
                   </div>
                 )}
-                <div className="job-card-info-grid">
-                    {renderInfoItem("📍", `${job.location}, ${job.province}`, "Location")}
-                    {renderInfoItem("💰", job.payment, "Payment")}
-                    {formattedDateTime() && renderInfoItem("⏰", formattedDateTime(), "Date & Time")}
+                <div className="job-card-info-grid" style={{ gap: 'var(--space-1)', marginTop: 'var(--space-2)' }}>
+                    {renderInfoItem("📍", locationText, "Location")}
+                    {renderInfoItem("💰", formattedPayment(), "Payment")}
+                    {formattedDate() && renderInfoItem("🗓️", formattedDate(), "Date")}
+                    {formattedTime() && renderInfoItem("⏰", formattedTime(), "Time")}
+                    {!formattedDate() && !formattedTime() && job.dateTime && renderInfoItem("⏰", job.dateTime, "Date & Time")}
                 </div>
            </div>
         </div>
         
-        <div className="card-content-wrapper">
+        <div className="card-content">
             <div className="job-card-details-box">
               <h5 className="job-card-details-title text-sm">
                 รายละเอียดงาน
               </h5>
+              {job.district && job.location && (
+                  <p className="text-xs mt-1">
+                      <span className="font-semibold">ชื่อสถานที่:</span> {job.location}
+                  </p>
+              )}
               <ul className="mt-1">
-                <li className={`text-xs ${detailsNeedsTruncation && !showFullDetails && !(currentUser && !jobIsTrulyExpired) ? "details-line-clamp" : ""}`}>
-                  {displayDetails}
+                <li className="text-xs details-line-clamp">
+                  {job.description}
                 </li>
               </ul>
-              {detailsNeedsTruncation && !(currentUser && !jobIsTrulyExpired) && (
+              
+              {(job.desiredAgeStart || job.desiredAgeEnd || job.preferredGender || job.desiredEducationLevel) && (
+                <div className="mt-2">
+                  <h6 className="text-xs font-semibold mt-2 mb-1">
+                    คุณสมบัติ:
+                  </h6>
+                  <div className="text-xs text-neutral-medium">
+                    {[
+                      job.desiredAgeStart && `อายุ ${job.desiredAgeStart}${job.desiredAgeEnd ? `-${job.desiredAgeEnd}` : '+'} ปี`,
+                      job.preferredGender && job.preferredGender,
+                      job.desiredEducationLevel && job.desiredEducationLevel !== 'ไม่จำกัด' && job.desiredEducationLevel
+                    ].filter(Boolean).join(' • ')}
+                  </div>
+                </div>
+              )}
+
+              {(detailsNeedsTruncation || job.desiredAgeStart || job.desiredAgeEnd || job.preferredGender || job.desiredEducationLevel) && (
                 <button
                     type="button"
-                    onClick={toggleShowFullDetails}
-                    className="text-xs text-primary-dark hover:underline mt-1 font-medium"
-                    aria-expanded={showFullDetails}
+                    onClick={handleReadMore}
+                    className="text-xs mt-2 font-medium text-left"
                   >
-                    {showFullDetails ? "แสดงน้อยลง" : "ดูเพิ่มเติม"}
+                    ดูเพิ่มเติม →
                   </button>
               )}
-              
-              {(job.desiredAgeStart || job.desiredAgeEnd || job.preferredGender || (job.desiredEducationLevel && job.desiredEducationLevel !== JobDesiredEducationLevelOption.Any)) && (
-                <>
-                    <h6 className="text-xs font-semibold text-neutral-dark mt-3 mb-0">คุณสมบัติเพิ่มเติม:</h6>
-                    <ul className="qualifications-list text-xs">
-                        {job.desiredAgeStart && <li>อายุ: {job.desiredAgeStart}{job.desiredAgeEnd ? ` - ${job.desiredAgeEnd}` : '+'} ปี</li>}
-                        {job.preferredGender && <li>เพศ: {job.preferredGender}</li>}
-                        {job.desiredEducationLevel && job.desiredEducationLevel !== JobDesiredEducationLevelOption.Any && <li>การศึกษา: {job.desiredEducationLevel}</li>}
-                    </ul>
-                </>
+
+              {localInterestedCount > 0 && (
+                <p className="text-xs text-neutral-dark mt-auto pt-3">
+                  <span className="font-semibold">คนสนใจ:</span> {localInterestedCount.toLocaleString()}
+                </p>
               )}
             </div>
         </div>
 
 
-        <div className="job-card-author-section mt-auto">
+        <div className="card-footer job-card-author-section">
           {authorPhotoUrl ? (
             <img 
               src={authorPhotoUrl} 
@@ -238,26 +297,31 @@ export const JobCard: React.FC<JobCardProps> = React.memo(({ job, currentUser, g
           )}
 
           <div className="job-card-author-info">
-             <div className="job-card-author-name-container">
-                  <span 
-                      className="job-card-author-name text-sm" 
-                      onClick={(e) => { e.stopPropagation(); navigate(`/profile/${job.userId}`)}}
-                  >
-                      {authorActualDisplayName}
-                      <span className="name-arrow">→</span>
-                  </span>
-                  {job.adminVerified && (
-                    <span className="verified-badge">
-                        <span>✅</span>
-                        <span>ยืนยันตัวตน</span>
-                    </span>
-                  )}
-              </div>
-              <p className="job-card-posted-time">{formattedPostedAt}</p>
-          </div>
+            <span 
+              className="job-card-author-name text-sm" 
+              onClick={(e) => { e.stopPropagation(); navigate(`/profile/${job.userId}/job/${job.id}`)}}
+            >
+              {authorActualDisplayName}
+            </span>
 
+            <p className="job-card-posted-time">{formattedPostedAt}</p>
+          </div>
+          
           <div className="job-card-action-buttons">
-            {currentUser?.id === job.userId ? (
+            {hasInterestSection && (
+                <Button
+                    onClick={handleToggleInterest}
+                    variant="icon"
+                    size="sm"
+                    title={localIsInterested ? "เลิกสนใจ" : "สนใจ"}
+                    disabled={job.isHired || jobIsTrulyExpired}
+                    className="job-card-interest-button"
+                    data-filled={localIsInterested}
+                >
+                    <StarIcon filled={localIsInterested} />
+                </Button>
+            )}
+            {currentUser?.id === job.userId && (
              <Button
                 onClick={() => navigate(`/job/edit/${job.id}`, { state: { from: location.pathname, item: job } })}
                 variant="outline"
@@ -268,10 +332,22 @@ export const JobCard: React.FC<JobCardProps> = React.memo(({ job, currentUser, g
             >
                 ✏️ แก้ไข
             </Button>
-            ) : null}
+            )}
+            {isAuthorVerified && (
+              <span className="verified-badge">
+                <span>ยืนยันตัวตน</span>
+              </span>
+            )}
           </div>
         </div>
       </div>
+      {canApplyWithVoice && (
+          <VoiceApplicationModal 
+              isOpen={isVoiceModalOpen} 
+              onClose={() => setIsVoiceModalOpen(false)} 
+              job={job}
+          />
+      )}
     </>
   );
 });

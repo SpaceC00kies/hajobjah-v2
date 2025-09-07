@@ -140,72 +140,107 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = (props) => {
 
         <section className="lg:col-span-9">
             <div className="border-b border-neutral-DEFAULT mb-6">
-                <nav className="-mb-px flex space-x-6" aria-label="Tabs">
-                    <button onClick={() => setActiveTab('all')} className={`py-3 px-1 border-b-2 text-sm font-medium ${getTabClass('all')}`}>
+                <nav className="-mb-px flex space-x-6" role="tablist" aria-label="ประเภทผลการค้นหา">
+                    <button 
+                      onClick={() => setActiveTab('all')} 
+                      className={`py-3 px-4 border-b-2 text-sm font-medium transition-colors min-h-[44px] flex items-center ${getTabClass('all')}`}
+                      role="tab"
+                      aria-selected={activeTab === 'all'}
+                      aria-controls="search-results-panel"
+                      id="tab-all"
+                      tabIndex={activeTab === 'all' ? 0 : -1}
+                    >
                         ทั้งหมด ({results.length})
                     </button>
-                    <button onClick={() => setActiveTab('jobs')} className={`py-3 px-1 border-b-2 text-sm font-medium ${getTabClass('jobs')}`}>
-                        📢 งาน ({jobCount})
+                    <button 
+                      onClick={() => setActiveTab('jobs')} 
+                      className={`py-3 px-4 border-b-2 text-sm font-medium transition-colors min-h-[44px] flex items-center ${getTabClass('jobs')}`}
+                      role="tab"
+                      aria-selected={activeTab === 'jobs'}
+                      aria-controls="search-results-panel"
+                      id="tab-jobs"
+                      tabIndex={activeTab === 'jobs' ? 0 : -1}
+                    >
+                        <span className="mr-1" aria-hidden="true">📢</span>
+                        งาน ({jobCount})
                     </button>
-                    <button onClick={() => setActiveTab('helpers')} className={`py-3 px-1 border-b-2 text-sm font-medium ${getTabClass('helpers')}`}>
-                        👥 ผู้ช่วย ({helperCount})
+                    <button 
+                      onClick={() => setActiveTab('helpers')} 
+                      className={`py-3 px-4 border-b-2 text-sm font-medium transition-colors min-h-[44px] flex items-center ${getTabClass('helpers')}`}
+                      role="tab"
+                      aria-selected={activeTab === 'helpers'}
+                      aria-controls="search-results-panel"
+                      id="tab-helpers"
+                      tabIndex={activeTab === 'helpers' ? 0 : -1}
+                    >
+                        <span className="mr-1" aria-hidden="true">👥</span>
+                        ผู้ช่วย ({helperCount})
                     </button>
                 </nav>
             </div>
-            {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {[...Array(6)].map((_, i) => <CardSkeleton key={i} />)}
-                </div>
-            ) : searchError ? (
-                 <div className="text-center py-10 bg-red-50 rounded-lg shadow h-full flex flex-col items-center justify-center">
-                    <p className="text-xl text-red-700">พบข้อผิดพลาด</p>
-                    <p className="text-sm text-red-600 mt-2">{searchError}</p>
-                </div>
-            ) : displayedResults.length === 0 ? (
-                <div className="text-center py-10 bg-white rounded-lg shadow flex flex-col items-center justify-center min-h-[300px]">
-                    <p className="text-xl text-neutral-dark mb-2">ไม่พบรายการที่ตรงกับการค้นหาของคุณ</p>
-                    <p className="text-sm text-neutral-medium">ลองปรับเปลี่ยนคำค้นหาหรือตัวกรอง</p>
-                </div>
-            ) : (
-                <motion.div
-                className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-                >
-                {displayedResults.map(item => {
-                    if (item.resultType === 'job') {
-                        const author = users.find(u => u.id === item.userId);
-                        return (
-                            <motion.div key={item.id} variants={itemVariants}>
-                                <JobCard
-                                    job={item as Job}
-                                    currentUser={currentUser}
-                                    getAuthorDisplayName={getAuthorDisplayName}
-                                    onToggleInterest={() => toggleInterest(item, 'job')}
-                                    isInterested={item.isInterested}
-                                    authorPhotoUrl={author?.photo}
-                                />
-                            </motion.div>
-                        );
-                    }
-                    if (item.resultType === 'helper') {
-                        return (
-                             <motion.div key={item.id} variants={itemVariants}>
-                                <HelperCard
-                                    profile={item as EnrichedHelperProfile}
-                                    currentUser={currentUser}
-                                    getAuthorDisplayName={getAuthorDisplayName}
-                                    onToggleInterest={() => toggleInterest(item, 'helperProfile')}
-                                    isInterested={item.isInterested}
-                                />
-                             </motion.div>
-                        );
-                    }
-                    return null;
-                })}
-                </motion.div>
-            )}
+            <div 
+              id="search-results-panel"
+              role="tabpanel"
+              aria-labelledby={`tab-${activeTab}`}
+              tabIndex={0}
+            >
+              {isLoading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" aria-label="กำลังโหลดผลการค้นหา">
+                      {[...Array(6)].map((_, i) => <CardSkeleton key={i} />)}
+                  </div>
+              ) : searchError ? (
+                   <div className="text-center py-10 bg-red-50 rounded-lg shadow h-full flex flex-col items-center justify-center" role="alert">
+                      <p className="text-xl text-red-700">พบข้อผิดพลาด</p>
+                      <p className="text-sm text-red-600 mt-2">{searchError}</p>
+                  </div>
+              ) : displayedResults.length === 0 ? (
+                  <div className="text-center py-10 bg-white rounded-lg shadow flex flex-col items-center justify-center min-h-[300px]" role="status">
+                      <p className="text-xl text-neutral-dark mb-2">ไม่พบรายการที่ตรงกับการค้นหา</p>
+                      <p className="text-sm text-neutral-medium">ลองเปลี่ยนคำหรือตัวกรอง หากเห็นตัวเลข แสดงว่ารายการคล้ายมีในพื้นที่อื่น</p>
+                  </div>
+              ) : (
+                  <motion.div
+                  className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                  role="region"
+                  aria-label={`ผลการค้นหา ${displayedResults.length} รายการ`}
+                  >
+                  {displayedResults.map(item => {
+                      if (item.resultType === 'job') {
+                          const author = users.find(u => u.id === item.userId);
+                          return (
+                              <motion.div key={item.id} variants={itemVariants}>
+                                  <JobCard
+                                      job={item as Job}
+                                      currentUser={currentUser}
+                                      getAuthorDisplayName={getAuthorDisplayName}
+                                      onToggleInterest={() => toggleInterest(item, 'job')}
+                                      isInterested={item.isInterested}
+                                      authorPhotoUrl={author?.photo}
+                                  />
+                              </motion.div>
+                          );
+                      }
+                      if (item.resultType === 'helper') {
+                          return (
+                               <motion.div key={item.id} variants={itemVariants}>
+                                  <HelperCard
+                                      profile={item as EnrichedHelperProfile}
+                                      currentUser={currentUser}
+                                      getAuthorDisplayName={getAuthorDisplayName}
+                                      onToggleInterest={() => toggleInterest(item, 'helperProfile')}
+                                      isInterested={item.isInterested}
+                                  />
+                               </motion.div>
+                          );
+                      }
+                      return null;
+                  })}
+                  </motion.div>
+              )}
+            </div>
         </section>
       </div>
     </div>

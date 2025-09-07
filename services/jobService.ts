@@ -1,3 +1,4 @@
+
 /**
  * @fileoverview
  * This service module manages all CRUD (Create, Read, Update, Delete) operations
@@ -19,7 +20,7 @@ import {
 } from '@firebase/firestore';
 import { db } from '../firebaseConfig.ts';
 import type { Job, Province, JobSubCategory, PaginatedDocsResponse, Cursor, JobCategory } from '../types/types.ts';
-import { logFirebaseError } from '../firebase/logging';
+import { logFirebaseError } from '../firebase/logging.ts';
 import { convertTimestamps, cleanDataForFirestore } from './serviceUtils';
 import { filterListingsService } from './searchService.ts';
 
@@ -27,7 +28,7 @@ import { filterListingsService } from './searchService.ts';
 const JOBS_COLLECTION = 'jobs';
 const USERS_COLLECTION = 'users';
 
-type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'posterIsAdminVerified' | 'interestedCount' | 'companyLogoUrl'>;
+type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'posterIsAdminVerified' | 'interestedCount' | 'companyLogoUrl' | 'adminVerified'>;
 interface JobAuthorInfo {
     userId: string;
     authorDisplayName: string;

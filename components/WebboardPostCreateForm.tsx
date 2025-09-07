@@ -206,7 +206,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
             name="title"
             value={formData.title}
             onChange={handleChange}
-            className={`w-full ${errors.title ? inputErrorStyle : ''}`}
+            className={`w-full p-3 border border-gray-300 rounded-xl bg-white font-sans text-primary-dark transition-all duration-150 focus:outline-none focus:border-primary focus:ring-3 focus:ring-primary/30 ${errors.title ? inputErrorStyle : ''}`}
             placeholder="เช่น มีใครเคยลอง... / ขอคำแนะนำเรื่อง..."
             disabled={!canSubmitForm && !editingPost}
           />
@@ -228,7 +228,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
             value={formData.body}
             onChange={handleChange}
             rows={6}
-            className={`w-full ${errors.body ? inputErrorStyle : ''}`}
+            className={`w-full p-3 border border-gray-300 rounded-xl bg-white font-sans text-primary-dark transition-all duration-150 focus:outline-none focus:border-primary focus:ring-3 focus:ring-primary/30 resize-none ${errors.body ? inputErrorStyle : ''}`}
             placeholder="เล่าเรื่องราว ถามคำถาม หรือแบ่งปันประสบการณ์ของคุณที่นี่..."
             disabled={!canSubmitForm && !editingPost}
             maxLength={MAX_POST_CHARS + 100} // Allow slight overtyping for UX, validate on submit
@@ -245,7 +245,7 @@ export const WebboardPostCreateForm: React.FC<WebboardPostCreateFormProps> = ({
             name="category"
             value={formData.category}
             onChange={handleChange}
-            className={`w-full ${errors.category ? inputErrorStyle : ''}`}
+            className={`w-full p-3 border border-gray-300 rounded-xl bg-white font-sans text-primary-dark transition-all duration-150 focus:outline-none focus:border-primary focus:ring-3 focus:ring-primary/30 ${errors.category ? inputErrorStyle : ''}`}
             disabled={!canSubmitForm && !editingPost}
           >
             <option value="" disabled>-- กรุณาเลือกหมวดหมู่ --</option>

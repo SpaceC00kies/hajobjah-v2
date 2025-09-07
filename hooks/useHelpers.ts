@@ -20,7 +20,7 @@ const MAX_ACTIVE_HELPER_PROFILES_FREE_TIER = 1;
 const MAX_ACTIVE_HELPER_PROFILES_BADGE = 2;
 const BUMP_COOLDOWN_DAYS = 30;
 
-type HelperProfileFormData = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt'>;
+type HelperProfileFormData = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt' | 'serviceVoiceIntroUrl'>;
 
 const generateContactString = (user: User): string => {
     let contactParts: string[] = [];
@@ -41,12 +41,20 @@ export const useHelpers = () => {
   const checkHelperProfilePostingLimits = useCallback(async (): Promise<{ canPost: boolean; message?: string }> => {
     if (!currentUser) return { canPost: false, message: "กรุณาเข้าสู่ระบบ" };
     
+    // Admin users have no restrictions
+    if (currentUser.role === 'Admin') {
+        return { canPost: true };
+    }
+    
+    // Verified users have different limits but still have cooldown
+    const isVerified = currentUser.adminVerified;
     const cooldownHoursTotal = HELPER_PROFILE_COOLDOWN_DAYS * 24;
+    
     if (currentUser.postingLimits.lastHelperProfileDate) {
         const hoursSinceLastPost = (new Date().getTime() - new Date(currentUser.postingLimits.lastHelperProfileDate as string).getTime()) / (1000 * 60 * 60);
         if (hoursSinceLastPost < cooldownHoursTotal) {
             const hoursRemaining = Math.ceil(cooldownHoursTotal - hoursSinceLastPost);
-            return { canPost: false, message: `คุณสามารถสร้างโปรไฟล์ผู้ช่วยใหม่ได้ในอีก ${hoursRemaining} ชั่วโมง` };
+            return { canPost: false, message: `คุณสามารถลงประกาศโปรไฟล์ใหม่ได้ในอีก ${hoursRemaining} ชั่วโมง` };
         }
     }
     
@@ -55,14 +63,19 @@ export const useHelpers = () => {
     if (currentUser.activityBadge?.isActive) {
         maxProfiles = MAX_ACTIVE_HELPER_PROFILES_BADGE;
     }
+    
+    // Verified users can post up to 3 helper profiles
+    if (isVerified) {
+        maxProfiles = 3;
+    }
 
     if (userActiveProfiles >= maxProfiles) {
-        return { canPost: false, message: `คุณมีโปรไฟล์ผู้ช่วยที่ยังไม่หมดอายุ ${userActiveProfiles}/${maxProfiles} โปรไฟล์แล้ว` };
+        return { canPost: false, message: `คุณมี👩🏻‍💼 เสนอโปรไฟล์ที่ยังไม่หมดอายุ ${userActiveProfiles}/${maxProfiles} โปรไฟล์แล้ว` };
     }
     return { canPost: true };
   }, [currentUser, allHelperProfilesForAdmin]);
 
-  const addHelperProfile = useCallback(async (newProfileData: HelperProfileFormData) => {
+  const addHelperProfile = useCallback(async (newProfileData: HelperProfileFormData, audioBlob: Blob | null) => {
     if (!currentUser) throw new Error("User not authenticated");
     const limitCheck = await checkHelperProfilePostingLimits();
     if (!limitCheck.canPost) throw new Error(limitCheck.message);
@@ -83,7 +96,7 @@ export const useHelpers = () => {
         gender: currentUser.gender,
         birthdate: currentUser.birthdate,
         educationLevel: currentUser.educationLevel,
-      });
+      }, audioBlob);
       const updatedUser = await getUserDocument(currentUser.id);
       if (updatedUser) setCurrentUser(updatedUser);
     } catch (error) {
@@ -92,19 +105,19 @@ export const useHelpers = () => {
     }
   }, [currentUser, checkHelperProfilePostingLimits, setCurrentUser]);
 
-  const updateHelperProfile = useCallback(async (profileId: string, updatedProfileData: HelperProfileFormData) => {
+  const updateHelperProfile = useCallback(async (profileId: string, updatedProfileData: Partial<HelperProfileFormData>, audioBlob: Blob | null | undefined) => {
     if (!currentUser) throw new Error("User not authenticated");
     const originalProfile = allHelperProfilesForAdmin.find(p => p.id === profileId);
     if (!originalProfile) throw new Error("ไม่พบโปรไฟล์เดิม");
     if (originalProfile.userId !== currentUser.id && currentUser.role !== 'Admin') {
       throw new Error("คุณไม่มีสิทธิ์แก้ไขโปรไฟล์นี้");
     }
-    if (containsBlacklistedWords(updatedProfileData.details) || containsBlacklistedWords(updatedProfileData.profileTitle)) {
+    if (updatedProfileData.details && containsBlacklistedWords(updatedProfileData.details) || updatedProfileData.profileTitle && containsBlacklistedWords(updatedProfileData.profileTitle)) {
       throw new Error('เนื้อหาหรือหัวข้อมีคำที่ไม่เหมาะสม');
     }
 
     try {
-      await updateHelperProfileService(profileId, updatedProfileData, generateContactString(currentUser));
+      await updateHelperProfileService(profileId, updatedProfileData, generateContactString(currentUser), audioBlob);
     } catch (error) {
       logFirebaseError("useHelpers.updateHelperProfile", error);
       throw error;
@@ -166,9 +179,8 @@ export const useHelpers = () => {
 
   const onToggleSuspiciousHelperProfile = (profileId: string) => toggleHelperFlag(profileId, 'isSuspicious');
   const onTogglePinnedHelperProfile = (profileId: string) => toggleHelperFlag(profileId, 'isPinned');
-  const onToggleVerifiedExperience = (profileId: string) => toggleHelperFlag(profileId, 'adminVerifiedExperience');
   const onToggleUnavailableHelperProfileForUserOrAdmin = (profileId: string) => toggleHelperFlag(profileId, 'isUnavailable');
-  
+
   return {
     allHelperProfilesForAdmin,
     addHelperProfile,
@@ -177,7 +189,6 @@ export const useHelpers = () => {
     onBumpProfile,
     onToggleSuspiciousHelperProfile,
     onTogglePinnedHelperProfile,
-    onToggleVerifiedExperience,
     onToggleUnavailableHelperProfileForUserOrAdmin,
     checkHelperProfilePostingLimits,
     isLoadingHelpers,

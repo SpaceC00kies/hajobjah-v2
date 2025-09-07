@@ -1,5 +1,4 @@
 
-
 import React, { useState } from 'react';
 import type { EnrichedWebboardPost, User } from '../types/types.ts';
 import { View, WEBBOARD_CATEGORY_STYLES, WebboardCategory } from '../types/types.ts';
@@ -102,18 +101,22 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = React.memo(({
   }
 
   const categoryStyle = WEBBOARD_CATEGORY_STYLES[post.category] || WEBBOARD_CATEGORY_STYLES[WebboardCategory.General];
-  const actionButtonBaseClass = "flex items-center gap-1 p-1.5 rounded-md hover:bg-neutral-light focus:outline-none transition-colors duration-150";
+  const actionButtonBaseClass = "flex items-center gap-1 p-1.5 rounded-md hover:bg-neutral-light focus:outline-none transition-colors";
+  const actionButtonStyle = { transitionDuration: 'var(--transition-fast)' };
 
 
   return (
     <motion.div
-      className="font-sans bg-white shadow rounded-lg border border-neutral-DEFAULT/50 hover:border-neutral-DEFAULT transition-all duration-200 flex cursor-pointer"
+      className="app-card font-sans flex cursor-pointer"
       onClick={() => onViewPost(post.id)}
       role="article"
       aria-labelledby={`post-title-${post.id}`}
-      whileHover={{ y: -2, transition: { duration: 0.15 } }}
+      style={{ 
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        flexDirection: 'row'
+      }}
     >
-      <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 bg-neutral-light rounded-l-lg overflow-hidden m-3">
+      <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 bg-neutral-light rounded-l-lg overflow-hidden" style={{ margin: 'var(--space-3)' }}>
         {post.image ? (
           <img src={post.image} alt="Post thumbnail" className="w-full h-full object-cover" loading="lazy" decoding="async" />
         ) : (
@@ -123,25 +126,48 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = React.memo(({
         )}
       </div>
 
-      <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
+      <div className="flex-1 flex flex-col justify-between min-w-0" style={{ padding: 'var(--space-3)' }}>
         <div>
           {post.isPinned && (
-            <span className="text-xs font-semibold text-yellow-600 mb-1 inline-block">📌 Pinned</span>
+            <span 
+              className="font-semibold inline-block"
+              style={{ 
+                fontSize: 'var(--font-size-xs)', 
+                color: 'var(--warning)', 
+                marginBottom: 'var(--space-1)',
+                fontWeight: 'var(--font-semibold)'
+              }}
+            >
+              📌 Pinned
+            </span>
           )}
           <h3
             id={`post-title-${post.id}`}
-            className="text-base sm:text-lg font-semibold text-gray-800 hover:underline line-clamp-2 leading-tight"
+            className="hover:underline line-clamp-2"
             title={post.title}
+            style={{ 
+              fontSize: 'var(--font-size-base)', 
+              fontWeight: 'var(--font-semibold)', 
+              color: 'var(--text-primary)', 
+              lineHeight: 'var(--leading-tight)',
+              marginBottom: 'var(--space-1)'
+            }}
           >
             {post.title}
           </h3>
           <span
-            className={`text-xs font-medium mt-1 px-1.5 py-0.5 rounded-full inline-block ${categoryStyle.bg} ${categoryStyle.text} ${categoryStyle.border ? `border ${categoryStyle.border}`: ''}`}
+            className={`font-medium rounded-full inline-block ${categoryStyle.bg} ${categoryStyle.text} ${categoryStyle.border ? `border ${categoryStyle.border}`: ''}`}
+            style={{ 
+              fontSize: 'var(--font-size-xs)', 
+              marginTop: 'var(--space-1)', 
+              padding: 'var(--space-1) var(--space-2)',
+              fontWeight: 'var(--font-medium)'
+            }}
           >
             {post.category}
           </span>
 
-          <div className="text-xs text-neutral-500 mt-1.5">
+          <div className="text-neutral-500" style={{ fontSize: 'var(--font-size-xs)', marginTop: 'var(--space-1)', color: 'var(--text-tertiary)' }}>
             <span
               className="hover:underline cursor-pointer"
               onClick={handleNavigateToPublicProfile}
@@ -154,10 +180,11 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = React.memo(({
           </div>
         </div>
 
-        <div className="flex items-center justify-start text-xs text-neutral-medium mt-2 space-x-2 sm:space-x-3 flex-wrap">
+        <div className="flex items-center justify-start text-neutral-medium flex-wrap" style={{ fontSize: 'var(--font-size-xs)', marginTop: 'var(--space-2)', gap: 'var(--space-2)', color: 'var(--text-secondary)' }}>
           <motion.button
             onClick={handleLikeClick}
             className={`${actionButtonBaseClass}`}
+            style={actionButtonStyle}
             aria-pressed={localIsLiked}
             aria-label={localIsLiked ? "Unlike" : "Like"}
             whileTap={{ scale: 0.9 }}
@@ -186,6 +213,7 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = React.memo(({
           <motion.button
             onClick={() => onViewPost(post.id)}
             className={`${actionButtonBaseClass} text-neutral-500`}
+            style={actionButtonStyle}
             aria-label="View comments"
             whileTap={{ scale: 0.9 }}
           >
@@ -197,6 +225,7 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = React.memo(({
               <motion.button
                 onClick={handleSaveClick}
                 className={`${actionButtonBaseClass}`}
+                style={actionButtonStyle}
                 aria-pressed={localIsSaved}
                 aria-label={localIsSaved ? "Unsave" : "Save"}
                 whileTap={{ scale: 0.9 }}
@@ -215,6 +244,7 @@ export const WebboardPostCard: React.FC<WebboardPostCardProps> = React.memo(({
               <motion.button
                 onClick={handleShareClick}
                 className={`${actionButtonBaseClass} text-neutral-500`}
+                style={actionButtonStyle}
                 aria-label="Share"
                 whileTap={{ scale: 0.9 }}
                 animate={{ scale: 1 }}

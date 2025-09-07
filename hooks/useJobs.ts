@@ -18,7 +18,7 @@ const JOB_COOLDOWN_DAYS = 3;
 const MAX_ACTIVE_JOBS_FREE_TIER = 3;
 const MAX_ACTIVE_JOBS_BADGE = 4;
 
-type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'posterIsAdminVerified' | 'interestedCount' | 'companyLogoUrl' | 'adminVerified'>;
+export type JobFormData = Omit<Job, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isHired' | 'contact' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'posterIsAdminVerified' | 'interestedCount' | 'companyLogoUrl' | 'adminVerified'>;
 
 const generateContactString = (user: User): string => {
     let contactParts: string[] = [];
@@ -39,7 +39,15 @@ export const useJobs = () => {
   const checkJobPostingLimits = useCallback(async (): Promise<{ canPost: boolean; message?: string }> => {
     if (!currentUser) return { canPost: false, message: "กรุณาเข้าสู่ระบบ" };
     
+    // Admin users have no restrictions
+    if (currentUser.role === 'Admin') {
+        return { canPost: true };
+    }
+    
+    // Verified users have different limits but still have cooldown
+    const isVerified = currentUser.adminVerified;
     const cooldownHoursTotal = JOB_COOLDOWN_DAYS * 24;
+    
     if (currentUser.postingLimits.lastJobPostDate) {
         const hoursSinceLastPost = (new Date().getTime() - new Date(currentUser.postingLimits.lastJobPostDate as string).getTime()) / (1000 * 60 * 60);
         if (hoursSinceLastPost < cooldownHoursTotal) {
@@ -47,11 +55,17 @@ export const useJobs = () => {
             return { canPost: false, message: `คุณสามารถโพสต์งานใหม่ได้ในอีก ${hoursRemaining} ชั่วโมง` };
         }
     }
+    
     const userActiveJobs = allJobsForAdmin.filter(job => job.userId === currentUser.id && !isDateInPast(job.expiresAt) && !job.isExpired).length;
 
     let maxJobs = (currentUser.tier === 'free') ? MAX_ACTIVE_JOBS_FREE_TIER : 999;
     if (currentUser.activityBadge?.isActive) {
         maxJobs = MAX_ACTIVE_JOBS_BADGE;
+    }
+    
+    // Verified users can post up to 5 jobs
+    if (isVerified) {
+        maxJobs = 5;
     }
 
     if (userActiveJobs >= maxJobs) {
@@ -82,8 +96,8 @@ export const useJobs = () => {
   const updateJob = useCallback(async (jobId: string, updatedJobData: JobFormData) => {
     if (!currentUser) throw new Error("User not authenticated");
     const originalJob = allJobsForAdmin.find(j => j.id === jobId);
-    if (!originalJob) throw new Error("ไม่พบประกาศงานเดิม");
-    if (originalJob.userId !== currentUser.id) throw new Error("คุณไม่มีสิทธิ์แก้ไขประกาศงานนี้");
+    if (!originalJob) throw new Error("ไม่พบประกาศรับสมัครเดิม");
+    if (originalJob.userId !== currentUser.id) throw new Error("คุณไม่มีสิทธิ์แก้ไขประกาศรับสมัครนี้");
     if (containsBlacklistedWords(updatedJobData.description) || containsBlacklistedWords(updatedJobData.title)) {
         throw new Error('เนื้อหาหรือหัวข้อมีคำที่ไม่เหมาะสม');
     }
@@ -125,7 +139,6 @@ export const useJobs = () => {
   const toggleSuspiciousJob = (jobId: string) => toggleJobFlag(jobId, 'isSuspicious');
   const togglePinnedJob = (jobId: string) => toggleJobFlag(jobId, 'isPinned');
   const toggleHiredJob = (jobId: string) => toggleJobFlag(jobId, 'isHired');
-  const toggleVerifiedJob = (jobId: string) => toggleJobFlag(jobId, 'adminVerified');
 
-  return { allJobsForAdmin, addJob, updateJob, deleteJob, checkJobPostingLimits, toggleSuspiciousJob, togglePinnedJob, toggleHiredJob, toggleVerifiedJob, isLoadingJobs };
+  return { allJobsForAdmin, addJob, updateJob, deleteJob, checkJobPostingLimits, toggleSuspiciousJob, togglePinnedJob, toggleHiredJob, isLoadingJobs };
 };

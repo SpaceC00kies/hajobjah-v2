@@ -62,8 +62,16 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
     }
   };
 
+  const modalDescription = "กรอกอีเมลที่คุณใช้ลงทะเบียนเพื่อรับลิงก์สำหรับตั้งรหัสผ่านใหม่";
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="🔑 ลืมรหัสผ่าน?">
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      title="🔑 ลืมรหัสผ่าน?"
+      description={modalDescription}
+      initialFocusRef={emailInputRef}
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
         <p className="text-sm font-serif text-neutral-dark">
           กรอกอีเมลที่คุณใช้ลงทะเบียนเพื่อรับลิงก์สำหรับตั้งรหัสผ่านใหม่
@@ -83,15 +91,25 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
               if (error) setError(null);
               if (successMessage) setSuccessMessage(null);
             }}
-            className={`w-full ${error ? 'input-error' : ''}`}
+            className={`w-full focus:ring-2 focus:ring-primary/50 focus:ring-offset-1 ${error ? 'input-error border-red-500' : ''}`}
             placeholder="your.email@example.com"
             disabled={isLoading}
+            aria-invalid={error ? 'true' : 'false'}
+            aria-describedby={error ? 'email-error' : 'email-help'}
+            required
           />
-          {error && <p className="text-red-500 font-sans text-xs mt-1">{error}</p>}
+          <p id="email-help" className="text-xs text-neutral-dark mt-1">
+            ใส่อีเมลที่คุณใช้สมัครสมาชิก
+          </p>
+          {error && (
+            <p id="email-error" className="text-red-500 font-sans text-xs mt-1" role="alert">
+              {error}
+            </p>
+          )}
         </div>
 
         {successMessage && (
-          <div className="p-3 bg-green-50 border border-green-300 rounded-md text-sm text-green-700 font-sans">
+          <div className="p-3 bg-green-50 border border-green-300 rounded-md text-sm text-green-700 font-sans" role="status" aria-live="polite">
             {successMessage}
           </div>
         )}
@@ -103,9 +121,13 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
             size="md"
             className="w-full sm:flex-grow"
             disabled={isLoading}
+            aria-describedby={isLoading ? 'submit-status' : undefined}
           >
             {isLoading ? 'กำลังส่ง...' : '📧 ส่งอีเมลรีเซ็ต'}
           </Button>
+          {isLoading && (
+            <span id="submit-status" className="sr-only">กำลังส่งอีเมลรีเซ็ตรหัสผ่าน</span>
+          )}
           <Button
             type="button"
             onClick={onClose}

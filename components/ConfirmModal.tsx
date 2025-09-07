@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Button } from './Button.tsx';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Modal } from './Modal.tsx';
 import { useNavigate } from 'react-router-dom';
 
 
@@ -12,113 +12,72 @@ interface ConfirmModalProps {
   message: string;
 }
 
-const backdropVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1 },
-};
-
-const panelVariants = {
-  hidden: { opacity: 0, scale: 0.95, y: 20 },
-  visible: { opacity: 1, scale: 1, y: 0 },
-  exit: { opacity: 0, scale: 0.95, y: 20, transition: { duration: 0.2, ease: "easeIn" as const } },
-};
-
-const modalTransition = {
-  type: "tween" as const,
-  duration: 0.3,
-  ease: [0.08, 0.82, 0.17, 1] as const // A more refined ease-out cubic bezier
-};
-
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({ isOpen, onClose, onConfirm, title, message }) => {
   const navigate = useNavigate();
-  
-  useEffect(() => {
-    const handleEscapeKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscapeKey);
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscapeKey);
-    };
-  }, [isOpen, onClose]);
+  const confirmButtonRef = useRef<HTMLButtonElement>(null);
   
   const handleActualConfirm = () => {
     onConfirm();
     // Parent will typically close the modal by setting isOpen to false
   };
 
+  const modalDescription = "กรุณายืนยันการดำเนินการนี้ การกระทำนี้ไม่สามารถยกเลิกได้";
+
   return (
-    <AnimatePresence initial={false}>
-      {isOpen && (
-        <motion.div
-          key="confirm-modal-backdrop"
-          className="fixed inset-0 bg-neutral-dark/70 backdrop-blur-sm flex justify-center items-center z-50 p-4"
-          variants={backdropVariants}
-          initial="hidden"
-          animate="visible"
-          exit="hidden"
-          transition={modalTransition}
-          onClick={onClose}
-          role="alertdialog"
-          aria-modal="true"
-          aria-labelledby="confirm-modal-title"
-          aria-describedby="confirm-modal-message"
-        >
-          <motion.div
-            key="confirm-modal-content"
-            className="bg-white px-6 pt-6 pb-8 sm:pb-10 rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto"
-            variants={panelVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            transition={modalTransition}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 id="confirm-modal-title" className="text-xl font-sans font-semibold text-neutral-dark mb-4">{title}</h2>
-            <p id="confirm-modal-message" className="font-serif text-base text-neutral-dark mb-6 whitespace-pre-wrap">
-              {message.includes("โปรดอ่านเพื่อความปลอดภัย") ? (
-                <>
-                  <span className="font-sans font-semibold text-lg flex items-center gap-2 mb-2">
-                    <span>⚠️</span>
-                    <span>โปรดระวังมิจฉาชีพ</span>
-                  </span>
-                  <br/>
-                  กรุณาใช้ความระมัดระวังในการติดต่อ ควรมีการตกลงเรื่องเงินที่ชัดเจนและควรนัดเจอในที่ปลอดภัย หาจ๊อบจ้าเป็นเพียงพื้นที่ให้คนเจอกัน โปรดใช้วิจารณญาณในการติดต่อ ฉบับเต็มโปรดอ่านที่หน้า{" "}
-                  <button
-                    onClick={() => { onClose(); navigate('/safety'); }}
-                    className="font-serif font-normal underline text-neutral-dark hover:text-secondary"
-                  >
-                    "โปรดอ่านเพื่อความปลอดภัย"
-                  </button>
-                </>
-              ) : (
-                message
-              )}
-            </p>
-            <div className="flex flex-col sm:flex-row justify-end gap-3">
-              <Button onClick={onClose} variant="outline" colorScheme="neutral" size="md" className="w-full sm:w-auto">
-                ยกเลิก
-              </Button>
-              <Button 
-                onClick={handleActualConfirm} 
-                size="md"
-                className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-semibold focus:ring-2 focus:ring-red-500/50 focus:ring-offset-1"
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+      description={modalDescription}
+      initialFocusRef={confirmButtonRef}
+    >
+      <div role="alertdialog" aria-describedby="confirm-modal-message">
+        <p id="confirm-modal-message" className="font-serif text-base text-neutral-dark mb-6 whitespace-pre-wrap">
+          {message.includes("โปรดอ่านเพื่อความปลอดภัย") ? (
+            <>
+              <span className="font-sans font-semibold text-lg flex items-center gap-2 mb-2">
+                <span>⚠️</span>
+                <span>โปรดระวังมิจฉาชีพ</span>
+              </span>
+              <br/>
+              กรุณาใช้ความระมัดระวังในการติดต่อ ควรมีการตกลงเรื่องเงินที่ชัดเจนและควรนัดเจอในที่ปลอดภัย หาจ๊อบจ้าเป็นเพียงพื้นที่ให้คนเจอกัน โปรดใช้วิจารณญาณในการติดต่อ ฉบับเต็มโปรดอ่านที่หน้า{" "}
+              <button
+                onClick={() => { onClose(); navigate('/safety'); }}
+                className="font-serif font-normal underline text-neutral-dark hover:text-secondary focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-1"
+                type="button"
               >
-                <span className="flex items-center justify-center gap-1.5">
-                  <span>🗑️</span>
-                  <span>ยืนยัน</span>
-                </span>
-              </Button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+                "โปรดอ่านเพื่อความปลอดภัย"
+              </button>
+            </>
+          ) : (
+            message
+          )}
+        </p>
+        <div className="flex flex-col sm:flex-row justify-end gap-3">
+          <Button 
+            onClick={onClose} 
+            variant="outline" 
+            colorScheme="neutral" 
+            size="md" 
+            className="w-full sm:w-auto"
+            type="button"
+          >
+            ยกเลิก
+          </Button>
+          <Button 
+            ref={confirmButtonRef}
+            onClick={handleActualConfirm} 
+            size="md"
+            className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-semibold focus:ring-2 focus:ring-red-500/50 focus:ring-offset-2"
+            type="button"
+          >
+            <span className="flex items-center justify-center gap-1.5">
+              <span>🗑️</span>
+              <span>ยืนยัน</span>
+            </span>
+          </Button>
+        </div>
+      </div>
+    </Modal>
   );
 };

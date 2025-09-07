@@ -1,5 +1,7 @@
 
 import React, { useCallback } from 'react';
+import { doc, runTransaction } from '@firebase/firestore';
+import { db } from '../firebaseConfig.ts';
 import type { User, UserRole, VouchReport, VouchReportStatus, VouchType, WebboardPost } from '../types/types.ts';
 import {
   setSiteLockService,
@@ -81,6 +83,26 @@ export const useAdmin = () => {
     }
   }, [currentUser, checkAdmin]);
 
+  const toggleUserVerification = useCallback(async (userId: string) => {
+    checkAdmin();
+    const userRef = doc(db, 'users', userId);
+    try {
+        await runTransaction(db, async (transaction) => {
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists()) {
+                throw new Error("User not found");
+            }
+            const currentStatus = userDoc.data().adminVerified || false;
+            transaction.update(userRef, { adminVerified: !currentStatus });
+        });
+    } catch (error: any) {
+        logFirebaseError("useAdmin.toggleUserVerification", error);
+        alert(`Failed to toggle user verification: ${error.message}`);
+        throw error;
+    }
+  }, [checkAdmin]);
+
+
   return {
     setUserRole,
     toggleSiteLock,
@@ -89,5 +111,6 @@ export const useAdmin = () => {
     getUserDocument,
     orionAnalyzeService,
     forceResolveVouchReport,
+    toggleUserVerification,
   };
 };

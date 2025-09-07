@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { HelperProfile, EnrichedHelperProfile, FilterableCategory, JobSubCategory, PaginatedDocsResponse, Cursor } from '../types/types.ts';
 import { JobCategory, JOB_SUBCATEGORIES_MAP, Province } from '../types/types.ts';
@@ -12,19 +10,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useUsers } from '../hooks/useUsers.ts';
 import { useUser } from '../hooks/useUser.ts';
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.05 },
-  },
-};
-
-const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: { y: 0, opacity: 1 },
-};
+import { ListingPageLayout, itemVariants } from './ListingPageLayout.tsx';
+import { FastLottie } from './FastLottie.tsx';
+import '../utils/lottiePreloader.ts';
 
 type FullyEnrichedHelperProfile = EnrichedHelperProfile;
 
@@ -46,7 +34,7 @@ export const FindHelpersPage: React.FC = () => {
   const [selectedSubCategory, setSelectedSubCategory] = useState<JobSubCategory | 'all'>('all');
   const [selectedProvince, setSelectedProvince] = useState<Province | 'all'>('all');
   const [availableSubCategories, setAvailableSubCategories] = useState<JobSubCategory[]>([]);
-  
+
   const loaderRef = useRef<HTMLDivElement>(null);
   const isLoadingRef = useRef(isLoading);
   const hasMoreRef = useRef(hasMore);
@@ -68,7 +56,7 @@ export const FindHelpersPage: React.FC = () => {
     const author = users.find(u => u && u.id === userId);
     return author?.publicDisplayName || fallbackName || "ผู้ใช้ไม่ทราบชื่อ";
   }, [users]);
-  
+
   useEffect(() => {
     isLoadingRef.current = isLoading;
     hasMoreRef.current = hasMore;
@@ -87,7 +75,7 @@ export const FindHelpersPage: React.FC = () => {
         selectedSubCategory,
         selectedProvince
       );
-      
+
       const enriched = result.items.map(profile => {
         const user = users.find(u => u.id === profile.userId);
         return {
@@ -124,16 +112,14 @@ export const FindHelpersPage: React.FC = () => {
     loadProfiles(true);
   }, [debouncedSearchTerm, selectedCategory, selectedSubCategory, selectedProvince]);
 
-  useEffect(() => {
-    if (selectedCategory !== 'all' && JOB_SUBCATEGORIES_MAP[selectedCategory]) {
-      setAvailableSubCategories(JOB_SUBCATEGORIES_MAP[selectedCategory]);
-    } else {
-      setAvailableSubCategories([]);
-    }
-    if (selectedCategory !== 'all') {
-        setSelectedSubCategory('all');
-    }
-  }, [selectedCategory]);
+  const handleCategoryChange = useCallback((category: FilterableCategory) => {
+    setSelectedCategory(category);
+    const newSubCategories = category !== 'all'
+      ? JOB_SUBCATEGORIES_MAP[category] || []
+      : [];
+    setAvailableSubCategories(newSubCategories);
+    setSelectedSubCategory('all');
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -148,66 +134,78 @@ export const FindHelpersPage: React.FC = () => {
     if (currentLoader) observer.observe(currentLoader);
     return () => { if (currentLoader) observer.unobserve(currentLoader); };
   }, [loadProfiles]);
-  
-  return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-sans font-bold text-primary-dark mb-2">👥 โปรไฟล์ผู้ช่วยและบริการ</h2>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-x-8">
-        <aside className="lg:col-span-3 mb-8 lg:mb-0">
-          <FilterSidebar
-            selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
-            availableSubCategories={availableSubCategories}
-            selectedSubCategory={selectedSubCategory}
-            onSubCategoryChange={setSelectedSubCategory}
-            selectedProvince={selectedProvince}
-            onProvinceChange={setSelectedProvince}
-            searchTerm={searchTerm}
-            onSearchTermChange={setSearchTerm}
-            searchPlaceholder="ค้นหาทักษะ, พื้นที่..."
-            actionButtonText="สร้างโปรไฟล์"
-            onActionButtonClick={() => currentUser ? navigate('/post-helper') : navigate('/login')}
-          />
-        </aside>
+  const sidebarContent = (
+    <FilterSidebar
+      selectedCategory={selectedCategory}
+      onCategoryChange={handleCategoryChange}
+      availableSubCategories={availableSubCategories}
+      selectedSubCategory={selectedSubCategory}
+      onSubCategoryChange={setSelectedSubCategory}
+      selectedProvince={selectedProvince}
+      onProvinceChange={setSelectedProvince}
+      searchTerm={searchTerm}
+      onSearchTermChange={setSearchTerm}
+      searchPlaceholder="ค้นหาทักษะ, พื้นที่..."
+      actionButtonText="ลงประกาศโปรไฟล์"
+      onActionButtonClick={() => currentUser ? navigate('/post-helper') : navigate('/login')}
+    />
+  );
 
-        <section className="lg:col-span-9">
-          {isLoading && profiles.length === 0 ? (
-            <div className="text-center py-10 text-primary-dark font-sans">กำลังโหลด...</div>
-          ) : profiles.length === 0 ? (
-            <div className="text-center py-10 bg-white rounded-lg shadow flex flex-col items-center justify-center min-h-[300px]">
-              <p className="text-xl text-neutral-dark mb-2">ไม่พบโปรไฟล์ผู้ช่วยที่ตรงกับเงื่อนไขของคุณ</p>
-              <p className="text-sm text-neutral-medium">ลองปรับเปลี่ยนตัวกรอง</p>
-            </div>
-          ) : (
-            <motion.div
-              className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              {profiles.map(profile => (
-                <motion.div key={profile.id} variants={itemVariants}>
-                  <HelperCard
-                    profile={profile}
-                    currentUser={currentUser}
-                    getAuthorDisplayName={getAuthorDisplayName}
-                    onToggleInterest={() => userActions.toggleInterest(profile.id, 'helperProfile', profile.userId)}
-                    isInterested={userInterests.some(i => i.targetId === profile.id)}
-                  />
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
-
-          <div ref={loaderRef} className="h-10 flex justify-center items-center mt-4">
-            {isLoading && profiles.length > 0 && <p className="text-sm text-neutral-medium">กำลังโหลดเพิ่มเติม...</p>}
-            {!hasMore && profiles.length > 0 && <p className="text-sm text-neutral-medium mt-4">🎉 คุณดูครบทุกรายการแล้ว</p>}
-          </div>
-        </section>
-      </div>
+  const loadMoreContent = (
+    <div ref={loaderRef} className="h-10 flex justify-center items-center">
+      {isLoading && profiles.length > 0 && (
+        <p className="text-sm text-neutral-medium" role="status" aria-live="polite">
+          กำลังโหลดเพิ่มเติม...
+        </p>
+      )}
+      {!hasMore && profiles.length > 0 && (
+        <p className="text-sm text-neutral-medium" role="status">
+          🎉 คุณดูครบทุกรายการแล้ว
+        </p>
+      )}
     </div>
+  );
+
+  return (
+    <ListingPageLayout
+      title="เสนอโปรไฟล์"
+      titleIcon={
+        <FastLottie
+          src="https://lottie.host/a8f69183-d5b6-42b9-a728-d647b294b2f6/RbAE7JTZfY.lottie"
+          width="5rem"
+          height="5rem"
+          title="Helper profile animation"
+          priority="high"
+        />
+      }
+      subtitle="รับฟรีแลนซ์หรือมองหาตำแหน่ง พรีเซนต์ตัวเองเลย"
+      sidebar={sidebarContent}
+      isLoading={isLoading}
+      hasItems={profiles.length > 0}
+      emptyStateMessage="ไม่พบโปรไฟล์ที่ตรงกับเงื่อนไขของคุณ"
+      emptyStateSubMessage="ลองปรับเปลี่ยนตัวกรอง"
+      loadMoreContent={loadMoreContent}
+    >
+      {profiles.map(profile => {
+        const author = users.find(u => u.id === profile.userId);
+        return (
+          <motion.div
+            key={profile.id}
+            variants={itemVariants}
+            role="listitem"
+          >
+            <HelperCard
+              profile={profile}
+              currentUser={currentUser}
+              getAuthorDisplayName={getAuthorDisplayName}
+              onToggleInterest={() => userActions.toggleInterest(profile.id, 'helperProfile', profile.userId)}
+              isInterested={userInterests.some(i => i.targetId === profile.id)}
+              isAuthorVerified={author?.adminVerified}
+            />
+          </motion.div>
+        );
+      })}
+    </ListingPageLayout>
   );
 };

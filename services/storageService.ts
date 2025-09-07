@@ -30,17 +30,28 @@ export const uploadImageService = async (path: string, fileOrBase64: File | stri
   }
 };
 
-export const deleteImageService = async (imageUrl?: string | null): Promise<void> => {
-  if (!imageUrl) return;
+export const uploadAudioService = async (path: string, blob: Blob): Promise<string> => {
+    try {
+        const storageRef = ref(storage, path);
+        await uploadBytes(storageRef, blob, { contentType: 'audio/webm' });
+        return await getDownloadURL(storageRef);
+    } catch (error: any) {
+        logFirebaseError("uploadAudioService", error);
+        throw error;
+    }
+};
+
+export const deleteFileService = async (fileUrl?: string | null): Promise<void> => {
+  if (!fileUrl) return;
   try {
-    const storageRef = ref(storage, imageUrl);
+    const storageRef = ref(storage, fileUrl);
     await deleteObject(storageRef);
   } catch (error: any) {
     if (typeof error === 'object' && error !== null && 'code' in error && (error as any).code !== 'storage/object-not-found') {
-      logFirebaseError("deleteImageService", error);
+      logFirebaseError("deleteFileService", error);
       throw error;
     } else if (typeof error === 'object' && error !== null && !('code' in error)) {
-      logFirebaseError("deleteImageService", error);
+      logFirebaseError("deleteFileService", error);
       throw error;
     }
   }

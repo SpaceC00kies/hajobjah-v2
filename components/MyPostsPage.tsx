@@ -54,7 +54,7 @@ const formatDateDisplay = (dateInput?: string | Date | null): string => {
     return 'Invalid Date';
   }
   try {
-    return dateObject.toLocaleDateString('th-TH', {
+    return dateObject.toLocaleDateString('th-TH-u-ca-gregory', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -274,7 +274,7 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
         </h3>
         <div className="space-y-2 text-sm font-sans text-neutral-dark">
           <div className="flex justify-between items-center p-2 bg-neutral-light/50 rounded">
-            <span>ประกาศงาน: {userActiveJobsCount}/{maxJobsAllowed}</span>
+            <span>ประกาศรับสมัคร: {userActiveJobsCount}/{maxJobsAllowed}</span>
             {jobCanCreate ? (
               <span className="text-green-600"> (พร้อมสร้าง)</span>
             ) : (
@@ -282,7 +282,7 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
             )}
           </div>
           <div className="flex justify-between items-center p-2 bg-neutral-light/50 rounded">
-            <span>โปรไฟล์ผู้ช่วย: {userActiveHelperProfilesCount}/{maxHelperProfilesAllowed}</span>
+            <span>👩🏻‍💼 เสนอโปรไฟล์: {userActiveHelperProfilesCount}/{maxHelperProfilesAllowed}</span>
             {profileCanCreate ? (
               <span className="text-green-600"> (พร้อมสร้าง)</span>
             ) : (
@@ -301,10 +301,10 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
           <p className="text-xl text-neutral-dark mb-6 font-normal">คุณยังไม่มีประกาศหรือโพสต์ใดๆ เลยนะ</p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Button onClick={() => navigateTo(View.PostJob)} variant="primary" size="md">
-              + สร้างประกาศงาน
+              + ลงประกาศรับสมัคร
             </Button>
             <Button onClick={() => navigateTo(View.OfferHelp)} variant="secondary" size="md">
-              + สร้างโปรไฟล์ผู้ช่วย
+              + ลงประกาศโปรไฟล์
             </Button>
             <Button onClick={() => navigateTo(View.Webboard, 'create')} variant="accent" size="md">
               + สร้างกระทู้ใหม่
@@ -340,7 +340,7 @@ export const MyPostsPage: React.FC<MyPostsPageProps> = ({
                         {item.title}
                       </h4>
                       <span className="text-xs font-sans text-neutral-medium">
-                        ประเภท: {item.type === 'job' ? 'ประกาศงาน' : item.type === 'profile' ? 'โปรไฟล์ผู้ช่วย' : 'กระทู้พูดคุย'}
+                        ประเภท: {item.type === 'job' ? 'ประกาศรับสมัคร' : item.type === 'profile' ? '👩🏻‍💼 เสนอโปรไฟล์' : 'กระทู้พูดคุย'}
                       </span>
                        {item.type === 'webboardPost' && (
                           <span className="text-xs font-sans text-neutral-medium ml-2">

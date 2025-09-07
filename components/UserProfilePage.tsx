@@ -1,9 +1,14 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import type { User } from '../types/types';
 import { GenderOption, HelperEducationLevelOption } from '../types/types.ts';
 import { Button } from './Button.tsx';
 import { isValidThaiMobileNumber } from '../utils/validation.ts';
 import { motion, AnimatePresence } from 'framer-motion';
+import { VoiceRecordingModal } from './VoiceRecordingModal.tsx';
+import { AudioPlayer } from './AudioPlayer.tsx';
+import { updateUserVoiceIntroUrlService } from '../services/userService.ts';
+import { ConfirmModal } from './ConfirmModal.tsx';
 
 interface UserProfilePageProps {
   currentUser: User;
@@ -40,6 +45,7 @@ const FallbackAvatar: React.FC<{ name?: string, size?: string, className?: strin
 };
 
 const DISPLAY_NAME_COOLDOWN_DAYS_UI = 14;
+const SOCIAL_MEDIA_COOLDOWN_DAYS_UI = 14; // 2 weeks cooldown for Instagram/TikTok
 
 export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, onUpdateProfile, onCancel, showBanner }) => {
   const [formState, setFormState] = useState({
@@ -47,6 +53,8 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     mobile: currentUser.mobile,
     lineId: currentUser.lineId || '',
     facebook: currentUser.facebook || '',
+    instagram: (currentUser as any).instagram || '',
+    tiktok: (currentUser as any).tiktok || '',
     gender: currentUser.gender || GenderOption.NotSpecified,
     birthdate: currentUser.birthdate || '',
     educationLevel: currentUser.educationLevel || HelperEducationLevelOption.NotStated,
@@ -69,12 +77,17 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     businessAddress: currentUser.businessAddress || '',
     businessWebsite: currentUser.businessWebsite || '',
     businessSocialProfileLink: currentUser.businessSocialProfileLink || '',
+    voiceIntroUrl: currentUser.voiceIntroUrl || null,
   });
-  
+
   const [currentAge, setCurrentAge] = useState<number | null>(calculateAge(currentUser.birthdate));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<UserProfileFormErrorKeys, string>>>({});
   const [displayNameCooldownInfo, setDisplayNameCooldownInfo] = useState<{ canChange: boolean; message?: string }>({ canChange: true });
+  const [instagramCooldownInfo, setInstagramCooldownInfo] = useState<{ canChange: boolean; message?: string }>({ canChange: true });
+  const [tiktokCooldownInfo, setTiktokCooldownInfo] = useState<{ canChange: boolean; message?: string }>({ canChange: true });
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
 
   useEffect(() => {
     setFormState({
@@ -82,6 +95,8 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
       mobile: currentUser.mobile,
       lineId: currentUser.lineId || '',
       facebook: currentUser.facebook || '',
+      instagram: (currentUser as any).instagram || '',
+      tiktok: (currentUser as any).tiktok || '',
       gender: currentUser.gender || GenderOption.NotSpecified,
       birthdate: currentUser.birthdate || '',
       educationLevel: currentUser.educationLevel || HelperEducationLevelOption.NotStated,
@@ -104,6 +119,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
       businessAddress: currentUser.businessAddress || '',
       businessWebsite: currentUser.businessWebsite || '',
       businessSocialProfileLink: currentUser.businessSocialProfileLink || '',
+      voiceIntroUrl: currentUser.voiceIntroUrl || null,
     });
     setCurrentAge(calculateAge(currentUser.birthdate));
 
@@ -114,15 +130,53 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
       const cooldownMs = DISPLAY_NAME_COOLDOWN_DAYS_UI * 24 * 60 * 60 * 1000;
       const nextChangeAllowedTime = lastChangeDate.getTime() + cooldownMs;
       if (Date.now() < nextChangeAllowedTime) {
-          setDisplayNameCooldownInfo({
-              canChange: false,
-              message: `คุณสามารถเปลี่ยนชื่อที่แสดงได้อีกครั้งในวันที่ ${new Date(nextChangeAllowedTime).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}`
-          });
+        setDisplayNameCooldownInfo({
+          canChange: false,
+          message: `คุณสามารถเปลี่ยนชื่อที่แสดงได้อีกครั้งในวันที่ ${new Date(nextChangeAllowedTime).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}`
+        });
       } else {
-          setDisplayNameCooldownInfo({ canChange: true });
+        setDisplayNameCooldownInfo({ canChange: true });
       }
     } else {
       setDisplayNameCooldownInfo({ canChange: true });
+    }
+
+    // Instagram cooldown logic
+    const instagramUpdateCount = (currentUser as any).instagramUpdateCount || 0;
+    const lastInstagramChange = (currentUser as any).lastInstagramChangeAt;
+    if (instagramUpdateCount > 0 && lastInstagramChange) {
+      const lastChangeDate = typeof lastInstagramChange === 'string' ? new Date(lastInstagramChange) : (lastInstagramChange as any).toDate();
+      const cooldownMs = SOCIAL_MEDIA_COOLDOWN_DAYS_UI * 24 * 60 * 60 * 1000;
+      const nextChangeAllowedTime = lastChangeDate.getTime() + cooldownMs;
+      if (Date.now() < nextChangeAllowedTime) {
+        setInstagramCooldownInfo({
+          canChange: false,
+          message: `คุณสามารถเปลี่ยน Instagram ได้อีกครั้งในวันที่ ${new Date(nextChangeAllowedTime).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}`
+        });
+      } else {
+        setInstagramCooldownInfo({ canChange: true });
+      }
+    } else {
+      setInstagramCooldownInfo({ canChange: true });
+    }
+
+    // TikTok cooldown logic
+    const tiktokUpdateCount = (currentUser as any).tiktokUpdateCount || 0;
+    const lastTiktokChange = (currentUser as any).lastTiktokChangeAt;
+    if (tiktokUpdateCount > 0 && lastTiktokChange) {
+      const lastChangeDate = typeof lastTiktokChange === 'string' ? new Date(lastTiktokChange) : (lastTiktokChange as any).toDate();
+      const cooldownMs = SOCIAL_MEDIA_COOLDOWN_DAYS_UI * 24 * 60 * 60 * 1000;
+      const nextChangeAllowedTime = lastChangeDate.getTime() + cooldownMs;
+      if (Date.now() < nextChangeAllowedTime) {
+        setTiktokCooldownInfo({
+          canChange: false,
+          message: `คุณสามารถเปลี่ยน TikTok ได้อีกครั้งในวันที่ ${new Date(nextChangeAllowedTime).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}`
+        });
+      } else {
+        setTiktokCooldownInfo({ canChange: true });
+      }
+    } else {
+      setTiktokCooldownInfo({ canChange: true });
     }
   }, [currentUser]);
 
@@ -154,18 +208,18 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
       }
       reader.readAsDataURL(file);
     } else {
-      setFormState(prev => ({ ...prev, photo: undefined })); 
+      setFormState(prev => ({ ...prev, photo: undefined }));
       setErrors(prev => ({ ...prev, photo: undefined }));
     }
   };
 
   const handleBirthdateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newBirthdate = e.target.value;
-    setFormState(prev => ({...prev, birthdate: newBirthdate}));
+    setFormState(prev => ({ ...prev, birthdate: newBirthdate }));
     const age = calculateAge(newBirthdate);
     setCurrentAge(age);
     if (age !== null || newBirthdate === '') {
-        setErrors(prev => ({ ...prev, birthdate: undefined }));
+      setErrors(prev => ({ ...prev, birthdate: undefined }));
     }
   };
 
@@ -188,7 +242,17 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     }
 
     if (!displayNameCooldownInfo.canChange && formState.publicDisplayName !== currentUser.publicDisplayName) {
-        newErrors.publicDisplayName = displayNameCooldownInfo.message;
+      newErrors.publicDisplayName = displayNameCooldownInfo.message;
+    }
+
+    // Instagram cooldown validation
+    if (!instagramCooldownInfo.canChange && formState.instagram !== ((currentUser as any).instagram || '')) {
+      newErrors.general = instagramCooldownInfo.message;
+    }
+
+    // TikTok cooldown validation
+    if (!tiktokCooldownInfo.canChange && formState.tiktok !== ((currentUser as any).tiktok || '')) {
+      newErrors.general = tiktokCooldownInfo.message;
     }
 
     if (!formState.mobile.trim()) newErrors.mobile = 'กรุณากรอกเบอร์โทรศัพท์';
@@ -201,10 +265,10 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
 
     if (!isValidUrl(formState.businessWebsite)) newErrors.businessWebsite = 'รูปแบบ URL ของเว็บไซต์ธุรกิจไม่ถูกต้อง';
     if (!isValidUrl(formState.businessSocialProfileLink)) newErrors.businessSocialProfileLink = 'รูปแบบ URL ของโซเชียลโปรไฟล์ธุรกิจไม่ถูกต้อง';
-    
+
     return newErrors;
   };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors = validateForm();
@@ -218,9 +282,10 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     }
     setErrors({});
     setIsSubmitting(true);
-    
+
     try {
-      await onUpdateProfile(formState);
+      const { voiceIntroUrl, ...profileData } = formState; // Exclude voiceIntroUrl from this update
+      await onUpdateProfile(profileData);
       showBanner('บันทึกสำเร็จ', 'success');
     } catch (error: any) {
       const errorMessage = error.message || "เกิดข้อผิดพลาดในการบันทึก";
@@ -230,360 +295,536 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     }
   };
 
+  const handleVoiceSave = async (audioBlob: Blob) => {
+    try {
+      setIsSubmitting(true);
+      const newUrl = await updateUserVoiceIntroUrlService(currentUser.id, audioBlob);
+      setFormState(prev => ({ ...prev, voiceIntroUrl: newUrl }));
+      showBanner('บันทึกเสียงแนะนำตัวสำเร็จ', 'success');
+    } catch (error: any) {
+      showBanner('เกิดข้อผิดพลาดในการบันทึกเสียง', 'error');
+    } finally {
+      setIsSubmitting(false);
+      setIsVoiceModalOpen(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    try {
+      setIsSubmitting(true);
+      await updateUserVoiceIntroUrlService(currentUser.id, null);
+      setFormState(prev => ({ ...prev, voiceIntroUrl: null }));
+      showBanner('ลบเสียงแนะนำตัวสำเร็จ', 'success');
+    } catch (error: any) {
+      showBanner('เกิดข้อผิดพลาดในการลบเสียง', 'error');
+    } finally {
+      setIsSubmitting(false);
+      setIsConfirmDeleteOpen(false);
+    }
+  };
+
   const personalityFields = [
-    { name: 'favoriteMusic', label: '🎧 เพลงที่ชอบ', value: formState.favoriteMusic, placeholder: 'เช่น Pop, Rock, ลูกทุ่ง, Jazz', type: 'text' },
-    { name: 'favoriteBook', label: '📚 หนังสือที่ชอบ', value: formState.favoriteBook, placeholder: 'เช่น นิยายสืบสวน, การ์ตูน, พัฒนาตัวเอง', type: 'text' },
-    { name: 'favoriteMovie', label: '🎬 หนังที่ชอบ', value: formState.favoriteMovie, placeholder: 'เช่น Action, Comedy, Sci-fi, Drama', type: 'text' },
-    { name: 'hobbies', label: '🧶 งานอดิเรก', value: formState.hobbies, placeholder: 'เช่น อ่านหนังสือ, เล่นเกม, วาดรูป, ทำอาหาร', type: 'textarea' },
-    { name: 'favoriteFood', label: '🍜 อาหารที่ชอบ', value: formState.favoriteFood, placeholder: 'เช่น ส้มตำ, พิซซ่า, ซูชิ, ก๋วยเตี๋ยว', type: 'text' },
-    { name: 'dislikedThing', label: '🚫 สิ่งที่ไม่ชอบที่สุด', value: formState.dislikedThing, placeholder: 'เช่น ความไม่ซื่อสัตย์, แมลงสาบ', type: 'text' },
+    { name: 'favoriteMusic', label: 'เพลงที่ชอบ', value: formState.favoriteMusic, type: 'text' },
+    { name: 'favoriteBook', label: 'หนังสือที่ชอบ', value: formState.favoriteBook, type: 'text' },
+    { name: 'favoriteMovie', label: 'หนังที่ชอบ', value: formState.favoriteMovie, type: 'text' },
+    { name: 'hobbies', label: 'งานอดิเรก', value: formState.hobbies, type: 'textarea' },
+    { name: 'favoriteFood', label: 'อาหารที่ชอบ', value: formState.favoriteFood, type: 'text' },
+    { name: 'dislikedThing', label: 'สิ่งที่ไม่ชอบที่สุด', value: formState.dislikedThing, type: 'text' },
   ];
 
   const businessInfoFields = [
-    { name: 'businessName', label: 'ชื่อธุรกิจ/ร้านค้า/บริษัท', value: formState.businessName, placeholder: 'เช่น ร้านกาแฟแมวฟ้า, บริการออกแบบซันนี่', type: 'text' },
-    { name: 'businessType', label: 'ประเภทธุรกิจ', value: formState.businessType, placeholder: 'เช่น ร้านอาหาร, บริษัทจำกัด, ฟรีแลนซ์', type: 'text' },
-    { name: 'aboutBusiness', label: 'เกี่ยวกับธุรกิจ', value: formState.aboutBusiness, placeholder: 'อธิบายสั้นๆ เกี่ยวกับธุรกิจของคุณ...', type: 'textarea' },
-    { name: 'businessAddress', label: 'ที่ตั้งธุรกิจ (ถ้ามี)', value: formState.businessAddress, placeholder: 'เช่น 123 ถนนนิมมาน, เชียงใหม่', type: 'text' },
-    { name: 'businessWebsite', label: 'เว็บไซต์ธุรกิจ', value: formState.businessWebsite, placeholder: 'https://yourbusiness.com', type: 'url', errorKey: 'businessWebsite' as UserProfileFormErrorKeys },
-    { name: 'businessSocialProfileLink', label: 'ลิงก์โซเชียลโปรไฟล์ธุรกิจ', value: formState.businessSocialProfileLink, placeholder: 'เช่น ลิงก์ Facebook Page, LINE OA', type: 'url', errorKey: 'businessSocialProfileLink' as UserProfileFormErrorKeys },
+    { name: 'businessName', label: 'ชื่อธุรกิจ/ร้านค้า/บริษัท', value: formState.businessName, type: 'text' },
+    { name: 'businessType', label: 'ประเภท', value: formState.businessType, type: 'text' },
+    { name: 'aboutBusiness', label: 'รายละเอียด', value: formState.aboutBusiness, type: 'textarea' },
+    { name: 'businessAddress', label: 'ที่ตั้ง', value: formState.businessAddress, type: 'text' },
+    { name: 'businessWebsite', label: 'เว็บไซต์', value: formState.businessWebsite, type: 'url', errorKey: 'businessWebsite' as UserProfileFormErrorKeys },
+    { name: 'businessSocialProfileLink', label: 'โซเชียล', value: formState.businessSocialProfileLink, type: 'url', errorKey: 'businessSocialProfileLink' as UserProfileFormErrorKeys },
   ];
 
 
   return (
-    <div className="bg-white p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-xl mx-auto border border-neutral-DEFAULT">
+    <>
+      <main className="app-card w-full max-w-xl mx-auto" style={{ padding: 'var(--space-6) var(--space-8)' }}>
+        <h1 className="text-2xl font-semibold text-neutral-dark mb-6 text-center" style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-semibold)', color: 'var(--text-primary)', marginBottom: 'var(--space-6)' }}>
+          แก้ไขโปรไฟล์
+        </h1>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div id="profile-photo-section" className="flex flex-col items-center mb-6">
-          {formState.photo ? (
-            <img src={formState.photo} alt="Profile Preview" className="w-32 h-32 rounded-full object-cover shadow-md mb-3" />
-          ) : (
-            <FallbackAvatar name={currentUser.publicDisplayName} size="w-32 h-32" className="mb-3" />
-          )}
-          <label htmlFor="photoUpload" className="cursor-pointer text-sm font-sans text-neutral-dark hover:text-primary hover:underline">
-            เปลี่ยนรูปโปรไฟล์ (ไม่เกิน 2MB)
-          </label>
-          <input
-            type="file"
-            id="photoUpload"
-            accept="image/*"
-            onChange={handlePhotoChange}
-            className="hidden"
-            disabled={isSubmitting}
-          />
-          {errors.photo && <p className="text-red-500 font-sans text-xs mt-1 text-center">{errors.photo}</p>}
-        </div>
-
-        <div className="pt-4 border-t border-neutral-DEFAULT/50">
-          <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                  type="checkbox"
-                  name="isBusinessProfile"
-                  checked={formState.isBusinessProfile}
-                  onChange={e => setFormState(prev => ({ ...prev, isBusinessProfile: e.target.checked }))}
-                  className="form-checkbox h-5 w-5 text-primary rounded border-neutral-DEFAULT focus:!ring-2 focus:!ring-offset-1 focus:!ring-offset-white focus:!ring-primary focus:!ring-opacity-70"
-                  disabled={isSubmitting}
-              />
-              <span className="text-sm font-sans font-medium text-neutral-dark">ฉันเป็นธุรกิจ/ร้านค้า (โปรไฟล์สาธารณะจะแสดงเฉพาะข้อมูลธุรกิจ)</span>
-          </label>
-          <p className="text-xs font-sans text-neutral-medium mt-1 pl-7">
-            หมายเหตุ: หากคุณเป็นฟรีแลนซ์หรือเสนอบริการ เราไม่แนะนำให้ติ๊กข้อนี้ เพราะการแสดงข้อมูลส่วนตัวบางอย่าง เช่น เกี่ยวกับฉัน, สิ่งที่ชอบ จะช่วยสร้างความน่าเชื่อถือ
-          </p>
-        </div>
-
-        <div>
-          <label htmlFor="profilePublicDisplayName" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อบนเว็บไซต์ (สาธารณะ) <span className="text-red-500">*</span></label>
-          <input
-            type="text"
-            id="profilePublicDisplayName"
-            name="publicDisplayName"
-            value={formState.publicDisplayName}
-            onChange={e => setFormState(prev => ({ ...prev, publicDisplayName: e.target.value }))}
-            className={`${inputBaseStyle} ${errors.publicDisplayName ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
-            placeholder="เช่น Puuna V."
-            disabled={!displayNameCooldownInfo.canChange || isSubmitting}
-            aria-describedby={!displayNameCooldownInfo.canChange ? "displayNameCooldownMessage" : (errors.publicDisplayName ? "publicDisplayNameError" : undefined)}
-          />
-           <p className="text-xs font-sans text-neutral-medium mt-1">
-              ชื่อแสดงสาธารณะ (2-30 ตัวอักษร): ไทย/อังกฤษ, ตัวเลข, เว้นวรรค, จุด (.) เท่านั้น เช่น Sunny J. 123
-            </p>
-          {errors.publicDisplayName && <p id="publicDisplayNameError" className="text-red-500 font-sans text-xs mt-1">{errors.publicDisplayName}</p>}
-          {!displayNameCooldownInfo.canChange && displayNameCooldownInfo.message && (
-            <p id="displayNameCooldownMessage" className="text-amber-600 font-sans text-xs mt-1">{displayNameCooldownInfo.message}</p>
-          )}
-        </div>
-
-        <div>
-          <label htmlFor="profileUsername" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อผู้ใช้ (สำหรับเข้าระบบ)</label>
-          <input
-            type="text"
-            id="profileUsername"
-            value={currentUser.username}
-            readOnly
-            className={`${inputBaseStyle} ${readOnlyStyle} ${inputFocusStyle} focus:bg-gray-50`}
-            aria-readonly="true"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="profileEmail" className="block text-sm font-sans font-medium text-neutral-dark mb-1">อีเมล</label>
-          <input
-            type="email"
-            id="profileEmail"
-            value={currentUser.email}
-            readOnly
-            className={`${inputBaseStyle} ${readOnlyStyle} ${inputFocusStyle} focus:bg-gray-50`}
-            aria-readonly="true"
-          />
-        </div>
-        
-        <div id="intro-section" className="pt-4 border-t border-neutral-DEFAULT/50">
-            <label htmlFor="profile-introSentence" className="block text-sm font-sans font-medium text-neutral-dark mb-1">
-                💬 เกี่ยวกับฉัน
+        <form onSubmit={handleSubmit} className="space-y-5" style={{ gap: 'var(--space-5)' }}>
+          <section id="profile-photo-section" className="flex flex-col items-center" style={{ marginBottom: 'var(--space-6)' }}>
+            <h2 className="sr-only">รูปโปรไฟล์</h2>
+            {formState.photo ? (
+              <img src={formState.photo} alt="ตัวอย่างรูปโปรไฟล์" className="w-32 h-32 rounded-full object-cover shadow-md" style={{ marginBottom: 'var(--space-3)' }} />
+            ) : (
+              <FallbackAvatar name={currentUser.publicDisplayName} size="w-32 h-32" className="mb-3" />
+            )}
+            <label htmlFor="photoUpload" className="cursor-pointer text-sm hover:underline" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
+              เปลี่ยนรูปโปรไฟล์ (ไม่เกิน 2MB)
             </label>
-            <textarea
-                id="profile-introSentence"
-                name="introSentence"
-                value={formState.introSentence}
-                onChange={e => setFormState(prev => ({ ...prev, introSentence: e.target.value }))}
-                rows={3}
-                className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
-                placeholder="เช่น เป็นคนง่ายๆ สบายๆ ชอบเรียนรู้สิ่งใหม่"
-                disabled={isSubmitting}
+            <input
+              type="file"
+              id="photoUpload"
+              accept="image/*"
+              onChange={handlePhotoChange}
+              className="hidden"
+              disabled={isSubmitting}
+              aria-describedby={errors.photo ? "photoError" : undefined}
             />
-        </div>
+            {errors.photo && <p id="photoError" role="alert" className="text-xs mt-1 text-center" style={{ color: 'var(--error)', fontSize: 'var(--font-size-xs)', marginTop: 'var(--space-1)' }}>{errors.photo}</p>}
+          </section>
 
-
-        <details id="personal-info-section" className="group pt-4 border-t border-neutral-DEFAULT/50" open>
-          <summary className="flex items-center justify-between cursor-pointer list-none p-2 -ml-2 rounded-md hover:bg-neutral-light/50 transition-colors">
-            <h3 className="text-lg font-sans font-medium text-neutral-dark">
-              ข้อมูลส่วนตัว
-            </h3>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary transform transition-transform duration-200 group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-            </svg>
-          </summary>
-          <div className="mt-3 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4">
-                <div>
-                    <label className="block text-sm font-sans font-medium text-neutral-dark mb-1">เพศ <span className="text-red-500">*</span></label>
-                    <div className="space-y-1">
-                        {Object.values(GenderOption).map(optionValue => (
-                        <label key={optionValue} className="flex items-center space-x-2 cursor-pointer">
-                            <input type="radio" name="gender" value={optionValue} checked={formState.gender === optionValue}
-                                    onChange={() => setFormState(prev => ({...prev, gender: optionValue}))}
-                                    className="form-radio h-4 w-4 text-primary border-[#CCCCCC] focus:!ring-2 focus:!ring-offset-1 focus:!ring-offset-white focus:!ring-primary focus:!ring-opacity-70"
-                                    disabled={isSubmitting}
-                            />
-                            <span className="text-neutral-dark font-sans font-normal text-sm">{optionValue}</span>
-                        </label>
-                        ))}
-                    </div>
-                    {errors.gender && <p className="text-red-500 font-sans text-xs mt-1">{errors.gender}</p>}
-                </div>
-                <div>
-                    <label htmlFor="profileBirthdate" className="block text-sm font-sans font-medium text-neutral-dark mb-1">วันเกิด <span className="text-red-500">*</span></label>
-                    <input type="date" id="profileBirthdate" name="birthdate" value={formState.birthdate} onChange={handleBirthdateChange}
-                            max={new Date().toISOString().split("T")[0]}
-                            className={`${inputBaseStyle} ${errors.birthdate ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`} 
-                            disabled={isSubmitting}
-                    />
-                    {currentAge !== null && <p className="text-xs font-sans text-neutral-dark mt-1">อายุ: {currentAge} ปี</p>}
-                    {errors.birthdate && <p className="text-red-500 font-sans text-xs mt-1">{errors.birthdate}</p>}
-                </div>
-            </div>
-            <div>
-                <label htmlFor="profileEducationLevel" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ระดับการศึกษา <span className="text-red-500">*</span></label>
-                <select id="profileEducationLevel" name="educationLevel" value={formState.educationLevel}
-                        onChange={e => setFormState(prev => ({...prev, educationLevel: e.target.value as HelperEducationLevelOption}))}
-                        className={`${selectBaseStyle} ${errors.educationLevel ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
-                        disabled={isSubmitting}
-                >
-                    {Object.values(HelperEducationLevelOption).map(level => (
-                        <option key={level} value={level}>{level}</option>
-                    ))}
-                </select>
-                 {errors.educationLevel && <p className="text-red-500 font-sans text-xs mt-1">{errors.educationLevel}</p>}
-            </div>
-            <div className="mt-4">
-                <label htmlFor="profileNickname" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อเล่น</label>
-                <input type="text" id="profileNickname" name="nickname" value={formState.nickname} onChange={e => setFormState(prev => ({ ...prev, nickname: e.target.value }))} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น ซันนี่, จอห์น" disabled={isSubmitting} />
-            </div>
-            <div className="mt-4">
-                <label htmlFor="profileFirstName" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ชื่อจริง</label>
-                <input type="text" id="profileFirstName" name="firstName" value={formState.firstName} onChange={e => setFormState(prev => ({ ...prev, firstName: e.target.value }))} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น ยาทิดา, สมชาย" disabled={isSubmitting} />
-            </div>
-            <div className="mt-4">
-                <label htmlFor="profileLastName" className="block text-sm font-sans font-medium text-neutral-dark mb-1">นามสกุล</label>
-                <input type="text" id="profileLastName" name="lastName" value={formState.lastName} onChange={e => setFormState(prev => ({ ...prev, lastName: e.target.value }))} className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`} placeholder="เช่น แสงอรุณ, ใจดี" disabled={isSubmitting} />
-            </div>
-            <div id="address-section">
-              <label htmlFor="profileAddress" className="block text-sm font-sans font-medium text-neutral-dark mb-1">ที่อยู่ (จะแสดงในโปรไฟล์สาธารณะของคุณ)</label>
-              <textarea
-                id="profileAddress"
-                name="address"
-                value={formState.address}
-                onChange={e => setFormState(prev => ({ ...prev, address: e.target.value }))}
-                rows={3}
-                className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
-                placeholder="เช่น บ้านเลขที่, ถนน, ตำบล, อำเภอ, จังหวัด, รหัสไปรษณีย์"
+          <section id="business-profile-section" className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100" style={{ marginTop: 'var(--space-4)' }}>
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                name="isBusinessProfile"
+                checked={formState.isBusinessProfile}
+                onChange={e => setFormState(prev => ({ ...prev, isBusinessProfile: e.target.checked }))}
+                className="form-checkbox h-5 w-5 rounded focus:ring-2 focus:ring-offset-1 mt-0.5"
+                style={{ color: 'var(--primary-blue)', borderColor: 'var(--border-medium)' }}
                 disabled={isSubmitting}
+                aria-describedby="businessProfileNote"
               />
-            </div>
-          </div>
-        </details>
-
-        <details id="personality-section" className="group pt-4 border-t border-neutral-DEFAULT/50">
-          <summary className="flex items-center justify-between cursor-pointer list-none p-2 -ml-2 rounded-md hover:bg-neutral-light/50 transition-colors">
-            <h3 className="text-lg font-sans font-medium text-neutral-dark">
-              👤 เพิ่มเติมเกี่ยวกับฉัน
-            </h3>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary transform transition-transform duration-200 group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-            </svg>
-          </summary>
-          <div className="mt-3 space-y-4">
-            <p className="text-xs font-sans text-neutral-medium mb-3">
-              ข้อมูลส่วนนี้จะช่วยให้โปรไฟล์สาธารณะของคุณน่าสนใจยิ่งขึ้น
-            </p>
-            {personalityFields.map(field => (
-              <div key={field.name} className="mb-4">
-                <label htmlFor={`profile-${field.name}`} className="block text-sm font-sans font-medium text-neutral-dark mb-1">
-                  {field.label}
+              <div className="flex-1">
+                <label htmlFor="isBusinessProfile" className="cursor-pointer">
+                  <span className="text-sm font-medium text-blue-800" style={{ fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-medium)' }}>
+                    🏢 เป็นธุรกิจ/ร้านค้า (รายละเอียดดึงจาก 'ข้อมูลธุรกิจ')
+                  </span>
                 </label>
-                {field.type === 'textarea' ? (
-                  <textarea
-                    id={`profile-${field.name}`}
-                    name={field.name}
-                    value={field.value}
-                    onChange={(e) => setFormState(prev => ({ ...prev, [field.name]: e.target.value }))}
-                    rows={field.name === 'introSentence' ? 3 : 2}
-                    className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
-                    placeholder={field.placeholder}
+                <p id="businessProfileNote" className="text-xs mt-1 text-blue-600" style={{ fontSize: 'var(--font-size-xs)', marginTop: 'var(--space-1)' }}>
+                  หมายเหตุ: ฟรีแลนซ์/เสนอบริการไม่ควรติ๊กข้อนี้ ข้อมูลส่วนตัวสร้างความน่าเชื่อถือ
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section id="voice-intro-section" className="border-t" style={{ paddingTop: 'var(--space-4)', borderTopColor: 'var(--border-light)' }}>
+            <h2 className="text-lg font-medium mb-3" style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-medium)', color: 'var(--text-primary)', marginBottom: 'var(--space-3)' }}>
+              เสียงแนะนำตัว
+            </h2>
+            {formState.voiceIntroUrl ? (
+              <div className="space-y-3">
+                <AudioPlayer audioUrl={formState.voiceIntroUrl} />
+                <div className="flex justify-center gap-4">
+                  <Button type="button" onClick={() => setIsVoiceModalOpen(true)} variant="outline" colorScheme="neutral" size="sm" className="min-h-[48px] px-4">อัดใหม่</Button>
+                  <Button type="button" onClick={() => setIsConfirmDeleteOpen(true)} variant="outline" colorScheme="accent" size="sm" className="min-h-[48px] px-4">ลบ</Button>
+                </div>
+              </div>
+            ) : (
+              <Button type="button" onClick={() => setIsVoiceModalOpen(true)} variant="secondary" className="w-full">
+                🎙️ เพิ่มเสียงแนะนำตัว (สูงสุด 60 วินาที)
+              </Button>
+            )}
+          </section>
+
+          <details id="profile-info-section" className="group border-t" style={{ paddingTop: 'var(--space-4)', borderTopColor: 'var(--border-light)' }}>
+            <summary className="flex items-center justify-between cursor-pointer list-none rounded-md hover:bg-neutral-light/50 transition-colors" style={{ padding: 'var(--space-2)', marginLeft: 'calc(-1 * var(--space-2))' }}>
+              <h2 className="text-lg font-medium" style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-medium)', color: 'var(--text-primary)' }}>
+                ข้อมูลโปรไฟล์
+              </h2>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 transform transition-transform duration-200 group-open:rotate-90" style={{ color: 'var(--primary-blue)' }} viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+              </svg>
+            </summary>
+            <div style={{ marginTop: 'var(--space-3)', gap: 'var(--space-4)' }}>
+              <div style={{ marginBottom: 'var(--space-4)' }}>
+                <label htmlFor="profilePublicDisplayName" className="block text-sm font-medium mb-1" style={{ fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-medium)', color: 'var(--text-primary)', marginBottom: 'var(--space-1)' }}>
+                  ชื่อสาธารณะบนเว็บ <span style={{ color: 'var(--error)' }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  id="profilePublicDisplayName"
+                  name="publicDisplayName"
+                  value={formState.publicDisplayName}
+                  onChange={e => setFormState(prev => ({ ...prev, publicDisplayName: e.target.value }))}
+                  className={`form-input ${errors.publicDisplayName ? 'error' : ''}`}
+                  disabled={!displayNameCooldownInfo.canChange || isSubmitting}
+                  aria-invalid={errors.publicDisplayName ? "true" : "false"}
+                  aria-describedby="publicDisplayNameHelp displayNameCooldownMessage publicDisplayNameError"
+                />
+                <p id="publicDisplayNameHelp" className="text-xs mt-1" style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)', marginTop: 'var(--space-1)' }}>
+                  2-30 ตัวอักษร, ไทย/อังกฤษ, ตัวเลข, เว้นวรรค, จุด (.) เท่านั้น และเปลี่ยนได้ 2 ครั้งทุก 14 วัน
+                </p>
+                {errors.publicDisplayName && <p id="publicDisplayNameError" role="alert" className="text-xs mt-1" style={{ color: 'var(--error)', fontSize: 'var(--font-size-xs)', marginTop: 'var(--space-1)' }}>{errors.publicDisplayName}</p>}
+                {!displayNameCooldownInfo.canChange && displayNameCooldownInfo.message && (
+                  <p id="displayNameCooldownMessage" className="text-xs mt-1" style={{ color: 'var(--warning)', fontSize: 'var(--font-size-xs)', marginTop: 'var(--space-1)' }}>{displayNameCooldownInfo.message}</p>
+                )}
+              </div>
+
+              <div style={{ marginBottom: 'var(--space-4)' }}>
+                <label htmlFor="profileUsername" className="form-label">ชื่อผู้ใช้ (สำหรับเข้าระบบ)</label>
+                <input
+                  type="text"
+                  id="profileUsername"
+                  value={currentUser.username}
+                  readOnly
+                  className="form-input"
+                  style={{ backgroundColor: 'var(--bg-tertiary)', cursor: 'not-allowed' }}
+                  aria-readonly="true"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="profileEmail" className="form-label">อีเมล</label>
+                <input
+                  type="email"
+                  id="profileEmail"
+                  value={currentUser.email}
+                  readOnly
+                  className="form-input"
+                  style={{ backgroundColor: 'var(--bg-tertiary)', cursor: 'not-allowed' }}
+                  aria-readonly="true"
+                />
+              </div>
+            </div>
+          </details>
+
+
+          {!formState.isBusinessProfile && (
+            <details id="personal-info-section" className="group border-t" style={{ paddingTop: 'var(--space-4)', borderTopColor: 'var(--border-light)' }}>
+              <summary className="flex items-center justify-between cursor-pointer list-none rounded-md hover:bg-neutral-light/50 transition-colors" style={{ padding: 'var(--space-2)', marginLeft: 'calc(-1 * var(--space-2))' }}>
+                <h2 className="text-lg font-medium" style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-medium)', color: 'var(--text-primary)' }}>
+                  ข้อมูลส่วนตัว
+                </h2>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 transform transition-transform duration-200 group-open:rotate-90" style={{ color: 'var(--primary-blue)' }} viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                </svg>
+              </summary>
+              <div style={{ marginTop: 'var(--space-3)', gap: 'var(--space-4)' }}>
+                <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 'var(--space-5)', marginBottom: 'var(--space-4)' }}>
+                  <div>
+                    <fieldset>
+                      <legend className="form-label">เพศ <span style={{ color: 'var(--error)' }}>*</span></legend>
+                      <div style={{ gap: 'var(--space-1)' }}>
+                        {Object.values(GenderOption).map(optionValue => (
+                          <label key={optionValue} className="flex items-center cursor-pointer" style={{ gap: 'var(--space-2)' }}>
+                            <input
+                              type="radio"
+                              name="gender"
+                              value={optionValue}
+                              checked={formState.gender === optionValue}
+                              onChange={() => setFormState(prev => ({ ...prev, gender: optionValue }))}
+                              className="form-radio h-4 w-4 focus:ring-2 focus:ring-offset-1"
+                              style={{ color: 'var(--primary-blue)', borderColor: 'var(--border-medium)' }}
+                              disabled={isSubmitting}
+                              aria-invalid={errors.gender ? "true" : "false"}
+                            />
+                            <span className="text-sm" style={{ color: 'var(--text-primary)', fontSize: 'var(--font-size-sm)' }}>{optionValue}</span>
+                          </label>
+                        ))}
+                      </div>
+                      {errors.gender && <p role="alert" className="text-xs mt-1" style={{ color: 'var(--error)', fontSize: 'var(--font-size-xs)', marginTop: 'var(--space-1)' }}>{errors.gender}</p>}
+                    </fieldset>
+                  </div>
+                  <div>
+                    <label htmlFor="profileBirthdate" className="form-label">วันเกิด <span style={{ color: 'var(--error)' }}>*</span></label>
+                    <input
+                      type="date"
+                      id="profileBirthdate"
+                      name="birthdate"
+                      value={formState.birthdate}
+                      onChange={handleBirthdateChange}
+                      max={new Date().toISOString().split("T")[0]}
+                      className={`form-input ${errors.birthdate ? 'error' : ''}`}
+                      disabled={isSubmitting}
+                      aria-invalid={errors.birthdate ? "true" : "false"}
+                      aria-describedby="birthdateAge birthdateError"
+                    />
+                    {currentAge !== null && <p id="birthdateAge" className="text-xs mt-1" style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-primary)', marginTop: 'var(--space-1)' }}>อายุ: {currentAge} ปี</p>}
+                    {errors.birthdate && <p id="birthdateError" role="alert" className="text-xs mt-1" style={{ color: 'var(--error)', fontSize: 'var(--font-size-xs)', marginTop: 'var(--space-1)' }}>{errors.birthdate}</p>}
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="profileEducationLevel" className="form-label">ระดับการศึกษา <span style={{ color: 'var(--error)' }}>*</span></label>
+                  <select
+                    id="profileEducationLevel"
+                    name="educationLevel"
+                    value={formState.educationLevel}
+                    onChange={e => setFormState(prev => ({ ...prev, educationLevel: e.target.value as HelperEducationLevelOption }))}
+                    className={`form-input ${errors.educationLevel ? 'error' : ''}`}
+                    style={{ appearance: 'none' }}
                     disabled={isSubmitting}
-                  />
-                ) : (
+                    aria-invalid={errors.educationLevel ? "true" : "false"}
+                    aria-describedby={errors.educationLevel ? "educationLevelError" : undefined}
+                  >
+                    {Object.values(HelperEducationLevelOption).map(level => (
+                      <option key={level} value={level}>{level}</option>
+                    ))}
+                  </select>
+                  {errors.educationLevel && <p id="educationLevelError" role="alert" className="text-xs mt-1" style={{ color: 'var(--error)', fontSize: 'var(--font-size-xs)', marginTop: 'var(--space-1)' }}>{errors.educationLevel}</p>}
+                </div>
+                <div style={{ marginTop: 'var(--space-4)' }}>
+                  <label htmlFor="profileNickname" className="form-label">ชื่อเล่น</label>
                   <input
                     type="text"
-                    id={`profile-${field.name}`}
-                    name={field.name}
-                    value={field.value}
-                    onChange={(e) => setFormState(prev => ({ ...prev, [field.name]: e.target.value }))}
-                    className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
-                    placeholder={field.placeholder}
+                    id="profileNickname"
+                    name="nickname"
+                    value={formState.nickname}
+                    onChange={e => setFormState(prev => ({ ...prev, nickname: e.target.value }))}
+                    className="form-input"
                     disabled={isSubmitting}
                   />
-                )}
-              </div>
-            ))}
-          </div>
-        </details>
-
-        <details id="business-info-section" className="group pt-4 border-t border-neutral-DEFAULT/50">
-          <summary className="flex items-center justify-between cursor-pointer list-none p-2 -ml-2 rounded-md hover:bg-neutral-light/50 transition-colors">
-            <h3 className="text-lg font-sans font-medium text-neutral-dark">
-              🏢 ข้อมูลธุรกิจ
-            </h3>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary transform transition-transform duration-200 group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-            </svg>
-          </summary>
-          <div className="mt-3 space-y-4">
-             <p className="text-xs font-sans text-neutral-medium mb-3">
-              หากคุณเป็นธุรกิจหรือร้านค้า การให้ข้อมูลส่วนนี้จะช่วยเพิ่มความน่าเชื่อถือ
-            </p>
-            {businessInfoFields.map(field => (
-              <div key={field.name} className="mb-4">
-                <label htmlFor={`profile-${field.name}`} className="block text-sm font-sans font-medium text-neutral-dark mb-1">
-                  {field.label}
-                </label>
-                {field.type === 'textarea' ? (
-                  <textarea
-                    id={`profile-${field.name}`}
-                    name={field.name}
-                    value={field.value}
-                    onChange={(e) => setFormState(prev => ({ ...prev, [field.name]: e.target.value }))}
-                    rows={3}
-                    className={`${textareaBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
-                    placeholder={field.placeholder}
-                    disabled={isSubmitting}
-                  />
-                ) : (
+                </div>
+                <div style={{ marginTop: 'var(--space-4)' }}>
+                  <label htmlFor="profileFirstName" className="form-label">ชื่อจริง</label>
                   <input
-                    type={field.type as string}
-                    id={`profile-${field.name}`}
-                    name={field.name}
-                    value={field.value}
-                    onChange={(e) => setFormState(prev => ({ ...prev, [field.name]: e.target.value }))}
-                    className={`${inputBaseStyle} ${errors[field.errorKey!] ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
-                    placeholder={field.placeholder}
+                    type="text"
+                    id="profileFirstName"
+                    name="firstName"
+                    value={formState.firstName}
+                    onChange={e => setFormState(prev => ({ ...prev, firstName: e.target.value }))}
+                    className="form-input"
                     disabled={isSubmitting}
                   />
-                )}
-                {field.errorKey && errors[field.errorKey] && <p className="text-red-500 font-sans text-xs mt-1">{errors[field.errorKey]}</p>}
+                </div>
+                <div style={{ marginTop: 'var(--space-4)' }}>
+                  <label htmlFor="profileLastName" className="form-label">นามสกุล</label>
+                  <input
+                    type="text"
+                    id="profileLastName"
+                    name="lastName"
+                    value={formState.lastName}
+                    onChange={e => setFormState(prev => ({ ...prev, lastName: e.target.value }))}
+                    className="form-input"
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div id="address-section" style={{ marginTop: 'var(--space-4)' }}>
+                  <label htmlFor="profileAddress" className="form-label">ที่อยู่ (แสดงในโปรไฟล์สาธารณะ)</label>
+                  <textarea
+                    id="profileAddress"
+                    name="address"
+                    value={formState.address}
+                    onChange={e => setFormState(prev => ({ ...prev, address: e.target.value }))}
+                    rows={3}
+                    className="form-input"
+                    style={{ minHeight: '80px' }}
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div style={{ marginTop: 'var(--space-4)' }}>
+                  <label htmlFor="profile-introSentence" className="form-label">
+                    เกี่ยวกับฉัน
+                  </label>
+                  <textarea
+                    id="profile-introSentence"
+                    name="introSentence"
+                    value={formState.introSentence}
+                    onChange={e => setFormState(prev => ({ ...prev, introSentence: e.target.value }))}
+                    rows={3}
+                    className="form-input"
+                    style={{ minHeight: '80px' }}
+                    disabled={isSubmitting}
+                  />
+                </div>
               </div>
-            ))}
-          </div>
-        </details>
+            </details>
+          )}
 
+          {!formState.isBusinessProfile && (
+            <details id="personality-section" className="group border-t" style={{ paddingTop: 'var(--space-4)', borderTopColor: 'var(--border-light)' }}>
+              <summary className="flex items-center justify-between cursor-pointer list-none rounded-md hover:bg-neutral-light/50 transition-colors" style={{ padding: 'var(--space-2)', marginLeft: 'calc(-1 * var(--space-2))' }}>
+                <h2 className="text-lg font-medium" style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-medium)', color: 'var(--text-primary)' }}>
+                  สิ่งที่ฉันชอบ
+                </h2>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 transform transition-transform duration-200 group-open:rotate-90" style={{ color: 'var(--primary-blue)' }} viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                </svg>
+              </summary>
+              <div style={{ gap: 'var(--space-4)' }}>
+                {personalityFields.map(field => (
+                  <div key={field.name} style={{ marginBottom: 'var(--space-4)' }}>
+                    <label htmlFor={`profile-${field.name}`} className="form-label">
+                      {field.label}
+                    </label>
+                    {field.type === 'textarea' ? (
+                      <textarea
+                        id={`profile-${field.name}`}
+                        name={field.name}
+                        value={field.value}
+                        onChange={(e) => setFormState(prev => ({ ...prev, [field.name]: e.target.value }))}
+                        rows={field.name === 'introSentence' ? 3 : 2}
+                        className="form-input"
+                        style={{ minHeight: field.name === 'introSentence' ? '80px' : '60px' }}
+                        disabled={isSubmitting}
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        id={`profile-${field.name}`}
+                        name={field.name}
+                        value={field.value}
+                        onChange={(e) => setFormState(prev => ({ ...prev, [field.name]: e.target.value }))}
+                        className="form-input"
+                        disabled={isSubmitting}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
 
-        <div id="contact-info-section" className="pt-4 border-t border-neutral-DEFAULT/50">
-             <h3 className="text-lg font-sans font-medium text-neutral-dark mb-3">ข้อมูลติดต่อ (แสดงใน 'ติดต่อ')</h3>
-            <div>
-            <label htmlFor="profileMobile" className="block text-sm font-sans font-medium text-neutral-dark mb-1">เบอร์โทรศัพท์ <span className="text-red-500">*</span></label>
-            <input
-                type="tel"
-                id="profileMobile"
-                name="mobile"
-                value={formState.mobile}
-                onChange={e => setFormState(prev => ({ ...prev, mobile: e.target.value }))}
-                className={`${inputBaseStyle} ${errors.mobile ? inputErrorStyle : inputFocusStyle} focus:bg-gray-50`}
-                placeholder="เช่น 0812345678"
-                aria-describedby={errors.mobile ? "mobile-error" : undefined}
-                aria-invalid={!!errors.mobile}
-                disabled={isSubmitting}
-            />
-            {errors.mobile && <p id="mobile-error" className="text-red-500 font-sans text-xs mt-1">{errors.mobile}</p>}
+          {formState.isBusinessProfile && (
+            <details id="business-info-section" className="group border-t" style={{ paddingTop: 'var(--space-4)', borderTopColor: 'var(--border-light)' }}>
+              <summary className="flex items-center justify-between cursor-pointer list-none rounded-md hover:bg-neutral-light/50 transition-colors" style={{ padding: 'var(--space-2)', marginLeft: 'calc(-1 * var(--space-2))' }}>
+                <h2 className="text-lg font-medium" style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-medium)', color: 'var(--text-primary)' }}>
+                  ข้อมูลธุรกิจ
+                </h2>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 transform transition-transform duration-200 group-open:rotate-90" style={{ color: 'var(--primary-blue)' }} viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                </svg>
+              </summary>
+              <div style={{ gap: 'var(--space-4)' }}>
+                {businessInfoFields.map(field => (
+                  <div key={field.name} style={{ marginBottom: 'var(--space-4)' }}>
+                    <label htmlFor={`profile-${field.name}`} className="form-label">
+                      {field.label}
+                    </label>
+                    {field.type === 'textarea' ? (
+                      <textarea
+                        id={`profile-${field.name}`}
+                        name={field.name}
+                        value={field.value}
+                        onChange={(e) => setFormState(prev => ({ ...prev, [field.name]: e.target.value }))}
+                        rows={3}
+                        className="form-input"
+                        style={{ minHeight: '80px' }}
+                        disabled={isSubmitting}
+                      />
+                    ) : (
+                      <input
+                        type={field.type as string}
+                        id={`profile-${field.name}`}
+                        name={field.name}
+                        value={field.value}
+                        onChange={(e) => setFormState(prev => ({ ...prev, [field.name]: e.target.value }))}
+                        className={`form-input ${errors[field.errorKey!] ? 'error' : ''}`}
+                        disabled={isSubmitting}
+                        aria-invalid={errors[field.errorKey!] ? "true" : "false"}
+                        aria-describedby={errors[field.errorKey!] ? `${field.name}Error` : undefined}
+                      />
+                    )}
+                    {field.errorKey && errors[field.errorKey] && <p id={`${field.name}Error`} role="alert" className="text-xs mt-1" style={{ color: 'var(--error)', fontSize: 'var(--font-size-xs)', marginTop: 'var(--space-1)' }}>{errors[field.errorKey]}</p>}
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
+
+          <details id="contact-info-section" className="group border-t" style={{ paddingTop: 'var(--space-4)', borderTopColor: 'var(--border-light)' }}>
+            <summary className="flex items-center justify-between cursor-pointer list-none rounded-md hover:bg-neutral-light/50 transition-colors" style={{ padding: 'var(--space-2)', marginLeft: 'calc(-1 * var(--space-2))' }}>
+              <h2 className="text-lg font-medium" style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-medium)', color: 'var(--text-primary)' }}>
+                ติดต่อ (แสดงในโปรไฟล์สาธารณะ)
+              </h2>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 transform transition-transform duration-200 group-open:rotate-90" style={{ color: 'var(--primary-blue)' }} viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+              </svg>
+            </summary>
+            <div style={{ marginTop: 'var(--space-3)', gap: 'var(--space-4)' }}>
+              <div>
+                <label htmlFor="profileMobile" className="form-label">เบอร์โทรศัพท์ <span style={{ color: 'var(--error)' }}>*</span></label>
+                <input
+                  type="tel"
+                  id="profileMobile"
+                  name="mobile"
+                  value={formState.mobile}
+                  onChange={e => setFormState(prev => ({ ...prev, mobile: e.target.value }))}
+                  className={`form-input ${errors.mobile ? 'error' : ''}`}
+                  aria-describedby={errors.mobile ? "mobile-error" : undefined}
+                  aria-invalid={errors.mobile ? "true" : "false"}
+                  disabled={isSubmitting}
+                />
+                {errors.mobile && <p id="mobile-error" role="alert" className="text-xs mt-1" style={{ color: 'var(--error)', fontSize: 'var(--font-size-xs)', marginTop: 'var(--space-1)' }}>{errors.mobile}</p>}
+              </div>
+
+              <div style={{ marginTop: 'var(--space-4)' }}>
+                <label htmlFor="profileLineId" className="form-label">LINE ID</label>
+                <input
+                  type="text"
+                  id="profileLineId"
+                  name="lineId"
+                  value={formState.lineId}
+                  onChange={e => setFormState(prev => ({ ...prev, lineId: e.target.value }))}
+                  className="form-input"
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div style={{ marginTop: 'var(--space-4)' }}>
+                <label htmlFor="profileFacebook" className="form-label">Facebook</label>
+                <input
+                  type="text"
+                  id="profileFacebook"
+                  name="facebook"
+                  value={formState.facebook}
+                  onChange={e => setFormState(prev => ({ ...prev, facebook: e.target.value }))}
+                  className="form-input"
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div style={{ marginTop: 'var(--space-4)' }}>
+                <label htmlFor="profileInstagram" className="form-label">Instagram</label>
+                <input
+                  type="text"
+                  id="profileInstagram"
+                  name="instagram"
+                  value={formState.instagram}
+                  onChange={e => setFormState(prev => ({ ...prev, instagram: e.target.value }))}
+                  className="form-input"
+                  disabled={!instagramCooldownInfo.canChange || isSubmitting}
+                  aria-describedby={!instagramCooldownInfo.canChange ? "instagramCooldownMessage" : undefined}
+                />
+                {!instagramCooldownInfo.canChange && instagramCooldownInfo.message && (
+                  <p id="instagramCooldownMessage" className="text-xs mt-1" style={{ color: 'var(--warning)', fontSize: 'var(--font-size-xs)', marginTop: 'var(--space-1)' }}>{instagramCooldownInfo.message}</p>
+                )}
+              </div>
+
+              <div style={{ marginTop: 'var(--space-4)' }}>
+                <label htmlFor="profileTiktok" className="form-label">TikTok</label>
+                <input
+                  type="text"
+                  id="profileTiktok"
+                  name="tiktok"
+                  value={formState.tiktok}
+                  onChange={e => setFormState(prev => ({ ...prev, tiktok: e.target.value }))}
+                  className="form-input"
+                  disabled={!tiktokCooldownInfo.canChange || isSubmitting}
+                  aria-describedby={!tiktokCooldownInfo.canChange ? "tiktokCooldownMessage" : undefined}
+                />
+                {!tiktokCooldownInfo.canChange && tiktokCooldownInfo.message && (
+                  <p id="tiktokCooldownMessage" className="text-xs mt-1" style={{ color: 'var(--warning)', fontSize: 'var(--font-size-xs)', marginTop: 'var(--space-1)' }}>{tiktokCooldownInfo.message}</p>
+                )}
+              </div>
             </div>
+          </details>
 
-            <div className="mt-4">
-            <label htmlFor="profileLineId" className="block text-sm font-sans font-medium text-neutral-dark mb-1">LINE ID</label>
-            <input
-                type="text"
-                id="profileLineId"
-                name="lineId"
-                value={formState.lineId}
-                onChange={e => setFormState(prev => ({ ...prev, lineId: e.target.value }))}
-                className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
-                placeholder="เช่น mylineid"
-                disabled={isSubmitting}
-            />
-            </div>
-
-            <div className="mt-4">
-            <label htmlFor="profileFacebook" className="block text-sm font-sans font-medium text-neutral-dark mb-1">Facebook</label>
-            <input
-                type="text"
-                id="profileFacebook"
-                name="facebook"
-                value={formState.facebook}
-                onChange={e => setFormState(prev => ({ ...prev, facebook: e.target.value }))}
-                className={`${inputBaseStyle} ${inputFocusStyle} focus:bg-gray-50`}
-                placeholder="ลิงก์โปรไฟล์ หรือชื่อผู้ใช้ Facebook"
-                disabled={isSubmitting}
-            />
-            </div>
-        </div>
-
-        {errors.general && <p className="text-red-500 font-sans text-sm text-center">{errors.general}</p>}
-        <div className="flex flex-col sm:flex-row gap-4 pt-4">
-          <Button type="submit" variant="primary" size="lg" className="w-full sm:w-auto flex-grow" disabled={isSubmitting}>
-            💾 บันทึกการเปลี่ยนแปลง
-          </Button>
-          <Button type="button" onClick={onCancel} variant="outline" colorScheme="primary" size="lg" className="w-full sm:w-auto flex-grow" disabled={isSubmitting}>
+          {errors.general && <p role="alert" className="text-sm text-center" style={{ color: 'var(--error)', fontSize: 'var(--font-size-sm)' }}>{errors.general}</p>}
+          <div className="flex flex-col sm:flex-row pt-4 gap-2 sm:gap-4" style={{ paddingTop: 'var(--space-4)' }}>
+            <Button type="submit" variant="primary" size="lg" className="w-full sm:w-auto flex-grow" disabled={isSubmitting}>
+              💾 บันทึก
+            </Button>
+            <Button type="button" onClick={onCancel} variant="outline" colorScheme="primary" size="lg" className="w-full sm:w-auto flex-grow" disabled={isSubmitting}>
               ยกเลิก
-          </Button>
-        </div>
-      </form>
-    </div>
+            </Button>
+          </div>
+        </form>
+      </main>
+      {currentUser && (
+        <VoiceRecordingModal
+          isOpen={isVoiceModalOpen}
+          onClose={() => setIsVoiceModalOpen(false)}
+          onSave={handleVoiceSave}
+          title="เพิ่มเสียงแนะนำตัว"
+        />
+      )}
+      <ConfirmModal
+        isOpen={isConfirmDeleteOpen}
+        onClose={() => setIsConfirmDeleteOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="ยืนยันการลบ"
+        message="คุณแน่ใจหรือไม่ว่าต้องการลบเสียงแนะนำตัวนี้? การกระทำนี้ไม่สามารถย้อนกลับได้"
+      />
+    </>
   );
 };

@@ -16,21 +16,23 @@ import {
   onSnapshot,
   query,
   orderBy,
+  deleteField,
 } from '@firebase/firestore';
 import { db } from '../firebaseConfig.ts';
-import type { HelperProfile, User, Province, JobSubCategory, PaginatedDocsResponse, Cursor, JobCategory } from '../types/types.ts';
-import { logFirebaseError } from '../firebase/logging';
+import type { HelperProfile, User, Province, JobSubCategory, PaginatedDocsResponse, Cursor, JobCategory, GenderOption, HelperEducationLevelOption } from '../types/types.ts';
+import { logFirebaseError } from '../firebase/logging.ts';
 import { convertTimestamps, cleanDataForFirestore } from './serviceUtils';
 import { filterListingsService } from './searchService.ts';
+import { uploadAudioService, deleteFileService } from './storageService.ts';
 
 
 const HELPER_PROFILES_COLLECTION = 'helperProfiles';
 const USERS_COLLECTION = 'users';
 
-type HelperProfileFormData = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt'>;
+type HelperProfileFormData = Omit<HelperProfile, 'id' | 'postedAt' | 'userId' | 'authorDisplayName' | 'isSuspicious' | 'isPinned' | 'isUnavailable' | 'contact' | 'gender' | 'birthdate' | 'educationLevel' | 'adminVerifiedExperience' | 'interestedCount' | 'ownerId' | 'createdAt' | 'updatedAt' | 'expiresAt' | 'isExpired' | 'lastBumpedAt' | 'serviceVoiceIntroUrl'>;
 interface HelperProfileAuthorInfo { userId: string; authorDisplayName: string; contact: string; gender: User['gender']; birthdate: User['birthdate']; educationLevel: User['educationLevel']; }
 
-export const addHelperProfileService = async (profileData: HelperProfileFormData, author: HelperProfileAuthorInfo): Promise<string> => {
+export const addHelperProfileService = async (profileData: HelperProfileFormData, author: HelperProfileAuthorInfo, audioBlob: Blob | null): Promise<string> => {
   try {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
@@ -54,6 +56,11 @@ export const addHelperProfileService = async (profileData: HelperProfileFormData
       lastBumpedAt: null as any,
     };
     const docRef = await addDoc(collection(db, HELPER_PROFILES_COLLECTION), cleanDataForFirestore(newProfileDoc as Record<string, any>));
+    
+    if (audioBlob) {
+        const audioUrl = await uploadAudioService(`serviceVoiceIntros/${docRef.id}.webm`, audioBlob);
+        await updateDoc(docRef, { serviceVoiceIntroUrl: audioUrl });
+    }
 
     await updateDoc(doc(db, USERS_COLLECTION, author.userId), {
       'postingLimits.lastHelperProfileDate': serverTimestamp()
@@ -65,10 +72,27 @@ export const addHelperProfileService = async (profileData: HelperProfileFormData
   }
 };
 
-export const updateHelperProfileService = async (profileId: string, profileData: Partial<HelperProfileFormData>, contact: string): Promise<boolean> => {
+export const updateHelperProfileService = async (profileId: string, profileData: Partial<HelperProfileFormData>, contact: string, audioBlob: Blob | null | undefined): Promise<boolean> => {
   try {
-    const dataToUpdate = { ...profileData, contact, updatedAt: serverTimestamp() as any };
-    await updateDoc(doc(db, HELPER_PROFILES_COLLECTION, profileId), cleanDataForFirestore(dataToUpdate as Record<string, any>));
+    const dataToUpdate: Record<string, any> = { ...profileData, contact, updatedAt: serverTimestamp() as any };
+    const docRef = doc(db, HELPER_PROFILES_COLLECTION, profileId);
+    
+    if (audioBlob === null || audioBlob) {
+        const existingSnap = await getDoc(docRef);
+        const oldUrl = existingSnap.data()?.serviceVoiceIntroUrl;
+        if (oldUrl) {
+            await deleteFileService(oldUrl);
+        }
+    }
+    
+    if (audioBlob) {
+        const audioUrl = await uploadAudioService(`serviceVoiceIntros/${profileId}.webm`, audioBlob);
+        dataToUpdate.serviceVoiceIntroUrl = audioUrl;
+    } else if (audioBlob === null) {
+        dataToUpdate.serviceVoiceIntroUrl = deleteField();
+    }
+    
+    await updateDoc(docRef, cleanDataForFirestore(dataToUpdate));
     return true;
   } catch (error: any) {
     logFirebaseError("updateHelperProfileService", error);
@@ -95,7 +119,12 @@ export const bumpHelperProfileService = async (profileId: string, userId: string
 
 export const deleteHelperProfileService = async (profileId: string): Promise<boolean> => {
   try {
-    await deleteDoc(doc(db, HELPER_PROFILES_COLLECTION, profileId));
+    const docRef = doc(db, HELPER_PROFILES_COLLECTION, profileId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists() && docSnap.data().serviceVoiceIntroUrl) {
+        await deleteFileService(docSnap.data().serviceVoiceIntroUrl);
+    }
+    await deleteDoc(docRef);
     return true;
   } catch (error: any) {
     logFirebaseError("deleteHelperProfileService", error);

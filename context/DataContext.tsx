@@ -10,8 +10,7 @@ interface DataContextType {
   userInterests: Interest[];
   userSavedPosts: string[];
   userSavedBlogPosts: string[];
-  isLoadingInteractions: boolean;
-  isLoadingVouchReports: boolean;
+  isLoading: boolean;
   optimisticallyToggleInterest: (targetId: string, targetType: 'job' | 'helperProfile') => void;
   optimisticallyToggleSavedPost: (postId: string) => void;
 }
@@ -28,6 +27,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userInterests, setUserInterests] = useState<Interest[]>([]);
   const userSavedPosts = useMemo(() => currentUser?.savedWebboardPosts || [], [currentUser]);
   const userSavedBlogPosts = useMemo(() => currentUser?.savedBlogPosts || [], [currentUser]);
+
+  const isLoading = isLoadingInteractions || isLoadingVouchReports;
 
   useEffect(() => {
     const unsubscribeInteractions = subscribeToInteractionsService((data) => {
@@ -107,8 +108,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     userInterests,
     userSavedPosts,
     userSavedBlogPosts,
-    isLoadingInteractions,
-    isLoadingVouchReports,
+    isLoading,
     optimisticallyToggleInterest,
     optimisticallyToggleSavedPost,
   }), [
@@ -117,8 +117,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     userInterests,
     userSavedPosts,
     userSavedBlogPosts,
-    isLoadingInteractions,
-    isLoadingVouchReports,
+    isLoading,
     optimisticallyToggleInterest,
     optimisticallyToggleSavedPost,
   ]);
